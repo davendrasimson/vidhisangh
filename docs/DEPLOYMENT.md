@@ -39,6 +39,12 @@ itself. Verify with `dig @203.193.166.109 google.com` → must be `REFUSED`.
 
 **Bump the SOA serial on every zone edit**, then `sudo rndc reload vidhisangh.com`.
 
+Mail records in the zone (added 27 Sep 2026): `MX 10 mx1.titan.email.` (Titan
+hosts the mailboxes; add `MX 20 mx2.titan.email.` if Titan lists it), SPF
+`v=spf1 -all`, DMARC `p=reject`. **Before sending mail from Titan** change SPF to
+`v=spf1 include:spf.titan.email -all` and add Titan's DKIM TXT record, otherwise
+receivers reject outbound mail under the current DMARC policy.
+
 > **Single point of failure:** ns1 and ns2 are the same machine. If it goes down
 > the domain stops resolving entirely — not just the website. A second nameserver
 > on separate infrastructure (a secondary/slave zone) is the fix, and needs a
