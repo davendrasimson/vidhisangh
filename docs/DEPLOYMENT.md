@@ -10,8 +10,10 @@ ssh vidhisangh          # ~/.ssh/config alias → ubuntu@203.193.166.109
                         # key: ~/.ssh/id_ed25519_vidhisangh (no passphrase)
 ```
 
-Password auth still works on the server. Once you are happy with key access,
-consider `PasswordAuthentication no` in `/etc/ssh/sshd_config`.
+Since 27 Sep 2026 SSH is **keys only, no root login** (drop-in
+`/etc/ssh/sshd_config.d/00-hardening.conf`, which must sort before
+`50-cloud-init.conf`; fail2ban guards the sshd jail). Lose the key = console
+access via the hosting provider only, so keep a copy off the laptop.
 
 ## Layout
 

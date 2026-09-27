@@ -2,7 +2,9 @@
 
 > **New machine / new session? START HERE.** This file is auto-loaded by Claude Code.
 > The per-machine `.claude` memory does **not** travel with this folder, so the full
-> project state now lives in-repo. Read these three, in order, before doing anything:
+> project state now lives in-repo. **Taking over from another session or tool? Read
+> [docs/HANDOVER.md](docs/HANDOVER.md) first** (state as of the last hand-off, prod
+> access, open items in priority order). Then these three, in order:
 > 1. [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) — everything that is **built** (the source of truth).
 > 2. [docs/FUTURE_DELIVERABLES.md](docs/FUTURE_DELIVERABLES.md) — everything **to do** (deferred/parked work + why).
 > 3. [docs/ROADMAP.md](docs/ROADMAP.md) — phase-by-phase plan with ✅/🚧/⬜ status.
