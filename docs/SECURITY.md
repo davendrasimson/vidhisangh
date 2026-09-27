@@ -36,7 +36,7 @@ Legend: ✅ implemented (evidence cited) · 🟡 partial (what exists and what d
 | Repositories also filter by `tenant_id` explicitly (defence in depth; holds on SQLite tests) | ✅ | e.g. `modules/clients/repository.py`, `modules/privacy/service.py` `RightsRequestService` |
 | Object-level checks on matters, documents, portal | ✅ | `modules/matters/service.py`, `modules/documents/service.py`, `modules/portal/service.py` `resolve` |
 | LIKE/ILIKE wildcard escaping on user-supplied search | ✅ | `core/db_utils.py` `escape_like`, used in `modules/clients/repository.py` |
-| Startup assertion that the DB role is not superuser/BYPASSRLS | ⬜ | Not implemented — audit A-14; see *Known gaps* |
+| Startup assertion that the DB role is not superuser/BYPASSRLS | ✅ | `core/startup_checks.py` `assert_database_role_safe`, called from `main.py` before serving production traffic |
 
 ## 3. Data protection (at rest, in transit, in logs)
 
@@ -53,10 +53,10 @@ Legend: ✅ implemented (evidence cited) · 🟡 partial (what exists and what d
 | Delivery-log rows carry masked e-mail addresses | ✅ | `modules/notifications/service.py` `mask_emails` |
 | Validation errors return only `loc/msg/type` (+ scalar `ctx`) — never `input` or `url` | ✅ | `core/exceptions.py` `_public_validation_error`; `tests/test_privacy.py::test_validation_errors_do_not_echo_input` |
 | Security headers on API responses (nosniff, XFO DENY, Referrer-Policy, Permissions-Policy, strict CSP, HSTS in production) | ✅ | `middleware/context.py` `SecurityHeadersMiddleware` |
-| TLS termination, HSTS/CSP on the SPA | 🟡 | Terminated at nginx (`infra/nginx/`). The audit found the committed config drifted from production and dropped headers in `location` blocks (I-2, I-3, A-15) — verify the infra agent's committed config before claiming |
-| Encrypted object storage (S3 SSE) / disk encryption | ⬜ | Only `local` and `memory` backends exist (`core/storage.py`); local is refused without `VS_STORAGE_DIR`. Disk/volume encryption is a hosting task (I-5, A-13) |
+| TLS termination, HSTS/CSP on the SPA | ✅ | `infra/nginx/vidhisangh.conf` includes `snippets/vidhisangh-{headers,tls,proxy}.conf` in every applicable location; production verification is in `DEPLOYMENT.md` |
+| Encrypted object storage (S3 SSE) / disk encryption | 🟡 | `core/storage.py` provides S3 with SSE-S3/SSE-KMS and refuses unsafe production storage; the configured production volume/bucket and key custody remain hosting controls (I-5, A-13) |
 | KMS-managed data keys | ⬜ | Keys derive from `VS_SECRET_KEY` / `VS_FIELD_ENCRYPTION_KEYS`; `core/crypto.py` is the swap point |
-| Database TLS / statement timeouts | ⬜ | `core/database.py` sets neither (A-29) |
+| Database TLS / statement timeouts | ✅ | `core/database.py` `_connect_args`, `_configure_connection` and `statement_timeout_ms` |
 
 ## 4. Privacy programme (DPDP Act 2023)
 
@@ -74,9 +74,9 @@ Legend: ✅ implemented (evidence cited) · 🟡 partial (what exists and what d
 | Grievance officer published (s.8(9), s.13) | ✅ | `privacy/config.py` `GRIEVANCE_OFFICER_*`; `/privacy` page and KYC form |
 | Retention schedule enforced by a nightly purge (oauth states, passkey challenges, revoked sessions, used backup codes, deleted documents + bytes, deleted drafts, notifications, delivery log, cancelled tenants) | ✅ | `app/scripts/retention_purge.py` `PURGES`; `privacy/retention.py`; `infra/jobs/vidhisangh-retention.{service,timer}`; `tests/test_privacy.py::test_retention_purges_are_idempotent` |
 | Transfers / sub-processors declared | ✅ | `docs/PRIVACY_NOTICE.md` §6; `privacy/service.py` `SUB_PROCESSORS` |
-| Directory listing opt-out (s.6(4)) | 🟡 | Settings → Privacy & data toggles `PATCH /network/me/visibility` (access agent's endpoint); verify `network/router.py` before claiming |
-| Breach notification runbook (s.8(6)) | ⬜ | No runbook; security events are now audited (see §5) which is a prerequisite |
-| Lawful-basis field on matter parties and leads | ⬜ | Requested columns listed in the remediation report; not yet on `matter_parties`/`leads` |
+| Directory listing opt-in / withdrawal (s.6(4)) | ✅ | New identities default to `discoverable=false`; Settings → Privacy & data calls `PATCH /network/me/visibility`; `network/repository.py` filters the directory |
+| Breach notification runbook (s.8(6)) | ✅ | `docs/INCIDENT_RESPONSE.md`; security events and decisions are retained in the audit log |
+| Lawful-basis field on matter parties and leads | ✅ | migration `0051_lawful_basis`; `matters/models.py`, `crm/models.py` and their schemas/services |
 
 ## 5. Audit, logging, monitoring
 
@@ -85,7 +85,7 @@ Legend: ✅ implemented (evidence cited) · 🟡 partial (what exists and what d
 | Structured logs with request id, method and (masked) path | ✅ | `core/logging.py`, `middleware/context.py` |
 | Tenant-scoped audit events for privileged actions incl. security events (register, login, lockout, MFA, password, erasure, exports, tenant cancellation) | ✅ | `modules/audit/service.py` `record_audit`; call sites in `identity/service.py` (`_audit`), `clients/service.py`, `privacy/service.py`, `tenancy/router.py` |
 | Audit log tamper evidence (hash chain, verify endpoint) | ✅ | `modules/audit/router.py` `GET /admin/audit/verify` (`ChainStatus`) |
-| Audit table append-only at the database level | 🟡 | Check `alembic/versions/0048_*` for the `REVOKE UPDATE, DELETE` / trigger; `client_consent_events` has the revoke in `0049_privacy.py` |
+| Audit table append-only at the database level | ✅ | `0048_access_control.py` revokes mutation; `0052_audit_purge_guard.py` permits deletion only for the controlled tenant-retention transaction |
 | Prometheus metrics, health/readiness probes | ✅ | `main.py` (`/metrics`, `/health`, `/ready`); `core/ratelimit.py` `RATELIMIT_FALLBACK` |
 | Central log aggregation, alerting, anomaly detection | ⬜ | Deployment concern; nothing in the repo |
 
@@ -99,7 +99,7 @@ Legend: ✅ implemented (evidence cited) · 🟡 partial (what exists and what d
 | API versioning (`/api/v1`) | ✅ | `core/config.py` `API_V1_PREFIX`; `api/v1/router.py` |
 | CORS allow-list required in production | ✅ | `core/config.py` `assert_production_ready` |
 | Bearer-token auth (no cookies) → no CSRF surface today | ✅ | `core/deps.py` `HTTPBearer` |
-| Upload size caps, content-type sniffing, RFC 6266 filenames | ⬜ | Audit A-22; not in `documents/router.py` |
+| Upload size caps, content-type sniffing, RFC 6266 filenames | ✅ | `core/uploads.py`, `core/http_utils.py`, `documents/router.py`; nginx/Ingress enforce the matching 25 MiB cap |
 | Dependency pinning / SCA / SAST / CI | ✅ | `.github/workflows/ci.yml` (ruff, mypy, pytest+coverage, `ng build`, pip-audit, npm audit, gitleaks, trivy, SBOM), `codeql.yml`, `dependabot.yml`, `.pre-commit-config.yaml`; `backend/requirements.lock` hash-pinned; `pip-audit` and `npm audit --omit=dev` clean on 27 Sep 2026 (A-12, A-30). Branch protection must be enabled on the remote by the repo owner |
 
 ## 7. Secrets and configuration
@@ -116,21 +116,20 @@ Legend: ✅ implemented (evidence cited) · 🟡 partial (what exists and what d
 
 | Control | Status | Evidence |
 |---|:--:|---|
-| Database and object-store backups, restore drills | ⬜ | Nothing in the repository; the audit found none on the production host (I-1). Hosting/infra task |
+| Database and object-store backups, restore drills | 🟡 | `infra/jobs/backup-db.*` and `restore-db.sh`; nightly encrypted local backups are deployed. Off-host destination and a recorded restore drill remain open |
 
 ## Known gaps (tracked against the audit)
 
 Items the audit raised that this repository does **not** yet close. Status is maintained in [`SECURITY_AUDIT_2026-09.md`](SECURITY_AUDIT_2026-09.md) and `FUTURE_DELIVERABLES.md`:
 
-- **I-1 backups**, **I-5 disk encryption**, **I-4 SSH hardening**, **I-9 SPF/DKIM/DMARC**, **I-11 secondary DNS**, **I-12/13/14** — production host work, outside the repo.
-- **A-13 / P-8** encrypted object storage — no S3 backend exists; local storage is refused in production without an explicit directory, but bytes on disk are not encrypted by the application.
-- **A-14** boot-time assertion that the DB role is not superuser/BYPASSRLS.
-- **A-22** upload caps/type sniffing; **A-29** DB TLS and statement timeouts; **A-31** unbounded fields.
-- **P-6 / s.8(6)** breach-notification runbook and alerting (security events are now audited; alerting is not).
-- **P-5 (parties/leads)** `lawful_basis` column on `matter_parties` and `leads` — columns specified, not yet added.
-- **P-10** directory opt-*in* default — the toggle exists; the default for new sign-ups is still listed.
-- **Frontend re-prompt** when `terms_version` on `/auth/me` differs from `GET /privacy/notice` — TODO in the SPA.
-- **ISMS documents** (risk register, policies, supplier management, incident response) — none in the repository; ISO 27001 / SOC 2 readiness is not claimed.
+- **I-1 / I-5 / I-11 / I-13** off-host backups, disk encryption, independent secondary DNS and SNMPv3/disablement — production infrastructure work.
+- **I-1** off-host backup destination and recorded restore exercise; encrypted same-host backups and restore tooling are deployed.
+- **I-5 / A-13 / P-8** production volume or S3 SSE-KMS configuration and external key custody; the S3/SSE implementation and production storage gate are built.
+- **I-11 / I-13** independent secondary DNS and SNMPv3/disablement.
+- **P-1 / P-17** appoint the named Grievance Officer and have Indian privacy counsel approve the published legal text.
+- **Notification delivery** configure SMTP, DKIM and matching SPF; the in-product/log delivery seam is not external delivery.
+- **Security assurance** independent penetration test/DAST, malware scanning and central security alerting.
+- **ISMS/PIMS operation** risk register, policy ownership, supplier review, staff training, internal audit, management review and accredited certification where desired. The controls are aligned; certification is not claimed.
 
 ## Reporting
 

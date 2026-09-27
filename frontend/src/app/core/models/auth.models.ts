@@ -45,6 +45,8 @@ export interface User {
   is_superuser: boolean;
   mfa_enabled: boolean;
   password_must_change?: boolean;
+  terms_version: string | null;
+  terms_accepted_at: string | null;
   last_login_at: string | null;
   roles: Role[];
 }

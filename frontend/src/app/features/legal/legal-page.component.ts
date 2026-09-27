@@ -40,6 +40,7 @@ export interface PrivacyNoticeFacts {
           <nav class="ml-auto flex gap-4 text-sm">
             <a routerLink="/privacy" class="text-brand">Privacy notice</a>
             <a routerLink="/terms" class="text-brand">Terms</a>
+            <a routerLink="/trust" class="text-brand">Trust</a>
             <a routerLink="/auth/login" class="text-content-muted">Sign in</a>
           </nav>
         </div>

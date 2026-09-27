@@ -269,7 +269,7 @@ async def test_kyc_tokens_are_hashed(client: AsyncClient, strong_password: str, 
 
 
 # ═══ A-11: refresh cookie + CSRF header ══════════════════════════════
-async def test_refresh_token_is_set_as_httponly_cookie_and_usable(client: AsyncClient, strong_password: str) -> None:
+async def test_refresh_token_is_cookie_only_and_usable(client: AsyncClient, strong_password: str) -> None:
     resp = await client.post(f"{API}/auth/register", json={
         "organisation_name": "Cookie LLP", "full_name": "Adv. C", "email": "cookie@firm.co",
         "password": strong_password, "accept_terms": True})
@@ -279,20 +279,15 @@ async def test_refresh_token_is_set_as_httponly_cookie_and_usable(client: AsyncC
     assert "httponly" in raw_cookie.lower() and f"path={API}/auth" in raw_cookie.lower()
     assert "samesite=strict" in raw_cookie.lower()
     first = client.cookies.get(settings.REFRESH_COOKIE_NAME)
-    assert first == resp.json()["refresh_token"]
+    assert first and resp.json()["refresh_token"] is None
 
     # Cookie-based refresh needs the custom header (CSRF defence)…
     assert (await client.post(f"{API}/auth/refresh", json={})).status_code == 403
     # …and works with it, rotating the cookie.
     ok = await client.post(f"{API}/auth/refresh", json={}, headers=CSRF)
     assert ok.status_code == 200, ok.text
-    assert client.cookies.get(settings.REFRESH_COOKIE_NAME) == ok.json()["refresh_token"] != first
-
-    # Legacy body token still works without the header (old tabs).
-    client.cookies.clear()
-    legacy = await client.post(f"{API}/auth/refresh", json={"refresh_token": ok.json()["refresh_token"]})
-    assert legacy.status_code == 200
-    assert client.cookies.get(settings.REFRESH_COOKIE_NAME)  # the cookie is (re)issued every time
+    assert ok.json()["refresh_token"] is None
+    assert client.cookies.get(settings.REFRESH_COOKIE_NAME) != first
     client.cookies.clear()
     assert (await client.post(f"{API}/auth/refresh", json={})).status_code == 401  # nothing presented
 
@@ -302,7 +297,8 @@ async def test_refresh_token_can_be_kept_out_of_the_body(client: AsyncClient, st
     tokens = await _register(client, "nobody@firm.co", strong_password)
     assert tokens["refresh_token"] is None
     assert client.cookies.get(settings.REFRESH_COOKIE_NAME)
-    assert (await client.post(f"{API}/auth/refresh", json={}, headers=CSRF)).status_code == 200
+    refreshed = await client.post(f"{API}/auth/refresh", json={}, headers=CSRF)
+    assert refreshed.status_code == 200 and refreshed.json()["refresh_token"] is None
 
 
 async def test_logout_uses_cookie_or_rtid_and_reports_nothing_to_revoke(client: AsyncClient, strong_password: str) -> None:
@@ -660,17 +656,14 @@ async def test_ws_ticket_is_single_use_and_checks_the_account(client: AsyncClien
     assert issued.status_code == 200 and issued.json()["expires_in"] == settings.WS_TICKET_TTL_SECONDS
     ticket = issued.json()["ticket"]
     assert "." not in ticket  # opaque, not a JWT
-    claims = await authenticate_handshake(None, ticket=ticket, token=None)
+    claims = await authenticate_handshake(None, ticket=ticket)
     assert claims and claims["sub"]
     assert await redeem_ws_ticket(ticket) is None  # consumed
-    assert await authenticate_handshake(None, ticket="nonsense", token=None) is None
-    # Deprecated ?token= still works for this release.
-    assert await authenticate_handshake(None, ticket=None, token=tokens["access_token"]) is not None
+    assert await authenticate_handshake(None, ticket="nonsense") is None
     # …but not after "sign out everywhere" (denylist) — same for a ticket minted before it.
     ticket2 = (await client.post(f"{API}/auth/ws-ticket", headers=h)).json()["ticket"]
     assert (await client.post(f"{API}/auth/logout", json={"all_devices": True}, headers=h)).status_code == 204
-    assert await authenticate_handshake(None, ticket=ticket2, token=None) is None
-    assert await authenticate_handshake(None, ticket=None, token=tokens["access_token"]) is None
+    assert await authenticate_handshake(None, ticket=ticket2) is None
 
 
 async def test_ws_ticket_falls_back_to_signed_jwt_without_redis(client: AsyncClient, strong_password: str, monkeypatch) -> None:

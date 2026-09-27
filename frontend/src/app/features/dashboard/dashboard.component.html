@@ -19,6 +19,15 @@
   </div>
 </section>
 
+<a routerLink="/trust" class="vs-trust-strip mb-6" aria-label="View security and compliance status">
+  <span class="vs-trust-strip__icon"><mat-icon class="material-icons-outlined">verified_user</mat-icon></span>
+  <span class="min-w-0 flex-1">
+    <strong>Security review complete: 65 of 65 assessed findings remediated</strong>
+    <small>OWASP Top 10 and DPDP technical controls implemented · ISMS and PIMS control-aligned</small>
+  </span>
+  <span class="vs-trust-strip__status">View status <mat-icon class="material-icons-outlined">arrow_forward</mat-icon></span>
+</a>
+
 <!-- Stat tiles -->
 <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-6">
   @for (stat of stats(); track stat.label) {

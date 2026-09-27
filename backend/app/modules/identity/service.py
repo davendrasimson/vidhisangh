@@ -198,6 +198,20 @@ class AuthService:
         pair = await self._issue_token_pair(user, ip=ip, user_agent=user_agent, label="signup")
         return user, pair
 
+    async def accept_current_terms(self, user: User) -> User:
+        """Record an explicit acceptance of the currently published legal terms."""
+        previous = user.terms_version
+        user.terms_version = _current_terms_version()
+        user.terms_accepted_at = datetime.now(UTC)
+        self._audit(
+            user,
+            "privacy.terms_accepted",
+            f"Accepted Terms and Privacy Notice version {user.terms_version}",
+            meta={"previous_version": previous, "accepted_version": user.terms_version},
+        )
+        await self.session.flush()
+        return user
+
     # ─── Email verification ─────────────────────────────────────────
     async def send_email_verification(self, user: User) -> str:
         """Issue a fresh verification token and email the link. Returns the raw

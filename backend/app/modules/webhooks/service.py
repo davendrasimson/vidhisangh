@@ -14,7 +14,6 @@ Each request carries::
     X-VidhiSangh-Event:            <event key>
     X-VidhiSangh-Timestamp:        <unix seconds>
     X-VidhiSangh-Signature:        t=<unix seconds>,v1=<hex hmac-sha256>
-    X-VidhiSangh-Signature-Legacy: <hex hmac-sha256 over the body only>
 
 ``v1`` is ``HMAC_SHA256(secret, f"{t}.{body}")``. Receivers must recompute it
 over the raw body, compare in constant time and **reject requests whose ``t`` is
@@ -76,11 +75,6 @@ def sign_payload(secret: str, timestamp: int, body: bytes) -> str:
     return hmac.new(secret.encode(), f"{timestamp}.".encode() + body, hashlib.sha256).hexdigest()
 
 
-def sign_payload_legacy(secret: str, body: bytes) -> str:
-    """Body-only HMAC (previous scheme, kept for one release)."""
-    return hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
-
-
 def verify_signature(
     secret: str, header: str, body: bytes, *, now: int | None = None,
     tolerance: int = SIGNATURE_TOLERANCE_SECONDS,
@@ -106,7 +100,6 @@ def _headers(endpoint: WebhookEndpoint, event_type: str, body: bytes) -> dict[st
         "X-VidhiSangh-Event": event_type,
         "X-VidhiSangh-Timestamp": str(ts),
         "X-VidhiSangh-Signature": f"t={ts},v1={sign_payload(endpoint.secret, ts, body)}",
-        "X-VidhiSangh-Signature-Legacy": sign_payload_legacy(endpoint.secret, body),
     }
 
 

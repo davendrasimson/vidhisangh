@@ -594,7 +594,7 @@ keep working) and nulls the clear-text column.
 | `VS_REGISTER_RATE_LIMIT_PER_MINUTE` | `5` | Sign-ups per IP (also throttles the 409 email-exists oracle, which is kept by product decision). |
 | `VS_MFA_RATE_LIMIT_PER_MINUTE` `VS_PUBLIC_TOKEN_RATE_LIMIT_PER_MINUTE` `VS_LINK_PREVIEW_RATE_LIMIT_PER_MINUTE` `VS_UPLOAD_RATE_LIMIT_PER_MINUTE` `VS_WS_HANDSHAKE_RATE_LIMIT_PER_MINUTE` | 10 / 30 / 20 / 30 / 30 | Defaults are fine. |
 | `VS_LOGIN_MAX_FAILED_ATTEMPTS` / `VS_LOGIN_LOCKOUT_MINUTES` | 5 / 15 | Lockout now actually persists (the counter is committed before the 401). |
-| `VS_REFRESH_TOKEN_IN_BODY` | `true` | Leave `true` until every browser has loaded the new SPA (it still returns the refresh token in JSON for old tabs), then set `false` so it travels only in the cookie. |
+| `VS_REFRESH_TOKEN_IN_BODY` | `false` | Keep `false` for browser sessions so refresh tokens travel only in the HttpOnly cookie. Enable only for a separately reviewed non-browser client. |
 | `VS_REFRESH_COOKIE_NAME` | `vs_refresh` | — |
 | `VS_INVITES_RETURN_TEMP_PASSWORD` | `false` | Keep `false`: admins get an invitation link (7 days) instead of a temporary password. |
 | `VS_INVITE_TOKEN_EXPIRE_DAYS` / `VS_PASSWORD_RESET_EXPIRE_MINUTES` / `VS_EMAIL_VERIFICATION_EXPIRE_HOURS` | 7 / 30 / 48 | — |
@@ -616,8 +616,8 @@ keep working) and nulls the clear-text column.
 - **Refresh token is an HttpOnly cookie** (`vs_refresh`, `Path=/api/v1/auth`,
   `SameSite=Strict`, `Secure` outside `local`). `/auth/refresh` and `/auth/logout`
   read it when the JSON body carries no token and then require the header
-  `X-Requested-With: VidhiSangh` (CSRF). The SPA no longer stores the refresh token
-  in localStorage; a token left by the old SPA is sent once and removed.
+  `X-Requested-With: VidhiSangh` (CSRF). The SPA does not store or migrate refresh
+  tokens through localStorage.
 - **Logout** clears the cookie, every CacheStorage cache, all `vs.*` /
   `vidhisangh-*` localStorage keys, and broadcasts to other tabs. It returns 400
   (`nothing_revoked`) when no session matched.
@@ -651,8 +651,7 @@ keep working) and nulls the clear-text column.
   in `oauth_identities` and matched by email only on first link.
 - **WebSocket:** clients call `POST /auth/ws-ticket` and connect with `?ticket=`
   (60 s, single use, Redis-backed; signed 60 s JWT fallback without Redis).
-  `?token=` still works this release and logs `ws_token_query_deprecated` — remove
-  it next release.
+  Access tokens are never accepted in WebSocket URLs.
 - **Audit trail:** `auth.registered`, `auth.login`, `auth.login_failed`,
   `auth.lockout`, `auth.logout`, `auth.refresh_reuse`, `auth.password_changed`,
   `auth.password_reset_requested`, `auth.password_reset`, `auth.invite_accepted`,

@@ -61,7 +61,7 @@ class TenantPrivacySettings(BaseModel):
 
 class TenantPrivacySettingsRead(TenantPrivacySettings):
     matter_retention_years: int = 8
-    directory_listing_default: bool = True
+    directory_listing_default: bool = False
     dpa_version: str
     processor_name: str = "VidhiSangh"
     sub_processors: list[str]

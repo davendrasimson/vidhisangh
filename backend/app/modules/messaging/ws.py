@@ -5,9 +5,8 @@ Messages are still *sent* over REST (validated, persisted); this socket only
 
 Authentication (audit A-26): the client first calls ``POST /auth/ws-ticket``
 and connects with ``?ticket=`` — a 60-second, single-use opaque ticket, so the
-long-lived access token never appears in a URL or an access log. ``?token=``
-(the access token itself) is still accepted for one release with a deprecation
-warning. Before accepting, the handshake is throttled per IP and the user is
+long-lived access token never appears in a URL or an access log. Before
+accepting, the handshake is throttled per IP and the user is
 checked to be active and not on the revocation denylist.
 """
 
@@ -24,7 +23,6 @@ from app.core.deps import client_ip
 from app.core.exceptions import RateLimitError
 from app.core.ratelimit import ws_handshake_rate_limit
 from app.core.revocation import revoked_epoch
-from app.core.security import TokenType, decode_token
 from app.core.ws_tickets import redeem_ws_ticket
 from app.modules.identity.repository import UserRepository
 from app.modules.messaging.realtime import manager
@@ -78,22 +76,11 @@ async def _user_may_connect(user_id: uuid.UUID, tenant: str | None, token_epoch:
         return tenant is None or str(user.tenant_id) == tenant
 
 
-async def authenticate_handshake(
-    websocket: WebSocket, *, ticket: str | None, token: str | None
-) -> dict | None:
+async def authenticate_handshake(websocket: WebSocket, *, ticket: str | None) -> dict | None:
     """Resolve the handshake credential to claims, or ``None`` when rejected."""
     payload: dict | None = None
     if ticket:
         payload = await redeem_ws_ticket(ticket)
-    elif token:
-        log.warning(
-            "ws_token_query_deprecated",
-            detail="?token= on the WebSocket URL is deprecated; use POST /auth/ws-ticket and ?ticket=",
-        )
-        try:
-            payload = decode_token(token, expected_type=TokenType.ACCESS)
-        except Exception:  # noqa: BLE001
-            payload = None
     if not payload or not payload.get("sub"):
         return None
     try:
@@ -109,7 +96,6 @@ async def authenticate_handshake(
 async def messaging_ws(
     websocket: WebSocket,
     ticket: str | None = Query(default=None),
-    token: str | None = Query(default=None),
 ) -> None:
     try:
         await ws_handshake_rate_limit.check(client_ip(websocket))
@@ -119,7 +105,7 @@ async def messaging_ws(
     except Exception:  # noqa: BLE001 - limiter outage never blocks a socket (fail-open scope)
         pass
 
-    payload = await authenticate_handshake(websocket, ticket=ticket, token=token)
+    payload = await authenticate_handshake(websocket, ticket=ticket)
     if payload is None:
         await websocket.close(code=4401)
         return

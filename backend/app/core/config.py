@@ -111,10 +111,10 @@ class Settings(BaseSettings):
     # rotated is a client race (two tabs booting, a reload mid-rotation), not
     # theft: it gets a fresh pair. Beyond it, reuse revokes every session.
     REFRESH_REUSE_GRACE_SECONDS: int = 60
-    # Also return the refresh token in the JSON body (legacy clients that store
-    # it themselves). The HttpOnly cookie is always set; flip this to false once
-    # every deployed client uses the cookie.
-    REFRESH_TOKEN_IN_BODY: bool = True
+    # The HttpOnly cookie is always set. Browser sessions keep refresh tokens
+    # exclusively there; body delivery may be enabled only for a separately
+    # reviewed non-browser client.
+    REFRESH_TOKEN_IN_BODY: bool = False
     REFRESH_COOKIE_NAME: str = "vs_refresh"
     PASSWORD_MIN_LENGTH: int = 8
     MFA_ISSUER: str = "VidhiSangh"

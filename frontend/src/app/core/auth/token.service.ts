@@ -14,8 +14,6 @@ interface AccessClaims {
   pmc?: boolean;
 }
 
-/** Legacy key (pre 2026-09): the refresh token used to live in localStorage. */
-const LEGACY_REFRESH_KEY = 'vs.refresh';
 /** Non-secret marker: "this browser has a session cookie worth trying". */
 const SESSION_KEY = 'vs.session';
 
@@ -30,8 +28,6 @@ export const APP_STORAGE_PREFIXES = ['vs.', 'vidhisangh-'];
  *   API's `/auth` path — set and rotated by the server, invisible to scripts.
  *   The only thing stored here is a marker saying a session may exist, so a
  *   fresh tab knows whether to attempt a silent refresh.
- * - A refresh token left in localStorage by the previous release is sent once
- *   (the API still accepts it in the body) and then removed.
  */
 @Injectable({ providedIn: 'root' })
 export class TokenService {
@@ -40,20 +36,9 @@ export class TokenService {
   /** True when a refresh cookie was issued to this browser (best knowledge). */
   get hasSession(): boolean {
     try {
-      return localStorage.getItem(SESSION_KEY) === '1' || !!localStorage.getItem(LEGACY_REFRESH_KEY);
+      return localStorage.getItem(SESSION_KEY) === '1';
     } catch {
       return false;
-    }
-  }
-
-  /** Pre-2026-09 refresh token, if this browser still has one (migration only). */
-  takeLegacyRefreshToken(): string | null {
-    try {
-      const legacy = localStorage.getItem(LEGACY_REFRESH_KEY);
-      if (legacy) localStorage.removeItem(LEGACY_REFRESH_KEY);
-      return legacy;
-    } catch {
-      return null;
     }
   }
 
@@ -61,8 +46,6 @@ export class TokenService {
     this.accessToken.set(pair.access_token);
     try {
       localStorage.setItem(SESSION_KEY, '1');
-      // Never persist the refresh token again, even if the API still returns it.
-      localStorage.removeItem(LEGACY_REFRESH_KEY);
     } catch {
       /* storage unavailable (private mode) — the cookie alone still works */
     }

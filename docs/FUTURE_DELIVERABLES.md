@@ -52,7 +52,7 @@ These ship complete and mock/flow-tested; flip them on by setting env in `backen
   - **Grievance officer** — `VS_GRIEVANCE_OFFICER_*` on production hold placeholder values ("Grievance Officer, VidhiSangh" / privacy@vidhisangh.com); DPDP s.8(9) needs a named person and a working mailbox. **Privacy notice/terms** text (`docs/PRIVACY_NOTICE.md`, `docs/TERMS.md`) needs Indian privacy counsel review before it is relied on.
   - **SMTP** — password-reset, invitation, email-verification and KYC emails go to the log provider until `VS_SMTP_*` is set; DKIM + SPF include to add then (I-9).
   - **Branch protection / required CI checks** on the git remote (`git.simsononline.com`) — CI workflows exist in-repo but the server-side policy is the owner's to enable (A-12). **Off-host git push** of the remediation commit.
-  - **REFRESH_TOKEN_IN_BODY** — still `true` for the transition; flip to `false` after all users have reloaded the SPA (A-11). `?token=` WebSocket auth to be removed next release (A-26). Legacy webhook signature header to be removed next release (A-25).
+  - ✅ **Session/webhook compatibility cleanup completed (27 Sep 2026)** — refresh tokens are cookie-only by default, the SPA no longer reads a legacy local-storage token, WebSockets accept only single-use tickets, and the replayable legacy webhook signature header has been removed (A-11/A-25/A-26).
   - **Peppers** `VS_REFRESH_TOKEN_PEPPER` / `VS_BACKUP_CODE_PEPPER` deliberately left derived from `SECRET_KEY` (setting them logs every user out and voids MFA backup codes); do it in a planned maintenance window (A-7).
   - **Registration enumeration** — 201/409 kept (product decision), mitigated by 5/min per-IP + per-account limits (A-21). **Team-scoped ABAC** for externals not built; their read permissions were removed instead (A-6).
   - **Penetration test / DAST**, ISMS policy set, risk register, restore drill on record — process items in the audit's 90-day plan.
@@ -62,15 +62,10 @@ These ship complete and mock/flow-tested; flip them on by setting env in `backen
 - **DAST, malware scanning of uploads, backups/PITR/DR, ABAC policy expansion.**
 
 ## 🔐 Privacy / DPDP — deferred after the 27 Sep 2026 remediation (privacy agent)
-Shipped: validation errors no longer echo input; client identity data encrypted at rest with blind-index search (0049); append-only consent ledger gating client-facing sends; minor/guardian consent; user/client/tenant export; user/client/tenant erasure with legal hold and 30-day tenant grace; rights-request register; retention purge (`app/scripts/retention_purge.py`, `infra/jobs/vidhisangh-retention.*`); public `/privacy` and `/terms`; Settings → Privacy & data; SECURITY.md rewritten as a controls matrix. Still to do:
-- **`lawful_basis` on `matter_parties` and `leads`** (P-5): `lawful_basis VARCHAR(20) NOT NULL DEFAULT 'legitimate_use'` (enum consent/contract/legal_obligation/legitimate_use/public_data) + `basis_note VARCHAR(300) NULL`; surface on the party/lead forms. Owned by the matters/crm modules.
-- **Portal rights-request route** (P-1 g): `POST /portal/{token}/privacy-requests {kind, message}` → `app.modules.privacy.service.create_rights_request(session, access, kind, message)`; a "Your data rights" block on the client portal page.
-- **Frontend re-prompt on terms change**: compare `/auth/me.terms_version` with `GET /privacy/notice.terms_version` after login and show an accept dialog that records the new version (needs a `POST /auth/me/accept-terms` endpoint in identity).
-- **Directory opt-in default** (P-10): `Tenant.settings.privacy.directory_listing_default` exists; registration still publishes a `NetworkIdentity` for everyone — honour the setting (and default new tenants to opt-in) in `identity/service.py::register`.
-- **Generic `PATCH /tenants/current` settings write** can overwrite the `privacy` block the way it already protects `notifications`; add `PRIVACY_KEY` to the filter in `tenancy/service.py::update`.
+Shipped: validation errors no longer echo input; client identity data encrypted at rest with blind-index search (0049); append-only consent ledger gating client-facing sends; minor/guardian consent; user/client/tenant export; user/client/tenant erasure with legal hold and 30-day tenant grace; rights-request register; retention purge (`app/scripts/retention_purge.py`, `infra/jobs/vidhisangh-retention.*`); public `/privacy` and `/terms`; Settings → Privacy & data; lawful basis on matter parties and leads (0051); portal rights requests; privacy settings protection; directory opt-in; and a blocking terms-version re-acceptance flow. Still to do:
 - **Notification bodies still carry client names** (P-12): purge covers it (365 d); moving to ids-only needs a template layer.
-- **Breach runbook + alerting** (P-6, s.8(6)): security events are audited; alerting/runbook not written.
-- **S3/SSE object storage** (P-8/A-13) so `storage.delete` in the purge removes encrypted objects rather than local files.
+- **Security alert delivery** (P-6, s.8(6)): the breach runbook is now `docs/INCIDENT_RESPONSE.md` and security events are audited; central alerting still needs an operations provider.
+- **S3/SSE object storage activation** (P-8/A-13): the backend exists; configure the production bucket and KMS/SSE policy so purge deletes encrypted objects rather than local files.
 
 ## 🧪 Testing & tooling
 - **Browser e2e (Playwright/Cypress)** — backend has an ASGI cross-module smoke (`test_smoke_journey.py`); a real browser e2e is deferred (no browser tooling in the build env).

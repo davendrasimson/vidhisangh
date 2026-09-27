@@ -140,16 +140,12 @@ export class AuthService {
       .pipe(tap((pair) => this.tokens.setSession(pair)));
   }
 
-  /**
-   * Exchange the refresh cookie for a fresh access token (rotation). A refresh
-   * token left behind by the previous release is sent in the body once.
-   */
+  /** Exchange the HttpOnly refresh cookie for a fresh access token (rotation). */
   refresh(): Observable<TokenPair> {
-    const legacy = this.tokens.takeLegacyRefreshToken();
     return this.http
       .post<TokenPair>(
         `${this.api}/auth/refresh`,
-        legacy ? { refresh_token: legacy } : {},
+        {},
         { withCredentials: true, headers: CSRF_HEADER },
       )
       .pipe(tap((pair) => this.tokens.setSession(pair)));
@@ -162,6 +158,12 @@ export class AuthService {
         this._user.set(user);
         this._status.set('authenticated');
       }));
+  }
+
+  acceptCurrentTerms(): Observable<User> {
+    return this.http
+      .post<User>(`${this.api}/auth/me/accept-terms`, { accept_terms: true })
+      .pipe(tap((user) => this._user.set(user)));
   }
 
   async logout(allDevices = false): Promise<void> {

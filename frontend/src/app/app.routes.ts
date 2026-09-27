@@ -24,6 +24,11 @@ export const routes: Routes = [
     path: 'terms',
     loadComponent: () => import('@features/legal/terms.component').then((m) => m.TermsComponent),
   },
+  {
+    path: 'trust',
+    loadComponent: () =>
+      import('@features/legal/compliance-status.component').then((m) => m.ComplianceStatusComponent),
+  },
 
   {
     // Public, login-free KYC form a client reaches from the tokenised link.

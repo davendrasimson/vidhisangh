@@ -39,6 +39,19 @@ class RegisterRequest(BaseModel):
         return v
 
 
+class TermsAcceptanceRequest(BaseModel):
+    """Explicit acceptance of the currently published Terms and Privacy Notice."""
+
+    accept_terms: bool
+
+    @field_validator("accept_terms")
+    @classmethod
+    def _accepted(cls, value: bool) -> bool:
+        if not value:
+            raise ValueError("You must accept the current terms to continue.")
+        return value
+
+
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str = Field(max_length=256)

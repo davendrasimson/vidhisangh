@@ -57,6 +57,7 @@ from app.modules.identity.schemas import (
     RegisterRequest,
     ResetPasswordRequest,
     SessionRead,
+    TermsAcceptanceRequest,
     TokenPair,
     UserRead,
     WsTicketResponse,
@@ -435,6 +436,21 @@ async def revoke_other_sessions(
 @router.get("/me", response_model=UserRead, summary="Current authenticated user")
 async def me(current: CurrentUserDep, session: TenantSessionDep) -> UserRead:
     return UserRead.model_validate(await _current_user_row(current, session))
+
+
+@router.post(
+    "/me/accept-terms",
+    response_model=UserRead,
+    summary="Accept the current Terms and Privacy Notice",
+)
+async def accept_terms(
+    data: TermsAcceptanceRequest,
+    current: CurrentUserDep,
+    session: TenantSessionDep,
+) -> UserRead:
+    user = await _current_user_row(current, session)
+    user = await AuthService(session).accept_current_terms(user)
+    return UserRead.model_validate(user)
 
 
 @router.post(

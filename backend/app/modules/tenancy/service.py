@@ -109,7 +109,7 @@ class TenantService:
 
         block = dict((tenant.settings or {}).get(PRIVACY_KEY) or {})
         block.setdefault("matter_retention_years", int(privacy_setting("LEGAL_HOLD_YEARS")))
-        block.setdefault("directory_listing_default", True)
+        block.setdefault("directory_listing_default", False)
         return TenantPrivacySettingsRead(
             **{k: v for k, v in block.items() if k in TenantPrivacySettings.model_fields},
             dpa_version=str(privacy_setting("CURRENT_TERMS_VERSION")),

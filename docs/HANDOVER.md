@@ -97,16 +97,18 @@ version:
    document storage (`VS_STORAGE_BACKEND=s3`, S3 backend already exists).
 
 **Code, next release**
-6. Flip `VS_REFRESH_TOKEN_IN_BODY=false` (refresh token then lives only in the
-   HttpOnly cookie), drop the legacy `?token=` WebSocket auth and the old
-   unsigned webhook header. Both are marked in code and in the audit's
-   remediation section.
-7. Invoices from fee events (the user's stated next feature after matter fee
+6. Invoices from fee events (the user's stated next feature after matter fee
    arrangements, migration 0045). Spec is written out in FUTURE_DELIVERABLES
    under "Invoices from fee events".
-8. Legal research: remaining case-information steps and per-court corpus
+7. Legal research: remaining case-information steps and per-court corpus
    builds (UP, Delhi, P&H, Uttarakhand, Supreme Court) are paused until the
    S3 bucket exists. Do not scrape CAPTCHA-gated eCourts pages.
+
+Completed after the audit handover: refresh tokens are cookie-only by default;
+legacy WebSocket token and webhook signature paths are removed; new directory
+identities are opt-in; changed legal terms trigger an in-app re-acceptance; the
+public `/trust` page and dashboard banner show the evidence-based compliance
+status; and `INCIDENT_RESPONSE.md` supplies the breach runbook.
 
 ## 5. Things that will surprise you
 

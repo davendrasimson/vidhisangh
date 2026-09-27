@@ -128,6 +128,7 @@ export class SettingsHomeComponent {
         { label: 'Account Security', icon: 'fingerprint', description: 'Passkeys, active sessions and MFA.', route: '/app/settings/security' },
         { label: 'Notifications', icon: 'notifications', description: 'Channels and per-type delivery preferences.', route: '/app/settings/notifications' },
         { label: 'Privacy & data', icon: 'privacy_tip', description: 'Download your data, delete your account, directory listing, grievance officer.', route: '/app/settings/privacy' },
+        { label: 'Trust & compliance', icon: 'verified_user', description: 'Current security review, privacy controls and framework status.', route: '/trust' },
       ],
     },
   ];

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
-import hmac
 import json
 
 import pytest
@@ -61,11 +59,10 @@ async def test_register_test_and_fanout(
     assert test.json()["status_code"] == 200
 
     # The transport received a timestamped ``t=…,v1=…`` signature over
-    # ``"{t}.{body}"`` plus the body-only legacy header (kept for one release).
+    # ``"{t}.{body}"``. The replayable body-only legacy header is retired.
     call = webhook_transport.calls[-1]
     assert verify_signature(secret, call["headers"]["X-VidhiSangh-Signature"], call["body"])
-    legacy = hmac.new(secret.encode(), call["body"], hashlib.sha256).hexdigest()
-    assert call["headers"]["X-VidhiSangh-Signature-Legacy"] == legacy
+    assert "X-VidhiSangh-Signature-Legacy" not in call["headers"]
     assert json.loads(call["body"])["event"] == "ping"
 
     # Creating a matter queues a matter.created delivery for the subscribed hook;

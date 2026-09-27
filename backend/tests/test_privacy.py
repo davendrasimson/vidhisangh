@@ -33,7 +33,7 @@ from app.modules.notifications.models import Notification, NotificationChannel
 from app.modules.notifications.service import send_to_client
 from app.modules.privacy import retention
 from app.modules.privacy.consent import coarse_ip
-from app.modules.privacy.models import ClientConsentEvent, PrivacyRequestKind
+from app.modules.privacy.models import PrivacyRequestKind
 from app.modules.privacy.router import router as privacy_router
 from app.modules.privacy.service import create_rights_request
 from app.modules.tenancy.models import Tenant, TenantStatus
@@ -283,14 +283,30 @@ async def test_registration_records_terms_and_user_can_export_and_erase(
     client: AsyncClient, session_factory: async_sessionmaker
 ) -> None:
     h, me = await _register(client, "Self LLP", "self@firm.co")
-    assert me["terms_version"] == str((await client.get(f"{API}/privacy/notice")).json()["terms_version"])
+    current_terms = str((await client.get(f"{API}/privacy/notice")).json()["terms_version"])
+    assert me["terms_version"] == current_terms
     assert me["terms_accepted_at"]
+
+    # A later policy version is accepted explicitly and recorded against the user.
+    async with session_factory() as s:
+        row = await s.get(User, uuid.UUID(me["id"]))
+        row.terms_version = "legacy"
+        await s.commit()
+    assert (await client.post(f"{API}/auth/me/accept-terms", headers=h,
+                              json={"accept_terms": False})).status_code == 422
+    accepted = await client.post(
+        f"{API}/auth/me/accept-terms", headers=h, json={"accept_terms": True}
+    )
+    assert accepted.status_code == 200
+    assert accepted.json()["terms_version"] == current_terms
+    assert accepted.json()["terms_accepted_at"]
 
     export = await client.get(f"{API}/privacy/me/export", headers=h)
     assert export.status_code == 200
     bundle = export.json()
     assert bundle["user"]["email"] == "self@firm.co" and "hashed_password" not in bundle["user"]
-    assert bundle["sessions"] and "token_hash" not in bundle["sessions"][0] and bundle["network_identity"]
+    assert bundle["sessions"] and "token_hash" not in bundle["sessions"][0]
+    assert bundle["network_identity"] and bundle["network_identity"]["discoverable"] is False
 
     # Wrong password → 401; sole org_admin → 409.
     assert (await client.post(f"{API}/privacy/me/delete", headers=h, json={"password": "Wrong!Pass#1"})).status_code == 401

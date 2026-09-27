@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { RouterLink, RouterOutlet } from '@angular/router';
 
 /**
  * Split-screen marketing / form layout for unauthenticated pages.
@@ -15,7 +15,7 @@ import { RouterOutlet } from '@angular/router';
   selector: 'app-auth-layout',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, RouterLink],
   template: `
     <div class="auth">
       <aside class="auth__brand">
@@ -80,6 +80,7 @@ import { RouterOutlet } from '@angular/router';
           <p class="auth__courts">
             Supreme Court &middot; High Courts &middot; District Judiciary &middot; Tribunals
           </p>
+          <a routerLink="/trust" class="auth__trust">Verified security &amp; privacy status →</a>
         </div>
       </aside>
 
@@ -182,6 +183,16 @@ import { RouterOutlet } from '@angular/router';
         letter-spacing: 0.005em;
         color: #fff;
       }
+
+      .auth__trust {
+        display: inline-block;
+        margin-top: 1rem;
+        color: rgb(255 255 255 / 0.8);
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .auth__trust:hover { color: #fff; text-decoration: underline; }
 
       .auth__motto {
         margin-top: 2.25rem;
