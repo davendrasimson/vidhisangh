@@ -26,7 +26,7 @@ Do not publish “ISO certified”, “DPDP certified”, “fully compliant”,
 - Maintain the tested encrypted off-host local backup process and repeat its restore drill quarterly; add a second automated remote destination when object storage is available.
 - Use encrypted production volumes and, when selected, external KMS/HSM custody.
 - Complete the Grievance Officer postal address and counsel review of the Terms and Privacy Notice.
-- Add application SMTP credentials so rights and security messages reach users. Titan MX, SPF, DKIM and DMARC are published and verified.
+- Maintain the live Titan SMTP mailbox and delivery monitoring. MX, SPF, DKIM, DMARC and authenticated TLS from production were verified on 27 September 2026.
 - Add independent secondary DNS and enable server-side branch protection. SNMPv2 has been disabled and UDP/161 is closed.
 - Commission an independent penetration test/DAST and operate the ISMS/PIMS policy, risk, supplier, training, internal-audit and management-review cycle.
 

@@ -177,6 +177,33 @@ async def test_secret_key_is_required_and_peppers_validated(monkeypatch) -> None
     assert env is not None
 
 
+async def test_smtp_password_can_come_from_runtime_credential(tmp_path) -> None:
+    credential = tmp_path / "smtp_password"
+    credential.write_text("mail-secret\n", encoding="utf-8")
+    configured = Settings(  # type: ignore[call-arg]
+        _env_file=None,
+        SECRET_KEY="x" * 40,
+        SMTP_PASSWORD_FILE=str(credential),
+    )
+    assert configured.smtp_password == "mail-secret"
+
+    explicit = Settings(  # type: ignore[call-arg]
+        _env_file=None,
+        SECRET_KEY="x" * 40,
+        SMTP_PASSWORD="environment-secret",
+        SMTP_PASSWORD_FILE=str(credential),
+    )
+    assert explicit.smtp_password == "environment-secret"
+
+    missing = Settings(  # type: ignore[call-arg]
+        _env_file=None,
+        SECRET_KEY="x" * 40,
+        SMTP_PASSWORD_FILE=str(tmp_path / "missing"),
+    )
+    with pytest.raises(RuntimeError, match="unavailable"):
+        _ = missing.smtp_password
+
+
 async def test_production_gate_rejects_hs256_and_mock_idp(monkeypatch) -> None:
     prod = Settings(  # type: ignore[call-arg]
         _env_file=None, SECRET_KEY="x" * 40, ENVIRONMENT="production", POSTGRES_PASSWORD="s3cret-pass",

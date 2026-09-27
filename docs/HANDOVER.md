@@ -85,9 +85,9 @@ version:
    with an `age` identity that does not exist on production. See
    [BACKUP_RESTORE_TEST_2026-09-27.md](BACKUP_RESTORE_TEST_2026-09-27.md). Add a
    second automated remote destination when the S3 bucket exists.
-2. Titan MX, SPF, DKIM and DMARC resolve correctly. Application SMTP credentials
-   are not configured, so password reset, invitations and verification still use
-   the log provider.
+2. Titan MX, SPF, DKIM and DMARC resolve correctly. Live SMTP uses
+   `smtp.titan.email:465` with implicit TLS and the mailbox password is stored as
+   the host-encrypted systemd credential `vidhisangh.smtp_password`.
 3. Salil Shaida (`grievance@vidhisangh.com`) is the live Grievance Officer.
    Replace the generic postal address and have counsel review
    [PRIVACY_NOTICE.md](PRIVACY_NOTICE.md) and [TERMS.md](TERMS.md).

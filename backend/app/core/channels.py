@@ -27,15 +27,15 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
-
-from app.core.config import settings
 import smtplib
+import ssl
 from dataclasses import dataclass
 from email.message import EmailMessage
 from typing import Protocol, runtime_checkable
 
 import httpx
 
+from app.core.config import settings
 from app.modules.notifications.models import NotificationChannel
 
 logger = logging.getLogger("vidhisangh.notifications")
@@ -88,13 +88,14 @@ class EmailSmtpProvider:
         self.host = settings.SMTP_HOST or ""
         self.port = settings.SMTP_PORT
         self.user = settings.SMTP_USER or ""
-        self.password = settings.SMTP_PASSWORD or ""
+        self.password = settings.smtp_password
         self.sender = settings.SMTP_FROM or self.user or "no-reply@vidhisangh.com"
         self.use_tls = settings.SMTP_TLS
+        self.use_ssl = settings.SMTP_SSL
 
     @property
     def configured(self) -> bool:
-        return bool(self.host)
+        return bool(self.host and (not self.user or self.password))
 
     async def send(self, message: ChannelMessage) -> None:
         if not message.to_email:
@@ -108,9 +109,18 @@ class EmailSmtpProvider:
             body = f"{body}\n\n{message.link}"
         email.set_content(body)
         # Small, synchronous SMTP send — fine for the current inline path.
-        with smtplib.SMTP(self.host, self.port, timeout=10) as smtp:
-            if self.use_tls:
-                smtp.starttls()
+        if self.use_ssl:
+            connection = smtplib.SMTP_SSL(
+                self.host,
+                self.port,
+                timeout=10,
+                context=ssl.create_default_context(),
+            )
+        else:
+            connection = smtplib.SMTP(self.host, self.port, timeout=10)
+        with connection as smtp:
+            if self.use_tls and not self.use_ssl:
+                smtp.starttls(context=ssl.create_default_context())
             if self.user:
                 smtp.login(self.user, self.password)
             smtp.send_message(email)

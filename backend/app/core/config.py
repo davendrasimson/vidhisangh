@@ -22,6 +22,7 @@ import ipaddress
 import logging
 from enum import StrEnum
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from pydantic import (
@@ -190,8 +191,30 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: str | None = None
     SMTP_PASSWORD: str | None = None
+    # Prefer a systemd credential path in production so the password remains
+    # encrypted at rest instead of being written to the environment file.
+    SMTP_PASSWORD_FILE: str | None = None
     SMTP_FROM: str = "no-reply@vidhisangh.com"
     SMTP_TLS: bool = True  # STARTTLS; only ever false against a local relay
+    SMTP_SSL: bool = False  # implicit TLS, normally port 465
+
+    @property
+    def smtp_password(self) -> str:
+        if self.SMTP_PASSWORD:
+            return self.SMTP_PASSWORD
+        if not self.SMTP_PASSWORD_FILE:
+            return ""
+        try:
+            password = (
+                Path(self.SMTP_PASSWORD_FILE)
+                .read_text(encoding="utf-8")
+                .rstrip("\r\n")
+            )
+        except OSError as exc:
+            raise RuntimeError("SMTP password credential is unavailable") from exc
+        if not password:
+            raise RuntimeError("SMTP password credential is empty")
+        return password
 
     # ─── WebAuthn / passkeys ────────────────────────────────────────
     WEBAUTHN_RP_ID: str = "localhost"

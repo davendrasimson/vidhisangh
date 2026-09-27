@@ -127,7 +127,7 @@ Items the audit raised that this repository does **not** yet close. Status is ma
 - **I-5 / A-13 / P-8** production volume or S3 SSE-KMS configuration and external key custody; the S3/SSE implementation and production storage gate are built.
 - **I-11** independent secondary DNS remains open: both NS names currently resolve to the production IP. **I-13** completed 27 Sep 2026: `snmpd` disabled and UDP/161 closed.
 - **P-1 / P-17** complete the named Grievance Officer's postal address and have Indian privacy counsel approve the published legal text.
-- **Notification delivery** Titan MX/SPF/DKIM/DMARC are verified; application SMTP credentials remain to be configured, so the in-product/log delivery seam is not external delivery.
+- **Notification delivery** completed 27 Sep 2026: Titan MX/SPF/DKIM/DMARC are verified and production authenticated successfully to `smtp.titan.email:465` over TLS. The mailbox password is a host-encrypted systemd credential, not an environment-file value.
 - **Security assurance** independent penetration test/DAST, malware scanning and central security alerting.
 - **ISMS/PIMS operation** risk register, policy ownership, supplier review, staff training, internal audit, management review and accredited certification where desired. The controls are aligned; certification is not claimed.
 

@@ -166,6 +166,53 @@ async def test_delivery_details_never_contain_email_addresses() -> None:
     assert mask_emails(None) is None and mask_emails("via log") == "via log"
 
 
+async def test_smtp_implicit_tls_logs_in_and_sends(monkeypatch) -> None:
+    from app.core import channels
+    from app.core.config import settings
+
+    calls: list[object] = []
+
+    class FakeSmtpSsl:
+        def __init__(self, host, port, *, timeout, context):
+            calls.append(("connect", host, port, timeout, context is not None))
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
+
+        def login(self, user, password):
+            calls.append(("login", user, password))
+
+        def send_message(self, message):
+            calls.append(("send", message["From"], message["To"]))
+
+    monkeypatch.setattr(settings, "SMTP_HOST", "smtp.example")
+    monkeypatch.setattr(settings, "SMTP_PORT", 465)
+    monkeypatch.setattr(settings, "SMTP_USER", "sender@example.test")
+    monkeypatch.setattr(settings, "SMTP_PASSWORD", "secret")
+    monkeypatch.setattr(settings, "SMTP_PASSWORD_FILE", None)
+    monkeypatch.setattr(settings, "SMTP_FROM", "sender@example.test")
+    monkeypatch.setattr(settings, "SMTP_TLS", False)
+    monkeypatch.setattr(settings, "SMTP_SSL", True)
+    monkeypatch.setattr(channels.smtplib, "SMTP_SSL", FakeSmtpSsl)
+
+    provider = channels.EmailSmtpProvider()
+    await provider.send(
+        channels.ChannelMessage(
+            to_email="recipient@example.test",
+            to_name=None,
+            subject="Test",
+            body="Body",
+        )
+    )
+
+    assert calls[0][:4] == ("connect", "smtp.example", 465, 10)
+    assert calls[1] == ("login", "sender@example.test", "secret")
+    assert calls[2] == ("send", "sender@example.test", "recipient@example.test")
+
+
 async def test_purge_old_deliveries(client: AsyncClient, strong_password: str, session_factory) -> None:
     a_h, _ = await _user(client, "Firm A", "pa@firma.co", strong_password)
     b_h, b = await _user(client, "Firm B", "pb@firmb.co", strong_password)
