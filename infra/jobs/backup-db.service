@@ -20,7 +20,8 @@ IOSchedulingClass=best-effort
 IOSchedulingPriority=7
 
 # ── Sandbox ─────────────────────────────────────────────────────────
-NoNewPrivileges=false          # sudo -u postgres needs setuid
+# sudo -u postgres needs setuid
+NoNewPrivileges=false
 ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
@@ -31,7 +32,8 @@ ProtectKernelLogs=true
 ProtectControlGroups=true
 ProtectClock=true
 RestrictRealtime=true
-RestrictSUIDSGID=false         # sudo
+# sudo needs setuid
+RestrictSUIDSGID=false
 LockPersonality=true
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 ReadWritePaths=/opt/vidhisangh/backups /var/lib/postgresql /run/postgresql

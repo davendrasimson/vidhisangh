@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily off-host pull of VidhiSangh backup
+
+[Timer]
+OnCalendar=*-*-* 02:45:00 Asia/Kolkata
+Persistent=true
+RandomizedDelaySec=10m
+
+[Install]
+WantedBy=timers.target
+

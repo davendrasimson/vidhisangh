@@ -126,8 +126,8 @@ When a firm records a client, opposing party, lead or witness in VidhiSangh:
 
 | | |
 |---|---|
-| Name | *set by the operator via \`VS_GRIEVANCE_OFFICER_NAME\`* |
-| E-mail | *set via \`VS_GRIEVANCE_OFFICER_EMAIL\`* (default privacy@vidhisangh.com) |
+| Name | Salil Shaida |
+| E-mail | grievance@vidhisangh.com |
 | Postal address | *set via \`VS_GRIEVANCE_OFFICER_ADDRESS\`* |
 
 The live values are shown on the [/privacy](https://vidhisangh.com/privacy) page and on every KYC form, and are returned by \`GET /api/v1/privacy/notice\`. If you have a grievance about a **firm's** handling of your data, contact that firm first; its data-protection contact is shown on its KYC form.

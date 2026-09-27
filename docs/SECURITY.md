@@ -123,14 +123,14 @@ Legend: ✅ implemented (evidence cited) · 🟡 partial (what exists and what d
 Items the audit raised that this repository does **not** yet close. Status is maintained in [`SECURITY_AUDIT_2026-09.md`](SECURITY_AUDIT_2026-09.md) and `FUTURE_DELIVERABLES.md`:
 
 - **I-1 / I-5 / I-11 / I-13** off-host backups, disk encryption, independent secondary DNS and SNMPv3/disablement — production infrastructure work.
-- **I-1** off-host backup destination and recorded restore exercise; encrypted same-host backups and restore tooling are deployed.
+- **I-1** completed 27 Sep 2026: an age-encrypted production set was copied to the owner's local machine and restore-tested; repeat quarterly and add a second automated remote destination when available.
 - **I-5 / A-13 / P-8** production volume or S3 SSE-KMS configuration and external key custody; the S3/SSE implementation and production storage gate are built.
-- **I-11 / I-13** independent secondary DNS and SNMPv3/disablement.
-- **P-1 / P-17** appoint the named Grievance Officer and have Indian privacy counsel approve the published legal text.
-- **Notification delivery** configure SMTP, DKIM and matching SPF; the in-product/log delivery seam is not external delivery.
+- **I-11** independent secondary DNS remains open: both NS names currently resolve to the production IP. **I-13** completed 27 Sep 2026: `snmpd` disabled and UDP/161 closed.
+- **P-1 / P-17** complete the named Grievance Officer's postal address and have Indian privacy counsel approve the published legal text.
+- **Notification delivery** Titan MX/SPF/DKIM/DMARC are verified; application SMTP credentials remain to be configured, so the in-product/log delivery seam is not external delivery.
 - **Security assurance** independent penetration test/DAST, malware scanning and central security alerting.
 - **ISMS/PIMS operation** risk register, policy ownership, supplier review, staff training, internal audit, management review and accredited certification where desired. The controls are aligned; certification is not claimed.
 
 ## Reporting
 
-Security issues: security@vidhisangh.com. Privacy grievances: the Grievance Officer named on [/privacy](https://vidhisangh.com/privacy) (`VS_GRIEVANCE_OFFICER_*`).
+Security issues: security@vidhisangh.com. Privacy grievances: Salil Shaida at grievance@vidhisangh.com, as published on [/privacy](https://vidhisangh.com/privacy).

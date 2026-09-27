@@ -1,0 +1,9 @@
+[Unit]
+Description=Pull VidhiSangh encrypted backup off-host
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/davendra-singh/git/VidhiSangh/infra/jobs/pull-offhost-backup.sh /home/davendra-singh/VidhiSangh-backups/archive vidhisangh
+

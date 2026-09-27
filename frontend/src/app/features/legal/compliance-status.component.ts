@@ -64,7 +64,7 @@ interface FrameworkStatus {
 
         <aside class="disclosure">
           <mat-icon class="material-icons-outlined">info</mat-icon>
-          <p><strong>About this status.</strong> “Implemented” means the assessed technical control exists and was reviewed. ISO/IEC certification is granted only by an accredited certification body. Formal ISMS/PIMS certification, an independent penetration test, off-host backup configuration, named grievance officer details and legal review remain operational governance activities.</p>
+          <p><strong>About this status.</strong> “Implemented” means the assessed technical control exists and was reviewed. ISO/IEC certification is granted only by an accredited certification body. Formal ISMS/PIMS certification, an independent penetration test, production-volume KMS encryption, independent secondary DNS and legal review remain operational governance activities. Salil Shaida is the published Grievance Officer; encrypted off-host recovery is tested separately and dated in the controls record.</p>
         </aside>
 
         <div class="actions"><a routerLink="/privacy">Read the Privacy Notice</a><a routerLink="/terms">Read the Terms</a><a routerLink="/auth/login" class="primary">Open VidhiSangh</a></div>

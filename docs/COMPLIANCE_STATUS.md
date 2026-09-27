@@ -8,7 +8,7 @@ The September review recorded 65 security and privacy findings. All 65 have a re
 | Framework | Product status | Meaning |
 |---|---|---|
 | OWASP Top 10 (2021) | Assessed technical controls implemented | The application review covered access control, cryptography, injection, design, configuration, components, authentication, integrity, logging and SSRF. This is not an independent penetration-test attestation. |
-| DPDP Act 2023 | Technical privacy controls implemented | Notice, consent, data-principal rights, grievance workflow, retention, erasure, encryption and breach-response procedures exist. Appointment of a named Grievance Officer and Indian-counsel review remain owner actions. |
+| DPDP Act 2023 | Technical privacy controls implemented | Notice, consent, data-principal rights, grievance workflow, retention, erasure, encryption and breach-response procedures exist. Salil Shaida is the named Grievance Officer; postal-address completion and Indian-counsel review remain owner actions. |
 | ISMS / ISO/IEC 27001:2022 | Control-aligned | Technical controls map to Annex A. Certification requires an operated management system, risk treatment, internal audit, management review and an accredited external audit. |
 | PIMS / ISO/IEC 27701 | Control-aligned | Product privacy controls map to controller/processor responsibilities. Certification requires the wider privacy management programme and external audit. |
 
@@ -23,11 +23,11 @@ Do not publish “ISO certified”, “DPDP certified”, “fully compliant”,
 
 ## Operational dependencies still open
 
-- Configure and restore-test an encrypted off-host backup destination.
+- Maintain the tested encrypted off-host local backup process and repeat its restore drill quarterly; add a second automated remote destination when object storage is available.
 - Use encrypted production volumes and, when selected, external KMS/HSM custody.
-- Appoint and publish the named Grievance Officer; complete counsel review of Terms and Privacy Notice.
-- Configure SMTP with DKIM and the matching SPF policy so rights and security messages reach users.
-- Add independent secondary DNS, replace or disable SNMPv2, and enable server-side branch protection.
+- Complete the Grievance Officer postal address and counsel review of the Terms and Privacy Notice.
+- Add application SMTP credentials so rights and security messages reach users. Titan MX, SPF, DKIM and DMARC are published and verified.
+- Add independent secondary DNS and enable server-side branch protection. SNMPv2 has been disabled and UDP/161 is closed.
 - Commission an independent penetration test/DAST and operate the ISMS/PIMS policy, risk, supplier, training, internal-audit and management-review cycle.
 
 These dependencies are visible on the public Trust page so the product status remains accurate while the owner completes governance and infrastructure work.

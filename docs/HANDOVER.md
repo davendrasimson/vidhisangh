@@ -81,25 +81,27 @@ that file is the to-do list and the owner of every deferred decision. Short
 version:
 
 **Needs the owner's input or an external service (not code)**
-1. Off-host backups: set `BACKUP_S3_URI` (rclone remote) in
-   `/opt/vidhisangh/.secrets/backup.env`. Until then backups exist only on the
-   server.
-2. SMTP with SPF/DKIM: email is logged, not sent, so password reset, invitations
-   and email verification do not reach users. Update the SPF record (currently
-   `v=spf1 -all`) when a sender exists.
-3. Replace the grievance-officer placeholders (`VS_GRIEVANCE_OFFICER_NAME/EMAIL/
-   ADDRESS` in `.env`) with the real appointee; have counsel review
-   [PRIVACY_NOTICE.md](PRIVACY_NOTICE.md) and [TERMS.md](TERMS.md), then bump
-   `CURRENT_TERMS_VERSION` / `CURRENT_PRIVACY_NOTICE_VERSION` so users re-accept.
-4. Host: full-disk encryption, a second nameserver on a different machine
-   (ns1 and ns2 are the same box), a third-party penetration test, ISMS paperwork.
+1. Off-host backups are pulled nightly to the owner's local machine and encrypted
+   with an `age` identity that does not exist on production. See
+   [BACKUP_RESTORE_TEST_2026-09-27.md](BACKUP_RESTORE_TEST_2026-09-27.md). Add a
+   second automated remote destination when the S3 bucket exists.
+2. Titan MX, SPF, DKIM and DMARC resolve correctly. Application SMTP credentials
+   are not configured, so password reset, invitations and verification still use
+   the log provider.
+3. Salil Shaida (`grievance@vidhisangh.com`) is the live Grievance Officer.
+   Replace the generic postal address and have counsel review
+   [PRIVACY_NOTICE.md](PRIVACY_NOTICE.md) and [TERMS.md](TERMS.md).
+4. Host: add an encrypted provider volume/external KMS, a second nameserver on a
+   different machine (ns1 and ns2 are the same box), a third-party penetration
+   test and ISMS/PIMS governance. SNMP is disabled and UDP/161 is closed.
 5. Storage: the user is arranging a 2 TB S3 bucket for court-order PDFs and
    document storage (`VS_STORAGE_BACKEND=s3`, S3 backend already exists).
 
 **Code, next release**
-6. Invoices from fee events (the user's stated next feature after matter fee
-   arrangements, migration 0045). Spec is written out in FUTURE_DELIVERABLES
-   under "Invoices from fee events".
+6. Continue the ordered feature plan in
+   [FEATURE_ROADMAP_2026_Q4.md](FEATURE_ROADMAP_2026_Q4.md), starting with unified
+   search and the Today/action inbox. The first matter integration release,
+   including invoices from fee events, is already live.
 7. Legal research: remaining case-information steps and per-court corpus
    builds (UP, Delhi, P&H, Uttarakhand, Supreme Court) are paused until the
    S3 bucket exists. Do not scrape CAPTCHA-gated eCourts pages.

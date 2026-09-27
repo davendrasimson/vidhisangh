@@ -17,8 +17,8 @@ _DEFAULTS: dict[str, Any] = {
     "CURRENT_TERMS_VERSION": "2026-09-27",
     "CURRENT_PRIVACY_NOTICE_VERSION": "2026-09-27",
     # DPDP s.8(9): the person a Data Principal may contact.
-    "GRIEVANCE_OFFICER_NAME": "Grievance Officer, VidhiSangh",
-    "GRIEVANCE_OFFICER_EMAIL": "privacy@vidhisangh.com",
+    "GRIEVANCE_OFFICER_NAME": "Salil Shaida",
+    "GRIEVANCE_OFFICER_EMAIL": "grievance@vidhisangh.com",
     "GRIEVANCE_OFFICER_ADDRESS": "VidhiSangh, India",
     # Legal hold on client erasure: matters closed within this many years
     # block hard deletion (Limitation Act 1963 / Bar Council record-keeping
