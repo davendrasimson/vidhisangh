@@ -41,9 +41,11 @@ itself. Verify with `dig @203.193.166.109 google.com` → must be `REFUSED`.
 
 Mail records in the zone (added 27 Sep 2026): `MX 10 mx1.titan.email.` and
 `MX 20 mx2.titan.email.` (Titan hosts the mailboxes), SPF
-`v=spf1 -all`, DMARC `p=reject`. **Before sending mail from Titan** change SPF to
-`v=spf1 include:spf.titan.email -all` and add Titan's DKIM TXT record, otherwise
-receivers reject outbound mail under the current DMARC policy.
+`v=spf1 include:spf.titan.email ~all` (one SPF record only — a second one is a
+permanent error), DMARC `p=reject; adkim=s; aspf=s`. **Still needed before
+sending from Titan:** Titan's DKIM TXT record (strict DMARC alignment means
+outbound mail must pass DKIM signed by `vidhisangh.com`). When the app gets its
+own SMTP sender, add it to the same SPF record.
 
 > **Single point of failure:** ns1 and ns2 are the same machine. If it goes down
 > the domain stops resolving entirely — not just the website. A second nameserver
