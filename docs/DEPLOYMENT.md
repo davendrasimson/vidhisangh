@@ -219,10 +219,17 @@ sudo nginx -t && sudo systemctl reload nginx   # after editing sites-available/v
 sudo systemctl status postgresql redis-server named
 ```
 
-Every timer unit carries `OnFailure=vidhisangh-job-failed@%n.service`, which
-appends the failing unit's last 40 journal lines to
-`/opt/vidhisangh/backups/job-failures.log` and posts to `VS_SLACK_WEBHOOK` when
-`/opt/vidhisangh/.secrets/ops.env` defines it.
+Critical API, timer and scanner units carry
+`OnFailure=vidhisangh-job-failed@%n.service`. The handler appends the failed
+unit's last 40 journal lines to `/opt/vidhisangh/backups/job-failures.log` and
+sends a concise alert to `VS_SECURITY_ALERT_EMAIL` through Titan SMTP. The
+mailbox password is the same encrypted systemd credential used by the API; it
+is not present in `ops.env` or the process environment.
+
+Every uploaded document version is scanned through clamd's Unix-socket
+INSTREAM protocol before storage. Production sets
+`VS_MALWARE_SCAN_REQUIRED=true`; API startup and uploads fail closed when the
+scanner is unavailable. `clamav-freshclam` keeps signatures current.
 
 ## Storage — where document bytes live
 

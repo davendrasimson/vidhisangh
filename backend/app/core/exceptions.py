@@ -72,6 +72,12 @@ class RateLimitError(AppError):
     message = "Too many requests. Please slow down."
 
 
+class ServiceUnavailableError(AppError):
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    code = "service_unavailable"
+    message = "A required service is temporarily unavailable."
+
+
 class TenantError(AppError):
     status_code = status.HTTP_400_BAD_REQUEST
     code = "tenant_error"
@@ -106,7 +112,9 @@ def _public_validation_error(err: dict[str, Any]) -> dict[str, Any]:
     }
     ctx = err.get("ctx")
     if isinstance(ctx, dict):
-        safe = {k: (v if isinstance(v, _SCALARS) else str(v)) for k, v in ctx.items() if k != "input"}
+        safe = {
+            k: (v if isinstance(v, _SCALARS) else str(v)) for k, v in ctx.items() if k != "input"
+        }
         if safe:
             out["ctx"] = safe
     return out
@@ -126,9 +134,7 @@ def register_exception_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(RequestValidationError)
-    async def _validation(
-        request: Request, exc: RequestValidationError
-    ) -> JSONResponse:
+    async def _validation(request: Request, exc: RequestValidationError) -> JSONResponse:
         # Emit only what the client needs to fix the request: where (loc),
         # what (msg) and the rule (type). Pydantic also puts the submitted
         # value in `input` and a docs link in `url` — `input` echoes passwords,

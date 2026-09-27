@@ -1,6 +1,7 @@
 [Unit]
 Description=VidhiSangh retention purge (DPDP s.8(7): expired tokens, deleted documents, cancelled tenants)
 After=network-online.target postgresql.service
+OnFailure=vidhisangh-job-failed@%n.service
 
 [Service]
 Type=oneshot

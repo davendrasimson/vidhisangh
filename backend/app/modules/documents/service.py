@@ -9,12 +9,13 @@ from datetime import UTC, datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictError, NotFoundError, PermissionDeniedError
+from app.core.malware import scan_upload
 from app.core.storage import Storage
 from app.modules.clients.lookup import client_names, require_client
 from app.modules.documents.models import Document, DocumentFolder, DocumentVersion
 from app.modules.documents.repository import DocumentRepository
-from app.modules.matters.repository import MatterRepository
 from app.modules.documents.schemas import DocumentRead, FolderCreate
+from app.modules.matters.repository import MatterRepository
 
 
 class DocumentService:
@@ -122,6 +123,9 @@ class DocumentService:
     async def _store_version(
         self, document: Document, data: bytes, content_type: str, *, comment: str | None
     ) -> DocumentVersion:
+        # Scan before bytes reach local/S3 storage. Detection or scanner outage
+        # also aborts the surrounding database transaction.
+        await scan_upload(data)
         key = f"{self.tenant_id}/{document.id}/{uuid.uuid4().hex}"
         await self.storage.put(key, data, content_type)
         version = DocumentVersion(
@@ -186,9 +190,7 @@ class DocumentService:
             raise NotFoundError("Document version not found.")
         return document, await self._read(version)
 
-    async def download_version(
-        self, version_id: uuid.UUID
-    ) -> tuple[DocumentVersion, bytes]:
+    async def download_version(self, version_id: uuid.UUID) -> tuple[DocumentVersion, bytes]:
         version = await self.repo.get_version(self.tenant_id, version_id)
         if version is None:
             raise NotFoundError("Version not found.")
@@ -219,8 +221,14 @@ class DocumentService:
 
     # ── Update / delete ─────────────────────────────────────────────
     async def rename(
-        self, document_id: uuid.UUID, *, name: str | None, folder_id: uuid.UUID | None, tags: list[str] | None,
-        client_id: uuid.UUID | None = None, set_client: bool = False,
+        self,
+        document_id: uuid.UUID,
+        *,
+        name: str | None,
+        folder_id: uuid.UUID | None,
+        tags: list[str] | None,
+        client_id: uuid.UUID | None = None,
+        set_client: bool = False,
     ) -> Document:
         document = await self._require_document(document_id)
         if folder_id is not None:

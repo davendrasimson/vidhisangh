@@ -99,7 +99,7 @@ Legend: ✅ implemented (evidence cited) · 🟡 partial (what exists and what d
 | API versioning (`/api/v1`) | ✅ | `core/config.py` `API_V1_PREFIX`; `api/v1/router.py` |
 | CORS allow-list required in production | ✅ | `core/config.py` `assert_production_ready` |
 | Bearer-token auth (no cookies) → no CSRF surface today | ✅ | `core/deps.py` `HTTPBearer` |
-| Upload size caps, content-type sniffing, RFC 6266 filenames | ✅ | `core/uploads.py`, `core/http_utils.py`, `documents/router.py`; nginx/Ingress enforce the matching 25 MiB cap |
+| Upload validation and malware scanning | ✅ | size/type/filename controls in `core/uploads.py` and `documents/router.py`; `core/malware.py` streams every document version to ClamAV before storage and fails closed when scanning is required |
 | Dependency pinning / SCA / SAST / CI | ✅ | `.github/workflows/ci.yml` (ruff, mypy, pytest+coverage, `ng build`, pip-audit, npm audit, gitleaks, trivy, SBOM), `codeql.yml`, `dependabot.yml`, `.pre-commit-config.yaml`; `backend/requirements.lock` hash-pinned; `pip-audit` and `npm audit --omit=dev` clean on 27 Sep 2026 (A-12, A-30). Branch protection must be enabled on the remote by the repo owner |
 
 ## 7. Secrets and configuration
@@ -128,8 +128,9 @@ Items the audit raised that this repository does **not** yet close. Status is ma
 - **I-11** independent secondary DNS remains open: both NS names currently resolve to the production IP. **I-13** completed 27 Sep 2026: `snmpd` disabled and UDP/161 closed.
 - **P-1 / P-17** complete the named Grievance Officer's postal address and have Indian privacy counsel approve the published legal text.
 - **Notification delivery** completed 27 Sep 2026: Titan MX/SPF/DKIM/DMARC are verified and production authenticated successfully to `smtp.titan.email:465` over TLS. The mailbox password is a host-encrypted systemd credential, not an environment-file value.
-- **Security assurance** independent penetration test/DAST, malware scanning and central security alerting.
-- **ISMS/PIMS operation** risk register, policy ownership, supplier review, staff training, internal audit, management review and accredited certification where desired. The controls are aligned; certification is not claimed.
+- **Security assurance** a 13-check non-destructive production DAST baseline passed on 27 Sep 2026; an independent authenticated penetration test remains open.
+- **Operational monitoring** ClamAV and signature updates are active; upload scanning fails closed; API, backup, ingestion and retention failures route to encrypted-SMTP alerts. External uptime/SIEM monitoring remains an improvement item.
+- **ISMS/PIMS operation** the policy, risk register, supplier register, training plan, internal-audit programme and management-review cadence are established under `docs/governance/`. Training, audits and signed management-review minutes must now be operated; accredited certification is not claimed.
 
 ## Reporting
 

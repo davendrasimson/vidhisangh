@@ -77,7 +77,7 @@ class Settings(BaseSettings):
     POSTGRES_HOST: str = "localhost"
     POSTGRES_PORT: int = 5432
     POSTGRES_USER: str = "vidhisangh"
-    POSTGRES_PASSWORD: str = "vidhisangh"
+    POSTGRES_PASSWORD: str = "vidhisangh"  # noqa: S105 - development default; rejected in prod
     POSTGRES_DB: str = "vidhisangh"
     POSTGRES_POOL_SIZE: int = 10
     POSTGRES_MAX_OVERFLOW: int = 20
@@ -205,11 +205,7 @@ class Settings(BaseSettings):
         if not self.SMTP_PASSWORD_FILE:
             return ""
         try:
-            password = (
-                Path(self.SMTP_PASSWORD_FILE)
-                .read_text(encoding="utf-8")
-                .rstrip("\r\n")
-            )
+            password = Path(self.SMTP_PASSWORD_FILE).read_text(encoding="utf-8").rstrip("\r\n")
         except OSError as exc:
             raise RuntimeError("SMTP password credential is unavailable") from exc
         if not password:
@@ -226,10 +222,14 @@ class Settings(BaseSettings):
     STORAGE_DIR: str | None = None  # required when local; never a temp dir
     MAX_UPLOAD_BYTES: int = 26_214_400  # 25 MiB (nginx client_max_body_size must match)
     ALLOWED_UPLOAD_TYPES: str = ""  # comma list of MIME types/extensions; empty = built-in set
+    MALWARE_SCAN_REQUIRED: bool = False
+    CLAMAV_SOCKET: str = "/run/clamav/clamd.ctl"
     S3_KMS_KEY_ID: str | None = None  # SSE-KMS when set, else SSE-S3 (AES256)
 
     # ─── Database hardening (audit A-29) ────────────────────────────
-    DB_SSL_MODE: Literal["disable", "require", "verify-ca", "verify-full"] | None = None  # None = derive from host
+    DB_SSL_MODE: Literal["disable", "require", "verify-ca", "verify-full"] | None = (
+        None  # None = derive from host
+    )
     DB_SSL_ROOT_CERT: str | None = None
     DB_STATEMENT_TIMEOUT_MS: int = 30_000
     DB_IDLE_IN_TRANSACTION_TIMEOUT_MS: int = 60_000
@@ -282,9 +282,7 @@ class Settings(BaseSettings):
     @property
     def sync_database_url(self) -> str:
         """Sync (psycopg) DSN used by Alembic migrations."""
-        return self.async_database_url.replace(
-            "postgresql+asyncpg", "postgresql+psycopg"
-        )
+        return self.async_database_url.replace("postgresql+asyncpg", "postgresql+psycopg")
 
     # ── Secret material (explicit value, else derived from SECRET_KEY) ──
     @property
@@ -391,7 +389,9 @@ class Settings(BaseSettings):
             problems.append("Use an asymmetric JWT algorithm (RS256/ES256) in production")
         if not self.JWT_PRIVATE_KEY_PATH or not self.JWT_PUBLIC_KEY_PATH:
             problems.append("VS_JWT_PRIVATE_KEY_PATH and VS_JWT_PUBLIC_KEY_PATH must be set")
-        if "change-me" in self.POSTGRES_PASSWORD or self.POSTGRES_PASSWORD == "vidhisangh":
+        if (
+            "change-me" in self.POSTGRES_PASSWORD or self.POSTGRES_PASSWORD == "vidhisangh"  # noqa: S105 - placeholder comparison
+        ):
             problems.append("POSTGRES_PASSWORD is a default/placeholder value")
         if not self.cors_origins:
             problems.append("BACKEND_CORS_ORIGINS must be set explicitly in production")

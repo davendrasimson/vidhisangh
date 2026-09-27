@@ -112,7 +112,7 @@ export class ComplianceStatusComponent {
     'HttpOnly refresh sessions, MFA, passkeys and lockout',
     'Append-only, hash-chained security audit records',
     'Consent, access, correction, erasure and grievance workflows',
-    'Upload validation, SSRF protection and signed webhooks',
+    'Upload validation, mandatory malware scanning and signed webhooks',
     'Secure headers, CSP, rate limits and secret validation',
     'Automated retention, encrypted backups and restore tooling',
   ];

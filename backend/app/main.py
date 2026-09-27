@@ -11,7 +11,6 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -37,6 +36,9 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     from app.core.storage import assert_storage_ready
 
     assert_storage_ready()
+    from app.core.malware import assert_malware_scanner_ready
+
+    await assert_malware_scanner_ready()
     # Refuse to run RLS-dependent code as a SUPERUSER / BYPASSRLS role (A-14).
     from app.core.startup_checks import assert_database_role_safe
 
@@ -56,7 +58,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     log.info("shutdown")
 
 
-def _metrics_app():  # noqa: ANN202
+def _metrics_app():
     """Prometheus scrape target. With ``VS_METRICS_TOKEN`` set, the request must
     carry ``Authorization: Bearer <token>`` (audit A-27); otherwise the edge
     proxy is the only guard (production nginx denies /metrics publicly)."""
@@ -67,7 +69,7 @@ def _metrics_app():  # noqa: ANN202
 
     import hmac
 
-    async def guarded(scope, receive, send):  # noqa: ANN001, ANN202
+    async def guarded(scope, receive, send):
         if scope["type"] == "http":
             auth = ""
             for name, value in scope.get("headers", []):

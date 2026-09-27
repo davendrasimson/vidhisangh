@@ -17,10 +17,13 @@ files it points to.
   (203.193.166.109). Wiring, deploy steps and ops runbook:
   [DEPLOYMENT.md](DEPLOYMENT.md). Security posture and go-live checklist:
   [SECURITY.md](SECURITY.md).
-- **Last big change**: a full security & privacy audit (OWASP Top 10,
-  ISO 27001/27701, DPDP Act 2023, SOC 2) with all 65 findings remediated and
-  deployed the same day. Report + per-finding status:
-  [SECURITY_AUDIT_2026-09.md](SECURITY_AUDIT_2026-09.md) and the PDF beside it.
+- **Last big change**: the security/privacy remediation is now backed by
+  production malware scanning, SMTP failure alerts, a hardened edge, a tested
+  encrypted off-host restore, a 13/13 public DAST baseline, and an ISMS/PIMS
+  governance pack. Report + per-finding status:
+  [SECURITY_AUDIT_2026-09.md](SECURITY_AUDIT_2026-09.md),
+  [DAST_BASELINE_2026-09-27.md](DAST_BASELINE_2026-09-27.md), and
+  [governance/README.md](governance/README.md).
 - **Code state**: git `master`, commit after `c5531eb` on
   `git@git.simsononline.com:saas/vidhisangh.git`. Alembic head is
   `0052_audit_purge_guard`, applied on production. Backend suite: 305 tests
@@ -91,18 +94,26 @@ version:
 3. Salil Shaida (`grievance@vidhisangh.com`) is the live Grievance Officer.
    Replace the generic postal address and have counsel review
    [PRIVACY_NOTICE.md](PRIVACY_NOTICE.md) and [TERMS.md](TERMS.md).
-4. Host: add an encrypted provider volume/external KMS, a second nameserver on a
-   different machine (ns1 and ns2 are the same box), a third-party penetration
-   test and ISMS/PIMS governance. SNMP is disabled and UDP/161 is closed.
+4. Host: add an encrypted provider volume/external KMS and a second nameserver
+   on a different machine (ns1 and ns2 are the same box). SNMP is disabled and
+   UDP/161 is closed. The public DAST baseline passes; commission an independent
+   authenticated penetration test.
 5. Storage: the user is arranging a 2 TB S3 bucket for court-order PDFs and
    document storage (`VS_STORAGE_BACKEND=s3`, S3 backend already exists).
+6. GitLab branch protection needs an administrator session or API token. The
+   SSH key authenticates as `@root`, but the GitLab web endpoint has no TLS and
+   the account has no API credential on this machine. Enable protected `master`,
+   require merge requests and successful pipelines after GitLab HTTPS is fixed.
+7. Governance documents and review cadence exist. The named owners must now
+   record training, internal audits, risk treatment and management-review
+   minutes; formal certification has not been claimed.
 
 **Code, next release**
-6. Continue the ordered feature plan in
+8. Continue the ordered feature plan in
    [FEATURE_ROADMAP_2026_Q4.md](FEATURE_ROADMAP_2026_Q4.md), starting with unified
    search and the Today/action inbox. The first matter integration release,
    including invoices from fee events, is already live.
-7. Legal research: remaining case-information steps and per-court corpus
+9. Legal research: remaining case-information steps and per-court corpus
    builds (UP, Delhi, P&H, Uttarakhand, Supreme Court) are paused until the
    S3 bucket exists. Do not scrape CAPTCHA-gated eCourts pages.
 
@@ -110,7 +121,11 @@ Completed after the audit handover: refresh tokens are cookie-only by default;
 legacy WebSocket token and webhook signature paths are removed; new directory
 identities are opt-in; changed legal terms trigger an in-app re-acceptance; the
 public `/trust` page and dashboard banner show the evidence-based compliance
-status; and `INCIDENT_RESPONSE.md` supplies the breach runbook.
+status; `INCIDENT_RESPONSE.md` supplies the breach runbook; ClamAV scans every
+document version before storage and fails closed; systemd service/job failures
+write a local incident record and email the operations mailbox; Nginx blocks
+sensitive paths and unknown hosts; and the production firewall no longer allows
+UDP/161.
 
 ## 5. Things that will surprise you
 

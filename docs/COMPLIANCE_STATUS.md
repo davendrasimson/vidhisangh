@@ -28,6 +28,6 @@ Do not publish “ISO certified”, “DPDP certified”, “fully compliant”,
 - Complete the Grievance Officer postal address and counsel review of the Terms and Privacy Notice.
 - Maintain the live Titan SMTP mailbox and delivery monitoring. MX, SPF, DKIM, DMARC and authenticated TLS from production were verified on 27 September 2026.
 - Add independent secondary DNS and enable server-side branch protection. SNMPv2 has been disabled and UDP/161 is closed.
-- Commission an independent penetration test/DAST and operate the ISMS/PIMS policy, risk, supplier, training, internal-audit and management-review cycle.
+- Commission an independent authenticated penetration test. The repeatable public DAST baseline passes; ISMS/PIMS policy and registers exist, while training, internal audits and signed management reviews must now accumulate operating evidence.
 
 These dependencies are visible on the public Trust page so the product status remains accurate while the owner completes governance and infrastructure work.

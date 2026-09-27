@@ -63,13 +63,39 @@ async def test_upload_download_and_versioning(client: AsyncClient, strong_passwo
     assert v2.json()["version_count"] == 2
     assert v2.json()["size"] == len(b"second version is longer")
 
-    assert (await client.get(f"{API}/documents/{doc_id}/download", headers=h)).content == b"second version is longer"
+    assert (
+        await client.get(f"{API}/documents/{doc_id}/download", headers=h)
+    ).content == b"second version is longer"
 
     # Version history is newest-first; the old version is still retrievable.
     versions = (await client.get(f"{API}/documents/{doc_id}/versions", headers=h)).json()
     assert [v["version_no"] for v in versions] == [2, 1]
     v1_id = next(v["id"] for v in versions if v["version_no"] == 1)
-    assert (await client.get(f"{API}/documents/versions/{v1_id}/download", headers=h)).content == b"first version"
+    assert (
+        await client.get(f"{API}/documents/versions/{v1_id}/download", headers=h)
+    ).content == b"first version"
+
+
+async def test_malware_is_rejected_before_storage(
+    client: AsyncClient, strong_password: str, monkeypatch
+) -> None:
+    from app.modules.documents import service as document_service
+
+    async def reject(_data: bytes) -> None:
+        from app.core.malware import MalwareDetectedError
+
+        raise MalwareDetectedError()
+
+    monkeypatch.setattr(document_service, "scan_upload", reject)
+    h, _ = await _user(client, "Safe Docs LLP", "safe-docs@firm.co", strong_password)
+    upload = await client.post(
+        f"{API}/documents",
+        headers=h,
+        files={"file": ("infected.pdf", b"not stored", "application/pdf")},
+    )
+    assert upload.status_code == 422
+    assert upload.json()["title"] == "malware_detected"
+    assert (await client.get(f"{API}/documents", headers=h)).json() == []
 
 
 async def test_folders_and_search(client: AsyncClient, strong_password: str) -> None:
@@ -102,8 +128,10 @@ async def test_checkout_checkin(client: AsyncClient, strong_password: str) -> No
     h, me = await _user(client, "Lock Co", "lock@firm.co", strong_password)
     doc_id = (
         await client.post(
-            f"{API}/documents", headers=h,
-            files={"file": ("a.txt", b"x", "text/plain")}, data={"name": "A"},
+            f"{API}/documents",
+            headers=h,
+            files={"file": ("a.txt", b"x", "text/plain")},
+            data={"name": "A"},
         )
     ).json()["id"]
 
@@ -114,7 +142,8 @@ async def test_checkout_checkin(client: AsyncClient, strong_password: str) -> No
 
     # The lock holder can still upload a new version.
     v2 = await client.post(
-        f"{API}/documents/{doc_id}/versions", headers=h,
+        f"{API}/documents/{doc_id}/versions",
+        headers=h,
         files={"file": ("a.txt", b"xy", "text/plain")},
     )
     assert v2.status_code == 201
@@ -128,27 +157,35 @@ async def test_documents_tenant_isolation(client: AsyncClient, strong_password: 
     b_h, _ = await _user(client, "Firm B", "db@firmb.co", strong_password)
     a_doc = (
         await client.post(
-            f"{API}/documents", headers=a_h,
-            files={"file": ("secret.txt", b"confidential", "text/plain")}, data={"name": "Secret"},
+            f"{API}/documents",
+            headers=a_h,
+            files={"file": ("secret.txt", b"confidential", "text/plain")},
+            data={"name": "Secret"},
         )
     ).json()
 
     assert (await client.get(f"{API}/documents", headers=b_h)).json() == []
     assert (await client.get(f"{API}/documents/{a_doc['id']}", headers=b_h)).status_code == 404
-    assert (await client.get(f"{API}/documents/{a_doc['id']}/download", headers=b_h)).status_code == 404
+    assert (
+        await client.get(f"{API}/documents/{a_doc['id']}/download", headers=b_h)
+    ).status_code == 404
 
 
 async def test_matter_draft_placement(client: AsyncClient, strong_password: str) -> None:
     a, _ = await _user(client, "Draft A", "draft-a@firm.co", strong_password)
     b, _ = await _user(client, "Draft B", "draft-b@firm.co", strong_password)
-    matter = await client.post(f"{API}/matters", headers=a,
-                              json={"title": "Draft destination", "client_name": "Client"})
+    matter = await client.post(
+        f"{API}/matters", headers=a, json={"title": "Draft destination", "client_name": "Client"}
+    )
     assert matter.status_code == 201
     matter_id = matter.json()["id"]
     for headers, expected in [(a, 201), (b, 404)]:
-        response = await client.post(f"{API}/documents", headers=headers,
-                                     files={"file": ("draft.txt", b"Draft", "text/plain")},
-                                     data={"matter_id": matter_id})
+        response = await client.post(
+            f"{API}/documents",
+            headers=headers,
+            files={"file": ("draft.txt", b"Draft", "text/plain")},
+            data={"matter_id": matter_id},
+        )
         assert response.status_code == expected, response.text
     listed = await client.get(f"{API}/documents?matter_id={matter_id}", headers=a)
     assert len(listed.json()) == 1
