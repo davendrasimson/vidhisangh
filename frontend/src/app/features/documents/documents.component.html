@@ -1,0 +1,246 @@
+<div class="documents-page">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">LEGAL WORKSPACE</p>
+      <h1>Draft, review and manage legal documents</h1>
+      <p class="subtitle">Practical court and office formats for advocates, juniors, clerks and Munshis.</p>
+    </div>
+    <div class="language-switch" aria-label="Draft language">
+      @for (item of languages; track item.id) {
+        <button [class.active]="language() === item.id" (click)="setLanguage(item.id)" [attr.aria-pressed]="language() === item.id">
+          <b>{{ item.short }}</b><span>{{ item.name }}</span>
+        </button>
+      }
+    </div>
+  </header>
+
+  @if (matterId()) {
+    <section class="rounded-card border border-brand/25 bg-brand/5 px-4 py-3 mb-4 flex flex-wrap items-center gap-2">
+      <mat-icon class="material-icons-outlined text-brand">folder_shared</mat-icon>
+      <div class="flex-1"><strong>Matter workspace</strong><p class="text-sm text-content-muted">{{ matterTitle() || 'Selected matter' }} · new drafts and uploads stay linked to this matter.</p></div>
+      <a mat-stroked-button [href]="'/app/matters/' + matterId()">Open matter</a>
+    </section>
+  }
+
+  <!-- Who this work is for: a client from the master, a new one, or nobody. -->
+  <section class="client-bar panel">
+    <div class="client-bar-main">
+      <mat-icon class="material-icons-outlined">badge</mat-icon>
+      @if (client(); as c) {
+        <div class="client-bar-copy">
+          <strong>{{ c.name }}</strong>
+          <span>New drafts and uploads are filed under this client.@if (c.id) { <a [href]="'/app/clients/' + c.id" (click)="$event.preventDefault(); openClient(c.id!)">Open record</a> }</span>
+        </div>
+      } @else {
+        <div class="client-bar-copy">
+          <strong>No client selected</strong>
+          <span>Drafts and uploads are the firm's own until you pick a client. Choose one to file work under them.</span>
+        </div>
+      }
+    </div>
+    <div class="client-bar-actions">
+      @if (client()) {
+        <label class="only-client"><input type="checkbox" [checked]="onlyClient()" (change)="toggleOnlyClient()" /> Show only this client's documents</label>
+        <button mat-stroked-button (click)="showClientPicker.set(!showClientPicker())"><mat-icon class="material-icons-outlined">swap_horiz</mat-icon>Change</button>
+        <button mat-button (click)="setClient(null)">No client</button>
+      } @else {
+        <button mat-flat-button color="primary" (click)="showClientPicker.set(!showClientPicker())"><mat-icon class="material-icons-outlined">person_search</mat-icon>Select or add a client</button>
+      }
+    </div>
+    @if (showClientPicker()) {
+      <div class="client-bar-picker">
+        <vs-client-picker placeholder="Search clients, or add a new one…" (changed)="setClient($event)" />
+      </div>
+    }
+  </section>
+
+  <nav class="workspace-tabs" aria-label="Documents sections">
+    <button [class.active]="view() === 'draft'" (click)="view.set('draft')">
+      <mat-icon class="material-icons-outlined">edit_note</mat-icon>
+      Drafting workspace
+    </button>
+    <button [class.active]="view() === 'drafts'" (click)="showDrafts()">
+      <mat-icon class="material-icons-outlined">description</mat-icon>
+      My drafts
+      @if (myDrafts().length) { <span>{{ myDrafts().length }}</span> }
+    </button>
+    <button [class.active]="view() === 'files'" (click)="view.set('files')">
+      <mat-icon class="material-icons-outlined">folder_open</mat-icon>
+      My documents
+      <span>{{ files().length }}</span>
+    </button>
+  </nav>
+
+  @if (view() === 'draft') {
+    <section class="draft-intro">
+      <div class="intro-copy">
+        <span class="step">1</span>
+        <div><h2>Choose a starting format</h2><p>Search by task, then filter for the person preparing it and the type of work.</p></div>
+      </div>
+      <div class="trust-note">
+        <mat-icon class="material-icons-outlined">verified_user</mat-icon>
+        <div><strong>Professional drafting aid</strong><span>Check the latest law, limitation, court rules, filing format, court fee, stamp and registration requirements before use.</span></div>
+      </div>
+    </section>
+
+    <section class="template-browser panel">
+      <div class="finder-row">
+        <label class="search-box">
+          <mat-icon class="material-icons-outlined">search</mat-icon>
+          <input [ngModel]="templateSearch()" (ngModelChange)="templateSearch.set($event)" placeholder="Search bail, notice, rent, affidavit, Munshi diary…" />
+          @if (templateSearch()) { <button aria-label="Clear search" (click)="templateSearch.set('')"><mat-icon>close</mat-icon></button> }
+        </label>
+        <select class="vs-input role-select" [ngModel]="role()" (ngModelChange)="role.set($event)">
+          @for (item of roles; track item.id) { <option [value]="item.id">{{ local(item.label) }}</option> }
+        </select>
+      </div>
+      <div class="category-tabs">
+        @for (item of categories; track item.id) {
+          <button [class.active]="category() === item.id" (click)="category.set(item.id)">{{ local(item.label) }}</button>
+        }
+      </div>
+
+      <div class="template-count">{{ filteredTemplates().length }} drafting formats</div>
+      <div class="template-grid">
+        @for (template of filteredTemplates(); track template.id) {
+          <button class="template-card" [class.selected]="selectedTemplate().id === template.id" (click)="chooseTemplate(template)">
+            <span class="template-icon"><mat-icon class="material-icons-outlined">{{ template.icon }}</mat-icon></span>
+            <span class="template-card-copy"><strong>{{ local(template.title) }}</strong><small>{{ local(template.description) }}</small></span>
+            <mat-icon class="material-icons-outlined arrow">arrow_forward</mat-icon>
+          </button>
+        } @empty {
+          <div class="empty-templates"><mat-icon class="material-icons-outlined">search_off</mat-icon><p>No format matches these filters.</p><button (click)="templateSearch.set(''); category.set('all'); role.set('all')">Clear filters</button></div>
+        }
+      </div>
+    </section>
+
+    <section class="draft-builder">
+      <div class="builder-heading">
+        <div class="intro-copy"><span class="step">2</span><div><h2>Build your {{ local(selectedTemplate().title) }}</h2><p>Enter the known details. Every blank remains clearly marked in the draft.</p></div></div>
+        <button class="text-action" (click)="resetDraft()"><mat-icon class="material-icons-outlined">restart_alt</mat-icon> Reset</button>
+      </div>
+
+      <div class="builder-grid">
+        <div class="details-panel panel">
+          <div class="panel-title"><mat-icon class="material-icons-outlined">fact_check</mat-icon><div><h3>Case and document details</h3><p>{{ local(selectedTemplate().description) }}</p></div></div>
+          <div class="field-grid">
+            @for (field of selectedTemplate().fields; track field) {
+              <label [class.full]="isLongField(field)">
+                <span>{{ fieldLabel(field) }}</span>
+                @if (isLongField(field)) {
+                  <textarea class="vs-input" rows="4" [ngModel]="draftValues()[field] || ''" (ngModelChange)="updateField(field, $event)" [placeholder]="fieldLabel(field)"></textarea>
+                } @else {
+                  <input class="vs-input" [ngModel]="draftValues()[field] || ''" (ngModelChange)="updateField(field, $event)" [placeholder]="fieldLabel(field)" />
+                }
+              </label>
+            }
+          </div>
+        </div>
+
+        <div class="editor-panel panel">
+          <div class="editor-toolbar">
+            <div><span>EDITABLE DRAFT</span><input class="draft-name" [(ngModel)]="draftFileName" aria-label="Draft file name" /></div>
+            <div class="toolbar-actions">
+              <button title="Copy" (click)="copyDraft()"><mat-icon class="material-icons-outlined">content_copy</mat-icon></button>
+              <button title="Print or save as PDF" (click)="printDraft()"><mat-icon class="material-icons-outlined">print</mat-icon></button>
+              <button title="Download text file" (click)="downloadDraft()"><mat-icon class="material-icons-outlined">download</mat-icon></button>
+            </div>
+          </div>
+          <!-- The word processor, compact. The generated wording is loaded
+               into it whenever the template, language or a field changes. -->
+          <vs-rich-editor compact [content]="draftHtml()" (changed)="onEditorChange($event)" placeholder="The draft appears here as you fill in the details." />
+          <div class="editor-footer">
+            <span><mat-icon class="material-icons-outlined">edit</mat-icon>Format it here, or open the full editor for page setup, versions and Word export.</span>
+            <div class="footer-actions">
+              <button mat-stroked-button [disabled]="savingDraft()" (click)="openInEditor()">
+                <mat-icon class="material-icons-outlined">open_in_full</mat-icon>Open in full editor
+              </button>
+              <button mat-flat-button color="primary" [disabled]="savingDraft()" (click)="saveDraftToDocuments()">
+                <mat-icon class="material-icons-outlined">save</mat-icon>{{ savingDraft() ? 'Saving…' : 'Save as Word to My documents' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  } @else if (view() === 'drafts') {
+    <section class="file-workspace">
+      <div class="file-header">
+        <div><h2>My drafts</h2><p>Documents written in the editor. Autosaved; open one to keep working, file it to My documents as Word when ready.</p></div>
+        <div class="file-actions">
+          <button mat-flat-button color="primary" (click)="newBlankDraft()"><mat-icon class="material-icons-outlined">note_add</mat-icon>New document</button>
+        </div>
+      </div>
+      @if (draftsLoading()) { <div class="loading-state"><mat-icon class="material-icons-outlined">hourglass_top</mat-icon>Loading drafts…</div> }
+      @else if (myDrafts().length === 0) {
+        <div class="files-empty panel"><span><mat-icon class="material-icons-outlined">description</mat-icon></span><h3>No drafts yet</h3><p>Start from a drafting format, or a blank page.</p></div>
+      } @else {
+        <div class="file-list panel">
+          @for (d of myDrafts(); track d.id) {
+            <article class="file-row">
+              <button class="file-main" (click)="openDraft(d)">
+                <mat-icon class="material-icons-outlined">description</mat-icon>
+                <span class="file-name">{{ d.title }}</span>
+                <span class="file-meta">@if (d.client_name) { <b class="client-chip">{{ d.client_name }}</b> · }{{ d.word_count }} words · edited {{ d.updated_at | date: 'dd/MM/yyyy, h:mm a' }}@if (d.version_count) { · {{ d.version_count }} version{{ d.version_count === 1 ? '' : 's' }} }@if (d.library_document_id) { · filed }</span>
+              </button>
+              <div class="file-row-actions">
+                <button mat-stroked-button (click)="openDraft(d)"><mat-icon class="material-icons-outlined">edit</mat-icon>Open</button>
+                <button mat-icon-button title="Delete draft" (click)="deleteDraft(d)"><mat-icon class="material-icons-outlined">delete</mat-icon></button>
+              </div>
+            </article>
+          }
+        </div>
+      }
+    </section>
+  } @else {
+    <section class="file-workspace">
+      <div class="file-header">
+        <div><h2>My documents</h2><p>Store filings, drafts and their version history.</p></div>
+        <div class="file-actions">
+          <label class="compact-search"><mat-icon class="material-icons-outlined">search</mat-icon><input placeholder="Search documents…" [ngModel]="search()" (ngModelChange)="search.set($event)" (keyup.enter)="runSearch()" /></label>
+          <button mat-stroked-button (click)="showFolderInput.set(!showFolderInput())"><mat-icon class="material-icons-outlined">create_new_folder</mat-icon>Folder</button>
+          <input #uploader type="file" hidden (change)="onUpload($event)" />
+          <button mat-flat-button color="primary" (click)="uploader.click()"><mat-icon class="material-icons-outlined">upload_file</mat-icon>Upload</button>
+        </div>
+      </div>
+      <input #versionInput type="file" hidden (change)="onNewVersion($event)" />
+      @if (showFolderInput()) { <div class="new-folder"><input class="vs-input" placeholder="Folder name" [(ngModel)]="folderName" (keyup.enter)="createFolder()" /><button mat-flat-button color="primary" (click)="createFolder()">Create</button></div> }
+      @if (!search()) { <div class="breadcrumb"><button (click)="goRoot()">My documents</button>@if (folder(); as current) { <mat-icon>chevron_right</mat-icon><span>{{ current.name }}</span> }</div> }
+      @else { <p class="search-result-label">Search results for “{{ search() }}”</p> }
+
+      @if (loading()) { <div class="loading-state"><mat-icon class="material-icons-outlined">hourglass_top</mat-icon>Loading documents…</div> }
+      @else {
+        @if (subfolders().length) {
+          <div class="folder-grid">@for (item of subfolders(); track item.id) { <button class="folder-card panel" (click)="enterFolder(item)"><span><mat-icon class="material-icons-outlined">folder</mat-icon></span><strong>{{ item.name }}</strong><mat-icon>chevron_right</mat-icon></button> }</div>
+        }
+        @if (files().length === 0) {
+          <div class="files-empty panel"><span><mat-icon class="material-icons-outlined">draft</mat-icon></span><h3>{{ search() ? 'No documents match' : 'Start your document library' }}</h3><p>{{ search() ? 'Try a different name or clear the search.' : 'Create a draft from a template or upload an existing file.' }}</p>@if (!search()) { <button mat-flat-button color="primary" (click)="view.set('draft')">Create a draft</button> }</div>
+        } @else {
+          <div class="file-list panel">
+            @for (doc of files(); track doc.id) {
+              <article class="file-row">
+                <div class="file-icon"><mat-icon class="material-icons-outlined">description</mat-icon></div>
+                <div class="file-info"><div><strong>{{ doc.name }}</strong>@if (doc.locked_by) { <span class="lock-chip"><mat-icon>lock</mat-icon>{{ lockedByMe(doc) ? 'Checked out by you' : 'Checked out' }}</span> }</div><small>@if (doc.client_name) { <b class="client-chip">{{ doc.client_name }}</b> · }{{ fileSize(doc.size) }} · Version {{ doc.version_count }} · Updated {{ doc.updated_at | date: 'dd/MM/yyyy, h:mm a' }}</small></div>
+                <button class="download-action" (click)="download(doc)"><mat-icon class="material-icons-outlined">download</mat-icon><span>Download</span></button>
+                <button mat-icon-button [matMenuTriggerFor]="menu" aria-label="Document actions"><mat-icon>more_vert</mat-icon></button>
+                <mat-menu #menu="matMenu">
+                  <button mat-menu-item (click)="toggleVersions(doc)"><mat-icon class="material-icons-outlined">history</mat-icon><span>{{ openVersions()[doc.id] !== undefined ? 'Hide versions' : 'Version history' }}</span></button>
+                  <button mat-menu-item [disabled]="doc.locked_by && !lockedByMe(doc)" (click)="startNewVersion(doc); versionInput.click()"><mat-icon class="material-icons-outlined">upload</mat-icon><span>New version</span></button>
+                  @if (client()?.id && doc.client_id !== client()!.id) {
+                    <button mat-menu-item (click)="assignClient(doc, client()!.id)"><mat-icon class="material-icons-outlined">badge</mat-icon><span>File under {{ client()!.name }}</span></button>
+                  }
+                  @if (doc.client_id) {
+                    <button mat-menu-item (click)="assignClient(doc, null)"><mat-icon class="material-icons-outlined">person_off</mat-icon><span>Remove client ({{ doc.client_name }})</span></button>
+                  }
+                  <button mat-menu-item (click)="toggleLock(doc)" [disabled]="doc.locked_by && !lockedByMe(doc)"><mat-icon class="material-icons-outlined">{{ doc.locked_by ? 'lock_open' : 'lock' }}</mat-icon><span>{{ doc.locked_by ? 'Check in' : 'Check out' }}</span></button>
+                  <button mat-menu-item (click)="remove(doc)"><mat-icon class="material-icons-outlined text-danger">delete</mat-icon><span>Delete</span></button>
+                </mat-menu>
+                @if (openVersions()[doc.id]; as versions) { <div class="versions">@for (version of versions; track version.id) { <div><span>v{{ version.version_no }}</span><small>{{ fileSize(version.size) }} · {{ version.created_at | date: 'dd MMM yyyy, h:mm a' }}</small><button (click)="downloadVersion(doc, version)">Download</button></div> }</div> }
+              </article>
+            }
+          </div>
+        }
+      }
+    </section>
+  }
+</div>

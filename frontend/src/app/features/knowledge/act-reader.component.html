@@ -1,0 +1,169 @@
+<div class="reader-shell">
+  <header class="reader-header">
+    <div class="reader-heading">
+      <a mat-icon-button routerLink="/app/knowledge" [queryParams]="{ view: 'acts', act: selected().id }" aria-label="Back to the Act guide"><mat-icon class="material-icons-outlined">arrow_back</mat-icon></a>
+      <button class="shelf-toggle" (click)="shelfOpen.set(!shelfOpen())" [attr.aria-expanded]="shelfOpen()"><mat-icon class="material-icons-outlined">library_books</mat-icon></button>
+      <div><p>BARE ACT READER · {{ currentNumber() }} OF {{ acts.length }}</p><h1>{{ selected().title }}</h1></div>
+    </div>
+    <div class="reader-actions">
+      <button mat-stroked-button [disabled]="selectedIndex() === 0" (click)="move(-1)"><mat-icon>chevron_left</mat-icon>Previous Act</button>
+      <button mat-stroked-button [disabled]="selectedIndex() === acts.length - 1" (click)="move(1)">Next Act<mat-icon>chevron_right</mat-icon></button>
+      <button mat-stroked-button [class.intelligence-active]="intelligenceOpen()" (click)="toggleIntelligence()"><mat-icon class="material-icons-outlined">hub</mat-icon>Section intelligence</button>
+      <button mat-flat-button color="primary" (click)="showPdf()"><mat-icon class="material-icons-outlined">picture_as_pdf</mat-icon>PDF copies</button>
+    </div>
+  </header>
+
+  <div class="reader-notice">
+    <mat-icon class="material-icons-outlined">menu_book</mat-icon>
+    <span><strong>Read the published Act as clear English text.</strong> Search within the law, enlarge the type and copy passages. The official English PDF and an official Hindi PDF, where published, remain available for verification. Check later amendments and commencement notifications separately.</span>
+  </div>
+
+  <div class="reader-layout" [class.shelf-hidden]="!shelfOpen()">
+    <aside class="book-shelf" [class.open]="shelfOpen()">
+      <div class="shelf-title"><div><span>LIBRARY</span><strong>Choose an Act</strong></div><button aria-label="Close Act shelf" (click)="shelfOpen.set(false)"><mat-icon>close</mat-icon></button></div>
+      <label class="shelf-search"><mat-icon class="material-icons-outlined">search</mat-icon><input [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Find an Act…" /></label>
+      <nav aria-label="Bare Acts book shelf">
+        @for (act of filteredActs(); track act.id) {
+          <button [class.active]="selected().id === act.id" (click)="choose(act.id)">
+            <span class="book-number">{{ acts.indexOf(act) + 1 }}</span>
+            <span><strong>{{ act.short }}</strong><small>{{ act.title }}</small></span>
+            @if (act.status === 'repealed') { <em>Repealed</em> }
+          </button>
+        } @empty { <p class="empty-shelf">No Act matches that name.</p> }
+      </nav>
+    </aside>
+
+    <main class="reading-desk">
+      <section class="book-summary">
+        <div><span>{{ selected().area }}</span><span [class.in-force]="selected().status === 'in-force'" [class.repealed]="selected().status === 'repealed'">{{ selected().status === 'in-force' ? 'In force' : 'Repealed · saved matters only' }}</span></div>
+        <p>{{ selected().summary }}</p>
+        <a [routerLink]="['/app/knowledge']" [queryParams]="{ view: 'acts', act: selected().id }">Simple guide →</a>
+      </section>
+
+      <section class="status-note" [class.repealed]="selected().status === 'repealed'">
+        <mat-icon class="material-icons-outlined">{{ selected().status === 'in-force' ? 'verified' : 'history' }}</mat-icon>
+        <p><strong>{{ selected().status === 'in-force' ? 'Current legal status:' : 'Reference status:' }}</strong> {{ selected().statusNote }}</p>
+      </section>
+
+      @if (intelligenceOpen()) {
+        <section class="intelligence-panel">
+          <header class="intelligence-header"><div><span>SECTION INTELLIGENCE</span>@if (activeSection(); as section) { <h2>Section {{ section.reference }} · {{ section.title }}</h2> } @else { <h2>Choose a section to begin</h2> }</div><button aria-label="Close section intelligence" (click)="intelligenceOpen.set(false)"><mat-icon>close</mat-icon></button></header>
+          @if (activeSection(); as section) {
+            <div class="intelligence-grid">
+              <article>
+                <div class="intel-title"><mat-icon class="material-icons-outlined">history</mat-icon><h3>Version and transition</h3></div>
+                <label class="date-checker"><span>Law applicable on</span><input type="date" min="1860-01-01" [max]="snapshotIsoDate" [ngModel]="applicableOn()" (ngModelChange)="setApplicableOn($event)" /><small>Choose the date relevant to the facts or proceeding.</small></label>
+                <div class="applicability-result" [class]="applicability().tone">
+                  <div><span>{{ applicability().label }}</span><strong>{{ applicability().headline }}</strong></div>
+                  <p>{{ applicability().detail }}</p>
+                  @if (applicability().factToCheck) { <p class="fact-check"><mat-icon class="material-icons-outlined">fact_check</mat-icon><span><strong>Fact to verify</strong>{{ applicability().factToCheck }}</span></p> }
+                  <div class="applicability-links">
+                    @if (applicability().source) { <a [href]="applicability().source" target="_blank" rel="noopener noreferrer">{{ applicability().sourceLabel }} ↗</a> }
+                    @if (applicability().counterpartActId; as counterpart) { <a routerLink="/app/knowledge/reader" [queryParams]="{ act: counterpart, section: crossReferences()[0]?.correspondingSection }">Open {{ actLabel(counterpart) }} →</a> }
+                  </div>
+                </div>
+                <dl class="intel-facts"><div><dt>Selected date</dt><dd>{{ formatLegalDate(applicableOn()) }}</dd></div><div><dt>Text snapshot</dt><dd>{{ snapshotDate }}</dd></div><div><dt>Text source</dt><dd><a [href]="selected().source" target="_blank" rel="noopener noreferrer">Official publication ↗</a></dd></div></dl>
+                @if (versionProfile(); as profile) {
+                  <details class="law-timeline" open>
+                    <summary>Commencement &amp; transition timeline</summary>
+                    <ol>
+                      @for (event of profile.timeline; track event.date + event.label) {
+                        <li [class.reached]="event.date <= applicableOn()"><time>{{ formatLegalDate(event.date) }}</time><strong>{{ event.label }}</strong><p>{{ event.detail }}</p><a [href]="event.source" target="_blank" rel="noopener noreferrer">{{ event.sourceLabel }} ↗</a></li>
+                      }
+                    </ol>
+                    <p class="mapping-warning">This answers commencement and saving questions. It does not yet reconstruct every historical amendment to the wording.</p>
+                  </details>
+                }
+                @if (crossReferences().length) { <h4>Old / new law correspondence</h4>@for (item of crossReferences(); track item.correspondingActId + item.correspondingSection) { <div class="cross-reference"><strong>{{ actLabel(item.correspondingActId) }} · Section {{ item.correspondingSection }}</strong><span>{{ item.subject }}</span>@if (item.note) { <small>{{ item.note }}</small> }<div><button (click)="compareReference(item)">Compare wording</button><a routerLink="/app/knowledge/reader" [queryParams]="{ act: item.correspondingActId, section: item.correspondingSection }">Open Act →</a></div></div> }<a class="source-link" [href]="comparisonSource" target="_blank" rel="noopener noreferrer">BPR&amp;D comparison materials ↗</a><p class="mapping-warning">Correspondence is a research aid. Compare both provisions because numbering and substance may differ.</p> }
+              </article>
+              <article>
+                <div class="intel-title"><mat-icon class="material-icons-outlined">account_balance</mat-icon><h3>Judgments referring to this section</h3></div>
+                @if (!auth.hasPermission('research:use')) { <p class="intel-empty">Your role does not include the judgment research library.</p> }
+                @else if (authorityLoading()) { <p class="intel-empty">Searching the judgment corpus…</p> }
+                @else if (authorityError()) { <p class="intel-empty">Authorities could not be loaded. <button (click)="loadAuthorities()">Retry</button></p> }
+                @else { @for (judgment of authorities(); track judgment.id) { <a class="authority" [routerLink]="['/app/research', judgment.id]"><strong>{{ authorityTitle(judgment) }}</strong><span>{{ judgment.court }}@if (judgment.judgment_date) { · {{ judgment.judgment_date }} }@if (judgment.citation) { · {{ judgment.citation }} }</span></a> } @empty { <p class="intel-empty">No indexed judgment is tagged with this Act and section yet.</p> }<a class="all-authorities" routerLink="/app/research" [queryParams]="{ act: selected().title, section: section.reference }">Search all {{ authorityTotal().toLocaleString('en-IN') }} matching authorities →</a> }
+              </article>
+              <article>
+                <div class="intel-title"><mat-icon class="material-icons-outlined">folder_shared</mat-icon><h3>Use in a matter</h3></div>
+                <p class="intel-note">Save the complete provision, legal-status note, snapshot date and official source as a matter research note.</p>
+                @if (!auth.hasPermission('matter:update')) { <p class="intel-empty">Matter update permission is required to save research.</p> }
+                @else if (matterLoading()) { <p class="intel-empty">Loading active matters…</p> }
+                @else if (matterError()) { <p class="intel-empty">Matters could not be loaded. <button (click)="loadMatters()">Retry</button></p> }
+                @else { <label class="matter-picker"><span>Matter</span><select [ngModel]="selectedMatterId()" (ngModelChange)="selectedMatterId.set($event)"><option value="">Choose an active matter</option>@for (matter of matterList(); track matter.id) { <option [value]="matter.id">{{ matter.matter_number }} · {{ matter.title }}</option> }</select></label><button mat-flat-button color="primary" [disabled]="!selectedMatterId() || savingToMatter()" (click)="saveProvisionToMatter()"><mat-icon class="material-icons-outlined">note_add</mat-icon>{{ savingToMatter() ? 'Saving…' : 'Save provision to matter' }}</button> }
+                <button class="copy-intel" (click)="copyProvision()"><mat-icon class="material-icons-outlined">content_copy</mat-icon>Copy provision with source</button>
+              </article>
+            </div>
+            @if (comparisonLoading()) { <p class="comparison-state">Loading corresponding statutory text…</p> }
+            @else if (comparisonError()) { <p class="comparison-state error">The corresponding wording could not be extracted. Open the linked official Act to compare it.</p> }
+            @else if (comparison(); as compared) { <section class="wording-comparison"><header><div><span>SIDE-BY-SIDE STATUTORY TEXT</span><h3>{{ selected().short }} Section {{ section.reference }} and {{ actLabel(compared.actId) }} Section {{ compared.section }}</h3></div><button aria-label="Close comparison" (click)="comparison.set(null)"><mat-icon>close</mat-icon></button></header><div><article><h4>{{ selected().title }} · Section {{ section.reference }}</h4><pre>{{ provisionTextForView(section.blockId) }}</pre></article><article><h4>{{ actLabel(compared.actId) }} · Section {{ compared.section }}</h4><pre>{{ compared.text }}</pre></article></div></section> }
+          }
+        </section>
+      }
+
+      <div class="mode-bar">
+        <div class="mode-switch" aria-label="Reader format">
+          <button [class.active]="readerMode() === 'text'" (click)="readerMode.set('text')"><mat-icon class="material-icons-outlined">article</mat-icon>Readable text</button>
+          <button [class.active]="readerMode() === 'pdf'" (click)="showPdf()"><mat-icon class="material-icons-outlined">picture_as_pdf</mat-icon>Official PDF</button>
+        </div>
+        @if (readerMode() === 'text') {
+          <div class="text-tools">
+            @if (sectionEntries().length) { <label class="section-jump"><span class="sr-only">Jump to section</span><select [ngModel]="sectionSelection()" (ngModelChange)="jumpToSection($event)"><option value="">Jump to section…</option>@for (section of sectionEntries(); track section.blockId) { <option [value]="section.blockId">S. {{ section.reference }} · {{ section.title }}</option> }</select></label> }
+            <label class="text-search"><mat-icon class="material-icons-outlined">search</mat-icon><input [ngModel]="textQuery()" (ngModelChange)="updateTextQuery($event)" (keydown.enter)="jumpMatch(1)" placeholder="Search this Act: section, phrase…" /></label>
+            @if (textQuery()) {
+              <span class="match-count">{{ matchingBlocks().length ? activeMatch() + 1 : 0 }} / {{ matchingBlocks().length }}</span>
+              <button aria-label="Previous result" [disabled]="!matchingBlocks().length" (click)="jumpMatch(-1)"><mat-icon>keyboard_arrow_up</mat-icon></button>
+              <button aria-label="Next result" [disabled]="!matchingBlocks().length" (click)="jumpMatch(1)"><mat-icon>keyboard_arrow_down</mat-icon></button>
+            }
+            <span class="tool-divider"></span>
+            <button aria-label="Decrease text size" [disabled]="fontSize() === 14" (click)="fontSize.set(fontSize() - 1)">A−</button>
+            <button aria-label="Increase text size" [disabled]="fontSize() === 22" (click)="fontSize.set(fontSize() + 1)">A+</button>
+            <button class="copy-button" [disabled]="!matchingBlocks().length && !sectionSelection()" (click)="copyProvision()"><mat-icon class="material-icons-outlined">content_copy</mat-icon>{{ copied() ? 'Copied' : 'Copy provision' }}</button>
+            <button aria-label="Copy full Act text" title="Copy full Act text" (click)="copyText()"><mat-icon class="material-icons-outlined">library_add</mat-icon></button>
+          </div>
+        }
+      </div>
+
+      @if (readerMode() === 'text') {
+        <section class="manual-scroll" [style.--reader-size.px]="fontSize()">
+          @if (textLoading()) {
+            <div class="reader-state"><mat-icon class="material-icons-outlined">hourglass_top</mat-icon><p>Preparing the English text…</p></div>
+          } @else if (textError()) {
+            <div class="reader-state error"><mat-icon class="material-icons-outlined">error_outline</mat-icon><p>The text copy could not be opened.</p><button mat-stroked-button (click)="showPdf()">Open official PDF</button></div>
+          } @else {
+            <article class="manual-page">
+              <header class="manual-cover">
+                <span>BARE ACT · ENGLISH STATUTORY TEXT</span>
+                <h2>{{ selected().title }}</h2>
+                <p>{{ wordCount().toLocaleString('en-IN') }} words · Searchable and selectable · Page formatting normalised from the official copy</p>
+              </header>
+              <div class="act-copy">
+                @for (block of textBlocks(); track block.id) {
+                  <div [id]="'act-text-' + block.id" class="text-block" [class]="block.kind" [class.search-hit]="isActiveMatch(block.id)">
+                    @if (textQuery() && matchingBlocks().includes(block.id)) {
+                      @for (segment of segments(block.text); track $index) { @if (segment.match) { <mark>{{ segment.text }}</mark> } @else { {{ segment.text }} } }
+                    } @else { {{ block.text }} }
+                  </div>
+                }
+              </div>
+            </article>
+          }
+        </section>
+      } @else {
+        <section class="pdf-panel">
+          <div class="pdf-choice">
+            <div><strong>Official PDF copies</strong><span>Use these when you need the published page layout or want to verify the reading text.</span></div>
+            <div class="pdf-links">
+              <a mat-flat-button color="primary" [href]="localPdfUrl()" target="_blank"><mat-icon class="material-icons-outlined">download</mat-icon>English PDF</a>
+              @if (selected().hindiSource) { <a mat-stroked-button [href]="selected().hindiSource" target="_blank" rel="noopener noreferrer"><mat-icon class="material-icons-outlined">language</mat-icon>Hindi PDF</a> }
+              <a mat-stroked-button [href]="selected().source" target="_blank" rel="noopener noreferrer">Official source<mat-icon class="material-icons-outlined">open_in_new</mat-icon></a>
+            </div>
+          </div>
+          <div class="document-frame">
+            @if (pdfLoading()) { <div class="reader-state"><mat-icon class="material-icons-outlined">hourglass_top</mat-icon><p>Opening the English PDF…</p></div> }
+            <iframe [src]="readerSource()" [title]="'English PDF of ' + selected().title" (load)="pdfLoading.set(false)"></iframe>
+          </div>
+        </section>
+      }
+    </main>
+  </div>
+</div>

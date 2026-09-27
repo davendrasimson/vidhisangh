@@ -1,0 +1,108 @@
+[project]
+name = "vidhisangh-backend"
+version = "0.1.0"
+description = "VidhiSangh — integrated legal ecosystem platform (FastAPI backend)."
+requires-python = ">=3.13"
+readme = "README.md"
+license = { text = "Proprietary" }
+
+dependencies = [
+    # ── Web framework & server ──────────────────────────────────────
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "gunicorn>=23.0",
+    # ── Data / ORM ──────────────────────────────────────────────────
+    "sqlalchemy[asyncio]>=2.0.36",
+    "alembic>=1.14",
+    "asyncpg>=0.30",
+    "psycopg[binary]>=3.2",            # sync driver for alembic/migrations
+    "pgvector>=0.3",
+    # ── Validation / settings ───────────────────────────────────────
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "email-validator>=2.2",
+    # ── Security ────────────────────────────────────────────────────
+    "argon2-cffi>=23.1",              # Argon2id password hashing
+    "pyjwt[crypto]>=2.10",            # JWT with RS256/ES256 support
+    "pyotp>=2.9",                     # TOTP MFA
+    "cryptography>=44.0",             # envelope encryption / column crypto
+    "itsdangerous>=2.2",
+    # ── Async infra ─────────────────────────────────────────────────
+    "redis>=5.2",
+    "celery>=5.4",
+    "httpx>=0.28",
+    # ── Misc ────────────────────────────────────────────────────────
+    "segno>=1.6",                     # pure-python QR codes (digital visiting card)
+    "python-multipart>=0.0.9",        # multipart/form-data (document uploads)
+    "pypdf>=5.1",                     # judgment PDF text (research enrichment)
+    "python-docx>=1.1",               # DOCX export of drafted documents
+    "pyarrow>=18.0",                  # parquet metadata from the open-data corpus
+    # ── Observability ───────────────────────────────────────────────
+    "structlog>=24.4",
+    "prometheus-client>=0.21",
+    "opentelemetry-api>=1.29",
+    "opentelemetry-sdk>=1.29",
+    "opentelemetry-instrumentation-fastapi>=0.50b0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
+    "aiosqlite>=0.20",                # in-memory async DB for tests
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "types-redis",
+    "faker>=33.0",
+]
+storage = [
+    "boto3>=1.35",                    # S3-compatible object storage
+]
+search = [
+    "opensearch-py>=2.8",
+]
+ai = [
+    "anthropic>=0.42",
+    "openai>=1.59",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+# ─── Ruff (lint + format) ───────────────────────────────────────────
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+src = ["app", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "C4", "SIM", "ASYNC", "S", "RUF"]
+ignore = ["S101"]  # allow assert in tests
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S105", "S106"]        # hardcoded test passwords are fine
+"alembic/*" = ["E501", "F401"]
+
+# ─── mypy (strict typing) ───────────────────────────────────────────
+[tool.mypy]
+python_version = "3.13"
+strict = true
+plugins = ["pydantic.mypy"]
+warn_unused_ignores = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+
+# ─── pytest ─────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-ra -q"
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true

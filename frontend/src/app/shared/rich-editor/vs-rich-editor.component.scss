@@ -1,0 +1,201 @@
+/* The editor is ViewEncapsulation.None: everything here is scoped by the
+   .vs-editor / .vs-prose class prefixes on purpose. */
+
+.vs-editor {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid rgb(var(--vs-border));
+  border-radius: 12px;
+  background: rgb(var(--vs-surface-raised));
+  overflow: hidden;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────── */
+.vs-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 6px;
+  padding: 6px 8px;
+  border-bottom: 1px solid rgb(var(--vs-border));
+  background: color-mix(in srgb, rgb(var(--vs-surface-raised)) 92%, rgb(var(--vs-surface-sunken)));
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.vs-tb-group {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding-right: 6px;
+  border-right: 1px solid rgb(var(--vs-border));
+  &:last-child { border-right: 0; }
+  &--end { margin-left: auto; border-right: 0; }
+}
+.vs-toolbar button,
+.vs-tb-file {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: rgb(var(--vs-text));
+  cursor: pointer;
+  &:hover { background: rgb(var(--vs-surface-sunken)); }
+  &.on { background: color-mix(in srgb, rgb(var(--vs-brand)) 14%, transparent); color: rgb(var(--vs-brand)); }
+  &:disabled { opacity: 0.35; cursor: default; }
+  mat-icon { font-size: 20px; width: 20px; height: 20px; }
+}
+.vs-tb-file input { display: none; }
+.vs-swatch {
+  position: absolute;
+  left: 7px; right: 7px; bottom: 4px;
+  height: 3px;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+.vs-tb-select {
+  height: 30px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: rgb(var(--vs-text));
+  font: inherit;
+  font-size: 13px;
+  &:hover { border-color: rgb(var(--vs-border)); background: rgb(var(--vs-surface-raised)); }
+  &--style { width: 108px; }
+  &--font { width: 150px; }
+  &--size { width: 58px; }
+  &--lh { width: 60px; }
+}
+.vs-tb-popover-anchor { position: relative; display: inline-flex; }
+.vs-tb-popover {
+  position: absolute;
+  top: 34px;
+  left: 0;
+  z-index: 20;
+  min-width: 180px;
+  padding: 8px;
+  border: 1px solid rgb(var(--vs-border));
+  border-radius: 10px;
+  background: rgb(var(--vs-surface-raised));
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  display: grid;
+  gap: 6px;
+  button { justify-content: flex-start; height: 28px; font-size: 13px; padding: 0 8px; }
+  .vs-tb-primary { background: rgb(var(--vs-brand)); color: #fff; justify-content: center; }
+  .vs-tb-danger { color: rgb(var(--vs-danger, 220 38 38)); }
+  label { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; }
+  input[type='number'] { width: 64px; padding: 3px 6px; border: 1px solid rgb(var(--vs-border)); border-radius: 6px; background: transparent; color: inherit; }
+  input[type='text'], input:not([type]) { padding: 5px 8px; border: 1px solid rgb(var(--vs-border)); border-radius: 6px; background: transparent; color: inherit; font: inherit; font-size: 13px; }
+}
+.vs-palette {
+  grid-template-columns: repeat(6, 24px);
+  button { width: 24px; height: 24px; min-width: 0; padding: 0; border: 1px solid rgba(0, 0, 0, 0.12); border-radius: 4px; }
+  .vs-palette-custom, .vs-palette-reset { grid-column: 1 / -1; }
+  .vs-palette-custom input { width: 40px; height: 24px; padding: 0; border: 0; background: none; }
+  .vs-palette-reset { width: 100%; text-align: center; justify-content: center; }
+}
+.vs-table-menu { min-width: 200px; }
+.vs-find {
+  min-width: 300px;
+  right: 0; left: auto;
+  .vs-find-actions { display: flex; align-items: center; gap: 4px; span { margin-left: auto; font-size: 12px; color: rgb(var(--vs-text-muted)); } }
+}
+.vs-editor--compact .vs-toolbar { padding: 4px 6px; }
+
+/* ── Canvas & page ───────────────────────────────────────────────── */
+.vs-canvas {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 24px 16px;
+  background:
+    radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.06) 1px, transparent 0) 0 0 / 18px 18px,
+    rgb(var(--vs-surface-sunken));
+}
+.vs-editor--compact .vs-canvas { padding: 0; background: rgb(var(--vs-surface-raised)); }
+.vs-page {
+  margin: 0 auto;
+  max-width: 100%;
+  background: #fff;
+  color: #111;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12), 0 12px 32px rgba(0, 0, 0, 0.12);
+  box-sizing: border-box;
+}
+.vs-editor--compact .vs-page { box-shadow: none; padding: 16px 20px; min-height: 360px; }
+
+/* ── Document typography (what Word will also show) ─────────────── */
+.vs-prose {
+  outline: none;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 12pt;
+  line-height: 1.15;
+  min-height: 100%;
+  > * + * { margin-top: 0.5em; }
+  p { margin: 0; }
+  h1, h2, h3, h4 { margin: 0.6em 0 0.3em; line-height: 1.2; font-weight: 700; }
+  h1 { font-size: 20pt; } h2 { font-size: 16pt; } h3 { font-size: 14pt; } h4 { font-size: 12pt; }
+  /* Tailwind's preflight strips list markers; a document needs them. */
+  ul, ol { padding-left: 1.6em; margin: 0.25em 0; }
+  ul { list-style: disc; }
+  ol { list-style: decimal; }
+  ol ol { list-style: lower-alpha; }
+  ol ol ol { list-style: lower-roman; }
+  ul ul { list-style: circle; }
+  li > p { margin: 0; }
+  ul[data-type='taskList'] {
+    list-style: none; padding-left: 0.2em;
+    li { display: flex; gap: 0.5em; align-items: flex-start; }
+    li > label { flex: 0 0 auto; margin-top: 0.15em; }
+    li > div { flex: 1; }
+  }
+  blockquote { margin: 0.4em 0; padding-left: 1em; border-left: 3px solid #c9c9c9; color: #333; font-style: italic; }
+  pre { background: #f4f4f4; padding: 0.6em 0.8em; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 10pt; white-space: pre-wrap; }
+  hr { border: 0; border-top: 1px solid #999; margin: 0.8em 0; }
+  a { color: #1a56db; text-decoration: underline; }
+  mark { border-radius: 2px; padding: 0 1px; }
+  img { max-width: 100%; height: auto; display: block; margin: 0.5em auto; }
+  img.ProseMirror-selectednode { outline: 2px solid #1a56db; }
+  table {
+    border-collapse: collapse; table-layout: fixed; width: 100%; margin: 0.5em 0; overflow: hidden;
+    td, th { border: 1px solid #555; padding: 4px 8px; vertical-align: top; position: relative; min-width: 2em; }
+    th { background: #f0f0f0; font-weight: 700; text-align: left; }
+    .selectedCell::after { content: ''; position: absolute; inset: 0; background: rgba(26, 86, 219, 0.12); pointer-events: none; }
+    .column-resize-handle { position: absolute; right: -2px; top: 0; bottom: 0; width: 4px; background: #1a56db; pointer-events: none; }
+  }
+  .tableWrapper { overflow-x: auto; }
+  &.resize-cursor { cursor: col-resize; }
+  .vs-page-break {
+    display: flex; align-items: center; gap: 8px; margin: 1em 0; color: #888; font: 10px sans-serif; user-select: none;
+    &::before, &::after { content: ''; flex: 1; border-top: 1px dashed #aaa; }
+    &.ProseMirror-selectednode { color: #1a56db; }
+  }
+  p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: #9a9a9a; float: left; height: 0; pointer-events: none; }
+}
+
+/* ── Status bar ──────────────────────────────────────────────────── */
+.vs-statusbar {
+  display: flex; gap: 16px; align-items: center;
+  padding: 4px 12px;
+  border-top: 1px solid rgb(var(--vs-border));
+  font-size: 12px; color: rgb(var(--vs-text-muted));
+}
+
+/* ── Print: only the page, with real page margins ──────────────── */
+@media print {
+  body * { visibility: hidden !important; }
+  .vs-editor, .vs-editor * { visibility: visible !important; }
+  .vs-editor { position: absolute !important; inset: 0 auto auto 0 !important; width: 100% !important; border: 0 !important; }
+  .vs-toolbar, .vs-statusbar { display: none !important; }
+  .vs-canvas { padding: 0 !important; background: none !important; overflow: visible !important; }
+  .vs-page { width: auto !important; min-height: 0 !important; padding: 0 !important; box-shadow: none !important; }
+  .vs-prose .vs-page-break { break-after: page; page-break-after: always; visibility: hidden !important; height: 0; margin: 0; }
+}

@@ -1,0 +1,46 @@
+# ─── Python virtualenvs & caches ────────────────────────────────────
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# ─── Tests & docs (not needed in the image) ─────────────────────────
+tests/
+*.md
+
+# ─── Secrets & local config (NEVER ship these) ──────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+keys/
+secrets/
+
+# ─── Local databases / build artifacts ──────────────────────────────
+*.sqlite3
+*.db
+*.log
+logs/
+tmp/
+dist/
+build/
+
+# ─── Editor / OS / VCS ──────────────────────────────────────────────
+.git/
+.gitignore
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Dockerfile
+.dockerignore

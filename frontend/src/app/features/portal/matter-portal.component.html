@@ -1,0 +1,88 @@
+<div class="mx-auto w-full">
+  <a [routerLink]="['/app/matters', matterId]" class="text-sm text-content-muted inline-flex items-center gap-1 mb-3">
+    <mat-icon class="material-icons-outlined text-base">arrow_back</mat-icon> Back to matter
+  </a>
+  <h1 class="text-2xl font-bold text-content mb-4">Client portal</h1>
+
+  @if (loading()) {
+    <p class="text-content-muted">Loading…</p>
+  } @else {
+    <div class="grid gap-5">
+      <!-- Access -->
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-4">
+        <h2 class="font-semibold mb-3">Access</h2>
+        @for (a of accesses(); track a.id) {
+          <div class="flex items-center gap-3 py-2 border-b border-line last:border-0">
+            <div class="flex-1 min-w-0">
+              <p class="font-medium truncate">{{ a.client_name }} <span class="text-content-muted">· {{ a.client_email }}</span></p>
+              <p class="text-xs text-content-muted truncate">{{ link(a) }}</p>
+            </div>
+            @if (a.is_active) {
+              <button mat-icon-button (click)="copyLink(a)" matTooltip="Copy link" aria-label="Copy link">
+                <mat-icon class="material-icons-outlined">content_copy</mat-icon>
+              </button>
+              <button mat-button (click)="revoke(a)">Revoke</button>
+            } @else {
+              <span class="vs-chip">Revoked</span>
+            }
+          </div>
+        } @empty { <p class="text-sm text-content-muted mb-2">No client has portal access yet.</p> }
+
+        <div class="grid gap-2 sm:grid-cols-[1fr_1fr_auto] mt-3">
+          <input class="vs-input" placeholder="Client name" [(ngModel)]="grantForm.client_name" />
+          <input class="vs-input" type="email" placeholder="Client email" [(ngModel)]="grantForm.client_email" />
+          <button mat-flat-button color="primary" (click)="grant()">Grant access</button>
+        </div>
+      </section>
+
+      <!-- Post update -->
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-4">
+        <h2 class="font-semibold mb-3">Post an update</h2>
+        <div class="grid gap-2">
+          <input class="vs-input" placeholder="Title" [(ngModel)]="updateForm.title" />
+          <textarea class="vs-input" rows="2" placeholder="What should the client know?" [(ngModel)]="updateForm.body"></textarea>
+          <div class="flex justify-end">
+            <button mat-flat-button color="primary" (click)="postUpdate()">Post update</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Approvals -->
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-4">
+        <h2 class="font-semibold mb-3">Approval requests</h2>
+        @for (ap of approvals(); track ap.id) {
+          <div class="flex items-center gap-2 py-2 border-b border-line last:border-0">
+            <div class="flex-1 min-w-0">
+              <p class="font-medium truncate">{{ ap.title }}</p>
+              @if (ap.response_note) { <p class="text-xs text-content-muted truncate">Client: “{{ ap.response_note }}”</p> }
+            </div>
+            <span class="vs-chip capitalize"
+                  [class.vs-chip--danger]="ap.status === 'rejected'">{{ ap.status }}</span>
+          </div>
+        } @empty { <p class="text-sm text-content-muted mb-2">No approval requests yet.</p> }
+        <div class="grid gap-2 mt-3">
+          <input class="vs-input" placeholder="What needs approval?" [(ngModel)]="approvalForm.title" />
+          <textarea class="vs-input" rows="2" placeholder="Details (optional)" [(ngModel)]="approvalForm.description"></textarea>
+          <div class="flex justify-end">
+            <button mat-flat-button color="primary" (click)="requestApproval()">Request approval</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Shared documents -->
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-4">
+        <h2 class="font-semibold mb-3">Shared documents</h2>
+        <p class="text-sm text-content-muted mb-2">Toggle which of this matter's documents the client can see.</p>
+        @for (doc of documents(); track doc.id) {
+          <div class="flex items-center gap-2 py-1">
+            <mat-icon class="material-icons-outlined text-content-muted">description</mat-icon>
+            <span class="flex-1 min-w-0 truncate">{{ doc.name }}</span>
+            <button mat-stroked-button [color]="isShared(doc) ? 'primary' : undefined" (click)="toggleShare(doc)">
+              {{ isShared(doc) ? 'Shared' : 'Share' }}
+            </button>
+          </div>
+        } @empty { <p class="text-sm text-content-muted">This matter has no documents. Upload some under Documents.</p> }
+      </section>
+    </div>
+  }
+</div>

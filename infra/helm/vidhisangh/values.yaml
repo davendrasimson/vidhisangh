@@ -1,0 +1,143 @@
+# ════════════════════════════════════════════════════════════════════
+#  VidhiSangh — Helm values
+# ════════════════════════════════════════════════════════════════════
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Name of the pre-provisioned Secret (from a secrets manager / sealed-secrets)
+# that holds VS_SECRET_KEY, VS_POSTGRES_PASSWORD, API keys, etc.
+# See infra/k8s/secret.example.yaml for the required keys.
+existingSecret: "vidhisangh-secrets"
+
+image:
+  registry: ghcr.io
+  pullPolicy: IfNotPresent
+  # Default tag applied to all components unless overridden per-component.
+  tag: "0.1.0"
+
+imagePullSecrets: []
+
+# ─── Backend (FastAPI) ────────────────────────────────────────────
+backend:
+  enabled: true
+  image:
+    repository: vidhisangh/backend
+    tag: ""            # falls back to .Values.image.tag
+  replicaCount: 3
+  containerPort: 8000
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "1"
+      memory: "1Gi"
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+# ─── Worker (Celery) ──────────────────────────────────────────────
+worker:
+  enabled: true
+  image:
+    repository: vidhisangh/backend    # same image as backend
+    tag: ""
+  replicaCount: 2
+  command:
+    - celery
+    - -A
+    - app.worker.celery_app
+    - worker
+    - --loglevel=info
+    - --concurrency=4
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "1"
+      memory: "1Gi"
+
+# ─── Frontend (Angular + nginx) ───────────────────────────────────
+frontend:
+  enabled: true
+  image:
+    repository: vidhisangh/frontend
+    tag: ""
+  replicaCount: 2
+  containerPort: 8080
+  service:
+    port: 80
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "250m"
+      memory: "128Mi"
+
+# ─── Non-secret application config (rendered into a ConfigMap) ─────
+config:
+  VS_ENVIRONMENT: "production"
+  VS_DEBUG: "false"
+  VS_LOG_LEVEL: "INFO"
+  VS_LOG_JSON: "true"
+  VS_PROJECT_NAME: "VidhiSangh"
+  VS_API_V1_PREFIX: "/api/v1"
+  VS_BACKEND_CORS_ORIGINS: "https://vidhisangh.com,https://www.vidhisangh.com"
+  VS_POSTGRES_HOST: "vidhisangh-postgresql"
+  VS_POSTGRES_PORT: "5432"
+  VS_POSTGRES_USER: "vidhisangh"
+  VS_POSTGRES_DB: "vidhisangh"
+  VS_POSTGRES_POOL_SIZE: "10"
+  VS_POSTGRES_MAX_OVERFLOW: "20"
+  VS_REDIS_URL: "redis://vidhisangh-redis-master:6379/0"
+  VS_CELERY_BROKER_URL: "redis://vidhisangh-redis-master:6379/1"
+  VS_CELERY_RESULT_BACKEND: "redis://vidhisangh-redis-master:6379/2"
+  VS_S3_ENDPOINT_URL: "http://vidhisangh-minio:9000"
+  VS_S3_REGION: "ap-south-1"
+  VS_S3_BUCKET: "vidhisangh-documents"
+  VS_S3_USE_SSL: "false"
+  VS_OPENSEARCH_URL: "http://vidhisangh-opensearch:9200"
+  VS_LLM_PROVIDER: "anthropic"
+  VS_RATE_LIMIT_PER_MINUTE: "120"
+  VS_AUTH_RATE_LIMIT_PER_MINUTE: "10"
+
+# ─── Ingress ──────────────────────────────────────────────────────
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+  hosts:
+    web: vidhisangh.com
+    api: api.vidhisangh.com
+  tls:
+    enabled: true
+    webSecretName: vidhisangh-tls
+    apiSecretName: vidhisangh-api-tls
+
+# ─── Bundled infra subcharts (dev / self-contained installs) ──────
+# Set to false in production and point config.* at managed services.
+postgresql:
+  enabled: false
+  image:
+    repository: pgvector/pgvector
+    tag: pg17
+  auth:
+    username: vidhisangh
+    database: vidhisangh
+    existingSecret: vidhisangh-secrets
+    secretKeys:
+      userPasswordKey: VS_POSTGRES_PASSWORD
+
+redis:
+  enabled: false
+  architecture: standalone
+  auth:
+    enabled: false

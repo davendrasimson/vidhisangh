@@ -1,0 +1,182 @@
+<div class="mx-auto w-full">
+  <a routerLink="/app/research" class="text-sm text-content-muted inline-flex items-center gap-1 mb-3">
+    <mat-icon class="material-icons-outlined text-base">arrow_back</mat-icon> Search
+  </a>
+
+  @if (loading()) {
+    <p class="text-content-muted">Loading…</p>
+  } @else if (judgment(); as j) {
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
+      <div class="flex flex-wrap items-center gap-1.5 mb-2">
+        @if (j.case_type) {
+          <span class="vs-chip font-mono">{{ j.case_type }}@if (j.case_number) { {{ j.case_number }}}@if (j.case_year) {/{{ j.case_year }}}</span>
+        }
+        @if (j.citation) { <span class="vs-chip font-mono">{{ j.citation }}</span> }
+        @if (j.neutral_citation) { <span class="vs-chip font-mono">{{ j.neutral_citation }}</span> }
+        @if (j.cnr_number) { <span class="vs-chip font-mono">CNR {{ j.cnr_number }}</span> }
+      </div>
+      <h1 class="vs-display text-2xl font-semibold text-content">{{ j.cause_title || j.case_name }}</h1>
+      <p class="text-sm text-content-muted mt-1">
+        {{ j.court }}@if (j.judgment_date) { · {{ j.judgment_date | date }} }
+      </p>
+      @if (j.bench || j.judge_names.length || j.judges.length) {
+        <p class="text-sm text-content-muted">
+          @if (j.bench) { {{ j.bench }} · }
+          @if (j.judge_names.length) {
+            @for (n of j.judge_names; track n; let last = $last) { Justice {{ n }}@if (!last) {, } }
+          } @else { {{ j.judges.join(', ') }} }
+        </p>
+      }
+      @if (j.outcome) { <p class="mt-2"><span class="vs-chip">{{ j.outcome }}</span></p> }
+
+      <!-- Parties and counsel (migration 0039). -->
+      @if (j.petitioner || j.respondent) {
+        <div class="grid gap-3 sm:grid-cols-2 mt-4">
+          <div class="rounded-md bg-surface-sunken p-3">
+            <h3 class="text-xs font-semibold uppercase tracking-wide text-content-muted mb-1">Petitioner / Appellant</h3>
+            <p class="text-sm font-medium text-content">{{ j.petitioner || '—' }}</p>
+            @if (j.petitioner_advocates.length) {
+              <p class="text-xs text-content-muted mt-1">Counsel:
+                @for (a of j.petitioner_advocates; track a; let last = $last) {
+                  <a [routerLink]="['/app/research']" [queryParams]="{ advocate: a }" class="text-brand hover:underline">{{ a }}</a>@if (!last) {, }
+                }
+              </p>
+            }
+          </div>
+          <div class="rounded-md bg-surface-sunken p-3">
+            <h3 class="text-xs font-semibold uppercase tracking-wide text-content-muted mb-1">Respondent</h3>
+            <p class="text-sm font-medium text-content">{{ j.respondent || '—' }}</p>
+            @if (j.respondent_advocates.length) {
+              <p class="text-xs text-content-muted mt-1">Counsel:
+                @for (a of j.respondent_advocates; track a; let last = $last) {
+                  <a [routerLink]="['/app/research']" [queryParams]="{ advocate: a }" class="text-brand hover:underline">{{ a }}</a>@if (!last) {, }
+                }
+              </p>
+            }
+          </div>
+        </div>
+      }
+      @if (j.filed_on || j.cnr_number) {
+        <p class="text-sm text-content-muted mt-3">
+          @if (j.filed_on) { Filed {{ j.filed_on | date }} · }
+          @if (j.cnr_number) {
+            <a [routerLink]="['/app/research/case', j.cnr_number]" class="text-brand hover:underline inline-flex items-center gap-1">
+              <mat-icon class="material-icons-outlined !text-sm !w-4 !h-4">timeline</mat-icon> All orders in this case
+            </a>
+          }
+        </p>
+      }
+
+      <div class="judgment-actions">
+        @if (j.full_text) { <button mat-flat-button color="primary" (click)="openReader()"><mat-icon class="material-icons-outlined">menu_book</mat-icon>Read judgment</button> }
+        <button mat-stroked-button (click)="copyCitation()"><mat-icon class="material-icons-outlined">content_copy</mat-icon>Copy citation</button>
+        @if (j.url) { <a mat-stroked-button [href]="j.url" target="_blank" rel="noopener"><mat-icon class="material-icons-outlined">open_in_new</mat-icon>Official source</a> }
+      </div>
+
+      @if (treatmentSummary().length) {
+        <div class="treatment-strip"><strong>Precedential treatment</strong>@for (item of treatmentSummary(); track item.relationship) { <span [class.adverse]="item.relationship === 'overruled' || item.relationship === 'dissented'">{{ label(item.relationship) }} · {{ item.count }}</span> }<small>Based on recorded citation relationships in this library.</small></div>
+      }
+
+      <!-- For an SC judgment the headnote is the Court's own disposal — keep it
+           even when the full text is present. For a High Court order record it
+           is only the registry's opening, so the full text replaces it. -->
+      @if (j.headnote && !(j.full_text && j.court_level === 'high_court')) {
+        <h2 class="font-semibold mt-4 mb-1">{{ j.court_level === 'high_court' && !j.citation ? 'From the order' : 'Headnote' }}</h2>
+        <p class="text-sm text-content whitespace-pre-line">{{ j.headnote }}</p>
+      }
+      @if (j.full_text && !readerOpen()) { <button class="reader-preview" (click)="openReader()"><mat-icon class="material-icons-outlined">article</mat-icon><span><strong>Full judgment available</strong><small>{{ paragraphs().length.toLocaleString('en-IN') }} readable paragraphs · search, cite and save excerpts</small></span><mat-icon>arrow_forward</mat-icon></button> }
+
+      <div class="grid gap-3 sm:grid-cols-3 mt-4">
+        @if (j.acts.length) {
+          <div><h3 class="text-xs font-semibold text-content-muted mb-1">Acts</h3>
+            <div class="flex flex-wrap gap-1">@for (a of j.acts; track a) { <span class="vs-chip">{{ a }}</span> }</div></div>
+        }
+        @if (j.sections.length) {
+          <div><h3 class="text-xs font-semibold text-content-muted mb-1">Sections</h3>
+            <div class="flex flex-wrap gap-1">@for (s of j.sections; track s) { <span class="vs-chip">{{ s }}</span> }</div></div>
+        }
+        @if (j.keywords.length) {
+          <div><h3 class="text-xs font-semibold text-content-muted mb-1">Keywords</h3>
+            <div class="flex flex-wrap gap-1">@for (k of j.keywords; track k) { <span class="text-brand text-sm">#{{ k }}</span> }</div></div>
+        }
+      </div>
+    </section>
+
+    @if (j.full_text && readerOpen()) {
+      <section class="judgment-reader" [style.--judgment-size.px]="fontSize()">
+        <header class="reader-toolbar">
+          <div><span>JUDGMENT READER</span><strong>{{ paragraphs().length.toLocaleString('en-IN') }} paragraphs</strong></div>
+          <label><mat-icon class="material-icons-outlined">search</mat-icon><input [ngModel]="readerQuery()" (ngModelChange)="updateReaderQuery($event)" (keydown.enter)="jumpMatch(1)" placeholder="Search within this judgment…" /></label>
+          @if (readerQuery()) { <span class="reader-count">{{ matchingParagraphs().length ? activeMatch() + 1 : 0 }} / {{ matchingParagraphs().length }}</span><button aria-label="Previous match" (click)="jumpMatch(-1)"><mat-icon>keyboard_arrow_up</mat-icon></button><button aria-label="Next match" (click)="jumpMatch(1)"><mat-icon>keyboard_arrow_down</mat-icon></button> }
+          <button aria-label="Decrease font size" [disabled]="fontSize() <= 14" (click)="fontSize.set(fontSize() - 1)">A−</button><button aria-label="Increase font size" [disabled]="fontSize() >= 22" (click)="fontSize.set(fontSize() + 1)">A+</button>
+          <button aria-label="Close reader" (click)="readerOpen.set(false)"><mat-icon>close</mat-icon></button>
+        </header>
+        <div class="reader-body">
+          <main class="reader-document">
+            <header><p>{{ j.court }}</p><h2>{{ j.cause_title || j.case_name }}</h2><span>{{ j.neutral_citation || j.citation || j.cnr_number }}</span></header>
+            @for (paragraph of paragraphs(); track paragraph.number) {
+              <article [id]="'judgment-para-' + paragraph.number" [class.selected]="selectedParagraph() === paragraph.number" [class.search-hit]="matchingParagraphs().includes(paragraph.number)" (click)="selectParagraph(paragraph.number)">
+                <button class="para-number" [attr.aria-label]="'Select paragraph ' + paragraph.number">{{ paragraph.number }}</button>
+                <p>@if (readerQuery() && matchingParagraphs().includes(paragraph.number)) { @for (part of paragraphSegments(paragraph.text); track $index) { @if (part.match) { <mark>{{ part.text }}</mark> } @else { {{ part.text }} } } } @else { {{ paragraph.text }} }</p>
+                <button class="para-copy" [attr.aria-label]="'Copy paragraph ' + paragraph.number" (click)="$event.stopPropagation(); copyParagraph(paragraph.number)"><mat-icon class="material-icons-outlined">content_copy</mat-icon></button>
+              </article>
+            }
+          </main>
+          <aside class="reader-notes">
+            <h3>Selected authority</h3>
+            @if (selectedParagraph(); as number) {
+              <strong>Paragraph {{ number }}</strong><p>{{ citationLine() }}</p><button mat-stroked-button (click)="copyParagraph(number)"><mat-icon class="material-icons-outlined">content_copy</mat-icon>Copy with citation</button>
+              @if (auth.hasPermission('matter:update')) {
+                <label><span>Save excerpt to matter</span><select [ngModel]="selectedMatterId()" (ngModelChange)="selectedMatterId.set($event)" (focus)="loadMatters()"><option value="">{{ matterLoading() ? 'Loading matters…' : 'Choose active matter' }}</option>@for (matter of matterList(); track matter.id) { <option [value]="matter.id">{{ matter.matter_number }} · {{ matter.title }}</option> }</select></label>
+                <button mat-flat-button color="primary" [disabled]="!selectedMatterId() || savingExcerpt()" (click)="saveParagraphToMatter()">{{ savingExcerpt() ? 'Saving…' : 'Save excerpt' }}</button>
+              }
+              @if (j.url) { <a [href]="j.url" target="_blank" rel="noopener">Verify against source ↗</a> }
+            } @else { <p>Choose a paragraph to copy, link or save it.</p> }
+          </aside>
+        </div>
+      </section>
+    }
+
+    <!-- Citation graph -->
+    @if (graph(); as g) {
+      <div class="grid gap-5 md:grid-cols-2">
+        <section class="rounded-card bg-surface-raised border border-line shadow-card p-4">
+          <h2 class="font-semibold mb-3">Cites <span class="text-content-muted">({{ g.cites.length }})</span></h2>
+          @for (e of g.cites; track e.id) {
+            <div class="flex items-center gap-2 py-1">
+              <span class="vs-chip capitalize">{{ label(e.relationship_type) }}</span>
+              @if (e.judgment_id) {
+                <a [routerLink]="['/app/research', e.judgment_id]" class="text-brand hover:underline truncate">{{ e.case_name }}</a>
+              } @else {
+                <span class="font-mono text-sm truncate">{{ e.citation }}</span>
+              }
+            </div>
+          } @empty { <p class="text-sm text-content-muted">No outgoing citations.</p> }
+        </section>
+
+        <section class="rounded-card bg-surface-raised border border-line shadow-card p-4">
+          <h2 class="font-semibold mb-3">Cited by <span class="text-content-muted">({{ g.cited_by.length }})</span></h2>
+          @for (e of g.cited_by; track e.id) {
+            <div class="flex items-center gap-2 py-1">
+              <span class="vs-chip capitalize">{{ label(e.relationship_type) }}</span>
+              <a [routerLink]="['/app/research', e.judgment_id]" class="text-brand hover:underline truncate">{{ e.case_name }}</a>
+            </div>
+          } @empty { <p class="text-sm text-content-muted">Not yet cited.</p> }
+        </section>
+      </div>
+
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mt-5">
+        <h2 class="font-semibold mb-3">Record a citation</h2>
+        <div class="flex flex-wrap gap-2">
+          <select class="vs-input w-40 capitalize" [(ngModel)]="citeForm.relationship_type">
+            @for (r of relationships; track r) { <option [value]="r">{{ label(r) }}</option> }
+          </select>
+          <input class="vs-input flex-1 min-w-[10rem]" placeholder="Cited case citation e.g. AIR 1950 SC 27" [(ngModel)]="citeForm.citation" />
+          <button mat-flat-button color="primary" (click)="addCitation()">Add</button>
+        </div>
+      </section>
+    }
+  } @else {
+    <p class="text-content-muted">Judgment not found.</p>
+  }
+</div>

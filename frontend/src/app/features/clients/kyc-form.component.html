@@ -1,0 +1,81 @@
+<div class="min-h-screen bg-surface-sunken">
+  <header class="bg-surface-raised border-b border-line">
+    <div class="mx-auto w-full max-w-4xl px-4 py-4 flex items-center gap-2">
+      <span class="text-xl" aria-hidden="true">⚖️</span>
+      <span class="font-semibold">{{ view()?.firm_name || 'VidhiSangh' }}</span>
+      <span class="text-sm text-content-muted">· Client details (KYC)</span>
+    </div>
+  </header>
+
+  <main class="mx-auto w-full max-w-4xl px-4 py-6">
+    @if (loading()) {
+      <p class="text-content-muted">Opening your form…</p>
+    } @else if (invalid()) {
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-6 text-center">
+        <mat-icon class="material-icons-outlined text-4xl text-content-muted">link_off</mat-icon>
+        <h1 class="font-semibold text-lg mt-2">This link is not valid</h1>
+        <p class="text-sm text-content-muted">It may have expired or been replaced. Please ask your advocate for a new link.</p>
+      </section>
+    } @else if (result(); as r) {
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-6 text-center">
+        <mat-icon class="material-icons-outlined text-4xl text-success">task_alt</mat-icon>
+        <h1 class="font-semibold text-lg mt-2">{{ r.message }}</h1>
+        <p class="text-sm text-content-muted mt-1">{{ view()?.firm_name }} has been notified and will review your details.</p>
+        @if (r.issues.length) {
+          <div class="text-left inline-block mt-4 text-sm">
+            <p class="text-content-muted mb-1">A few things we noticed — nothing to do now; we may check with you:</p>
+            <ul class="grid gap-0.5">
+              @for (i of r.issues; track i.field + i.message) { <li><strong>{{ label(i.field) }}:</strong> {{ i.message }}</li> }
+            </ul>
+          </div>
+        }
+      </section>
+    } @else if (view(); as v) {
+      @if (v.status !== 'sent') {
+        <section class="rounded-card bg-surface-raised border border-line shadow-card p-6 text-center">
+          <mat-icon class="material-icons-outlined text-4xl text-content-muted">
+            {{ v.status === 'submitted' || v.status === 'applied' ? 'task_alt' : 'schedule' }}
+          </mat-icon>
+          <h1 class="font-semibold text-lg mt-2">
+            @switch (v.status) {
+              @case ('submitted') { This form has already been submitted — thank you. }
+              @case ('applied') { Your details have been recorded — thank you. }
+              @case ('expired') { This link has expired. }
+              @default { This link was withdrawn. }
+            }
+          </h1>
+          @if (v.status === 'expired' || v.status === 'cancelled') { <p class="text-sm text-content-muted">Please ask {{ v.firm_name }} for a new link.</p> }
+        </section>
+      } @else {
+        <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
+          <h1 class="vs-display text-2xl font-semibold text-content">Please confirm your details</h1>
+          <p class="text-sm text-content-muted mt-1">
+            {{ v.firm_name }} needs these for its records and for invoicing you correctly (GST and TDS).
+            Anything already known is filled in — correct what has changed. This link is valid until {{ v.expires_at | date }}.
+          </p>
+          @if (v.message) { <blockquote class="mt-3 text-sm border-l-2 border-brand pl-3 text-content">{{ v.message }}</blockquote> }
+        </section>
+
+        <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
+          <vs-client-form mode="kyc" [kind]="v.client_kind" [value]="v.prefill"
+                          [reference]="{ tds_sections: v.tds_sections, business_types: v.business_types, states: v.states }"
+                          (changed)="onChange($event)" />
+        </section>
+
+        <section class="rounded-card bg-surface-raised border border-line shadow-card p-5">
+          <label class="flex items-start gap-3 text-sm">
+            <input type="checkbox" class="mt-1" [(ngModel)]="declaration" />
+            <span>I confirm that the details above are true and complete to the best of my knowledge, and I agree to be contacted through the channels I have ticked.</span>
+          </label>
+          @if (error()) { <p class="text-sm text-danger mt-2">{{ error() }}</p> }
+          <div class="flex justify-end mt-4">
+            <button mat-flat-button color="primary" [disabled]="submitting()" (click)="submit()">
+              <mat-icon class="material-icons-outlined">send</mat-icon> {{ submitting() ? 'Submitting…' : 'Submit details' }}
+            </button>
+          </div>
+        </section>
+      }
+    }
+    <p class="text-xs text-content-muted text-center mt-6">Secure form · your details go only to {{ view()?.firm_name || 'your advocate' }}.</p>
+  </main>
+</div>

@@ -1,0 +1,95 @@
+<div class="mx-auto w-full">
+  <header class="flex flex-wrap items-end justify-between gap-3 mb-5">
+    <div>
+      <h1 class="vs-display text-3xl font-semibold text-content">Clients</h1>
+      <p class="text-sm text-content-muted mt-0.5">Individuals and businesses you act for — contacts, consent, GST and TDS defaults, KYC.</p>
+    </div>
+    <div class="flex gap-2">
+      <button mat-stroked-button (click)="startNew('individual')"><mat-icon class="material-icons-outlined">person_add</mat-icon> Individual</button>
+      <button mat-flat-button color="primary" (click)="startNew('business')"><mat-icon class="material-icons-outlined">domain_add</mat-icon> Business</button>
+    </div>
+  </header>
+
+  @if (showNew()) {
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-6">
+      <div class="flex items-center justify-between gap-3 mb-4">
+        <h2 class="font-semibold">New {{ newKind === 'business' ? 'business' : 'individual' }} client</h2>
+        <div class="flex gap-1 text-sm">
+          <button class="vs-chip" [class.vs-chip-selected]="newKind === 'individual'" (click)="newKind = 'individual'">Individual</button>
+          <button class="vs-chip" [class.vs-chip-selected]="newKind === 'business'" (click)="newKind = 'business'">Business</button>
+        </div>
+      </div>
+      <vs-client-form [kind]="newKind" [value]="newValues" [reference]="reference()" (changed)="onNewChange($event)" />
+      <div class="flex justify-end gap-2 mt-5">
+        <button mat-button (click)="showNew.set(false)">Cancel</button>
+        <button mat-flat-button color="primary" [disabled]="saving()" (click)="create()">{{ saving() ? 'Saving…' : 'Add client' }}</button>
+      </div>
+    </section>
+  }
+
+  <form class="flex flex-wrap items-end gap-2 mb-4" (ngSubmit)="load()">
+    <label class="grid gap-1 flex-1 min-w-[220px]"><span class="text-xs text-content-muted">Search</span>
+      <input class="vs-input" [(ngModel)]="q" name="q" placeholder="Name, PAN, GSTIN, email, mobile, city…" /></label>
+    <label class="grid gap-1"><span class="text-xs text-content-muted">Type</span>
+      <select class="vs-input" [(ngModel)]="kind" name="kind" (ngModelChange)="load()">
+        <option value="">All</option><option value="individual">Individuals</option><option value="business">Businesses</option>
+      </select></label>
+    <label class="grid gap-1"><span class="text-xs text-content-muted">Status</span>
+      <select class="vs-input" [(ngModel)]="status" name="status" (ngModelChange)="load()">
+        <option value="active">Active</option><option value="inactive">Inactive</option><option value="">All</option>
+      </select></label>
+    <button mat-stroked-button type="submit"><mat-icon class="material-icons-outlined">search</mat-icon> Search</button>
+  </form>
+
+  @if (loading()) {
+    <p class="text-content-muted">Loading clients…</p>
+  } @else if (!items().length) {
+    <div class="rounded-card bg-surface-raised border border-line shadow-card p-8 text-center">
+      <mat-icon class="material-icons-outlined text-4xl text-content-muted">groups</mat-icon>
+      <p class="font-medium text-content mt-2">No clients yet</p>
+      <p class="text-sm text-content-muted">Add an individual or a business, then send them a KYC form to confirm their details.</p>
+    </div>
+  } @else {
+    <div class="rounded-card bg-surface-raised border border-line shadow-card overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="text-xs uppercase tracking-wide text-content-muted bg-surface-sunken">
+          <tr>
+            <th class="text-left px-4 py-2">Client</th>
+            <th class="text-left px-4 py-2 hidden md:table-cell">Contact</th>
+            <th class="text-left px-4 py-2 hidden lg:table-cell">Tax</th>
+            <th class="text-left px-4 py-2">KYC</th>
+            <th class="text-right px-4 py-2 hidden sm:table-cell">Updated</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of items(); track c.id) {
+            <tr class="border-t border-line hover:bg-surface-sunken/60">
+              <td class="px-4 py-2.5">
+                <a [routerLink]="['/app/clients', c.id]" class="font-medium text-content hover:text-brand">{{ c.display_name }}</a>
+                <div class="text-xs text-content-muted">
+                  <span class="vs-chip">{{ c.kind === 'business' ? 'Business' : 'Individual' }}</span>
+                  @if (c.client_code) { · {{ c.client_code }} }
+                  @if (c.city) { · {{ c.city }}@if (c.state) {, {{ c.state }}} }
+                  @if (c.status === 'inactive') { · <span class="text-warning">inactive</span> }
+                </div>
+              </td>
+              <td class="px-4 py-2.5 hidden md:table-cell text-content-muted">
+                @if (c.email) { <div>{{ c.email }}</div> } @if (c.mobile) { <div>{{ c.mobile }}</div> }
+              </td>
+              <td class="px-4 py-2.5 hidden lg:table-cell text-content-muted">
+                @if (c.gst_applicable) { <div class="font-mono text-xs">{{ c.gstin || 'GST' }}</div> }
+                @if (c.tds_applicable) { <div class="text-xs">TDS</div> }
+                @if (c.pan) { <div class="font-mono text-xs">{{ c.pan }}</div> }
+              </td>
+              <td class="px-4 py-2.5">
+                <span class="vs-chip" [class.vs-chip-selected]="c.kyc_status === 'submitted'"
+                      [class.text-success]="c.kyc_status === 'verified'">{{ kycLabel(c.kyc_status) }}</span>
+              </td>
+              <td class="px-4 py-2.5 text-right text-content-muted hidden sm:table-cell">{{ c.updated_at | date }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

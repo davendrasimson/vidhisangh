@@ -1,0 +1,163 @@
+<mat-sidenav-container class="vs-shell">
+  <mat-sidenav
+    [opened]="opened()"
+    [mode]="compact() ? 'over' : 'side'"
+    (closedStart)="opened.set(false)"
+    class="vs-sidenav"
+    role="navigation"
+    aria-label="Primary"
+  >
+    <div class="vs-brand">
+      <span class="vs-brand__mark" aria-hidden="true">⚖️</span>
+      <span class="vs-brand__name">VidhiSangh</span>
+    </div>
+
+    <mat-nav-list>
+      @for (group of visibleGroups(); track group.title || 'home') {
+        @if (group.collapsible) {
+          <!-- One-time-setup / admin / integration items, tucked away. -->
+          <button
+            type="button"
+            mat-list-item
+            class="vs-group-toggle"
+            (click)="toggleSettings()"
+            [attr.aria-expanded]="settingsExpanded()"
+          >
+            <mat-icon matListItemIcon class="material-icons-outlined">{{ group.icon }}</mat-icon>
+            <span matListItemTitle>{{ group.title }}</span>
+            <mat-icon matListItemMeta class="material-icons-outlined">{{ settingsExpanded() ? 'expand_less' : 'expand_more' }}</mat-icon>
+          </button>
+          @if (settingsExpanded()) {
+            @for (item of group.items; track item.label) {
+              <a
+                mat-list-item
+                class="vs-subitem"
+                [routerLink]="item.route"
+                [queryParams]="item.queryParams"
+              (click)="closeMobileNavigation()"
+                routerLinkActive="vs-active"
+                [routerLinkActiveOptions]="{ exact: false }"
+              >
+                <mat-icon matListItemIcon class="material-icons-outlined">{{ item.icon }}</mat-icon>
+                <span matListItemTitle>{{ item.label }}</span>
+              </a>
+            }
+          }
+        } @else {
+          @if (group.title) {
+            <h3 matSubheader class="vs-navsubheader">{{ group.title }}</h3>
+          }
+          @for (item of group.items; track item.label) {
+            <a
+              mat-list-item
+              [routerLink]="item.route"
+              [queryParams]="item.queryParams"
+              (click)="closeMobileNavigation()"
+              routerLinkActive="vs-active"
+              [routerLinkActiveOptions]="{ exact: false }"
+            >
+              <mat-icon matListItemIcon class="material-icons-outlined">{{ item.icon }}</mat-icon>
+              <span matListItemTitle>{{ item.label }}</span>
+            </a>
+          }
+        }
+      }
+    </mat-nav-list>
+
+    <div class="vs-sidenav__footer">
+      <p class="text-xs text-content-muted px-4">Secure · Multi-tenant</p>
+    </div>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="vs-content">
+    <mat-toolbar class="vs-topbar">
+      <button mat-icon-button (click)="toggle()" aria-label="Toggle navigation">
+        <mat-icon class="material-icons-outlined">menu</mat-icon>
+      </button>
+
+      <div class="vs-search">
+        <mat-icon class="material-icons-outlined">search</mat-icon>
+        <input type="search" placeholder="Search matters, people, judgments…" aria-label="Global search" />
+      </div>
+
+      <span class="flex-1"></span>
+
+      <button
+        mat-icon-button
+        [matMenuTriggerFor]="colorMenu"
+        matTooltip="Accent colour"
+        aria-label="Choose accent colour"
+      >
+        <mat-icon class="material-icons-outlined">palette</mat-icon>
+      </button>
+      <mat-menu #colorMenu="matMenu" class="vs-color-menu">
+        <div class="vs-color-menu__title">Accent colour</div>
+        <div class="vs-swatches">
+          @for (a of theme.accentList; track a.key) {
+            <button
+              type="button"
+              class="vs-swatch"
+              [class.vs-swatch--active]="theme.accent() === a.key"
+              [style.background]="a.swatch"
+              [matTooltip]="a.label"
+              (click)="theme.setAccent(a.key); $event.stopPropagation()"
+              [attr.aria-label]="a.label"
+            >
+              @if (theme.accent() === a.key) {
+                <mat-icon class="material-icons-outlined">check</mat-icon>
+              }
+            </button>
+          }
+        </div>
+      </mat-menu>
+
+      <button
+        mat-icon-button
+        (click)="theme.toggle()"
+        [matTooltip]="theme.isDark() ? 'Switch to light' : 'Switch to dark'"
+        aria-label="Toggle theme"
+      >
+        <mat-icon class="material-icons-outlined">{{ theme.isDark() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+      </button>
+
+      <button
+        mat-icon-button
+        routerLink="/app/settings"
+        matTooltip="Settings"
+        aria-label="Settings"
+      >
+        <mat-icon class="material-icons-outlined">settings</mat-icon>
+      </button>
+
+      <app-notifications-bell />
+
+      <button mat-button [matMenuTriggerFor]="userMenu" class="vs-userbtn" aria-label="Account menu">
+        <span class="vs-avatar">{{ initials() }}</span>
+        <span class="hidden md:inline">{{ user()?.full_name }}</span>
+        <mat-icon class="material-icons-outlined">expand_more</mat-icon>
+      </button>
+      <mat-menu #userMenu="matMenu">
+        <div class="px-4 py-2">
+          <p class="font-medium">{{ user()?.full_name }}</p>
+          <p class="text-xs text-content-muted">{{ user()?.email }}</p>
+        </div>
+        <a mat-menu-item routerLink="/app/profile">
+          <mat-icon class="material-icons-outlined">badge</mat-icon><span>My Profile</span>
+        </a>
+        <a mat-menu-item routerLink="/app/settings/security">
+          <mat-icon class="material-icons-outlined">fingerprint</mat-icon><span>Account Security</span>
+        </a>
+        <a mat-menu-item routerLink="/app/settings/notifications">
+          <mat-icon class="material-icons-outlined">notifications</mat-icon><span>Notifications</span>
+        </a>
+        <button mat-menu-item (click)="logout()">
+          <mat-icon class="material-icons-outlined">logout</mat-icon><span>Sign out</span>
+        </button>
+      </mat-menu>
+    </mat-toolbar>
+
+    <main class="vs-main">
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

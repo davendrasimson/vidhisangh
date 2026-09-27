@@ -1,0 +1,86 @@
+"""Notification domain model (Phase 2 hardening) — global cross-tenant layer.
+
+Phase 6 extends this with multi-channel delivery: a per-user channel
+``NotificationPreference`` rule set and an auditable ``NotificationDelivery``
+log recording every routing decision.
+"""
+
+from __future__ import annotations
+
+import uuid
+from enum import StrEnum
+
+from sqlalchemy import JSON, Boolean, String, UniqueConstraint, Uuid
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.db.base_class import AuditedBase
+
+
+class NotificationType(StrEnum):
+    MENTION = "mention"
+    CONNECTION_REQUEST = "connection_request"
+    CONNECTION_ACCEPTED = "connection_accepted"
+    GROUP_INVITE = "group_invite"
+    ENDORSEMENT = "endorsement"
+    RECOMMENDATION = "recommendation"
+    # A client completed the KYC form the user sent them.
+    KYC_SUBMITTED = "kyc_submitted"
+    MATTER_ASSIGNED = "matter_assigned"
+
+
+class NotificationChannel(StrEnum):
+    """Delivery channels. ``in_app`` + ``email`` + ``slack`` have live providers;
+    the rest are recognised routes whose providers await infra (see deferred items)."""
+
+    IN_APP = "in_app"
+    EMAIL = "email"
+    SLACK = "slack"
+    SMS = "sms"
+    WHATSAPP = "whatsapp"
+    PUSH = "push"
+    TEAMS = "teams"
+
+
+class DeliveryStatus(StrEnum):
+    SENT = "sent"  # handed to the provider successfully
+    FAILED = "failed"  # provider raised
+    SKIPPED = "skipped"  # channel enabled but its provider is not configured
+
+
+class Notification(AuditedBase):
+    __tablename__ = "notifications"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, index=True)
+    type: Mapped[NotificationType] = mapped_column(String(40), nullable=False)
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    actor_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    message: Mapped[str] = mapped_column(String(400), nullable=False)
+    link: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+
+
+class NotificationPreference(AuditedBase):
+    """One row per (user, channel). ``types`` is an optional allowlist of
+    ``NotificationType`` values — empty/null means *every* type routes here."""
+
+    __tablename__ = "notification_preferences"
+    __table_args__ = (
+        UniqueConstraint("user_id", "channel", name="uq_notif_pref_user_channel"),
+    )
+
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, index=True)
+    channel: Mapped[NotificationChannel] = mapped_column(String(20), nullable=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    types: Mapped[list | None] = mapped_column(JSON, nullable=True)
+
+
+class NotificationDelivery(AuditedBase):
+    """Immutable audit row: how one notification was routed to one channel."""
+
+    __tablename__ = "notification_deliveries"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, index=True)
+    type: Mapped[NotificationType] = mapped_column(String(40), nullable=False)
+    channel: Mapped[NotificationChannel] = mapped_column(String(20), nullable=False)
+    status: Mapped[DeliveryStatus] = mapped_column(String(10), nullable=False)
+    detail: Mapped[str | None] = mapped_column(String(400), nullable=True)

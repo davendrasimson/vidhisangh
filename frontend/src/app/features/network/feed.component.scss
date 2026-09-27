@@ -1,0 +1,139 @@
+.vs-avatar-sm,
+.vs-avatar-xs {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgb(var(--vs-brand));
+  color: rgb(var(--vs-brand-fg));
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.vs-avatar-sm { width: 42px; height: 42px; font-size: 0.85rem; }
+.vs-avatar-xs { width: 30px; height: 30px; font-size: 0.7rem; }
+
+.vs-composer {
+  width: 100%;
+  border: 1px solid rgb(var(--vs-border));
+  border-radius: 10px;
+  background: rgb(var(--vs-surface-sunken));
+  color: rgb(var(--vs-text));
+  padding: 0.6rem 0.8rem;
+  resize: vertical;
+  font: inherit;
+  outline: none;
+
+  &:focus { border-color: rgb(var(--vs-brand)); }
+}
+
+.vs-liked {
+  color: rgb(var(--vs-brand)) !important;
+  font-weight: 600;
+}
+
+.vs-comment {
+  background: rgb(var(--vs-surface-sunken));
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+  flex: 1;
+}
+
+.vs-comment-input {
+  flex: 1;
+  border: 1px solid rgb(var(--vs-border));
+  border-radius: 999px;
+  background: rgb(var(--vs-surface-sunken));
+  color: rgb(var(--vs-text));
+  padding: 0.5rem 0.9rem;
+  font: inherit;
+  outline: none;
+
+  &:focus { border-color: rgb(var(--vs-brand)); }
+}
+
+/* ── Link preview card (LinkedIn/Facebook-style unfurl) ── */
+.vs-linkcard {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  border: 1px solid rgb(var(--vs-border));
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgb(var(--vs-surface-sunken));
+  text-decoration: none;
+  color: inherit;
+
+  &__img {
+    width: 140px;
+    min-width: 140px;
+    height: 108px;
+    object-fit: cover;
+    background: rgb(var(--vs-border));
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    padding: 0.6rem 0.85rem;
+    min-width: 0;
+    flex: 1;
+  }
+
+  &__site {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgb(var(--vs-text-muted));
+  }
+
+  &__title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: rgb(var(--vs-text));
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  &__desc {
+    font-size: 0.8rem;
+    color: rgb(var(--vs-text-muted));
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  &__remove {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border: 0;
+    border-radius: 50%;
+    background: rgb(0 0 0 / 0.55);
+    color: #fff;
+    cursor: pointer;
+    mat-icon { font-size: 16px; width: 16px; height: 16px; }
+  }
+
+  &--link:hover { border-color: color-mix(in srgb, rgb(var(--vs-brand)) 50%, transparent); }
+
+  &--loading {
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 0.85rem;
+  }
+}
+
+.animate-spin { animation: vs-spin 1s linear infinite; }
+@keyframes vs-spin { to { transform: rotate(360deg); } }

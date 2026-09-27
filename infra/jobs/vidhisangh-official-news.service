@@ -1,0 +1,11 @@
+[Unit]
+Description=Import official Supreme Court judgment updates
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/opt/vidhisangh/backend
+ExecStart=/opt/vidhisangh/backend/.venv/bin/python -m app.scripts.ingest_official_news
+TimeoutStartSec=120
+NoNewPrivileges=true

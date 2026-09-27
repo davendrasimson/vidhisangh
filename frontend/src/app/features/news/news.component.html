@@ -1,0 +1,65 @@
+<main class="briefing text-content">
+  <header class="briefing-header">
+    <div><p class="eyebrow">VIDHISANGH • LEGAL BRIEFING</p><h1>Stay informed. Find what matters.</h1><p class="text-content-muted">Judgments, legislation and court updates, linked to their original sources.</p></div>
+    <button mat-stroked-button (click)="showAdd.set(!showAdd())">{{ showAdd() ? 'Close form' : 'Add update' }}</button>
+  </header>
+
+  @if (showAdd()) {
+    <section class="panel editor">
+      <h2>Add an update</h2>
+      <div class="grid gap-3 sm:grid-cols-2">
+        <label>Headline<input class="vs-input" [(ngModel)]="addForm.title" /></label>
+        <label>Source<input class="vs-input" [(ngModel)]="addForm.source" /></label>
+        <label>Category<select class="vs-input" [(ngModel)]="addForm.category">@for (c of categories; track c.value) { @if (c.value) { <option [value]="c.value">{{ c.label }}</option> } }</select></label>
+        <label>Published<vs-date-input withTime [(ngModel)]="addForm.published_at" /></label>
+        <label>Original URL<input class="vs-input" [(ngModel)]="addForm.url" /></label>
+        <label>Tags (comma separated)<input class="vs-input" [(ngModel)]="addForm.tags" /></label>
+        <label class="sm:col-span-2">Summary<textarea class="vs-input" rows="3" [(ngModel)]="addForm.summary"></textarea></label>
+      </div>
+      <button mat-flat-button (click)="submitAdd()" [disabled]="saving() || !addForm.title.trim() || !addForm.source.trim() || !addForm.published_at">{{ saving() ? 'Adding…' : 'Publish update' }}</button>
+    </section>
+  }
+
+  <section class="panel filters" aria-label="Filter legal updates">
+    <nav class="categories" aria-label="Update categories">@for (c of categories; track c.value) { <button [class.active]="category() === c.value" [attr.aria-pressed]="category() === c.value" (click)="setCategory(c.value)">{{ c.label }}</button> }</nav>
+    <div class="filter-row">
+      <form class="search-field" (ngSubmit)="load()"><mat-icon aria-hidden="true">search</mat-icon><input name="search" aria-label="Search legal updates" placeholder="Search a case, law or topic…" [(ngModel)]="search" /><button type="submit">Search</button></form>
+      <select class="vs-input source-filter" aria-label="Court or source" [(ngModel)]="source" (ngModelChange)="load()"><option value="">All courts &amp; sources</option>@for (s of sources(); track s) { <option [value]="s">{{ s }}</option> }</select>
+      <div class="view-toggle" aria-label="Display style"><button [class.active]="view() === 'cards'" [attr.aria-pressed]="view() === 'cards'" (click)="view.set('cards')">Cards</button><button [class.active]="view() === 'list'" [attr.aria-pressed]="view() === 'list'" (click)="view.set('list')">List</button></div>
+    </div>
+    @if (category() || source || search) { <button class="text-brand clear" (click)="resetFilters()">Clear filters</button> }
+  </section>
+
+  @if (loading()) {
+    <div class="panel empty" role="status">Loading your briefing…</div>
+  } @else if (error()) {
+    <div class="panel empty" role="alert"><h2>We couldn’t load these updates.</h2><p>Please try again.</p><button mat-stroked-button (click)="load()">Retry</button></div>
+  } @else if (!items().length) {
+    <div class="panel empty"><mat-icon>search_off</mat-icon><h2>No updates match your search</h2><p>Try another keyword, category or court.</p><button mat-stroked-button (click)="resetFilters()">Show all updates</button></div>
+  } @else {
+    <div class="results-heading"><h2>{{ category() || source || search ? 'Matching updates' : 'Your latest briefing' }}</h2><span class="text-content-muted">{{ items().length }} loaded · Newest first</span></div>
+    <div class="stories" [class.list-view]="view() === 'list'">
+      @for (n of items(); track n.id; let first = $first) {
+        <article class="panel story" [class.lead]="first && view() === 'cards'">
+          <div class="artwork">
+            <img [src]="failedImages().has(n.id) ? fallback(n) : (n.image_url || fallback(n))" alt="" [loading]="first ? 'eager' : 'lazy'" (error)="imageFailed(n.id)" />
+            <span class="image-note">Illustration</span>
+          </div>
+          <div class="story-body">
+            <div class="metadata">@if (first && view() === 'cards') { <span class="latest">LATEST UPDATE</span> }<span class="type">{{ typeLabel(n) }}</span><time [attr.datetime]="n.published_at">{{ n.published_at | date: 'd MMM y' : 'UTC' }}</time></div>
+            <p class="source">{{ n.source }}</p>
+            <h3>@if (n.url) { <a [href]="n.url" target="_blank" rel="noopener noreferrer" [title]="n.title">{{ headline(n) }}</a> } @else { {{ headline(n) }} }</h3>
+            @if (n.summary) { <p class="summary text-content-muted" [class.clamped]="expanded() !== n.id">{{ n.summary }}</p> }
+            @if (expanded() === n.id) { <div class="details"><p>{{ n.title }}</p>@if (n.tags.length) { <p class="text-content-muted">{{ n.tags.join(' · ') }}</p> }<small>Artwork is illustrative, not a photograph of this event.</small></div> }
+            <div class="actions">
+              @if (n.summary || headline(n) !== n.title) { <button (click)="toggleExpanded(n.id)" [attr.aria-expanded]="expanded() === n.id">{{ expanded() === n.id ? 'Less detail' : 'Read briefing' }}</button> }
+              @if (n.url) { <a [href]="n.url" target="_blank" rel="noopener noreferrer" aria-label="Open original source in a new tab">Original source ↗</a><button (click)="share(n)" aria-label="Copy original source link">Copy link</button> }
+              <button class="save" [attr.aria-pressed]="saved().has(n.id)" (click)="toggleSave(n.id)"><mat-icon aria-hidden="true">{{ saved().has(n.id) ? 'bookmark' : 'bookmark_border' }}</mat-icon>{{ saved().has(n.id) ? 'Saved' : 'Save' }}</button>
+            </div>
+          </div>
+        </article>
+      }
+    </div>
+    <footer class="feed-footer">@if (more()) { <button mat-stroked-button (click)="load(true)" [disabled]="loadingMore()">{{ loadingMore() ? 'Loading…' : 'Load more updates' }}</button> } @else { <span class="text-content-muted">You’ve reached the end of these updates.</span> }<p class="text-content-muted">Read the original document for the complete decision or notice. Saved markers stay in this browser.</p></footer>
+  }
+</main>

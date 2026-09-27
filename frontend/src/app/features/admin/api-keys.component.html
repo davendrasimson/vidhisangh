@@ -1,0 +1,75 @@
+<div class="mx-auto w-full">
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <h1 class="text-2xl font-bold text-content">API keys</h1>
+      <p class="text-content-muted">Programmatic access with scoped, revocable keys.</p>
+    </div>
+    <button mat-flat-button color="primary" (click)="showForm.set(!showForm())">
+      <mat-icon class="material-icons-outlined">{{ showForm() ? 'close' : 'add' }}</mat-icon>
+      {{ showForm() ? 'Cancel' : 'New key' }}
+    </button>
+  </div>
+
+  @if (newKey(); as k) {
+    <div class="rounded-card border border-line bg-surface-raised shadow-card p-4 mb-4">
+      <p class="text-sm text-content">
+        <mat-icon class="material-icons-outlined text-success align-middle text-base">vpn_key</mat-icon>
+        Copy this key now — it won't be shown again. Send it as
+        <code class="font-mono">Authorization: Bearer &lt;key&gt;</code>.
+      </p>
+      <div class="mt-2 flex items-center gap-2">
+        <code class="px-2 py-1 rounded bg-surface font-mono text-sm break-all">{{ k }}</code>
+        <button mat-button (click)="newKey.set(null)">Dismiss</button>
+      </div>
+    </div>
+  }
+
+  @if (showForm()) {
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-6">
+      <input class="vs-input w-full" placeholder="Key name (e.g. CI pipeline)" [(ngModel)]="name" />
+      <div class="flex items-center justify-between mt-4 mb-1">
+        <p class="text-sm text-content-muted">Scopes ({{ selected.size }} selected)</p>
+        <input class="vs-input py-1 text-sm w-40" placeholder="Filter…" [ngModel]="scopeFilter"
+               (ngModelChange)="onFilter($event)" />
+      </div>
+      <div class="flex flex-wrap gap-2 max-h-56 overflow-y-auto p-1">
+        @for (s of filteredScopes(); track s) {
+          <button type="button" class="vs-chip font-mono text-xs"
+                  [class.vs-chip-selected]="selected.has(s)" (click)="toggle(s)">{{ s }}</button>
+        } @empty { <span class="text-sm text-content-muted">No matching scopes.</span> }
+      </div>
+      <div class="mt-4 flex justify-end">
+        <button mat-flat-button color="primary" [disabled]="!name.trim() || selected.size === 0 || saving()"
+                (click)="submit()">{{ saving() ? 'Creating…' : 'Create key' }}</button>
+      </div>
+    </section>
+  }
+
+  @if (loading()) {
+    <p class="text-content-muted">Loading…</p>
+  } @else if (keys().length === 0) {
+    <p class="text-content-muted text-sm">No API keys yet.</p>
+  } @else {
+    <div class="rounded-card bg-surface-raised border border-line shadow-card divide-y divide-line">
+      @for (k of keys(); track k.id) {
+        <div class="p-4">
+          <div class="flex items-center gap-3">
+            <div class="flex-1 min-w-0">
+              <p class="font-medium text-content truncate">{{ k.name }}</p>
+              <p class="text-sm text-content-muted font-mono">{{ k.prefix }}…</p>
+            </div>
+            <span class="text-xs text-content-muted hidden sm:block">
+              @if (k.last_used_at) { used {{ k.last_used_at | date: 'dd/MM/yyyy' }} } @else { never used }
+            </span>
+            <button mat-button [disabled]="busy() === k.id" (click)="revoke(k)">
+              <mat-icon class="material-icons-outlined">delete</mat-icon> Revoke
+            </button>
+          </div>
+          <div class="flex flex-wrap gap-1 mt-2">
+            @for (s of k.scopes; track s) { <span class="vs-chip font-mono text-xs">{{ s }}</span> }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

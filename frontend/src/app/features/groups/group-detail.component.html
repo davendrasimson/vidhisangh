@@ -1,0 +1,231 @@
+<div class="mx-auto w-full">
+  <a routerLink="/app/groups" class="text-sm text-content-muted inline-flex items-center gap-1 mb-3">
+    <mat-icon class="material-icons-outlined text-base">arrow_back</mat-icon> All groups
+  </a>
+
+  @if (loading()) {
+    <p class="text-content-muted">Loading…</p>
+  } @else if (group(); as g) {
+    <!-- Header -->
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
+      <div class="flex gap-4">
+        <span class="vs-avatar-lg">{{ initials(g.name) }}</span>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-1">
+            <h1 class="text-xl font-bold text-content">{{ g.name }}</h1>
+            @if (g.is_verified) {
+              <mat-icon class="material-icons-outlined text-brand" style="font-size:18px;height:18px;width:18px">verified</mat-icon>
+            }
+          </div>
+          <p class="text-sm text-content-muted capitalize">
+            {{ g.group_type === 'firm' ? 'Firm page' : 'Community' }} · {{ g.visibility }} ·
+            {{ g.member_count }} member{{ g.member_count === 1 ? '' : 's' }} · {{ g.post_count }} post{{ g.post_count === 1 ? '' : 's' }}
+          </p>
+          @if (g.description) { <p class="text-sm text-content mt-2">{{ g.description }}</p> }
+        </div>
+        <div class="flex flex-col gap-2 items-end">
+          @if (g.my_status === 'active') {
+            @if (!isOwner()) {
+              <button mat-stroked-button (click)="leave()">Leave</button>
+            }
+          } @else if (g.my_status === 'pending') {
+            <span class="vs-chip">Request pending</span>
+          } @else {
+            <button mat-flat-button color="primary" (click)="join()">
+              {{ g.visibility === 'private' ? 'Request to join' : 'Join' }}
+            </button>
+          }
+          @if (isOwner()) {
+            <button mat-icon-button [matMenuTriggerFor]="ownerMenu" aria-label="Group settings">
+              <mat-icon class="material-icons-outlined">more_horiz</mat-icon>
+            </button>
+            <mat-menu #ownerMenu="matMenu">
+              <button mat-menu-item (click)="deleteGroup()">
+                <mat-icon class="material-icons-outlined text-danger">delete</mat-icon>
+                <span>Delete group</span>
+              </button>
+            </mat-menu>
+          }
+        </div>
+      </div>
+    </section>
+
+    @if (!isMember()) {
+      <p class="text-content-muted text-center py-8">
+        Join this group to see its members and community feed.
+      </p>
+    } @else {
+      <div class="flex gap-4 border-b border-line mb-4">
+        <button class="vs-tab" [class.vs-tab-active]="section() === 'feed'" (click)="section.set('feed')">
+          Feed
+        </button>
+        <button class="vs-tab" [class.vs-tab-active]="section() === 'members'" (click)="section.set('members')">
+          Members ({{ members().length }})
+          @if (isManager() && requests().length) {
+            <span class="ml-1 text-brand">· {{ requests().length }} pending</span>
+          }
+        </button>
+      </div>
+
+      @if (section() === 'feed') {
+        <!-- Composer -->
+        <div class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-4">
+          <textarea class="vs-input" rows="2" [ngModel]="draft()" (ngModelChange)="draft.set($event)"
+                    placeholder="Share something with the group…"></textarea>
+          <div class="mt-2 flex justify-end">
+            <button mat-flat-button color="primary" [disabled]="!draft().trim() || posting()" (click)="publish()">
+              {{ posting() ? 'Posting…' : 'Post' }}
+            </button>
+          </div>
+        </div>
+
+        @if (posts().length === 0) {
+          <p class="text-content-muted">No posts yet. Start the conversation.</p>
+        } @else {
+          @for (post of posts(); track post.id) {
+            <article class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-3">
+              <div class="flex gap-3">
+                <span class="vs-avatar-sm">{{ initials(post.author_name) }}</span>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between">
+                    <p class="font-medium text-content">{{ post.author_name }}</p>
+                    <span class="text-xs text-content-muted">{{ post.created_at | date: 'dd/MM/yyyy, h:mm a' }}</span>
+                  </div>
+                  <p class="text-sm text-content whitespace-pre-line mt-1">{{ post.content }}</p>
+                  <div class="flex items-center gap-3 mt-3">
+                    <button class="inline-flex items-center gap-1 text-sm" [class.vs-liked]="post.liked" (click)="toggleLike(post)">
+                      <mat-icon class="material-icons-outlined text-base">thumb_up</mat-icon>
+                      {{ post.like_count }}
+                    </button>
+                    <button class="inline-flex items-center gap-1 text-sm text-content-muted" (click)="toggleComments(post)">
+                      <mat-icon class="material-icons-outlined text-base">chat_bubble_outline</mat-icon>
+                      {{ post.comment_count }}
+                    </button>
+                    @if (canDelete(post.author_id)) {
+                      <button class="inline-flex items-center gap-1 text-sm text-content-muted ml-auto" (click)="deletePost(post)">
+                        <mat-icon class="material-icons-outlined text-base">delete</mat-icon>
+                      </button>
+                    }
+                  </div>
+
+                  @if (openComments()[post.id]; as comments) {
+                    <div class="mt-3 border-t border-line pt-3 flex flex-col gap-2">
+                      @for (c of comments; track c.id) {
+                        <div class="flex gap-2 items-start group">
+                          <span class="vs-avatar-xs">{{ initials(c.author_name) }}</span>
+                          <div class="vs-comment">
+                            <p class="text-sm font-medium">{{ c.author_name }}</p>
+                            <p class="text-sm">{{ c.body }}</p>
+                          </div>
+                          @if (canDelete(c.author_id)) {
+                            <button class="text-content-muted opacity-0 group-hover:opacity-100" (click)="deleteComment(post, c)" aria-label="Delete comment">
+                              <mat-icon class="material-icons-outlined text-base">close</mat-icon>
+                            </button>
+                          }
+                        </div>
+                      }
+                      <div class="flex gap-2 items-center">
+                        <span class="vs-avatar-xs">{{ myInitials() }}</span>
+                        <input
+                          class="vs-comment-input"
+                          placeholder="Add a comment…"
+                          [ngModel]="commentDraft()[post.id]"
+                          (ngModelChange)="setCommentDraft(post.id, $event)"
+                          (keyup.enter)="submitComment(post)"
+                        />
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            </article>
+          }
+        }
+      } @else {
+        <!-- Invite people (managers) -->
+        @if (isManager()) {
+          <div class="mb-4">
+            <button mat-stroked-button color="primary" (click)="toggleInvitePanel()">
+              <mat-icon class="material-icons-outlined">person_add</mat-icon>
+              {{ showInvite() ? 'Close' : 'Invite people' }}
+            </button>
+            @if (showInvite()) {
+              <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mt-3">
+                @if (invitable().length === 0) {
+                  <p class="text-content-muted text-sm">No one left to invite from your directory.</p>
+                } @else {
+                  @for (person of invitable(); track person.user_id) {
+                    <div class="flex items-center gap-3 py-2">
+                      <span class="vs-avatar-sm">{{ initials(person.display_name) }}</span>
+                      <div class="flex-1 min-w-0">
+                        <p class="font-medium truncate">{{ person.display_name }}</p>
+                        @if (person.headline) { <p class="text-xs text-content-muted truncate">{{ person.headline }}</p> }
+                      </div>
+                      @if (isInvited(person.user_id)) {
+                        <span class="vs-chip">Invited</span>
+                      } @else {
+                        <button mat-stroked-button (click)="invitePerson(person)">Invite</button>
+                      }
+                    </div>
+                  }
+                }
+              </section>
+            }
+          </div>
+        }
+
+        <!-- Pending requests (managers) -->
+        @if (isManager() && requests().length) {
+          <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-4">
+            <h2 class="font-semibold mb-3">Join requests ({{ requests().length }})</h2>
+            @for (r of requests(); track r.user_id) {
+              <div class="flex items-center gap-3 py-2">
+                <span class="vs-avatar-sm">{{ initials(r.member_name) }}</span>
+                <div class="flex-1 min-w-0">
+                  <p class="font-medium truncate">{{ r.member_name }}</p>
+                  @if (r.member_headline) { <p class="text-xs text-content-muted truncate">{{ r.member_headline }}</p> }
+                </div>
+                <button mat-flat-button color="primary" (click)="approve(r)">Approve</button>
+                <button mat-button (click)="reject(r)">Ignore</button>
+              </div>
+            }
+          </section>
+        }
+
+        <!-- Member roster -->
+        <section class="rounded-card bg-surface-raised border border-line shadow-card p-4">
+          @for (m of members(); track m.user_id) {
+            <div class="flex items-center gap-3 py-2">
+              <span class="vs-avatar-sm">{{ initials(m.member_name) }}</span>
+              <div class="flex-1 min-w-0">
+                <p class="font-medium text-content truncate">
+                  <a [routerLink]="['/app/people', m.user_id]" class="hover:text-brand">{{ m.member_name }}</a>
+                  @if (m.user_id === myId()) { <span class="text-content-muted">(you)</span> }
+                </p>
+                @if (m.member_headline) { <p class="text-xs text-content-muted truncate">{{ m.member_headline }}</p> }
+              </div>
+              <span class="vs-chip capitalize">{{ m.role }}</span>
+              @if (isOwner() && m.role !== 'owner') {
+                <button mat-icon-button [matMenuTriggerFor]="memberMenu" aria-label="Manage member">
+                  <mat-icon class="material-icons-outlined">more_vert</mat-icon>
+                </button>
+                <mat-menu #memberMenu="matMenu">
+                  <button mat-menu-item (click)="promote(m)">
+                    <mat-icon class="material-icons-outlined">{{ m.role === 'admin' ? 'arrow_downward' : 'shield' }}</mat-icon>
+                    <span>{{ m.role === 'admin' ? 'Demote to member' : 'Make admin' }}</span>
+                  </button>
+                  <button mat-menu-item (click)="removeMember(m)">
+                    <mat-icon class="material-icons-outlined text-danger">person_remove</mat-icon>
+                    <span>Remove from group</span>
+                  </button>
+                </mat-menu>
+              }
+            </div>
+          }
+        </section>
+      }
+    }
+  } @else {
+    <p class="text-content-muted">Group not found.</p>
+  }
+</div>

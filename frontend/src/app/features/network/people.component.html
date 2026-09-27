@@ -1,0 +1,67 @@
+<div class="mx-auto w-full">
+  <h1 class="text-2xl font-bold text-content mb-4">Grow your network</h1>
+
+  @if (requests().length) {
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-6">
+      <h2 class="font-semibold mb-3">Connection requests ({{ requests().length }})</h2>
+      @for (r of requests(); track r.id) {
+        <div class="flex items-center gap-3 py-2">
+          <span class="vs-avatar-sm">{{ initials(requesterName(r)) }}</span>
+          <div class="flex-1 min-w-0">
+            <p class="font-medium truncate">{{ requesterName(r) }}</p>
+            @if (r.message) { <p class="text-sm text-content-muted truncate">“{{ r.message }}”</p> }
+          </div>
+          <button mat-flat-button color="primary" (click)="accept(r)">Accept</button>
+          <button mat-button (click)="decline(r)">Ignore</button>
+        </div>
+      }
+    </section>
+  }
+
+  <h2 class="font-semibold mb-3">People you may know</h2>
+  @if (loading()) {
+    <p class="text-content-muted">Loading…</p>
+  } @else if (people().length === 0) {
+    <p class="text-content-muted">No other members yet. Invite colleagues to join VidhiSangh.</p>
+  } @else {
+    <div class="grid gap-4 sm:grid-cols-2">
+      @for (person of people(); track person.user_id) {
+        <div class="rounded-card bg-surface-raised border border-line shadow-card p-4 flex flex-col items-center text-center">
+          <a [routerLink]="['/app/people', person.user_id]" class="flex flex-col items-center group">
+            <span class="vs-avatar-lg">{{ initials(person.display_name) }}</span>
+            <div class="flex items-center gap-1 mt-3">
+              <p class="font-semibold text-content group-hover:text-brand">{{ person.display_name }}</p>
+              @if (person.is_verified) {
+                <mat-icon class="material-icons-outlined text-brand" style="font-size:16px;height:16px;width:16px">verified</mat-icon>
+              }
+            </div>
+          </a>
+          <p class="text-sm text-content-muted">{{ person.headline || 'Legal professional' }}</p>
+          @if (person.city) { <p class="text-xs text-content-muted">{{ person.city }}</p> }
+
+          <div class="flex gap-2 mt-3">
+            @switch (person.connection_status) {
+              @case ('connected') {
+                <button mat-stroked-button disabled><mat-icon class="material-icons-outlined">how_to_reg</mat-icon> Connected</button>
+              }
+              @case ('pending_out') {
+                <button mat-stroked-button disabled>Request sent</button>
+              }
+              @case ('pending_in') {
+                <button mat-stroked-button disabled>Respond above</button>
+              }
+              @default {
+                <button mat-flat-button color="primary" (click)="connect(person)">
+                  <mat-icon class="material-icons-outlined">person_add</mat-icon> Connect
+                </button>
+              }
+            }
+            <button mat-stroked-button (click)="toggleFollow(person)">
+              {{ person.is_following ? 'Following' : 'Follow' }}
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

@@ -1,0 +1,82 @@
+<div class="mx-auto w-full">
+  <a routerLink="/app/crm" class="text-sm text-content-muted inline-flex items-center gap-1 mb-3">
+    <mat-icon class="material-icons-outlined text-base">arrow_back</mat-icon> Pipeline
+  </a>
+
+  @if (loading()) {
+    <p class="text-content-muted">Loading…</p>
+  } @else if (lead(); as l) {
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <h1 class="text-xl font-bold text-content">{{ l.name }}</h1>
+          <p class="text-sm text-content-muted capitalize">
+            {{ label(l.source) }}@if (l.practice_area) { · {{ l.practice_area }} }
+            @if (l.referred_by) { · ref: {{ l.referred_by }} }
+          </p>
+          <p class="text-sm text-content-muted">
+            @if (l.phone) { {{ l.phone }} } @if (l.email) { · {{ l.email }} }
+          </p>
+        </div>
+        @if (l.converted_matter_id) {
+          <a mat-stroked-button [routerLink]="['/app/matters', l.converted_matter_id]">
+            <mat-icon class="material-icons-outlined">folder_shared</mat-icon> Matter
+          </a>
+        } @else {
+          <button mat-flat-button color="primary" (click)="convert()">
+            <mat-icon class="material-icons-outlined">swap_horiz</mat-icon> Convert to matter
+          </button>
+        }
+      </div>
+
+      <div class="mt-4 flex items-center gap-3">
+        <label class="flex flex-col gap-1">
+          <span class="text-xs text-content-muted">Stage</span>
+          <select class="vs-input capitalize" [ngModel]="l.status" (ngModelChange)="setStatus($event)">
+            @for (s of statuses; track s) { <option [value]="s">{{ label(s) }}</option> }
+          </select>
+        </label>
+        @if (l.estimated_value) {
+          <div>
+            <p class="text-xs text-content-muted">Est. value</p>
+            <p class="font-semibold text-brand">₹{{ l.estimated_value }}</p>
+          </div>
+        }
+      </div>
+      @if (l.notes) { <p class="text-sm text-content mt-3 whitespace-pre-line">{{ l.notes }}</p> }
+    </section>
+
+    <!-- Activities -->
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-4">
+      <h2 class="font-semibold mb-3">Activity &amp; follow-ups</h2>
+      @for (a of lead()!.activities; track a.id) {
+        <div class="flex items-start gap-2 py-2 border-b border-line last:border-0">
+          <button (click)="toggleActivity(a)" [attr.aria-label]="a.completed ? 'Reopen' : 'Complete'">
+            <mat-icon class="material-icons-outlined" [class.text-brand]="a.completed">
+              {{ a.completed ? 'check_circle' : 'radio_button_unchecked' }}
+            </mat-icon>
+          </button>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm" [class.line-through]="a.completed" [class.text-content-muted]="a.completed">
+              <span class="capitalize font-medium">{{ a.type }}</span>@if (a.subject) { — {{ a.subject }} }
+            </p>
+            <p class="text-xs text-content-muted">
+              @if (a.due_on) { due {{ a.due_on | date: 'dd/MM/yyyy' }} · } {{ a.created_at | date: 'dd/MM/yyyy, h:mm a' }}
+            </p>
+          </div>
+        </div>
+      } @empty { <p class="text-sm text-content-muted mb-2">No activity logged yet.</p> }
+
+      <div class="grid gap-2 sm:grid-cols-[8rem_1fr_9rem_auto] mt-3">
+        <select class="vs-input capitalize" [(ngModel)]="activityForm.type">
+          @for (t of activityTypes; track t) { <option [value]="t">{{ t }}</option> }
+        </select>
+        <input class="vs-input" placeholder="Subject" [(ngModel)]="activityForm.subject" />
+        <vs-date-input [(ngModel)]="activityForm.due_on" />
+        <button mat-flat-button color="primary" (click)="addActivity()">Log</button>
+      </div>
+    </section>
+  } @else {
+    <p class="text-content-muted">Lead not found.</p>
+  }
+</div>

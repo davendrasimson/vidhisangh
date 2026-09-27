@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vidhisangh-config
+  namespace: vidhisangh
+  labels:
+    app.kubernetes.io/name: vidhisangh
+    app.kubernetes.io/part-of: vidhisangh
+data:
+  # ─── Runtime ──────────────────────────────────────────────────────
+  VS_ENVIRONMENT: "production"
+  VS_DEBUG: "false"
+  VS_LOG_LEVEL: "INFO"
+  VS_LOG_JSON: "true"
+  VS_PROJECT_NAME: "VidhiSangh"
+  VS_API_V1_PREFIX: "/api/v1"
+  VS_BACKEND_CORS_ORIGINS: "https://vidhisangh.com,https://www.vidhisangh.com"
+
+  # ─── Database (non-secret parts; password lives in the Secret) ────
+  VS_POSTGRES_HOST: "vidhisangh-postgres"
+  VS_POSTGRES_PORT: "5432"
+  VS_POSTGRES_USER: "vidhisangh"
+  VS_POSTGRES_DB: "vidhisangh"
+  VS_POSTGRES_POOL_SIZE: "10"
+  VS_POSTGRES_MAX_OVERFLOW: "20"
+
+  # ─── Redis / Celery ───────────────────────────────────────────────
+  VS_REDIS_URL: "redis://vidhisangh-redis:6379/0"
+  VS_CELERY_BROKER_URL: "redis://vidhisangh-redis:6379/1"
+  VS_CELERY_RESULT_BACKEND: "redis://vidhisangh-redis:6379/2"
+
+  # ─── Object storage (S3 endpoint; keys live in the Secret) ────────
+  VS_S3_ENDPOINT_URL: "http://vidhisangh-minio:9000"
+  VS_S3_REGION: "ap-south-1"
+  VS_S3_BUCKET: "vidhisangh-documents"
+  VS_S3_USE_SSL: "false"
+
+  # ─── Search ───────────────────────────────────────────────────────
+  VS_OPENSEARCH_URL: "http://vidhisangh-opensearch:9200"
+
+  # ─── AI / LLM (provider selection; API keys live in the Secret) ───
+  VS_LLM_PROVIDER: "anthropic"
+
+  # ─── Rate limiting ────────────────────────────────────────────────
+  VS_RATE_LIMIT_PER_MINUTE: "120"
+  VS_AUTH_RATE_LIMIT_PER_MINUTE: "10"

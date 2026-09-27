@@ -1,0 +1,371 @@
+<div class="mx-auto w-full">
+  <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+    <div>
+      <h1 class="vs-display text-3xl font-semibold text-content">Matters</h1>
+      <p class="text-sm text-content-muted mt-0.5">
+        Cases before the Supreme Court, High Courts, district judiciary and tribunals.
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <button mat-stroked-button (click)="showTransfer.set(!showTransfer()); showImport.set(false); showForm.set(false)" title="Move all of one person's matters to another">
+        <mat-icon class="material-icons-outlined">swap_horiz</mat-icon>
+        Reassign matters
+      </button>
+      <button mat-stroked-button (click)="showImport.set(true); showForm.set(false); showTransfer.set(false)">
+        <mat-icon class="material-icons-outlined">cloud_download</mat-icon>
+        Fetch from eCourts
+      </button>
+      <button mat-flat-button color="primary" (click)="showForm.set(!showForm()); showImport.set(false); showTransfer.set(false)">
+        <mat-icon class="material-icons-outlined">{{ showForm() ? 'close' : 'add' }}</mat-icon>
+        {{ showForm() ? 'Cancel' : 'New matter' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Reassign: X left the firm / practice reorganised ─────────── -->
+  @if (showTransfer()) {
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-6">
+      <h2 class="font-semibold text-content">Reassign all of one person's matters</h2>
+      <p class="text-sm text-content-muted mt-0.5 mb-3">
+        Every open matter the person is currently on moves to the successor in the same role, from the date given.
+        The earlier stint stays on each matter's team history with the reason — nothing is overwritten.
+        For a single matter, use <em>Hand over</em> on that matter's team instead.
+      </p>
+      <div class="grid gap-3 sm:grid-cols-4">
+        <label class="flex flex-col gap-1"><span class="text-sm text-content-muted">From</span>
+          <select class="vs-input" [(ngModel)]="transfer.from_user_id">
+            <option value="">Select…</option>
+            @for (p of people(); track p.id) { <option [value]="p.id">{{ p.full_name }}</option> }
+          </select></label>
+        <label class="flex flex-col gap-1"><span class="text-sm text-content-muted">To</span>
+          <select class="vs-input" [(ngModel)]="transfer.to_user_id">
+            <option value="">Select…</option>
+            @for (p of people(); track p.id) { <option [value]="p.id">{{ p.full_name }}</option> }
+          </select></label>
+        <label class="flex flex-col gap-1"><span class="text-sm text-content-muted">Effective from</span>
+          <vs-date-input [(ngModel)]="transfer.effective_from" /></label>
+        <label class="flex flex-col gap-1"><span class="text-sm text-content-muted">Reason</span>
+          <select class="vs-input" [(ngModel)]="transfer.reason">
+            @for (r of endReasonKeys; track r) { <option [value]="r">{{ endReasons[r] }}</option> }
+          </select></label>
+        <label class="flex flex-col gap-1 sm:col-span-4"><span class="text-sm text-content-muted">Note (optional)</span>
+          <input class="vs-input" [(ngModel)]="transfer.notes" placeholder="e.g. Left the firm on 31/05/2026; files handed over." /></label>
+      </div>
+      <div class="mt-3 flex justify-end gap-2">
+        <button mat-button (click)="showTransfer.set(false)">Cancel</button>
+        <button mat-flat-button color="primary"
+                [disabled]="!transfer.from_user_id || !transfer.to_user_id || transfer.from_user_id === transfer.to_user_id || transferring()"
+                (click)="runTransfer()">
+          {{ transferring() ? 'Moving…' : 'Move matters' }}
+        </button>
+      </div>
+    </section>
+  }
+
+  <!-- ── eCourts import ───────────────────────────────────────────── -->
+  @if (showImport()) {
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-6">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h2 class="font-semibold text-content">Fetch a case from eCourts</h2>
+          <p class="text-sm text-content-muted mt-0.5">
+            Search by <strong>CNR</strong> — the 16-character number on the case-status page —
+            or by case type, number and year.
+          </p>
+        </div>
+        <button mat-icon-button (click)="closeImport()" aria-label="Close">
+          <mat-icon class="material-icons-outlined">close</mat-icon>
+        </button>
+      </div>
+
+      <div class="grid gap-3 sm:grid-cols-4 mt-4">
+        <label class="flex flex-col gap-1 sm:col-span-2">
+          <span class="text-sm text-content-muted">CNR number</span>
+          <input class="vs-input font-mono uppercase" [(ngModel)]="lookup.cnr_number"
+                 placeholder="DLHC010001232024" maxlength="24" />
+        </label>
+        <div class="sm:col-span-2 flex items-end">
+          <p class="text-xs text-content-muted pb-2">…or identify the case below</p>
+        </div>
+
+        <label class="flex flex-col gap-1">
+          <span class="text-sm text-content-muted">Case type</span>
+          <input class="vs-input" [(ngModel)]="lookup.case_type" placeholder="W.P.(C)" maxlength="60" />
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-sm text-content-muted">Number</span>
+          <input class="vs-input" [(ngModel)]="lookup.case_number" placeholder="1234" maxlength="40" />
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-sm text-content-muted">Year</span>
+          <input class="vs-input" type="number" [(ngModel)]="lookup.case_year" placeholder="2024" />
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-sm text-content-muted">State (optional)</span>
+          <input class="vs-input" [(ngModel)]="lookup.state" placeholder="Delhi" maxlength="80" />
+        </label>
+      </div>
+
+      <div class="mt-3 flex justify-end">
+        <button mat-flat-button color="primary" [disabled]="looking()" (click)="runLookup()">
+          <mat-icon class="material-icons-outlined">search</mat-icon>
+          {{ looking() ? 'Searching…' : 'Look up case' }}
+        </button>
+      </div>
+
+      @if (lookupError()) {
+        <div class="mt-3 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-content" role="alert">
+          <p class="font-medium">Lookup unavailable</p>
+          <p class="text-content-muted mt-0.5">{{ lookupError() }}</p>
+        </div>
+      }
+
+      @if (preview(); as c) {
+        <div class="mt-4 rounded-lg border border-line bg-surface-sunken p-3">
+          <div class="flex items-center gap-2">
+            <span class="vs-chip">{{ c.source }}</span>
+            <span class="text-xs font-mono text-content-muted">{{ c.cnr_number }}</span>
+          </div>
+          <p class="font-semibold text-content mt-1">{{ c.cause_title }}</p>
+          <p class="text-sm text-content-muted">
+            {{ c.case_type }} {{ c.case_number }}/{{ c.case_year }}
+            @if (c.court_establishment) { · {{ c.court_establishment }} }
+          </p>
+
+          <dl class="grid gap-x-6 gap-y-1 sm:grid-cols-2 mt-3 text-sm">
+            @if (c.registration_number) {
+              <div class="flex gap-2"><dt class="text-content-muted">Registration</dt><dd>{{ c.registration_number }}</dd></div>
+            }
+            @if (c.filing_date) {
+              <div class="flex gap-2"><dt class="text-content-muted">Filed</dt><dd>{{ c.filing_date | date }}</dd></div>
+            }
+            @if (c.next_hearing_date) {
+              <div class="flex gap-2"><dt class="text-content-muted">Next hearing</dt><dd>{{ c.next_hearing_date | date }}</dd></div>
+            }
+            @if (c.coram) {
+              <div class="flex gap-2"><dt class="text-content-muted">Coram</dt><dd>{{ c.coram }}</dd></div>
+            }
+          </dl>
+
+          @if (c.advocates.length) {
+            <p class="text-xs uppercase tracking-wide text-content-muted mt-3">Counsel on record</p>
+            <ul class="text-sm mt-1 grid gap-0.5">
+              @for (a of c.advocates; track a.name) {
+                <li>{{ a.name }} <span class="text-content-muted">— for {{ a.appears_for }}</span></li>
+              }
+            </ul>
+          }
+
+          <div class="grid gap-3 sm:grid-cols-2 mt-4 pt-3 border-t border-line">
+            <div class="flex flex-col gap-1 sm:col-span-2">
+              <span class="text-sm text-content-muted">Our client</span>
+              <vs-client-picker (changed)="importClient = $event" />
+            </div>
+            <label class="flex flex-col gap-1">
+              <span class="text-sm text-content-muted">We appear for the…</span>
+              <select class="vs-input" [(ngModel)]="lookup.our_side_role">
+                <option value="petitioner">Petitioner / Appellant</option>
+                <option value="respondent">Respondent</option>
+                <option value="applicant">Applicant</option>
+                <option value="defendant">Defendant</option>
+                <option value="plaintiff">Plaintiff</option>
+              </select>
+            </label>
+            <label class="flex flex-col gap-1">
+              <span class="text-sm text-content-muted">Lead counsel (in charge)</span>
+              <select class="vs-input" [(ngModel)]="lookup.lead_counsel_id">
+                <option value="">Decide later</option>
+                @for (p of people(); track p.id) { <option [value]="p.id">{{ p.full_name }}</option> }
+              </select>
+            </label>
+          </div>
+          <p class="text-xs text-content-muted mt-2">
+            This decides which parties and counsel are filed as ours and which as the opponent’s.
+          </p>
+
+          <div class="mt-3 flex justify-end">
+            <button mat-flat-button color="primary"
+                    [disabled]="!importClient || importing()"
+                    (click)="confirmImport()">
+              {{ importing() ? 'Filing…' : 'File as a matter' }}
+            </button>
+          </div>
+        </div>
+      }
+    </section>
+  }
+
+  <!-- ── Manual create ────────────────────────────────────────────── -->
+  @if (showForm()) {
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-6">
+      <div class="grid gap-3 sm:grid-cols-3">
+        <label class="flex flex-col gap-1 sm:col-span-3">
+          <span class="text-sm text-content-muted">Cause title</span>
+          <input class="vs-input" [(ngModel)]="form.title" placeholder="Ramesh Kumar vs State of Haryana" maxlength="300" />
+        </label>
+        <div class="flex flex-col gap-1 sm:col-span-2">
+          <span class="text-sm text-content-muted">Client</span>
+          <vs-client-picker [value]="client" (changed)="client = $event" />
+        </div>
+        <label class="flex flex-col gap-1">
+          <span class="text-sm text-content-muted">Lead counsel (in charge)</span>
+          <select class="vs-input" [(ngModel)]="form.lead_counsel_id">
+            <option value="">Decide later</option>
+            @for (p of people(); track p.id) { <option [value]="p.id">{{ p.full_name }}</option> }
+          </select>
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-sm text-content-muted">Court</span>
+          <select class="vs-input" [(ngModel)]="form.court_level">
+            <option value="">—</option>
+            @for (k of courtLevelKeys; track k) { <option [value]="k">{{ courtLevels[k] }}</option> }
+          </select>
+        </label>
+        <label class="flex flex-col gap-1 sm:col-span-2">
+          <span class="text-sm text-content-muted">Establishment / bench</span>
+          <input class="vs-input" [(ngModel)]="form.court_establishment"
+                 placeholder="Punjab &amp; Haryana High Court" maxlength="200" />
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-sm text-content-muted">CNR (optional)</span>
+          <input class="vs-input font-mono uppercase" [(ngModel)]="form.cnr_number"
+                 placeholder="HRCH010004562023" maxlength="16" />
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-sm text-content-muted">Case type</span>
+          <input class="vs-input" [(ngModel)]="form.case_type" placeholder="CRL.A." maxlength="60" />
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-sm text-content-muted">Year</span>
+          <input class="vs-input" type="number" [(ngModel)]="form.case_year" placeholder="2024" />
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-sm text-content-muted">Case number</span>
+          <input class="vs-input" [(ngModel)]="form.case_number" placeholder="1234" maxlength="100" />
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-sm text-content-muted">Matter type</span>
+          <select class="vs-input" [(ngModel)]="form.matter_type">
+            <option value="litigation">Litigation</option><option value="advisory">Advisory</option>
+            <option value="arbitration">Arbitration</option><option value="corporate">Corporate</option><option value="other">Other</option>
+          </select>
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-sm text-content-muted">Practice area</span>
+          <input class="vs-input" [(ngModel)]="form.practice_area" placeholder="e.g. Civil, criminal, family" maxlength="100" />
+        </label>
+        <label class="flex flex-col gap-1 sm:col-span-3">
+          <span class="text-sm text-content-muted">Matter summary</span>
+          <textarea class="vs-input" [(ngModel)]="form.description" rows="3" maxlength="5000" placeholder="Background, key issues and relief sought"></textarea>
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-sm text-content-muted">Next hearing</span>
+          <vs-date-input [(ngModel)]="form.next_hearing_date" />
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-sm text-content-muted">Limitation date</span>
+          <vs-date-input [(ngModel)]="form.limitation_date" />
+        </label>
+      </div>
+      <div class="mt-4 flex justify-end">
+        <button mat-flat-button color="primary"
+                [disabled]="form.title.trim().length < 2 || !client || saving()"
+                (click)="submit()">
+          {{ saving() ? 'Creating…' : 'Create matter' }}
+        </button>
+      </div>
+    </section>
+  }
+
+  @if (!loading() && !loadError()) {
+    <section aria-label="Matter overview" class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div class="rounded-card border border-line bg-surface-raised p-4"><p class="text-sm text-content-muted">Open matters</p><p class="text-2xl font-semibold text-content mt-1">{{ openCount() }}</p></div>
+      <div class="rounded-card border border-line bg-surface-raised p-4"><p class="text-sm text-content-muted">Hearings · next 14 days</p><p class="text-2xl font-semibold text-content mt-1">{{ hearingSoonCount() }}</p></div>
+      <div class="rounded-card border border-line bg-surface-raised p-4"><p class="text-sm text-content-muted">High priority · active</p><p class="text-2xl font-semibold text-content mt-1">{{ highPriorityCount() }}</p></div>
+      <div class="rounded-card border border-line bg-surface-raised p-4"><p class="text-sm text-content-muted">Limitation · next 30 days</p><p class="text-2xl font-semibold text-content mt-1">{{ limitationCount() }}</p></div>
+    </section>
+  }
+
+  <!-- ── Filters ──────────────────────────────────────────────────── -->
+  <div class="flex flex-wrap items-center gap-2 border-b border-line mb-4">
+    <button class="vs-tab" [class.vs-tab-active]="filter() === 'all'" (click)="setFilter('all')">All</button>
+    <button class="vs-tab" [class.vs-tab-active]="filter() === 'open'" (click)="setFilter('open')">Open</button>
+    <button class="vs-tab" [class.vs-tab-active]="filter() === 'hearing_soon'" (click)="setFilter('hearing_soon')">
+      Hearing in 14 days
+      @if (hearingSoonCount()) { <span class="vs-chip ml-1">{{ hearingSoonCount() }}</span> }
+    </button>
+    <button class="vs-tab" [class.vs-tab-active]="filter() === 'on_hold'" (click)="setFilter('on_hold')">On hold</button>
+    <button class="vs-tab" [class.vs-tab-active]="filter() === 'closed'" (click)="setFilter('closed')">Closed</button>
+    <span class="flex-1"></span>
+    <input class="vs-input max-w-xs my-1" [ngModel]="search()" (ngModelChange)="search.set($event)"
+           aria-label="Search matters" placeholder="Search case, client, court, details…" />
+  </div>
+
+  @if (loading()) {
+    <p class="text-content-muted">Loading…</p>
+  } @else if (loadError()) {
+    <div role="alert" class="rounded-card border border-line p-4">
+      <p class="text-content">Could not load matters. Try again to see the latest details.</p>
+      <button mat-stroked-button class="mt-2" (click)="reload()">Retry</button>
+    </div>
+  } @else if (visible().length === 0) {
+    <p class="text-content-muted">
+      @if (search() || filter() === 'hearing_soon') { No matters match this view. }
+      @else { No matters here yet. Fetch one from eCourts, or create it manually. }
+    </p>
+  } @else {
+    <p class="text-xs text-content-muted mb-3" aria-live="polite">Showing {{ visible().length }} of {{ list().length }} matters</p>
+    <div class="grid gap-3">
+      @for (m of visible(); track m.id) {
+        <a [routerLink]="['/app/matters', m.id]"
+           class="rounded-card bg-surface-raised border border-line shadow-card p-4 hover:border-brand transition-colors">
+          <div class="flex flex-col sm:flex-row items-start gap-4">
+            <div class="flex-1 min-w-0 w-full">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-xs font-mono text-content-muted">{{ m.matter_number }}</span>
+                @if (caseLabel(m); as label) { <span class="vs-chip font-mono">{{ label }}</span> }
+                <span class="vs-chip capitalize">{{ m.status.replace('_', ' ') }}</span>
+                <span class="vs-chip capitalize" [class.vs-chip--danger]="m.priority === 'high'">{{ m.priority }} priority</span>
+              </div>
+              <h2 class="font-semibold text-content break-words mt-2">{{ m.cause_title || m.title }}</h2>
+              <p class="text-sm text-content-muted mt-1">
+                Client: {{ m.client_name }}@if (!m.client_id) { <span class="text-xs">(not linked)</span> }
+                · Lead: {{ m.lead_counsel_name || 'not assigned' }}
+              </p>
+              @if (m.description) { <p class="text-sm text-content-muted mt-2 line-clamp-2">{{ m.description }}</p> }
+              <dl class="grid sm:grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-3 mt-4 text-sm">
+                <div><dt class="text-xs text-content-muted">Court / bench</dt><dd class="text-content mt-1">{{ m.court_establishment || m.court || 'Not recorded' }}</dd>
+                  @if (m.court_level) { <dd class="text-xs text-content-muted">{{ courtLevels[m.court_level] }}</dd> }
+                </div>
+                <div><dt class="text-xs text-content-muted">Type / practice area</dt><dd class="text-content mt-1 capitalize">{{ m.matter_type }}@if (m.practice_area) { · {{ m.practice_area }} }</dd></div>
+                <div><dt class="text-xs text-content-muted">Stage</dt><dd class="text-content mt-1 capitalize">{{ m.stage }}</dd></div>
+                @if (m.state || m.district) { <div><dt class="text-xs text-content-muted">Location</dt><dd class="text-content mt-1">{{ m.district }}{{ m.district && m.state ? ', ' : '' }}{{ m.state }}</dd></div> }
+                @if (m.coram) { <div><dt class="text-xs text-content-muted">Coram</dt><dd class="text-content mt-1">{{ m.coram }}</dd></div> }
+                @if (m.cnr_number) { <div><dt class="text-xs text-content-muted">CNR number</dt><dd class="text-content mt-1 font-mono break-all">{{ m.cnr_number }}</dd></div> }
+              </dl>
+              @if (m.acts.length || m.sections.length) {
+                <p class="text-xs text-content-muted mt-3">{{ m.acts.join(' · ') }}@if (m.sections.length) { · Sections: {{ m.sections.join(', ') }} }</p>
+              }
+            </div>
+            <div class="w-full sm:w-56 shrink-0 rounded-lg bg-surface-sunken p-3 text-sm">
+              <p class="text-xs text-content-muted">Next hearing</p>
+              <p class="font-semibold text-content mt-1">{{ m.next_hearing_date ? (m.next_hearing_date | date:'dd/MM/yyyy') : 'Not scheduled' }}</p>
+              @if (m.next_hearing_date) { <p class="text-xs mt-1" [class.text-danger]="(daysUntil(m.next_hearing_date) ?? 99) <= 3">{{ relativeDate(m.next_hearing_date) }}</p> }
+              @if (m.hearing_purpose) { <p class="text-content-muted mt-1">{{ m.hearing_purpose }}</p> }
+              <div class="border-t border-line mt-3 pt-3">
+                <p class="text-xs text-content-muted">Limitation date</p>
+                <p class="font-medium text-content mt-1">{{ m.limitation_date ? (m.limitation_date | date:'dd/MM/yyyy') : 'Not recorded' }}</p>
+                @if (m.limitation_date) { <p class="text-xs mt-1" [class.text-danger]="m.status !== 'closed' && (daysUntil(m.limitation_date) ?? 99) <= 30">{{ relativeDate(m.limitation_date) }}</p> }
+              </div>
+              @if (m.last_hearing_date) { <p class="text-xs text-content-muted mt-3">Last hearing: {{ m.last_hearing_date | date:'dd/MM/yyyy' }}</p> }
+            </div>
+          </div>
+          <div class="flex flex-wrap justify-between gap-2 border-t border-line mt-4 pt-3 text-xs text-content-muted">
+            <span>Opened {{ (m.opened_on || m.created_at) | date:'dd/MM/yyyy' }}@if (m.ecourts_synced_at) { · eCourts synced {{ m.ecourts_synced_at | date:'dd/MM/yyyy' }} }</span>
+            <span class="font-medium text-brand">View matter →</span>
+          </div>
+        </a>
+      }
+    </div>
+  }
+</div>

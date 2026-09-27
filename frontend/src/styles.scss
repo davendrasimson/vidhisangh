@@ -1,0 +1,493 @@
+/* ════════════════════════════════════════════════════════════════════
+   VidhiSangh — global styles, design tokens & theme
+   Single source of truth for colours (as RGB triplets so Tailwind's
+   <alpha-value> works). Dark mode flips the tokens via `.dark` on <html>.
+   ════════════════════════════════════════════════════════════════════ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Brand */
+  --vs-brand: 37 99 235;          /* indigo/azure 600 */
+  --vs-brand-fg: 255 255 255;
+
+  /* Surfaces (light) */
+  --vs-surface: 255 255 255;
+  --vs-surface-raised: 255 255 255;
+  --vs-surface-sunken: 246 247 249;
+
+  /* Text */
+  --vs-text: 17 24 39;            /* slate-900 */
+  --vs-text-muted: 100 116 139;   /* slate-500 */
+
+  /* Lines & states */
+  --vs-border: 226 232 240;       /* slate-200 */
+  --vs-success: 22 163 74;
+  --vs-warning: 217 119 6;
+  --vs-danger: 220 38 38;
+
+  /* Elevation — soft, layered shadows for a premium, non-flat feel. */
+  --vs-shadow-sm: 0 1px 2px rgb(15 23 42 / 0.04), 0 1px 3px rgb(15 23 42 / 0.06);
+  --vs-shadow: 0 2px 6px rgb(15 23 42 / 0.05), 0 8px 24px -6px rgb(15 23 42 / 0.10);
+  --vs-shadow-md: 0 12px 32px -8px rgb(15 23 42 / 0.16), 0 4px 10px -4px rgb(15 23 42 / 0.08);
+
+  /* Typography families. Inter runs the UI; the serif is reserved for
+     display headings, where it reads like a printed judgment. */
+  --vs-font-ui: Inter, 'Segoe UI', system-ui, sans-serif;
+  --vs-font-display: 'Source Serif 4', 'Iowan Old Style', Georgia, serif;
+  --vs-font-devanagari: 'Tiro Devanagari Hindi', 'Nirmala UI', serif;
+
+  /* Judicial accents — the ochre of the sandstone our courts are built from. */
+  --vs-sandstone: 180 83 9;
+  --vs-gold: 201 162 39;
+
+  /* Signature gradients + brand glow — the "wow" primitives. */
+  --vs-accent2: 124 58 237;       /* violet companion for gradients */
+  --vs-gradient-brand: linear-gradient(135deg, rgb(var(--vs-brand)) 0%, rgb(var(--vs-accent2)) 100%);
+  --vs-gradient-sheen: linear-gradient(135deg, color-mix(in srgb, rgb(var(--vs-brand)) 92%, white) 0%, rgb(var(--vs-brand)) 45%, rgb(var(--vs-accent2)) 100%);
+  --vs-glow: 0 10px 30px -8px color-mix(in srgb, rgb(var(--vs-brand)) 55%, transparent);
+
+  color-scheme: light;
+}
+
+.dark {
+  --vs-brand: 96 165 250;         /* lighter for contrast on dark */
+  --vs-brand-fg: 15 23 42;
+
+  --vs-surface: 15 23 42;         /* slate-900 */
+  --vs-surface-raised: 30 41 59;  /* slate-800 */
+  --vs-surface-sunken: 2 6 23;    /* slate-950 */
+
+  --vs-text: 241 245 249;         /* slate-100 */
+  --vs-text-muted: 148 163 184;   /* slate-400 */
+
+  --vs-border: 51 65 85;          /* slate-700 */
+  --vs-success: 74 222 128;
+  --vs-warning: 251 191 36;
+  --vs-danger: 248 113 113;
+
+  --vs-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.30);
+  --vs-shadow: 0 2px 10px rgb(0 0 0 / 0.40);
+  --vs-shadow-md: 0 16px 40px -8px rgb(0 0 0 / 0.55);
+
+  --vs-accent2: 167 139 250;
+  --vs-gradient-brand: linear-gradient(135deg, rgb(var(--vs-brand)) 0%, rgb(var(--vs-accent2)) 100%);
+  --vs-gradient-sheen: linear-gradient(135deg, rgb(var(--vs-brand)) 0%, rgb(var(--vs-accent2)) 100%);
+  --vs-glow: 0 10px 34px -8px color-mix(in srgb, rgb(var(--vs-brand)) 60%, transparent);
+
+  color-scheme: dark;
+
+  /* The prebuilt Material theme is light-only: its system tokens do not
+     follow color-scheme. Every Material component — sidenav content, buttons,
+     menus, dialogs, form fields, snackbars — reads these, so they must flip
+     here or their text stays light-theme ink on our dark surfaces. Values
+     mirror the tokens above (slate palette, brand primary). */
+  --mat-sys-background: rgb(var(--vs-surface-sunken));
+  --mat-sys-on-background: rgb(var(--vs-text));
+  --mat-sys-surface: rgb(var(--vs-surface));
+  --mat-sys-surface-dim: rgb(var(--vs-surface-sunken));
+  --mat-sys-surface-bright: rgb(var(--vs-surface-raised));
+  --mat-sys-surface-container-lowest: rgb(var(--vs-surface-sunken));
+  --mat-sys-surface-container-low: rgb(var(--vs-surface));
+  --mat-sys-surface-container: rgb(var(--vs-surface-raised));
+  --mat-sys-surface-container-high: rgb(51 65 85);
+  --mat-sys-surface-container-highest: rgb(71 85 105);
+  --mat-sys-surface-variant: rgb(51 65 85);
+  --mat-sys-on-surface: rgb(var(--vs-text));
+  --mat-sys-on-surface-variant: rgb(var(--vs-text-muted));
+  --mat-sys-inverse-surface: rgb(var(--vs-text));
+  --mat-sys-inverse-on-surface: rgb(var(--vs-surface));
+  --mat-sys-inverse-primary: rgb(30 64 175);
+  --mat-sys-outline: rgb(100 116 139);
+  --mat-sys-outline-variant: rgb(var(--vs-border));
+  --mat-sys-primary: rgb(var(--vs-brand));
+  --mat-sys-on-primary: rgb(var(--vs-brand-fg));
+  --mat-sys-primary-container: rgb(30 58 138);
+  --mat-sys-on-primary-container: rgb(219 234 254);
+  --mat-sys-secondary: rgb(var(--vs-text-muted));
+  --mat-sys-on-secondary: rgb(var(--vs-surface));
+  --mat-sys-secondary-container: rgb(51 65 85);
+  --mat-sys-on-secondary-container: rgb(var(--vs-text));
+  --mat-sys-tertiary: rgb(var(--vs-accent2));
+  --mat-sys-error: rgb(var(--vs-danger));
+  --mat-sys-on-error: rgb(var(--vs-surface));
+  --mat-sys-error-container: rgb(127 29 29);
+  --mat-sys-on-error-container: rgb(254 226 226);
+  --mat-sys-shadow: rgb(0 0 0);
+  --mat-sys-scrim: rgb(0 0 0);
+}
+
+/* Angular Material's prebuilt theme sets every typography token to a bare
+   `Roboto` — a font we never load and which carries no fallback, so browsers
+   drop to their default (serif on most Linux/Android). That printed our form
+   labels and buttons in serif. Point Material's scale at the UI font instead;
+   the serif stays opt-in through .vs-display. Must stay on `html` to match the
+   theme's own specificity — styles.scss loads after it, so this wins. */
+html {
+  --mat-sys-body-large-font: var(--vs-font-ui);
+  --mat-sys-body-medium-font: var(--vs-font-ui);
+  --mat-sys-body-small-font: var(--vs-font-ui);
+  --mat-sys-display-large-font: var(--vs-font-ui);
+  --mat-sys-display-medium-font: var(--vs-font-ui);
+  --mat-sys-display-small-font: var(--vs-font-ui);
+  --mat-sys-headline-large-font: var(--vs-font-ui);
+  --mat-sys-headline-medium-font: var(--vs-font-ui);
+  --mat-sys-headline-small-font: var(--vs-font-ui);
+  --mat-sys-label-large-font: var(--vs-font-ui);
+  --mat-sys-label-medium-font: var(--vs-font-ui);
+  --mat-sys-label-small-font: var(--vs-font-ui);
+  --mat-sys-title-large-font: var(--vs-font-ui);
+  --mat-sys-title-medium-font: var(--vs-font-ui);
+  --mat-sys-title-small-font: var(--vs-font-ui);
+
+  /* Material also ships composite `font:` shorthands carrying the same Roboto.
+     Same weight/size/line-height as the theme's — only the family changes. */
+  --mat-sys-body-large: 400 1rem / 1.5rem var(--vs-font-ui);
+  --mat-sys-body-medium: 400 0.875rem / 1.25rem var(--vs-font-ui);
+  --mat-sys-body-small: 400 0.75rem / 1rem var(--vs-font-ui);
+  --mat-sys-display-large: 400 3.562rem / 4rem var(--vs-font-ui);
+  --mat-sys-display-medium: 400 2.812rem / 3.25rem var(--vs-font-ui);
+  --mat-sys-display-small: 400 2.25rem / 2.75rem var(--vs-font-ui);
+  --mat-sys-headline-large: 400 2rem / 2.5rem var(--vs-font-ui);
+  --mat-sys-headline-medium: 400 1.75rem / 2.25rem var(--vs-font-ui);
+  --mat-sys-headline-small: 400 1.5rem / 2rem var(--vs-font-ui);
+  --mat-sys-label-large: 500 0.875rem / 1.25rem var(--vs-font-ui);
+  --mat-sys-label-medium: 500 0.75rem / 1rem var(--vs-font-ui);
+  --mat-sys-label-small: 500 0.688rem / 1rem var(--vs-font-ui);
+  --mat-sys-title-large: 400 1.375rem / 1.75rem var(--vs-font-ui);
+  --mat-sys-title-medium: 500 1rem / 1.5rem var(--vs-font-ui);
+  --mat-sys-title-small: 500 0.875rem / 1.25rem var(--vs-font-ui);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--vs-font-ui);
+  background-color: rgb(var(--vs-surface-sunken));
+  color: rgb(var(--vs-text));
+  /* Crisp text rendering across platforms. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;                     /* never fake bold/italic — stays sharp */
+  font-feature-settings: 'cv11', 'ss01';    /* Inter: nicer digits/letterforms */
+}
+
+/* Tighter, more deliberate heading typography for a premium feel. */
+h1, h2, h3, h4 {
+  letter-spacing: -0.021em;
+  line-height: 1.2;
+}
+h1 { font-weight: 700; }
+h2, h3 { font-weight: 650; }
+
+/* Opt-in serif display voice for hero/auth headings. Optical sizing lets
+   Source Serif 4 thin its strokes as the size grows. */
+.vs-display {
+  font-family: var(--vs-font-display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.012em;
+  font-synthesis: none;
+}
+
+/* Devanagari needs more leading than Latin — matras sit above and below. */
+.vs-devanagari {
+  font-family: var(--vs-font-devanagari);
+  line-height: 1.65;
+  letter-spacing: 0.01em;
+}
+
+/* Accessible focus ring for keyboard users (WCAG 2.2). */
+:focus-visible {
+  outline: 2px solid rgb(var(--vs-brand));
+  outline-offset: 2px;
+}
+
+/* Material already signals focus by thickening and re-colouring its own notched
+   outline. Two further rings were stacking *inside* that outline:
+     1. the global :focus-visible outline above, and
+     2. @tailwindcss/forms' 1px `box-shadow` ring on `input:focus`.
+   MDC hides (2) via `.mdc-text-field__input:invalid { box-shadow: none }`, so it
+   only appeared once the value became valid — e.g. the moment you finish typing
+   an address. Suppress both here and let Material's outline be the indicator. */
+.mat-mdc-form-field .mat-mdc-input-element:focus,
+.mat-mdc-form-field .mat-mdc-input-element:focus-visible {
+  outline: none;
+  box-shadow: none;
+  border-color: transparent;
+}
+
+/* Thin, theme-aware scrollbars. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--vs-border)) transparent;
+}
+
+/* Shared avatar utility (initials chips) used across features. */
+.vs-avatar-xs,
+.vs-avatar-sm,
+.vs-avatar-lg {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgb(var(--vs-brand));
+  color: rgb(var(--vs-brand-fg));
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.vs-avatar-xs { width: 30px; height: 30px; font-size: 0.7rem; }
+.vs-avatar-sm { width: 42px; height: 42px; font-size: 0.85rem; }
+.vs-avatar-lg { width: 64px; height: 64px; font-size: 1.25rem; }
+
+/* Form control shared across feature forms. */
+.vs-input {
+  width: 100%;
+  border: 1px solid rgb(var(--vs-border));
+  border-radius: 10px;
+  background: rgb(var(--vs-surface-sunken));
+  color: rgb(var(--vs-text));
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  outline: none;
+
+  &:focus { border-color: rgb(var(--vs-brand)); }
+}
+
+/* Underline tab (Discover / My groups, group detail sections). */
+.vs-tab {
+  padding: 0.5rem 0.25rem;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  color: rgb(var(--vs-text-muted));
+  font-weight: 600;
+  background: none;
+  cursor: pointer;
+}
+.vs-tab-active {
+  color: rgb(var(--vs-brand));
+  border-bottom-color: rgb(var(--vs-brand));
+}
+
+/* Feed / community-post interactions (shared by network feed & group detail). */
+.vs-liked {
+  color: rgb(var(--vs-brand)) !important;
+  font-weight: 600;
+}
+
+.vs-comment {
+  background: rgb(var(--vs-surface-sunken));
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+  flex: 1;
+}
+
+.vs-comment-input {
+  flex: 1;
+  border: 1px solid rgb(var(--vs-border));
+  border-radius: 999px;
+  background: rgb(var(--vs-surface-sunken));
+  color: rgb(var(--vs-text));
+  padding: 0.5rem 0.9rem;
+  font: inherit;
+  outline: none;
+
+  &:focus { border-color: rgb(var(--vs-brand)); }
+}
+
+/* Unread-count badge (messaging list). */
+.vs-unread {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgb(var(--vs-brand));
+  color: rgb(var(--vs-brand-fg));
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+/* Unread notification row (in the bell menu). */
+.vs-notif--unread {
+  background: color-mix(in srgb, rgb(var(--vs-brand)) 8%, transparent);
+}
+
+/* Presence dot on an avatar (bottom-right). */
+.vs-online-dot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: rgb(var(--vs-success));
+  border: 2px solid rgb(var(--vs-surface-raised));
+}
+
+/* Chat message bubble. */
+.vs-bubble {
+  border-radius: 14px;
+  padding: 0.5rem 0.85rem;
+  background: rgb(var(--vs-surface-sunken));
+  border: 1px solid rgb(var(--vs-border));
+  color: rgb(var(--vs-text));
+  font-size: 0.9rem;
+
+  &--mine {
+    background: rgb(var(--vs-brand));
+    color: rgb(var(--vs-brand-fg));
+    border-color: transparent;
+  }
+}
+
+/* Small status pill. */
+.vs-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: rgb(var(--vs-surface-sunken));
+  border: 1px solid rgb(var(--vs-border));
+  color: rgb(var(--vs-text-muted));
+  font-size: 0.8rem;
+  font-weight: 600;
+
+  &--danger {
+    background: color-mix(in srgb, rgb(var(--vs-danger)) 15%, transparent);
+    border-color: transparent;
+    color: rgb(var(--vs-danger));
+  }
+}
+
+/* Selected/active pill (filter chips). */
+.vs-chip-selected {
+  background: rgb(var(--vs-brand));
+  border-color: transparent;
+  color: rgb(var(--vs-brand-fg));
+  cursor: pointer;
+}
+
+/* Accent-colour picker (rendered in a CDK overlay, so styled globally). */
+.vs-color-menu {
+  .vs-color-menu__title {
+    padding: 0.5rem 0.9rem 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgb(var(--vs-text-muted));
+  }
+  .vs-swatches {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.55rem;
+    padding: 0.15rem 0.9rem 0.85rem;
+  }
+  .vs-swatch {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.25);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+
+    mat-icon { font-size: 18px; width: 18px; height: 18px; }
+    &:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgb(15 23 42 / 0.28); }
+    &--active { border-color: rgb(var(--vs-text)); }
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   Premium visual layer — gradients, depth & motion (whole-app "wow").
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Branded, gradient primary buttons everywhere (also makes them follow the
+   chosen accent, which Material's own theme colour did not). */
+.mat-mdc-unelevated-button.mat-primary,
+.mat-mdc-raised-button.mat-primary,
+button[color='primary'].mat-mdc-unelevated-button {
+  background: var(--vs-gradient-brand) !important;
+  --mdc-filled-button-container-color: transparent;
+  --mdc-filled-button-label-text-color: rgb(var(--vs-brand-fg));
+  color: rgb(var(--vs-brand-fg)) !important;
+  border-radius: 10px;
+  box-shadow: var(--vs-glow) !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+.mat-mdc-unelevated-button.mat-primary:hover,
+.mat-mdc-raised-button.mat-primary:hover {
+  transform: translateY(-1px);
+  filter: saturate(1.08) brightness(1.04);
+}
+
+/* Lift interactive surfaces on hover. Opt-in via .vs-lift. */
+.vs-lift {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  will-change: transform;
+}
+.vs-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--vs-shadow-md);
+  border-color: color-mix(in srgb, rgb(var(--vs-brand)) 45%, rgb(var(--vs-border)));
+}
+
+/* Gradient hero surface (dashboard + section headers). */
+.vs-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  background: var(--vs-gradient-brand);
+  color: rgb(var(--vs-brand-fg));
+  box-shadow: var(--vs-glow);
+}
+.vs-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(600px 240px at 88% -30%, rgb(255 255 255 / 0.28), transparent 60%),
+    radial-gradient(420px 200px at 10% 130%, rgb(255 255 255 / 0.14), transparent 60%);
+  pointer-events: none;
+}
+
+/* Icon chip used on stat tiles / module cards. */
+.vs-iconchip {
+  display: inline-grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  background: color-mix(in srgb, rgb(var(--vs-brand)) 14%, transparent);
+  color: rgb(var(--vs-brand));
+}
+.vs-iconchip mat-icon { font-size: 24px; width: 24px; height: 24px; }
+
+/* Focus glow on shared inputs. */
+.vs-input:focus,
+.vs-composer:focus,
+.vs-comment-input:focus {
+  border-color: rgb(var(--vs-brand));
+  box-shadow: 0 0 0 3px color-mix(in srgb, rgb(var(--vs-brand)) 18%, transparent);
+}
+
+/* Gentle entrance for page content — feels alive without being noisy. */
+@keyframes vs-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.vs-main > * { animation: vs-rise 0.32s ease both; }
+@media (prefers-reduced-motion: reduce) {
+  .vs-main > *, .vs-lift, .mat-mdc-unelevated-button.mat-primary { animation: none; transition: none; }
+}

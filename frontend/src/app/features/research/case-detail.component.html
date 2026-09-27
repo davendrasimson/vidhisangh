@@ -1,0 +1,96 @@
+<div class="mx-auto w-full">
+  <a routerLink="/app/research" class="text-sm text-content-muted inline-flex items-center gap-1 mb-3">
+    <mat-icon class="material-icons-outlined text-base">arrow_back</mat-icon> Search
+  </a>
+
+  @if (loading()) {
+    <p class="text-content-muted">Loading…</p>
+  } @else if (notFound()) {
+    <div class="rounded-card bg-surface-raised border border-line shadow-card p-6 text-center">
+      <p class="font-medium text-content">No orders for this CNR in the library.</p>
+    </div>
+  } @else if (kase(); as c) {
+    <!-- ── Case header ─────────────────────────────────────────────── -->
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
+      <div class="flex flex-wrap items-center gap-1.5 mb-2">
+        @if (caseNumber(); as n) { <span class="vs-chip font-mono">{{ n }}</span> }
+        <span class="vs-chip font-mono">CNR {{ c.cnr_number }}</span>
+        <span class="vs-chip">{{ c.orders.length }} order{{ c.orders.length === 1 ? '' : 's' }}</span>
+        @if (c.latest_outcome) { <span class="vs-chip vs-chip-selected ml-auto">{{ c.latest_outcome }}</span> }
+      </div>
+      <h1 class="vs-display text-2xl font-semibold text-content">{{ c.cause_title }}</h1>
+      <p class="text-sm text-content-muted mt-1">{{ c.court }}</p>
+
+      <!-- Who is in the case -->
+      <div class="grid gap-4 sm:grid-cols-2 mt-4">
+        <div class="rounded-md bg-surface-sunken p-3">
+          <h2 class="text-xs font-semibold uppercase tracking-wide text-content-muted mb-1">Petitioner / Appellant</h2>
+          <p class="font-medium text-content">{{ c.petitioner || '—' }}</p>
+          @if (c.petitioner_advocates.length) {
+            <p class="text-sm text-content-muted mt-1">
+              Counsel: @for (a of c.petitioner_advocates; track a; let last = $last) {
+                <a [routerLink]="['/app/research']" [queryParams]="{ advocate: a }" class="text-brand hover:underline">{{ a }}</a>@if (!last) {, }
+              }
+            </p>
+          }
+        </div>
+        <div class="rounded-md bg-surface-sunken p-3">
+          <h2 class="text-xs font-semibold uppercase tracking-wide text-content-muted mb-1">Respondent</h2>
+          <p class="font-medium text-content">{{ c.respondent || '—' }}</p>
+          @if (c.respondent_advocates.length) {
+            <p class="text-sm text-content-muted mt-1">
+              Counsel: @for (a of c.respondent_advocates; track a; let last = $last) {
+                <a [routerLink]="['/app/research']" [queryParams]="{ advocate: a }" class="text-brand hover:underline">{{ a }}</a>@if (!last) {, }
+              }
+            </p>
+          }
+        </div>
+      </div>
+
+      <!-- Dates and bench -->
+      <dl class="grid gap-x-6 gap-y-1 sm:grid-cols-4 mt-4 text-sm">
+        <div><dt class="text-content-muted">Filed</dt><dd class="text-content">{{ (c.filed_on | date) || '—' }}</dd></div>
+        <div><dt class="text-content-muted">First order</dt><dd class="text-content">{{ (c.first_order_on | date) || '—' }}</dd></div>
+        <div><dt class="text-content-muted">Latest order</dt><dd class="text-content">{{ (c.latest_order_on | date) || '—' }}</dd></div>
+        <div>
+          <dt class="text-content-muted">Running</dt>
+          <dd class="text-content">@if (runningDays(); as d) { {{ duration(d) }} } @else { — }</dd>
+        </div>
+      </dl>
+      @if (c.judge_names.length) {
+        <p class="text-sm text-content-muted mt-3">
+          Heard by @for (n of c.judge_names; track n; let last = $last) {
+            <a [routerLink]="['/app/research']" [queryParams]="{ judge: n }" class="text-brand hover:underline">Justice {{ n }}</a>@if (!last) {, }
+          }
+        </p>
+      }
+    </section>
+
+    <!-- ── Order timeline ───────────────────────────────────────────── -->
+    <h2 class="text-xs font-semibold uppercase tracking-wide text-content-muted mb-2">Orders, oldest first</h2>
+    <ol class="relative border-l border-line ml-2 pl-5 grid gap-3">
+      @for (o of c.orders; track o.id; let i = $index) {
+        <li class="relative">
+          <span class="absolute -left-[1.6rem] top-4 h-3 w-3 rounded-full border-2 border-brand bg-surface-raised"></span>
+          <a [routerLink]="['/app/research', o.id]"
+             class="block rounded-card bg-surface-raised border border-line shadow-card p-4 hover:border-brand transition-colors">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="font-mono text-sm text-content">{{ (o.judgment_date | date) || 'undated' }}</span>
+              <span class="text-xs text-content-muted">#{{ i + 1 }}</span>
+              @if (o.judge_names.length) {
+                <span class="text-sm text-content-muted">· @for (n of o.judge_names; track n; let last = $last) { Justice {{ n }}@if (!last) {, } }</span>
+              }
+              @if (o.outcome) { <span class="vs-chip vs-chip-selected ml-auto">{{ o.outcome }}</span> }
+            </div>
+            @if (o.summary) { <p class="text-sm text-content-muted mt-1 line-clamp-2">{{ o.summary }}</p> }
+            @if (o.url) {
+              <span class="text-brand text-xs inline-flex items-center gap-1 mt-2">
+                <mat-icon class="material-icons-outlined !text-sm !w-4 !h-4">picture_as_pdf</mat-icon> Order PDF available
+              </span>
+            }
+          </a>
+        </li>
+      }
+    </ol>
+  }
+</div>

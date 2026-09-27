@@ -1,0 +1,68 @@
+<div class="mx-auto w-full">
+  <a routerLink="/app/people" class="text-sm text-content-muted inline-flex items-center gap-1 mb-3">
+    <mat-icon class="material-icons-outlined text-base">arrow_back</mat-icon> People
+  </a>
+
+  @if (loading()) {
+    <p class="text-content-muted">Loading…</p>
+  } @else if (person(); as p) {
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-6 mb-5">
+      <div class="flex gap-4">
+        <span class="vs-avatar-lg">{{ initials(p.display_name) }}</span>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-1">
+            <h1 class="text-xl font-bold text-content">{{ p.display_name }}</h1>
+            @if (p.is_verified) {
+              <mat-icon class="material-icons-outlined text-brand" style="font-size:18px;height:18px;width:18px">verified</mat-icon>
+            }
+          </div>
+          <p class="text-content-muted">{{ p.headline || 'Legal professional' }}</p>
+          @if (p.city) { <p class="text-sm text-content-muted">{{ p.city }}</p> }
+
+          @if (!p.is_self) {
+            <div class="flex flex-wrap gap-2 mt-3">
+              @switch (p.connection_status) {
+                @case ('connected') {
+                  <button mat-stroked-button disabled><mat-icon class="material-icons-outlined">how_to_reg</mat-icon> Connected</button>
+                }
+                @case ('pending_out') { <button mat-stroked-button disabled>Request sent</button> }
+                @case ('pending_in') { <button mat-stroked-button disabled>Responds to you</button> }
+                @default {
+                  <button mat-flat-button color="primary" (click)="connect()">
+                    <mat-icon class="material-icons-outlined">person_add</mat-icon> Connect
+                  </button>
+                }
+              }
+              <button mat-stroked-button (click)="toggleFollow()">{{ p.is_following ? 'Following' : 'Follow' }}</button>
+              <button mat-stroked-button (click)="message()">
+                <mat-icon class="material-icons-outlined">chat</mat-icon> Message
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+
+    <h2 class="font-semibold mb-3">Posts</h2>
+    @if (posts().length === 0) {
+      <p class="text-content-muted text-sm">No posts yet.</p>
+    } @else {
+      @for (post of posts(); track post.id) {
+        <article class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-3">
+          <div class="flex items-center justify-between">
+            <p class="font-medium text-content">{{ post.author_name }}</p>
+            <span class="text-xs text-content-muted">{{ post.created_at | date: 'dd/MM/yyyy, h:mm a' }}</span>
+          </div>
+          @if (post.title) { <h3 class="font-semibold mt-1">{{ post.title }}</h3> }
+          <p class="mt-1 text-content whitespace-pre-line">{{ post.content }}</p>
+          <div class="flex items-center gap-2 text-xs text-content-muted mt-2">
+            @if (post.like_count) { <span>{{ post.like_count }} reactions</span> }
+            @if (post.comment_count) { <span>· {{ post.comment_count }} comments</span> }
+          </div>
+        </article>
+      }
+    }
+  } @else {
+    <p class="text-content-muted">This person could not be found.</p>
+  }
+</div>

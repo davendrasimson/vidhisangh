@@ -1,0 +1,24 @@
+:host { display: block; }
+
+.statute-search-field {
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.statute-search-field:focus-within {
+  border-color: rgb(var(--vs-brand));
+  box-shadow: 0 0 0 3px rgb(var(--vs-brand) / .09);
+}
+
+.statute-search-field input,
+.statute-search-field input:hover,
+.statute-search-field input:focus,
+.statute-search-field input:focus-visible {
+  appearance: none;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  --tw-ring-offset-width: 0 !important;
+  --tw-ring-offset-color: transparent !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+}

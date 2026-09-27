@@ -1,0 +1,32 @@
+<div class="mx-auto w-full">
+  <h1 class="text-2xl font-bold text-content mb-1">Feature flags</h1>
+  <p class="text-content-muted mb-6">Turn platform capabilities on or off for your organisation.</p>
+
+  @if (loading()) {
+    <p class="text-content-muted">Loading…</p>
+  } @else {
+    <section class="rounded-card bg-surface-raised border border-line shadow-card divide-y divide-line">
+      @for (f of items(); track f.key) {
+        <div class="flex items-center gap-3 p-4">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="font-medium text-content">{{ f.name }}</span>
+              @if (f.overridden) {
+                <span class="vs-chip text-xs">Custom</span>
+              } @else {
+                <span class="text-xs text-content-muted">Default {{ f.default ? 'on' : 'off' }}</span>
+              }
+            </div>
+            <p class="text-sm text-content-muted">{{ f.description }}</p>
+          </div>
+          <mat-slide-toggle
+            [checked]="f.enabled"
+            [disabled]="saving() === f.key"
+            (change)="toggle(f, $event.checked)"
+            [attr.aria-label]="f.name"
+          ></mat-slide-toggle>
+        </div>
+      }
+    </section>
+  }
+</div>

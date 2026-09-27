@@ -1,0 +1,679 @@
+<div class="mx-auto w-full">
+  <a routerLink="/app/matters" class="text-sm text-content-muted inline-flex items-center gap-1 mb-3">
+    <mat-icon class="material-icons-outlined text-base">arrow_back</mat-icon> All matters
+  </a>
+
+  @if (loading()) {
+    <p class="text-content-muted">Loading…</p>
+  } @else if (matter(); as m) {
+    <!-- Header -->
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-mono text-content-muted">{{ m.matter_number }}</span>
+            <span class="vs-chip capitalize">{{ m.matter_type }}</span>
+            <span class="vs-chip capitalize" [class.vs-chip--danger]="m.priority === 'high'">{{ m.priority }} priority</span>
+          </div>
+          <h1 class="vs-display text-2xl font-semibold text-content mt-1">{{ m.cause_title || m.title }}</h1>
+          <p class="text-sm text-content-muted">
+            For
+            @if (m.client_id) { <a class="text-brand" [routerLink]="['/app/clients', m.client_id]">{{ m.client_name }}</a> }
+            @else { {{ m.client_name }} <span class="text-xs">(not in client master)</span> }
+            <button class="text-xs text-brand ml-1" (click)="startEditClient()">change</button>
+            @if (m.court_establishment || m.court) { · {{ m.court_establishment || m.court }} }
+            · Lead counsel:
+            @if (leadMember(); as lead) { <span class="text-content">{{ lead.user_name }}</span> <span class="text-xs">since {{ lead.from_date | date }}</span> }
+            @else { <span class="text-warning">not assigned</span> }
+          </p>
+          @if (editingClient()) {
+            <div class="mt-2 max-w-xl">
+              <vs-client-picker [value]="clientChoice" (changed)="clientChoice = $event" />
+              <div class="flex gap-2 mt-2">
+                <button mat-button (click)="editingClient.set(false)">Cancel</button>
+                <button mat-flat-button color="primary" [disabled]="!clientChoice" (click)="saveClient()">Save client</button>
+              </div>
+            </div>
+          }
+          @if (m.cnr_number || caseLabel(m)) {
+            <p class="text-xs font-mono text-content-muted mt-1">
+              @if (caseLabel(m); as label) { {{ label }} }
+              @if (m.cnr_number) { @if (caseLabel(m)) { · } CNR {{ m.cnr_number }} }
+            </p>
+          }
+          @if (m.limitation_date; as lim) {
+            <span class="vs-chip mt-2"
+                  [class.vs-chip--danger]="limitationDays() !== null && limitationDays()! <= 14">
+              <mat-icon class="material-icons-outlined text-sm">timer</mat-icon>
+              Limitation {{ lim | date: 'dd/MM/yyyy' }}
+              @if (limitationDays() !== null) {
+                @if (limitationDays()! < 0) { · overdue }
+                @else { · {{ limitationDays() }} day{{ limitationDays() === 1 ? '' : 's' }} left }
+              }
+            </span>
+          }
+        </div>
+        <a mat-stroked-button [routerLink]="['/app/matters', m.id, 'portal']">
+          <mat-icon class="material-icons-outlined">share</mat-icon> Client portal
+        </a>
+        <button mat-icon-button [matMenuTriggerFor]="menu" aria-label="Matter actions">
+          <mat-icon class="material-icons-outlined">more_horiz</mat-icon>
+        </button>
+        <mat-menu #menu="matMenu">
+          <button mat-menu-item (click)="deleteMatter()">
+            <mat-icon class="material-icons-outlined text-danger">delete</mat-icon><span>Delete matter</span>
+          </button>
+        </mat-menu>
+      </div>
+
+      <div class="flex flex-wrap gap-4 mt-4">
+        <label class="flex flex-col gap-1">
+          <span class="text-xs text-content-muted">Status</span>
+          <select class="vs-input capitalize" [ngModel]="m.status" (ngModelChange)="setStatus($event)">
+            @for (s of statuses; track s) { <option [value]="s">{{ s.replace('_', ' ') }}</option> }
+          </select>
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-xs text-content-muted">Stage</span>
+          <select class="vs-input capitalize" [ngModel]="m.stage" (ngModelChange)="setStage($event)">
+            @for (s of stages; track s) { <option [value]="s">{{ s }}</option> }
+          </select>
+        </label>
+      </div>
+      @if (m.description) { <p class="text-sm text-content mt-4 whitespace-pre-line">{{ m.description }}</p> }
+    </section>
+
+    <!-- Matter command centre: keep context while moving between work areas. -->
+    <nav class="rounded-card bg-surface-raised border border-line shadow-card p-3 mb-5 flex flex-wrap gap-2" aria-label="Matter workspace">
+      <a mat-stroked-button routerLink="/app/documents" [queryParams]="{ matter_id: m.id, matter_title: m.cause_title || m.title, client_id: m.client_id, client_name: m.client_name, view: 'files' }"><mat-icon class="material-icons-outlined">folder_open</mat-icon>Documents</a>
+      <a mat-stroked-button routerLink="/app/documents" [queryParams]="{ matter_id: m.id, matter_title: m.cause_title || m.title, client_id: m.client_id, client_name: m.client_name, view: 'drafts' }"><mat-icon class="material-icons-outlined">edit_note</mat-icon>Drafts</a>
+      <a mat-stroked-button routerLink="/app/research" [queryParams]="{ matter_id: m.id, q: m.cause_title || m.title, act: m.acts[0] || null, section: m.sections[0] || null }"><mat-icon class="material-icons-outlined">gavel</mat-icon>Research</a>
+      <a mat-stroked-button routerLink="/app/knowledge" [queryParams]="{ view: 'acts', q: (m.acts[0] || '') + ' ' + (m.sections[0] || '') }"><mat-icon class="material-icons-outlined">menu_book</mat-icon>Bare Acts</a>
+      <a mat-stroked-button routerLink="/app/billing" [queryParams]="{ matter_id: m.id, client_id: m.client_id, client_name: m.client_name, prepare: 1 }"><mat-icon class="material-icons-outlined">receipt_long</mat-icon>Prepare invoice</a>
+      <a mat-stroked-button [routerLink]="['/app/matters', m.id, 'portal']"><mat-icon class="material-icons-outlined">share</mat-icon>Client portal</a>
+      <a mat-stroked-button routerLink="/app/marketplace" [queryParams]="{ matter_id: m.id, matter_title: m.cause_title || m.title, practice_area: m.practice_area }"><mat-icon class="material-icons-outlined">hub</mat-icon>Find counsel / expert</a>
+    </nav>
+
+    <!-- ── Court record ─────────────────────────────────────────── -->
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
+      <div class="flex items-center justify-between gap-3 mb-3">
+        <h2 class="font-semibold">Court record</h2>
+        <div class="flex items-center gap-2">
+          @if (m.ecourts_synced_at) {
+            <span class="text-xs text-content-muted">
+              Synced {{ m.ecourts_synced_at | date: 'dd/MM/yyyy, h:mm a' }}
+              @if (m.ecourts_source) { · {{ m.ecourts_source }} }
+            </span>
+          }
+          @if (m.cnr_number) {
+            <button mat-stroked-button [disabled]="syncing()" (click)="syncFromECourts()">
+              <mat-icon class="material-icons-outlined">sync</mat-icon>
+              {{ syncing() ? 'Syncing…' : 'Sync from eCourts' }}
+            </button>
+          }
+        </div>
+      </div>
+
+      @if (!m.cnr_number && !m.court_establishment) {
+        <p class="text-sm text-content-muted">
+          No court record yet. Add a CNR to sync this matter from eCourts.
+        </p>
+      } @else {
+        <dl class="grid gap-x-6 gap-y-2 sm:grid-cols-2 text-sm">
+          @if (m.court_level) {
+            <div class="flex gap-2"><dt class="text-content-muted w-32 shrink-0">Court</dt>
+              <dd>{{ courtLevels[m.court_level] }}</dd></div>
+          }
+          @if (m.court_establishment) {
+            <div class="flex gap-2"><dt class="text-content-muted w-32 shrink-0">Establishment</dt>
+              <dd>{{ m.court_establishment }}</dd></div>
+          }
+          @if (m.state || m.district) {
+            <div class="flex gap-2"><dt class="text-content-muted w-32 shrink-0">Jurisdiction</dt>
+              <dd>{{ m.district }}@if (m.district && m.state) {, }{{ m.state }}</dd></div>
+          }
+          @if (m.coram) {
+            <div class="flex gap-2"><dt class="text-content-muted w-32 shrink-0">Coram</dt>
+              <dd>{{ m.coram }}</dd></div>
+          }
+          @if (m.filing_number) {
+            <div class="flex gap-2"><dt class="text-content-muted w-32 shrink-0">Filing</dt>
+              <dd>{{ m.filing_number }}@if (m.filing_date) { · {{ m.filing_date | date: 'dd/MM/yyyy' }} }</dd></div>
+          }
+          @if (m.registration_number) {
+            <div class="flex gap-2"><dt class="text-content-muted w-32 shrink-0">Registration</dt>
+              <dd>{{ m.registration_number }}@if (m.registration_date) { · {{ m.registration_date | date: 'dd/MM/yyyy' }} }</dd></div>
+          }
+          @if (m.next_hearing_date) {
+            <div class="flex gap-2"><dt class="text-content-muted w-32 shrink-0">Next hearing</dt>
+              <dd class="font-medium">{{ m.next_hearing_date | date: 'EEE, dd/MM/yyyy' }}
+                @if (m.hearing_purpose) { <span class="text-content-muted">· {{ m.hearing_purpose }}</span> }</dd></div>
+          }
+          @if (m.last_hearing_date) {
+            <div class="flex gap-2"><dt class="text-content-muted w-32 shrink-0">Last hearing</dt>
+              <dd>{{ m.last_hearing_date | date: 'dd/MM/yyyy' }}</dd></div>
+          }
+          @if (m.disposal_date) {
+            <div class="flex gap-2"><dt class="text-content-muted w-32 shrink-0">Disposed</dt>
+              <dd>{{ m.disposal_date | date: 'dd/MM/yyyy' }}
+                @if (m.disposal_nature) { · {{ m.disposal_nature }} }</dd></div>
+          }
+        </dl>
+
+        @if (m.acts.length || m.sections.length) {
+          <div class="mt-4 pt-3 border-t border-line">
+            <p class="text-xs uppercase tracking-wide text-content-muted">Acts &amp; sections</p>
+            <div class="flex flex-wrap gap-1.5 mt-1.5">
+              @for (a of m.acts; track a) { <span class="vs-chip">{{ a }}</span> }
+              @for (s of m.sections; track s) { <span class="vs-chip font-mono">{{ s }}</span> }
+            </div>
+          </div>
+        }
+      }
+    </section>
+
+    <!-- ── Team: who in the firm runs this matter ───────────────── -->
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <div>
+          <h2 class="font-semibold">Team</h2>
+          <p class="text-xs text-content-muted">One lead counsel at a time. Hand a role over when someone leaves or the matter moves — the history stays.</p>
+        </div>
+        @if (pastTeam().length) {
+          <button mat-button (click)="showTeamHistory.set(!showTeamHistory())">
+            {{ showTeamHistory() ? 'Hide history' : 'Show history (' + pastTeam().length + ')' }}
+          </button>
+        }
+      </div>
+
+      @for (t of activeTeam(); track t.id) {
+        <div class="py-2 border-b border-line last:border-0">
+          <div class="flex flex-wrap items-center gap-2">
+            <mat-icon class="material-icons-outlined text-base" [class.text-brand]="t.role === 'lead_counsel'">{{ t.role === 'lead_counsel' ? 'star' : 'person' }}</mat-icon>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium">{{ t.user_name }} @if (t.role === 'lead_counsel') { <span class="vs-chip vs-chip-selected ml-1">Lead</span> }</p>
+              <p class="text-xs text-content-muted">
+                {{ teamRoles[t.role] }} · since {{ t.from_date | date }}
+                @if (rateLabel(t); as rate) { · {{ rate }} }
+                @if (t.notes) { · {{ t.notes }} }
+              </p>
+            </div>
+            <div class="w-56 shrink-0">
+              <select class="vs-input text-sm" [ngModel]="t.role" (ngModelChange)="changeRole(t, $event)" aria-label="Role">
+                @for (r of teamRoleKeys; track r) { <option [value]="r">{{ teamRoles[r] }}</option> }
+              </select>
+            </div>
+            <button mat-button (click)="startRateEdit(t)">Rate</button>
+            <button mat-stroked-button (click)="startHandover(t)"><mat-icon class="material-icons-outlined">swap_horiz</mat-icon> Hand over</button>
+            <button mat-icon-button (click)="removeMember(t)" [attr.aria-label]="'Remove ' + t.user_name" title="Remove (added by mistake)">
+              <mat-icon class="material-icons-outlined text-base">close</mat-icon>
+            </button>
+          </div>
+
+          @if (editingRate()?.id === t.id) {
+            <div class="grid gap-2 sm:grid-cols-4 mt-2 rounded-lg bg-surface-sunken p-3">
+              <p class="text-xs text-content-muted sm:col-span-4">Rate for this matter only — leave blank to use {{ t.user_name }}'s rate card@if (t.card_rate_amount) { (₹{{ t.card_rate_amount }} {{ rateBases[t.card_rate_basis!].toLowerCase() }}) }.</p>
+              <select class="vs-input" [(ngModel)]="rateEdit.rate_basis">
+                <option value="">Use rate card</option>
+                @for (b of rateBasisKeys; track b) { <option [value]="b">{{ rateBases[b] }}</option> }
+              </select>
+              <input class="vs-input" type="number" min="0" [(ngModel)]="rateEdit.rate_amount" placeholder="Amount (₹)" />
+              <div class="flex gap-1 sm:col-span-2 justify-end">
+                <button mat-button (click)="editingRate.set(null)">Cancel</button>
+                <button mat-flat-button color="primary" (click)="saveRate()">Save</button>
+              </div>
+            </div>
+          }
+
+          @if (handingOver()?.id === t.id) {
+            <div class="mt-2 rounded-lg border border-brand/40 bg-surface-sunken p-3">
+              <p class="text-sm font-medium mb-2">Hand over {{ t.user_name }}'s role ({{ teamRoles[t.role] }})</p>
+              <div class="grid gap-2 sm:grid-cols-4">
+                <label class="flex flex-col gap-1"><span class="text-xs text-content-muted">Successor</span>
+                  <select class="vs-input" [(ngModel)]="handover.successor_user_id">
+                    <option value="">Nobody — just end the stint</option>
+                    @for (p of people(); track p.id) { @if (p.id !== t.user_id) { <option [value]="p.id">{{ p.full_name }}</option> } }
+                  </select></label>
+                <label class="flex flex-col gap-1"><span class="text-xs text-content-muted">Successor's role</span>
+                  <select class="vs-input" [(ngModel)]="handover.successor_role" [disabled]="!handover.successor_user_id">
+                    <option value="">Same role</option>
+                    @for (r of teamRoleKeys; track r) { <option [value]="r">{{ teamRoles[r] }}</option> }
+                  </select></label>
+                <label class="flex flex-col gap-1"><span class="text-xs text-content-muted">Effective from</span>
+                  <vs-date-input [(ngModel)]="handover.effective_from" /></label>
+                <label class="flex flex-col gap-1"><span class="text-xs text-content-muted">Reason</span>
+                  <select class="vs-input" [(ngModel)]="handover.reason">
+                    @for (r of endReasonKeys; track r) { <option [value]="r">{{ endReasons[r] }}</option> }
+                  </select></label>
+                <input class="vs-input sm:col-span-4" [(ngModel)]="handover.notes" placeholder="Note for the file (optional)" />
+              </div>
+              <div class="flex justify-end gap-2 mt-2">
+                <button mat-button (click)="handingOver.set(null)">Cancel</button>
+                <button mat-flat-button color="primary" [disabled]="teamBusy()" (click)="confirmHandover()">
+                  {{ handover.successor_user_id ? 'Hand over' : 'End stint' }}
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      } @empty {
+        <p class="text-sm text-content-muted">Nobody is on this matter yet. Add the lead counsel first.</p>
+      }
+
+      @if (showTeamHistory()) {
+        <div class="mt-3 pt-3 border-t border-line">
+          <p class="text-xs uppercase tracking-wide text-content-muted mb-1">Earlier stints</p>
+          @for (t of pastTeam(); track t.id) {
+            <p class="text-sm py-1">
+              <span class="font-medium">{{ t.user_name }}</span> — {{ teamRoles[t.role] }}
+              <span class="text-content-muted">· {{ t.from_date | date }} to {{ t.to_date | date }}
+                @if (t.end_reason) { · {{ endReasons[t.end_reason] }} }
+                @if (t.successor_name) { · handed to {{ t.successor_name }} }
+                @if (t.notes) { · {{ t.notes }} }
+              </span>
+            </p>
+          }
+        </div>
+      }
+
+      <div class="grid gap-2 sm:grid-cols-6 mt-4 pt-3 border-t border-line">
+        <select class="vs-input sm:col-span-2" [(ngModel)]="newMember.user_id">
+          <option value="">Add a colleague…</option>
+          @for (p of people(); track p.id) { <option [value]="p.id">{{ p.full_name }}</option> }
+        </select>
+        <select class="vs-input" [(ngModel)]="newMember.role">
+          @for (r of teamRoleKeys; track r) { <option [value]="r">{{ teamRoles[r] }}</option> }
+        </select>
+        <vs-date-input [(ngModel)]="newMember.from_date" />
+        <input class="vs-input" type="number" min="0" [(ngModel)]="newMember.rate_amount" placeholder="Rate override (₹, optional)" />
+        <button mat-flat-button color="primary" [disabled]="!newMember.user_id || teamBusy()" (click)="addMember()">Add</button>
+        @if (newMember.rate_amount) {
+          <select class="vs-input sm:col-span-2 sm:col-start-5" [(ngModel)]="newMember.rate_basis">
+            <option value="">Rate basis…</option>
+            @for (b of rateBasisKeys; track b) { <option [value]="b">{{ rateBases[b] }}</option> }
+          </select>
+        }
+      </div>
+    </section>
+
+    <!-- ── Fees: how the client pays, and what has fallen due ───── -->
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <div>
+          <h2 class="font-semibold">Fee arrangement</h2>
+          <p class="text-xs text-content-muted">Fixed, per hearing, hourly, retainer, milestones, or a mix. Milestones and hearings raise fee events automatically; invoices are generated from those next.</p>
+        </div>
+        <button mat-stroked-button (click)="showFeeForm() ? showFeeForm.set(false) : openFeeForm()">
+          <mat-icon class="material-icons-outlined">{{ showFeeForm() ? 'close' : 'add' }}</mat-icon>
+          {{ showFeeForm() ? 'Cancel' : (currentArrangement() ? 'Renegotiate' : 'Record arrangement') }}
+        </button>
+      </div>
+
+      <div class="grid gap-3 sm:grid-cols-3 mb-4">
+        <div class="rounded-lg bg-surface-sunken p-3"><p class="text-xs uppercase tracking-wide text-content-muted">Unbilled</p><p class="text-lg font-semibold">{{ money(unbilled()) }}</p></div>
+        <div class="rounded-lg bg-surface-sunken p-3"><p class="text-xs uppercase tracking-wide text-content-muted">Invoiced</p><p class="text-lg font-semibold">{{ money(invoiced()) }}</p></div>
+        <div class="rounded-lg bg-surface-sunken p-3"><p class="text-xs uppercase tracking-wide text-content-muted">Waived</p><p class="text-lg font-semibold">{{ money(waived()) }}</p></div>
+      </div>
+
+      @if (showFeeForm()) {
+        <div class="rounded-lg border border-brand/40 bg-surface-sunken p-4 mb-4">
+          <div class="grid gap-3 sm:grid-cols-4">
+            <label class="flex flex-col gap-1 sm:col-span-2"><span class="text-xs text-content-muted">How is the fee agreed?</span>
+              <select class="vs-input" [(ngModel)]="fee.basis" (ngModelChange)="onBasisChange()">
+                @for (b of feeBasisKeys; track b) { <option [value]="b">{{ feeBases[b] }}</option> }
+              </select></label>
+            <label class="flex flex-col gap-1"><span class="text-xs text-content-muted">Agreed on</span><vs-date-input [(ngModel)]="fee.agreed_on" /></label>
+            <label class="flex flex-col gap-1"><span class="text-xs text-content-muted">Effective from</span><vs-date-input [(ngModel)]="fee.effective_from" /></label>
+
+            @if (fee.basis !== 'pro_bono') {
+              @if (fee.basis === 'fixed' || fee.basis === 'milestone' || fee.basis === 'hybrid') {
+                <label class="flex flex-col gap-1"><span class="text-xs text-content-muted">Fixed fee (₹)</span><input class="vs-input" type="number" min="0" [(ngModel)]="fee.fixed_fee" /></label>
+              }
+              @if (fee.basis === 'per_hearing' || fee.basis === 'hybrid') {
+                <label class="flex flex-col gap-1"><span class="text-xs text-content-muted">Per effective hearing (₹)</span><input class="vs-input" type="number" min="0" [(ngModel)]="fee.per_hearing_fee" /></label>
+                <label class="flex flex-col gap-1"><span class="text-xs text-content-muted">Per adjournment / mention (₹)</span><input class="vs-input" type="number" min="0" [(ngModel)]="fee.non_effective_hearing_fee" placeholder="0 = not charged" /></label>
+              }
+              @if (fee.basis === 'hourly' || fee.basis === 'hybrid') {
+                <label class="flex flex-col gap-1"><span class="text-xs text-content-muted">Hourly rate (₹) — matter default</span><input class="vs-input" type="number" min="0" [(ngModel)]="fee.hourly_rate" /></label>
+              }
+              @if (fee.basis === 'retainer' || fee.basis === 'hybrid') {
+                <label class="flex flex-col gap-1"><span class="text-xs text-content-muted">Retainer (₹)</span><input class="vs-input" type="number" min="0" [(ngModel)]="fee.retainer_amount" /></label>
+                <label class="flex flex-col gap-1"><span class="text-xs text-content-muted">Period</span>
+                  <select class="vs-input" [(ngModel)]="fee.retainer_period">
+                    <option value="monthly">Monthly</option><option value="quarterly">Quarterly</option>
+                    <option value="half_yearly">Half-yearly</option><option value="yearly">Yearly</option>
+                  </select></label>
+                <label class="flex flex-col gap-1 sm:col-span-2"><span class="text-xs text-content-muted">Retainer covers</span><input class="vs-input" [(ngModel)]="fee.retainer_includes" placeholder="e.g. up to 4 hearings and routine advice a month" /></label>
+              }
+              <label class="flex flex-col gap-1"><span class="text-xs text-content-muted">Fee cap (₹, optional)</span><input class="vs-input" type="number" min="0" [(ngModel)]="fee.fee_cap" /></label>
+              <label class="inline-flex items-center gap-2 text-sm pt-5"><input type="checkbox" [(ngModel)]="fee.expenses_billable" /> Out-of-pocket at actuals</label>
+              <label class="inline-flex items-center gap-2 text-sm pt-5"><input type="checkbox" [(ngModel)]="fee.gst_applicable" /> GST applies</label>
+            }
+            <label class="flex flex-col gap-1 sm:col-span-4"><span class="text-xs text-content-muted">Terms (optional)</span>
+              <textarea class="vs-input" rows="2" [(ngModel)]="fee.terms" placeholder="Payment terms, what is included, travel, senior counsel briefs billed separately…"></textarea></label>
+          </div>
+
+          @if (fee.basis !== 'pro_bono') {
+            <div class="mt-4 pt-3 border-t border-line">
+              <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                <p class="text-sm font-medium">Payment milestones <span class="text-xs text-content-muted font-normal">— each raises a fee event when reached</span></p>
+                <div class="flex gap-1">
+                  <button mat-button (click)="applyTemplate('litigation')">30 / 30 / 30 / 10 template</button>
+                  <button mat-button (click)="applyTemplate('advance_balance')">Advance + balance</button>
+                  <button mat-button (click)="addMilestoneRow()">+ Row</button>
+                </div>
+              </div>
+              @for (ms of milestoneDrafts; track $index) {
+                <div class="grid gap-2 sm:grid-cols-12 items-center mb-1">
+                  <input class="vs-input sm:col-span-3" [(ngModel)]="ms.label" placeholder="Label" />
+                  <select class="vs-input sm:col-span-3" [(ngModel)]="ms.trigger">
+                    @for (t of triggerKeys; track t) { <option [value]="t">{{ triggers[t] }}</option> }
+                  </select>
+                  <select class="vs-input sm:col-span-1" [(ngModel)]="ms.mode"><option value="percent">%</option><option value="amount">₹</option></select>
+                  <input class="vs-input sm:col-span-2" type="number" min="0" [(ngModel)]="ms.value" [placeholder]="ms.mode === 'percent' ? '% of fixed fee' : 'Amount'" />
+                  @if (ms.trigger === 'on_date') { <vs-date-input class="sm:col-span-2" [(ngModel)]="ms.due_on" /> }
+                  @else { <input class="vs-input sm:col-span-2" type="number" min="0" [(ngModel)]="ms.due_days" title="Payable within (days)" placeholder="Days to pay" /> }
+                  <button mat-icon-button class="sm:col-span-1" (click)="removeMilestoneRow($index)" aria-label="Remove"><mat-icon class="material-icons-outlined text-base">close</mat-icon></button>
+                </div>
+              }
+              @if (milestonePercentTotal() && milestonePercentTotal() !== 100) {
+                <p class="text-xs text-warning">Percentages add up to {{ milestonePercentTotal() }}% of the fixed fee.</p>
+              }
+            </div>
+          }
+          <p class="text-xs text-content-muted mt-3">Success-based or contingency fees are not offered: Bar Council of India Rules (Part VI, Ch. II, Rule 20) bar an advocate from stipulating a fee contingent on the result.</p>
+          <div class="flex justify-end gap-2 mt-3">
+            <button mat-button (click)="showFeeForm.set(false)">Cancel</button>
+            <button mat-flat-button color="primary" [disabled]="feeBusy()" (click)="saveFee()">{{ feeBusy() ? 'Saving…' : 'Save arrangement' }}</button>
+          </div>
+        </div>
+      }
+
+      @if (currentArrangement(); as a) {
+        <div class="rounded-lg border border-line p-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="text-sm"><span class="vs-chip vs-chip-selected">{{ feeBases[a.basis] }}</span>
+              <span class="text-content-muted ml-2">from {{ a.effective_from | date }}@if (a.effective_to) { to {{ a.effective_to | date }} }@if (a.agreed_on) { · agreed {{ a.agreed_on | date }} }</span></p>
+            <div class="flex gap-1">
+              @if (!a.effective_to) { <button mat-button (click)="endArrangement(a)">End today</button> }
+            </div>
+          </div>
+          <ul class="text-sm mt-2 flex flex-wrap gap-x-4 gap-y-1">
+            @for (p of arrangementSummary(a); track p) { <li>• {{ p }}</li> }
+            <li>• {{ a.expenses_billable ? 'Expenses at actuals' : 'Expenses included' }} · {{ a.gst_applicable ? 'GST applies' : 'No GST' }}</li>
+          </ul>
+          @if (a.terms) { <p class="text-xs text-content-muted mt-1 whitespace-pre-line">{{ a.terms }}</p> }
+          @if (a.milestones.length) {
+            <table class="w-full text-sm mt-3">
+              <thead class="text-xs uppercase tracking-wide text-content-muted"><tr><th class="text-left py-1">Milestone</th><th class="text-left py-1">When</th><th class="text-right py-1">Amount</th><th class="text-left py-1 pl-4">Status</th><th></th></tr></thead>
+              <tbody>
+                @for (ms of a.milestones; track ms.id) {
+                  <tr class="border-t border-line">
+                    <td class="py-1.5">{{ ms.label }}</td>
+                    <td class="py-1.5 text-content-muted">{{ triggers[ms.trigger] }}@if (ms.due_on) { {{ ms.due_on | date }} }</td>
+                    <td class="py-1.5 text-right font-mono">{{ money(ms.computed_amount) }}@if (ms.percent) { <span class="text-xs text-content-muted"> ({{ ms.percent }}%)</span> }</td>
+                    <td class="py-1.5 pl-4"><span class="vs-chip" [class.vs-chip-selected]="ms.status === 'due'">{{ ms.status === 'due' ? 'Due' : (ms.status === 'waived' ? 'Waived' : 'Pending') }}</span>@if (ms.triggered_at) { <span class="text-xs text-content-muted ml-1">{{ ms.triggered_at | date }}</span> }</td>
+                    <td class="py-1.5 text-right whitespace-nowrap">
+                      @if (ms.status === 'pending') {
+                        <button mat-button (click)="triggerMilestone(ms)">Mark reached</button>
+                        <button mat-button (click)="waiveMilestone(ms)">Waive</button>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </div>
+      } @else if (!showFeeForm()) {
+        <p class="text-sm text-content-muted">No fee arrangement recorded yet.</p>
+      }
+
+      @if (pastArrangements().length) {
+        <button mat-button class="mt-2" (click)="showPastArrangements.set(!showPastArrangements())">
+          {{ showPastArrangements() ? 'Hide earlier arrangements' : 'Earlier arrangements (' + pastArrangements().length + ')' }}
+        </button>
+        @if (showPastArrangements()) {
+          @for (a of pastArrangements(); track a.id) {
+            <p class="text-sm text-content-muted py-1">{{ feeBases[a.basis] }} · {{ a.effective_from | date }} to {{ a.effective_to ? (a.effective_to | date) : '—' }} · {{ arrangementSummary(a).join(', ') }}</p>
+          }
+        }
+      }
+
+      <!-- Fee events -->
+      <div class="mt-4 pt-3 border-t border-line">
+        <p class="text-sm font-medium mb-2">Fee events <span class="text-xs text-content-muted font-normal">— what has fallen due; invoices will be raised from these</span></p>
+        @for (e of eventsNewestFirst(); track e.id) {
+          <div class="flex flex-wrap items-center gap-2 py-1.5 border-b border-line last:border-0 text-sm">
+            <span class="vs-chip">{{ eventKinds[e.kind] }}</span>
+            <span class="flex-1 min-w-0" [class.line-through]="e.status === 'waived'">{{ e.description }}</span>
+            <span class="text-xs text-content-muted">{{ e.occurred_on | date }}@if (e.due_on) { · due {{ e.due_on | date }} }</span>
+            <span class="font-mono">{{ money(e.amount) }}</span>
+            <span class="vs-chip" [class.vs-chip-selected]="e.status === 'unbilled'" [class.text-content-muted]="e.status === 'waived'">{{ e.status }}</span>
+            @if (e.status === 'unbilled') { <button mat-button (click)="setEventStatus(e, 'waived')">Waive</button> }
+            @else if (e.status === 'waived') { <button mat-button (click)="setEventStatus(e, 'unbilled')">Restore</button> }
+          </div>
+        } @empty { <p class="text-sm text-content-muted">Nothing due yet.</p> }
+        <div class="grid gap-2 sm:grid-cols-6 mt-3">
+          <input class="vs-input sm:col-span-3" [(ngModel)]="manualEvent.description" placeholder="Other billable work (opinion, conference, drafting…)" />
+          <input class="vs-input" type="number" min="0" [(ngModel)]="manualEvent.amount" placeholder="Amount (₹)" />
+          <vs-date-input [(ngModel)]="manualEvent.occurred_on" />
+          <button mat-stroked-button [disabled]="!manualEvent.description.trim() || !manualEvent.amount" (click)="addManualEvent()">Add</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Counsel: our side vs the opponent's ──────────────────── -->
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
+      <h2 class="font-semibold mb-3">Advocates on record</h2>
+
+      <div class="grid gap-5 md:grid-cols-2">
+        <div>
+          <p class="text-xs uppercase tracking-wide text-success font-medium mb-2">Our side</p>
+          @for (a of advocatesFor('ours'); track a.id) {
+            <div class="flex items-start gap-2 py-1.5 border-b border-line last:border-0">
+              <mat-icon class="material-icons-outlined text-success text-base mt-0.5">gavel</mat-icon>
+              <div class="flex-1 min-w-0">
+                <p class="truncate">
+                  {{ a.name }}
+                  @if (a.is_lead) { <span class="vs-chip ml-1">Lead</span> }
+                </p>
+                <p class="text-xs text-content-muted">
+                  {{ advocateRoles[a.role] }}@if (a.party_represented) { · for {{ a.party_represented }} }
+                  @if (a.bar_enrolment_number) { · {{ a.bar_enrolment_number }} }
+                </p>
+              </div>
+              <button mat-icon-button (click)="removeAdvocate(a)" [attr.aria-label]="'Remove ' + a.name">
+                <mat-icon class="material-icons-outlined text-base">close</mat-icon>
+              </button>
+            </div>
+          } @empty { <p class="text-sm text-content-muted">No counsel recorded for us.</p> }
+        </div>
+
+        <div>
+          <p class="text-xs uppercase tracking-wide text-danger font-medium mb-2">Opposing side</p>
+          @for (a of advocatesFor('opposing'); track a.id) {
+            <div class="py-1.5 border-b border-line last:border-0">
+              <div class="flex items-start gap-2">
+                <mat-icon class="material-icons-outlined text-danger text-base mt-0.5">gavel</mat-icon>
+                <div class="flex-1 min-w-0">
+                  <p class="truncate">{{ a.name }}</p>
+                  <p class="text-xs text-content-muted">
+                    {{ advocateRoles[a.role] }}@if (a.party_represented) { · for {{ a.party_represented }} }
+                    @if (a.firm) { · {{ a.firm }} }
+                  </p>
+                  <button class="text-xs text-brand mt-0.5" (click)="loadOpponentHistory(a)">
+                    Faced before?
+                  </button>
+                  @if (opponentHistory()[a.id]; as prior) {
+                    @if (prior.length) {
+                      <ul class="text-xs text-content-muted mt-1 grid gap-0.5">
+                        @for (p of prior; track p.id) {
+                          <li>
+                            <a class="text-brand" [routerLink]="['/app/matters', p.id]">
+                              {{ p.matter_number }}</a> — {{ p.cause_title || p.title }}
+                          </li>
+                        }
+                      </ul>
+                    } @else {
+                      <p class="text-xs text-content-muted mt-0.5">No earlier matters against this counsel.</p>
+                    }
+                  }
+                </div>
+                <button mat-icon-button (click)="removeAdvocate(a)" [attr.aria-label]="'Remove ' + a.name">
+                  <mat-icon class="material-icons-outlined text-base">close</mat-icon>
+                </button>
+              </div>
+            </div>
+          } @empty { <p class="text-sm text-content-muted">No opposing counsel recorded.</p> }
+        </div>
+      </div>
+
+      <div class="grid gap-2 sm:grid-cols-6 mt-4 pt-3 border-t border-line">
+        <input class="vs-input sm:col-span-2" placeholder="Advocate name" [(ngModel)]="advocate.name" />
+        <select class="vs-input" [(ngModel)]="advocate.side">
+          <option value="ours">Our side</option>
+          <option value="opposing">Opposing</option>
+          <option value="other">Other</option>
+        </select>
+        <select class="vs-input" [(ngModel)]="advocate.role">
+          @for (r of advocateRoleKeys; track r) { <option [value]="r">{{ advocateRoles[r] }}</option> }
+        </select>
+        <input class="vs-input" placeholder="Appears for" [(ngModel)]="advocate.party_represented" />
+        <button mat-flat-button color="primary" [disabled]="!advocate.name.trim()" (click)="addAdvocate()">
+          Add
+        </button>
+      </div>
+    </section>
+
+    <div class="grid gap-5 md:grid-cols-2">
+      <!-- Parties -->
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-4">
+        <h2 class="font-semibold mb-3">Parties</h2>
+        @for (p of m.parties; track p.id) {
+          <div class="flex items-center gap-2 py-1">
+            <mat-icon class="material-icons-outlined text-base"
+                      [class.text-success]="p.side === 'ours'"
+                      [class.text-danger]="p.side === 'opposing'"
+                      [class.text-content-muted]="p.side === 'other'">person</mat-icon>
+            <span class="flex-1 min-w-0 truncate">
+              {{ p.name }}
+              @if (p.side === 'ours') { <span class="text-xs text-success">· our client’s side</span> }
+              @else if (p.side === 'opposing') { <span class="text-xs text-danger">· opposite party</span> }
+            </span>
+            <span class="vs-chip capitalize">{{ p.role }}</span>
+          </div>
+        } @empty { <p class="text-sm text-content-muted">No parties yet.</p> }
+        <div class="flex gap-2 mt-3">
+          <input class="vs-input flex-1" placeholder="Name" [(ngModel)]="party.name" />
+          <input class="vs-input w-28" placeholder="Role" [(ngModel)]="party.role" />
+          <button mat-icon-button color="primary" (click)="addParty()" aria-label="Add party">
+            <mat-icon class="material-icons-outlined">add</mat-icon>
+          </button>
+        </div>
+      </section>
+
+      <!-- Tasks -->
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-4">
+        <h2 class="font-semibold mb-3">Tasks &amp; deadlines</h2>
+        @for (t of m.tasks; track t.id) {
+          <div class="flex items-center gap-2 py-1">
+            <button (click)="toggleTask(t)" [attr.aria-label]="t.status === 'done' ? 'Reopen' : 'Complete'">
+              <mat-icon class="material-icons-outlined" [class.text-brand]="t.status === 'done'">
+                {{ t.status === 'done' ? 'check_circle' : 'radio_button_unchecked' }}
+              </mat-icon>
+            </button>
+            <span class="flex-1 min-w-0 truncate" [class.line-through]="t.status === 'done'"
+                  [class.text-content-muted]="t.status === 'done'">{{ t.title }}</span>
+            @if (t.due_on) { <span class="text-xs text-content-muted">{{ t.due_on | date: 'dd/MM/yyyy' }}</span> }
+          </div>
+        } @empty { <p class="text-sm text-content-muted">No tasks yet.</p> }
+        <div class="flex gap-2 mt-3">
+          <input class="vs-input flex-1" placeholder="Task" [(ngModel)]="task.title" />
+          <vs-date-input class="w-44" [(ngModel)]="task.due_on" />
+          <button mat-icon-button color="primary" (click)="addTask()" aria-label="Add task">
+            <mat-icon class="material-icons-outlined">add</mat-icon>
+          </button>
+        </div>
+      </section>
+
+      <!-- Hearings -->
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 md:col-span-2">
+        <h2 class="font-semibold mb-3">Hearings</h2>
+        @for (h of m.hearings; track h.id) {
+          <div class="flex items-center gap-3 py-2 border-b border-line last:border-0">
+            <mat-icon class="material-icons-outlined text-brand">gavel</mat-icon>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium">{{ h.scheduled_on | date: 'EEE, dd/MM/yyyy · h:mm a' }}</p>
+              <p class="text-xs text-content-muted truncate">
+                {{ h.purpose || 'Hearing' }}@if (h.court) { · {{ h.court }} }
+                @if (h.outcome) { · <span class="text-content">{{ h.outcome }}</span> }
+              </p>
+            </div>
+            <span class="vs-chip capitalize">{{ h.status }}</span>
+            @if (h.status === 'scheduled') {
+              <button mat-button (click)="prepareHearing(h)">Prepare</button>
+              <button mat-button (click)="setHearingStatus(h, 'held')">Mark held</button>
+              <button mat-button (click)="setHearingStatus(h, 'adjourned')">Adjourned</button>
+            }
+          </div>
+        } @empty { <p class="text-sm text-content-muted">No hearings scheduled.</p> }
+        <div class="flex flex-wrap gap-2 mt-3">
+          <vs-date-input withTime [(ngModel)]="hearing.scheduled_on" />
+          <input class="vs-input flex-1 min-w-[8rem]" placeholder="Purpose" [(ngModel)]="hearing.purpose" />
+          <input class="vs-input w-40" placeholder="Court" [(ngModel)]="hearing.court" />
+          <button mat-flat-button color="primary" (click)="addHearing()">Schedule</button>
+        </div>
+      </section>
+
+      <!-- Notes -->
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 md:col-span-2">
+        <div class="flex items-center justify-between mb-3"><h2 class="font-semibold">Research binder</h2><a mat-button routerLink="/app/research" [queryParams]="{ matter_id: m.id, q: m.cause_title || m.title }">Add authority</a></div>
+        @for (a of m.authorities; track a.id) {
+          <article class="border-l-2 border-brand/40 pl-3 py-2 mb-2">
+            <div class="flex flex-wrap items-center gap-2"><span class="vs-chip capitalize">{{ a.kind }}</span><strong class="text-sm">{{ a.reference }}</strong><span class="vs-chip capitalize">{{ a.stance.replace('_', ' ') }}</span></div>
+            @if (a.proposition) { <p class="text-sm mt-1">{{ a.proposition }}</p> }
+            @if (a.quotation) { <p class="text-sm text-content-muted mt-1 line-clamp-3">“{{ a.quotation }}”</p> }
+            @if (a.source_url) { <a class="text-xs text-brand" [href]="a.source_url" target="_blank" rel="noopener">Verify source ↗</a> }
+          </article>
+        } @empty { <p class="text-sm text-content-muted">No authorities pinned yet. Save an exact judgment paragraph or statutory provision from Research or Bare Acts.</p> }
+      </section>
+
+      <!-- Notes -->
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 md:col-span-2">
+        <h2 class="font-semibold mb-3">Notes</h2>
+        @for (n of m.notes; track n.id) {
+          <div class="border-l-2 border-brand/40 pl-3 py-1 mb-2">
+            <p class="text-sm whitespace-pre-line">{{ n.body }}</p>
+            <p class="text-xs text-content-muted">{{ n.created_at | date: 'dd/MM/yyyy, h:mm a' }}</p>
+          </div>
+        } @empty { <p class="text-sm text-content-muted">No notes yet.</p> }
+        <div class="flex gap-2 mt-3">
+          <textarea class="vs-input flex-1" rows="2" placeholder="Add a note…"
+                    [ngModel]="noteBody()" (ngModelChange)="noteBody.set($event)"></textarea>
+          <button mat-flat-button color="primary" [disabled]="!noteBody().trim()" (click)="addNote()">Add</button>
+        </div>
+      </section>
+
+      <!-- Timeline -->
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 md:col-span-2">
+        <h2 class="font-semibold mb-3">Timeline</h2>
+        <div class="relative pl-5 border-l border-line flex flex-col gap-3">
+          @for (e of timeline(); track $index) {
+            <div class="relative">
+              <span class="absolute -left-[1.45rem] top-1 w-2.5 h-2.5 rounded-full bg-brand"></span>
+              <p class="text-sm text-content">
+                {{ e.title }}
+                @if (e.status) { <span class="text-content-muted capitalize">· {{ e.status }}</span> }
+              </p>
+              @if (e.detail) { <p class="text-xs text-content-muted truncate">{{ e.detail }}</p> }
+              <p class="text-xs text-content-muted">{{ e.at | date: 'dd/MM/yyyy · h:mm a' }}</p>
+            </div>
+          }
+        </div>
+      </section>
+    </div>
+  } @else {
+    <p class="text-content-muted">Matter not found.</p>
+  }
+</div>

@@ -1,0 +1,131 @@
+# ════════════════════════════════════════════════════════════════════
+#  VidhiSangh — Local development stack
+#  Usage:  docker compose up --build
+# ════════════════════════════════════════════════════════════════════
+name: vidhisangh
+
+services:
+  # ─── PostgreSQL 17 (with pgvector) ────────────────────────────────
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: ${VS_POSTGRES_USER:-vidhisangh}
+      POSTGRES_PASSWORD: ${VS_POSTGRES_PASSWORD:-vidhisangh}
+      POSTGRES_DB: ${VS_POSTGRES_DB:-vidhisangh}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${VS_POSTGRES_USER:-vidhisangh}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Redis (cache / rate-limit / celery broker) ───────────────────
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── MinIO (S3-compatible object storage) ─────────────────────────
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${VS_S3_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${VS_S3_SECRET_KEY:-minioadmin}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ─── OpenSearch (full-text & semantic search) ─────────────────────
+  opensearch:
+    image: opensearchproject/opensearch:2.17.1
+    environment:
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+
+  # ─── Backend API (FastAPI) ────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: dev
+    env_file: .env
+    environment:
+      VS_POSTGRES_HOST: db
+      VS_REDIS_URL: redis://redis:6379/0
+      VS_S3_ENDPOINT_URL: http://minio:9000
+      VS_OPENSEARCH_URL: http://opensearch:9200
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  # ─── Celery worker (background jobs) ──────────────────────────────
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: dev
+    env_file: .env
+    environment:
+      VS_POSTGRES_HOST: db
+      VS_REDIS_URL: redis://redis:6379/0
+      VS_CELERY_BROKER_URL: redis://redis:6379/1
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - backend
+      - redis
+    command: ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=info"]
+
+  # ─── Frontend (Angular dev server) ────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: dev
+    ports:
+      - "4200:4200"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: ["npm", "start", "--", "--host", "0.0.0.0"]
+    depends_on:
+      - backend
+
+volumes:
+  db_data:
+  redis_data:
+  minio_data:
+  opensearch_data:

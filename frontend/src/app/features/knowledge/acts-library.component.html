@@ -1,0 +1,90 @@
+@if (selected(); as act) {
+  <button mat-button (click)="select(null)"><mat-icon class="material-icons-outlined">arrow_back</mat-icon>All Acts &amp; guides</button>
+  <article class="rounded-card border border-line bg-surface-raised shadow-card mt-3 overflow-hidden">
+    <header class="p-5 sm:p-7 border-b border-line">
+      <div class="flex flex-wrap items-center gap-2 mb-3"><span class="vs-chip">{{ act.area }}</span><span class="vs-chip">Plain-language guide</span><span class="vs-chip" [class.text-success]="act.status === 'in-force'" [class.vs-chip--danger]="act.status === 'repealed'">{{ act.status === 'in-force' ? 'In force' : 'Repealed · older / saved matters only' }}</span></div>
+      <div class="flex items-start justify-between gap-3">
+        <h2 class="vs-display text-2xl sm:text-3xl font-semibold text-content">{{ act.title }}</h2>
+        <button mat-icon-button [attr.aria-label]="bookmarks.has('act:' + act.id) ? 'Remove bookmark' : 'Bookmark Act'" [attr.aria-pressed]="bookmarks.has('act:' + act.id)" (click)="bookmarks.toggle('act:' + act.id)"><mat-icon class="material-icons-outlined">{{ bookmarks.has('act:' + act.id) ? 'bookmark' : 'bookmark_border' }}</mat-icon></button>
+      </div>
+      <p class="text-content-muted mt-3 max-w-3xl leading-relaxed">{{ act.summary }}</p>
+      <section class="rounded-lg border bg-surface-sunken p-4 mt-4 max-w-3xl" [class.border-success]="act.status === 'in-force'" [class.border-danger]="act.status === 'repealed'">
+        <div class="flex items-start gap-3"><mat-icon class="material-icons-outlined shrink-0" [class.text-success]="act.status === 'in-force'" [class.text-danger]="act.status === 'repealed'">{{ act.status === 'in-force' ? 'verified' : 'history' }}</mat-icon><div><h3 class="font-semibold text-content">{{ act.status === 'in-force' ? 'Currently in force' : 'Repealed — use for older or saved matters only' }}</h3><p class="text-sm text-content-muted mt-1 leading-relaxed">{{ act.statusNote }}</p></div></div>
+      </section>
+      <div class="flex flex-wrap gap-2 mt-4">
+        <a mat-flat-button color="primary" routerLink="/app/knowledge/reader" [queryParams]="{ act: act.id }"><mat-icon class="material-icons-outlined">auto_stories</mat-icon>Read full Act as a book</a>
+        <a mat-stroked-button [href]="act.source" target="_blank" rel="noopener noreferrer">Open official source <mat-icon class="material-icons-outlined">open_in_new</mat-icon></a>
+      </div>
+      <p class="text-xs text-content-muted mt-3">Guide edition {{ edition | date:'dd/MM/yyyy' }} · General introduction, not a section-by-section commentary.</p>
+    </header>
+    <div class="grid lg:grid-cols-3">
+      <div class="lg:col-span-2 p-5 sm:p-7 space-y-7">
+        <section><h3 class="font-semibold text-content text-lg">When might this help?</h3><div class="flex flex-wrap gap-2 mt-3">@for (topic of act.usefulFor; track topic) { <span class="vs-chip">{{ topic }}</span> }</div></section>
+        <section class="rounded-lg border border-brand/20 bg-brand/5 p-4"><h3 class="font-semibold text-content">An everyday example</h3><p class="text-sm text-content-muted mt-2 leading-relaxed">{{ act.example }}</p></section>
+        <section><h3 class="font-semibold text-content text-lg">Useful provisions, explained simply</h3><p class="text-xs text-content-muted mt-1">Selected provisions only. Read the full wording, exceptions and amendments in the official Act.</p>
+          <dl class="mt-4 divide-y divide-line">@for (p of act.provisions; track p.reference) { <div class="py-3"><dt class="text-sm font-semibold text-brand">{{ p.reference }}</dt><dd class="mt-1 text-sm text-content leading-relaxed">{{ p.meaning }}</dd></div> }</dl>
+        </section>
+        <section><h3 class="font-semibold text-content text-lg">What to keep ready</h3><ul class="list-disc pl-5 mt-3 space-y-2 text-sm text-content">@for (step of act.prepare; track step) { <li>{{ step }}</li> }</ul></section>
+      </div>
+      <aside class="p-5 sm:p-7 bg-surface-sunken border-t lg:border-t-0 lg:border-l border-line">
+        <h3 class="font-semibold text-content">Before you use this guide</h3><p class="text-sm text-content-muted mt-3 leading-relaxed">{{ act.note }}</p>
+        <p class="text-xs text-content-muted mt-4 leading-relaxed">This explains the topic; it does not decide your rights or the outcome of a case. For action, check the current Act, commencement notifications, amendments, state rules and your facts with a qualified legal professional.</p>
+        <h3 class="font-semibold text-content mt-7">Related guides</h3><div class="grid gap-2 mt-3">@for (relatedAct of related(); track relatedAct.id) { <button class="text-left text-sm text-brand rounded-lg border border-line bg-surface-raised p-3 hover:border-brand" (click)="select(relatedAct)">{{ relatedAct.short }} →</button> }</div>
+      </aside>
+    </div>
+  </article>
+} @else {
+  <section class="rounded-card border border-brand/30 bg-surface-raised shadow-card p-5 sm:p-7 mb-5">
+    <div class="flex flex-wrap items-start justify-between gap-4"><div><p class="text-xs uppercase tracking-widest text-brand font-semibold">Bare Act research</p><h2 class="vs-display text-2xl sm:text-3xl font-semibold text-content mt-2">Search the statutory text</h2><p class="text-sm text-content-muted mt-2 max-w-3xl">Search the English wording across all {{ acts.length }} Acts. Find a section number, legal phrase or words used in a pleading, then open the matching provision in the reader.</p></div><a mat-stroked-button routerLink="/app/knowledge/reader" [queryParams]="{ act: 'bns' }"><mat-icon class="material-icons-outlined">auto_stories</mat-icon>Open reader</a></div>
+    <form class="mt-5" (ngSubmit)="searchStatutoryText()">
+      <div class="flex flex-col sm:flex-row gap-2"><label class="statute-search-field flex items-center gap-3 vs-input flex-1"><mat-icon class="material-icons-outlined text-content-muted shrink-0">manage_search</mat-icon><input class="w-full bg-transparent p-0" name="statuteSearch" aria-label="Search exact statutory text" placeholder='Try “dishonestly induces”, “electronic record” or Section 138' [ngModel]="statuteQuery()" (ngModelChange)="statuteQuery.set($event)" /></label><button mat-flat-button color="primary" type="submit" [disabled]="statuteQuery().trim().length < 2 || statuteSearching()">{{ statuteSearching() ? 'Searching…' : 'Search all Acts' }}</button></div>
+      <div class="flex flex-wrap items-center gap-3 mt-3 text-xs"><span class="text-content-muted">Match:</span><button type="button" class="vs-chip" [class.vs-chip-selected]="exactPhrase()" (click)="exactPhrase.set(true)">Exact phrase</button><button type="button" class="vs-chip" [class.vs-chip-selected]="!exactPhrase()" (click)="exactPhrase.set(false)">All words</button><span class="text-content-muted ml-auto">Text extracted from official copies · verify against the linked PDF before citation</span></div>
+    </form>
+  </section>
+  @if (statuteSearched()) {
+    <section id="statute-results" class="rounded-card border border-line bg-surface-raised mb-5 overflow-hidden" aria-live="polite">
+      <header class="flex items-center justify-between gap-3 px-5 py-4 border-b border-line"><div><h3 class="font-semibold text-content">Statutory text results</h3><p class="text-xs text-content-muted mt-1">{{ statuteResults().length }} matching passages{{ statuteResults().length === 75 ? ' · first 75 shown' : '' }}</p></div><button mat-icon-button aria-label="Close statutory search results" (click)="statuteSearched.set(false)"><mat-icon>close</mat-icon></button></header>
+      @if (statuteSearchError()) { <div class="p-5"><p class="text-sm text-danger">The statutory-text index could not be opened.</p><button mat-button (click)="searchStatutoryText()">Retry</button></div> }
+      @else if (!statuteSearching() && !statuteResults().length) { <div class="p-6 text-center"><mat-icon class="material-icons-outlined text-content-muted">search_off</mat-icon><h4 class="font-semibold text-content mt-2">No exact passage found</h4><p class="text-sm text-content-muted mt-1">Try All words, a shorter phrase, or search the Act catalogue below.</p></div> }
+      @else { <div class="divide-y divide-line max-h-[620px] overflow-y-auto">@for (result of statuteResults(); track $index) { <article class="p-5 hover:bg-surface-sunken"><div class="flex flex-wrap items-center gap-2"><span class="font-semibold text-brand">{{ result.act.short }}</span>@if (result.section) { <span class="vs-chip">Section {{ result.section }}</span> }<span class="text-xs text-content-muted">{{ result.act.title }}</span>@if (result.act.status === 'repealed') { <span class="text-xs text-danger">Repealed · saved matters only</span> }</div><blockquote class="mt-3 pl-4 border-l-2 border-brand text-sm text-content leading-7 whitespace-pre-line">@for (segment of searchSegments(result.text); track $index) { @if (segment.match) { <mark>{{ segment.text }}</mark> } @else { {{ segment.text }} } }</blockquote><div class="flex flex-wrap gap-2 mt-3"><a mat-flat-button color="primary" routerLink="/app/knowledge/reader" [queryParams]="{ act: result.act.id, q: statuteQuery(), section: result.section }">Open in Bare Act</a><a mat-button [href]="result.act.source" target="_blank" rel="noopener noreferrer">Verify official PDF<mat-icon class="material-icons-outlined">open_in_new</mat-icon></a></div></article> }</div> }
+    </section>
+  }
+  <details class="rounded-card border border-line bg-surface-raised p-4 mb-5">
+    <summary class="cursor-pointer font-medium text-content">Find a law from the facts of a matter</summary>
+    <div class="mt-4"><p class="text-sm text-content-muted">Describe the situation in ordinary language. This suggests possible starting points; it does not replace statutory-text research.</p><textarea class="vs-input mt-3 w-full" rows="3" aria-label="Describe your legal situation" [ngModel]="situation()" (ngModelChange)="situation.set($event)" placeholder="Example: I paid a builder for a flat, possession is late, and the builder will not refund me."></textarea><div class="flex flex-wrap items-center gap-3 mt-3"><button mat-flat-button color="primary" [disabled]="situation().trim().length < 10" (click)="findApplicableLaws()"><mat-icon class="material-icons-outlined">travel_explore</mat-icon>Find potentially relevant laws</button>@if (situation()) { <button mat-button (click)="clearSituation()">Clear</button> }</div></div>
+  </details>
+  @if (searchingSituation()) {
+    <section id="law-results" class="rounded-card border border-brand/30 bg-brand/5 p-5 sm:p-6 mb-5" aria-live="polite">
+      <div class="flex items-start justify-between gap-3"><div><p class="text-xs uppercase tracking-widest text-brand font-semibold">Possible starting points</p><h2 class="text-xl font-semibold text-content mt-1">Laws to read first</h2><p class="text-sm text-content-muted mt-1">These suggestions are based on words in your description. More than one law can apply, and the facts, dates, location and documents matter.</p></div><button mat-icon-button aria-label="Close suggestions" (click)="searchingSituation.set(false)"><mat-icon class="material-icons-outlined">close</mat-icon></button></div>
+      @if (recommendations().length) {
+        <div class="grid md:grid-cols-2 gap-3 mt-4">@for (match of recommendations(); track match.act.id) {<button class="text-left rounded-lg border border-line bg-surface-raised p-4 hover:border-brand" (click)="select(match.act)"><div class="flex items-center justify-between gap-2"><span class="font-semibold text-content">{{ match.act.short }}</span><span class="text-xs text-brand">{{ match.act.area }}</span></div><p class="text-sm text-content mt-2">{{ match.reason }}</p><p class="text-xs text-content-muted mt-2">Read {{ match.act.title }} →</p></button>}</div>
+      } @else { <p class="text-sm text-content-muted mt-4">No guide matched enough terms. Try adding the type of problem, the people or business involved, and what outcome you want.</p> }
+      <p class="text-xs text-content-muted mt-4">Do not rely on this result for an urgent deadline, arrest, safety issue or filing decision. Check the full guide and official Act, then speak with a qualified legal professional.</p>
+    </section>
+  }
+  <details class="rounded-card border border-warning/30 bg-warning/5 p-4 mb-5">
+    <summary class="cursor-pointer font-medium text-content">IPC or BNS? CrPC or BNSS? Understand the transition</summary>
+    <p class="text-sm text-content-muted mt-3 leading-relaxed">The new criminal laws began their main operation on 1 July 2024. IPC → BNS covers offences; CrPC → BNSS covers procedure; Evidence Act → BSA covers evidence. Savings can keep earlier laws applicable to older incidents or pending proceedings. Do not simply replace old section numbers.</p>
+    <p class="text-sm text-content-muted mt-2">The original commencement excluded BNS section 106(2) and its corresponding BNSS schedule entry. Check subsequent notifications for the provision you need.</p>
+    <a class="inline-block text-sm text-brand underline mt-3" [href]="transitionSource" target="_blank" rel="noopener noreferrer">Read the Government’s commencement explanation ↗</a>
+  </details>
+  <div class="flex flex-wrap gap-3 items-end mb-4">
+    <label class="flex flex-col gap-1 flex-1 min-w-60"><span class="text-content-muted text-sm">Find an Act by name or subject</span><input class="vs-input" aria-label="Find an Act by name or subject" placeholder="IPC, Companies Act, arbitration…" [ngModel]="query()" (ngModelChange)="query.set($event)" /></label>
+    <label class="flex flex-col gap-1 text-sm"><span class="text-content-muted">Topic</span><select class="vs-input" [ngModel]="area()" (ngModelChange)="area.set($event)"><option value="">All topics</option>@for (a of areas; track a) { <option [value]="a">{{ a }}</option> }</select></label>
+    <button mat-stroked-button [attr.aria-pressed]="savedOnly()" (click)="savedOnly.set(!savedOnly())"><mat-icon class="material-icons-outlined">{{ savedOnly() ? 'bookmark' : 'bookmark_border' }}</mat-icon>{{ savedOnly() ? 'Showing bookmarked' : 'Bookmarks' }}</button>
+    <p class="text-xs text-content-muted ml-auto" aria-live="polite">{{ visible().length }} of {{ acts.length }} Acts</p>
+  </div>
+  <div class="grid gap-3">
+    @for (act of visible(); track act.id) {
+      <article class="rounded-card border border-line bg-surface-raised shadow-card px-4 py-4 sm:px-5 hover:border-brand transition-colors">
+        <div class="flex flex-col lg:flex-row lg:items-center gap-4"><div class="flex items-start gap-3 min-w-0 flex-1"><div class="grid place-items-center size-11 rounded-lg bg-brand/10 text-brand text-xs font-semibold shrink-0">{{ act.short.slice(0, 3) }}</div><div class="min-w-0"><div class="flex flex-wrap items-center gap-2"><h3 class="font-semibold text-content text-lg">{{ act.title }}</h3><span class="vs-chip">{{ act.area }}</span><span class="text-xs font-semibold" [class.text-success]="act.status === 'in-force'" [class.text-danger]="act.status === 'repealed'">{{ act.status === 'in-force' ? '● In force' : '● Repealed · saved matters only' }}</span></div><p class="text-xs text-content-muted leading-relaxed mt-2">{{ act.statusNote }}</p></div></div><div class="flex flex-wrap items-center gap-2 lg:justify-end shrink-0"><a mat-flat-button color="primary" routerLink="/app/knowledge/reader" [queryParams]="{ act: act.id }"><mat-icon class="material-icons-outlined">article</mat-icon>Read exact text</a><button mat-stroked-button (click)="select(act)">Plain-language guide</button><button mat-icon-button [attr.aria-label]="'Bookmark ' + act.short" [attr.aria-pressed]="bookmarks.has('act:' + act.id)" (click)="bookmarks.toggle('act:' + act.id)"><mat-icon class="material-icons-outlined">{{ bookmarks.has('act:' + act.id) ? 'bookmark' : 'bookmark_border' }}</mat-icon></button></div></div>
+      </article>
+    } @empty {
+      <div class="rounded-card border border-line p-8 text-center"><h3 class="font-semibold text-content">No Acts match this view</h3><p class="text-sm text-content-muted mt-2">Try another title or clear your filters.</p><button mat-button (click)="query.set(''); area.set(''); savedOnly.set(false)">Clear filters</button></div>
+    }
+  </div>
+  <section class="rounded-card bg-surface-raised border border-line p-5 mt-6">
+    <h3 class="font-semibold text-content text-lg">Legal words, in everyday language</h3><dl class="grid sm:grid-cols-2 gap-4 mt-4">@for (word of glossary; track word.term) { <div><dt class="text-sm font-semibold text-content">{{ word.term }}</dt><dd class="text-sm text-content-muted mt-1">{{ word.meaning }}</dd></div> }</dl>
+  </section>
+  <p class="text-xs text-content-muted mt-4 leading-relaxed">Coverage: selected central laws and introductory explanations, not every Indian Act or every section. Official links may open PDFs. For more central and state legislation, <a class="text-brand underline" href="https://www.indiacode.nic.in/" target="_blank" rel="noopener noreferrer">browse India Code ↗</a>. Bookmarks are saved for your account in this browser.</p>
+}

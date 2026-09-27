@@ -1,0 +1,26 @@
+# ─── Node / Angular build artifacts ─────────────────────────────────
+node_modules/
+dist/
+.angular/
+.nx/
+*.tsbuildinfo
+
+# ─── Logs ───────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# ─── Docs ───────────────────────────────────────────────────────────
+*.md
+
+# ─── Editor / OS / VCS ──────────────────────────────────────────────
+.git/
+.gitignore
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Dockerfile
+.dockerignore
+.env
+.env.*

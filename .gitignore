@@ -1,0 +1,38 @@
+# ─── Python ──────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Virtualenvs (Windows .venv/Scripts + Linux .venv-linux/bin, etc.)
+.venv/
+.venv-*/
+.venv*/
+venv/
+env/
+
+# ─── Node / Angular ──────────────────────────────────────────────────
+node_modules/
+frontend/dist/
+frontend/.angular/
+*.log
+
+# ─── Secrets & local config ──────────────────────────────────────────
+.env
+backend/.env
+*.pem
+*.key
+
+# ─── Editor / OS ─────────────────────────────────────────────────────
+.DS_Store
+.idea/
+*.swp
+
+# Local/private scratch files
+Email*Passw.txt
+My Note.txt
+*.code-workspace

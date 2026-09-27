@@ -1,0 +1,112 @@
+:host {
+  display: block;
+}
+
+/* ── Hero ── */
+.vs-hero__avatar {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: rgb(255 255 255 / 0.18);
+  border: 1px solid rgb(255 255 255 / 0.28);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.25rem;
+  backdrop-filter: blur(4px);
+}
+.vs-hero__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgb(255 255 255 / 0.14);
+  border: 1px solid rgb(255 255 255 / 0.25);
+  text-decoration: none;
+  transition: background 0.15s ease, transform 0.15s ease;
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  &:hover { background: rgb(255 255 255 / 0.24); transform: translateY(-1px); }
+  &--solid {
+    background: #fff;
+    color: rgb(var(--vs-brand));
+    border-color: transparent;
+    &:hover { background: #fff; filter: brightness(0.97); }
+  }
+}
+
+/* ── Stat tiles: tone-tinted icon chip + reveal arrow ── */
+.vs-tile {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+.vs-tile__go {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  opacity: 0;
+  transform: translate(-2px, 2px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.vs-tile:hover .vs-tile__go {
+  opacity: 1;
+  transform: none;
+}
+.tone-brand .vs-iconchip { background: color-mix(in srgb, rgb(var(--vs-brand)) 14%, transparent); color: rgb(var(--vs-brand)); }
+.tone-violet .vs-iconchip { background: color-mix(in srgb, rgb(var(--vs-accent2)) 16%, transparent); color: rgb(var(--vs-accent2)); }
+.tone-emerald .vs-iconchip { background: color-mix(in srgb, rgb(var(--vs-success)) 16%, transparent); color: rgb(var(--vs-success)); }
+.tone-amber .vs-iconchip { background: color-mix(in srgb, rgb(var(--vs-warning)) 18%, transparent); color: rgb(var(--vs-warning)); }
+
+/* ── Legend dot ── */
+.vs-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+}
+
+/* ── Insight meter + divider ── */
+.vs-meter {
+  height: 8px;
+  border-radius: 999px;
+  background: rgb(var(--vs-surface-sunken));
+  overflow: hidden;
+
+  span {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--vs-gradient-brand);
+    transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+.vs-divider {
+  height: 1px;
+  background: rgb(var(--vs-border));
+}
+
+/* ── Module cards ── */
+.vs-module {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+.vs-module__arrow {
+  font-size: 17px;
+  width: 17px;
+  height: 17px;
+  color: rgb(var(--vs-brand));
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.vs-module:hover .vs-module__arrow {
+  opacity: 1;
+  transform: none;
+}

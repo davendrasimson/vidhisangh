@@ -1,0 +1,100 @@
+<div class="mx-auto w-full">
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="text-2xl font-bold text-content">Marketplace</h1>
+    <button mat-flat-button color="primary" (click)="showForm.set(!showForm())">
+      <mat-icon class="material-icons-outlined">{{ showForm() ? 'close' : 'add' }}</mat-icon>
+      {{ showForm() ? 'Cancel' : 'Post listing' }}
+    </button>
+  </div>
+
+  @if (showForm()) {
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-6">
+      @if (form.matter_id) { <p class="rounded-lg bg-brand/5 border border-brand/20 p-3 mb-3 text-sm">This request is linked to the matter. Share only the non-confidential facts needed to respond.</p> }
+      <div class="grid gap-3 sm:grid-cols-2">
+        <select class="vs-input" [(ngModel)]="form.type">
+          @for (t of types; track t.value) { @if (t.value) { <option [value]="t.value">{{ t.label }}</option> } }
+        </select>
+        <input class="vs-input" placeholder="Location" [(ngModel)]="form.location" />
+        <input class="vs-input sm:col-span-2" placeholder="Title" [(ngModel)]="form.title" />
+        <input class="vs-input sm:col-span-2" placeholder="Practice area (optional)" [(ngModel)]="form.practice_area" />
+        <textarea class="vs-input sm:col-span-2" rows="3" placeholder="Describe what you need or offer" [(ngModel)]="form.description"></textarea>
+      </div>
+      <div class="mt-4 flex justify-end">
+        <button mat-flat-button color="primary" [disabled]="!form.title.trim() || !form.description.trim() || saving()" (click)="submit()">
+          {{ saving() ? 'Posting…' : 'Post' }}
+        </button>
+      </div>
+    </section>
+  }
+
+  <div class="flex gap-2 border-b border-line mb-4">
+    <button class="vs-tab" [class.vs-tab-active]="tab() === 'browse'" (click)="switchTab('browse')">Browse</button>
+    <button class="vs-tab" [class.vs-tab-active]="tab() === 'mine'" (click)="switchTab('mine')">My listings</button>
+  </div>
+
+  @if (tab() === 'browse') {
+    <div class="flex items-center gap-2 flex-wrap mb-4">
+      @for (t of types; track t.value) {
+        <button class="vs-chip" [class.vs-chip-selected]="type() === t.value" (click)="setType(t.value)">{{ t.label }}</button>
+      }
+      <div class="flex items-center gap-1 vs-input py-0 ml-auto">
+        <mat-icon class="material-icons-outlined text-content-muted text-base">search</mat-icon>
+        <input class="bg-transparent outline-none border-0 p-0 text-sm w-36" placeholder="Search…" [(ngModel)]="search" (keyup.enter)="load()" />
+      </div>
+    </div>
+  }
+
+  @if (loading()) {
+    <p class="text-content-muted">Loading…</p>
+  } @else if (listings().length === 0) {
+    <p class="text-content-muted">{{ tab() === 'mine' ? 'You have not posted any listings.' : 'No listings match.' }}</p>
+  } @else {
+    <div class="grid gap-3">
+      @for (l of listings(); track l.id) {
+        <div class="rounded-card bg-surface-raised border border-line shadow-card p-4">
+          <div class="flex items-center gap-2">
+            <span class="vs-chip capitalize">{{ label(l.type) }}</span>
+            @if (l.status === 'closed') { <span class="vs-chip">Closed</span> }
+            <span class="text-xs text-content-muted ml-auto">{{ l.created_at | date: 'dd/MM/yyyy' }}</span>
+          </div>
+          <p class="font-semibold text-content mt-1">{{ l.title }}</p>
+          <p class="text-sm text-content-muted">
+            {{ l.poster_name }}@if (l.location) { · {{ l.location }} }@if (l.practice_area) { · {{ l.practice_area }} }
+          </p>
+          <p class="text-sm text-content mt-2 whitespace-pre-line">{{ l.description }}</p>
+
+          @if (tab() === 'browse') {
+            @if (l.status === 'open') {
+              <button mat-button (click)="toggleReply(l)"><mat-icon class="material-icons-outlined">reply</mat-icon> Respond</button>
+              @if (replyOpen()[l.id]) {
+                <div class="flex gap-2 mt-2">
+                  <input class="vs-input flex-1" placeholder="Your message to the poster" [(ngModel)]="replyDraft[l.id]" (keyup.enter)="sendReply(l)" />
+                  <button mat-flat-button color="primary" (click)="sendReply(l)">Send</button>
+                </div>
+              }
+            }
+          } @else {
+            <div class="flex items-center gap-2 mt-2">
+              <button mat-button (click)="viewResponses(l)">
+                <mat-icon class="material-icons-outlined">inbox</mat-icon> {{ l.response_count }} response{{ l.response_count === 1 ? '' : 's' }}
+              </button>
+              @if (l.status === 'open') { <button mat-button (click)="close(l)">Close</button> }
+            </div>
+            @if (responses()[l.id]; as rs) {
+              <div class="mt-2 border-t border-line pt-2 flex flex-col gap-2">
+                @for (r of rs; track r.id) {
+                  <div class="text-sm">
+                    <p class="font-medium">{{ r.responder_name }} <span class="text-content-muted font-normal">{{ r.responder_email }}</span></p>
+                    <p class="text-content-muted">{{ r.message }}</p>
+                    @if (l.matter_id && !l.accepted_response_id) { <button mat-stroked-button class="mt-1" (click)="accept(l, r)">Engage on matter</button> }
+                    @if (l.accepted_response_id === r.id) { <span class="vs-chip mt-1">Engaged</span> }
+                  </div>
+                } @empty { <p class="text-sm text-content-muted">No responses yet.</p> }
+              </div>
+            }
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

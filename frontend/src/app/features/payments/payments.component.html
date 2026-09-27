@@ -1,0 +1,51 @@
+<div class="mx-auto w-full">
+  <h1 class="text-2xl font-bold text-content mb-4">Payments</h1>
+
+  <!-- Collect a payment -->
+  <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-6">
+    <h2 class="font-semibold mb-3">Collect a payment</h2>
+    <div class="grid gap-2 sm:grid-cols-[10rem_1fr_auto]">
+      <label class="flex flex-col gap-1">
+        <span class="text-sm text-content-muted">Amount (₹)</span>
+        <input class="vs-input" type="number" min="1" [(ngModel)]="form.amount" placeholder="5000" />
+      </label>
+      <label class="flex flex-col gap-1">
+        <span class="text-sm text-content-muted">Description</span>
+        <input class="vs-input" [(ngModel)]="form.description" placeholder="Retainer fee" />
+      </label>
+      <div class="flex items-end">
+        <button mat-flat-button color="primary" [disabled]="!form.amount || form.amount < 1 || collecting()" (click)="collect()">
+          <mat-icon class="material-icons-outlined">payments</mat-icon>
+          {{ collecting() ? 'Processing…' : 'Collect' }}
+        </button>
+      </div>
+    </div>
+    <p class="text-xs text-content-muted mt-2">Secured by Razorpay. Cards, UPI, netbanking & wallets.</p>
+  </section>
+
+  @if (loading()) {
+    <p class="text-content-muted">Loading…</p>
+  } @else if (list().length === 0) {
+    <p class="text-content-muted">No payments yet.</p>
+  } @else {
+    <div class="rounded-card bg-surface-raised border border-line shadow-card divide-y divide-line">
+      @for (p of list(); track p.id) {
+        <div class="flex items-center gap-3 p-3">
+          <mat-icon class="material-icons-outlined"
+                    [class.text-success]="p.status === 'paid'"
+                    [class.text-content-muted]="p.status !== 'paid'">
+            {{ p.status === 'paid' ? 'check_circle' : 'schedule' }}
+          </mat-icon>
+          <div class="flex-1 min-w-0">
+            <p class="font-medium text-content">{{ rupees(p.amount) }} <span class="text-content-muted font-normal">{{ p.currency }}</span></p>
+            <p class="text-xs text-content-muted truncate">
+              {{ p.description || 'Payment' }} · {{ p.created_at | date: 'dd/MM/yyyy' }}
+              @if (p.provider_payment_id) { · {{ p.provider_payment_id }} }
+            </p>
+          </div>
+          <span class="vs-chip capitalize" [class.vs-chip--danger]="p.status === 'failed'">{{ p.status }}</span>
+        </div>
+      }
+    </div>
+  }
+</div>

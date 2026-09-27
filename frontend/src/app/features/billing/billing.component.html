@@ -1,0 +1,73 @@
+<div class="mx-auto w-full">
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="text-2xl font-bold text-content">Billing</h1>
+    <button mat-flat-button color="primary" (click)="showForm.set(!showForm())">
+      <mat-icon class="material-icons-outlined">{{ showForm() ? 'close' : 'receipt_long' }}</mat-icon>
+      {{ showForm() ? 'Cancel' : 'New invoice' }}
+    </button>
+  </div>
+
+  @if (showForm()) {
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-6">
+      @if (form.matter_id) { <p class="rounded-lg bg-brand/5 border border-brand/20 p-3 mb-3 text-sm"><strong>Matter invoice</strong> · Leave line items empty to use every unbilled fee event from this matter.</p> }
+      <div class="grid gap-3 sm:grid-cols-2 mb-3">
+        <input class="vs-input sm:col-span-2" placeholder="Client name" [(ngModel)]="form.client_name" />
+        <label class="flex flex-col gap-1">
+          <span class="text-sm text-content-muted">GST / tax rate (%)</span>
+          <input class="vs-input" type="number" min="0" max="100" [(ngModel)]="form.tax_rate" />
+        </label>
+      </div>
+
+      <h3 class="font-medium mb-2">Line items</h3>
+      @for (row of rows(); track $index) {
+        <div class="flex flex-wrap gap-2 items-center mb-2">
+          <input class="vs-input flex-1 min-w-[10rem]" placeholder="Description" [ngModel]="row.description"
+                 (ngModelChange)="updateRow($index, 'description', $event)" />
+          <input class="vs-input w-20" type="number" min="0" placeholder="Qty" [ngModel]="row.quantity"
+                 (ngModelChange)="updateRow($index, 'quantity', $event)" />
+          <input class="vs-input w-28" type="number" min="0" placeholder="Unit ₹" [ngModel]="row.unit_price"
+                 (ngModelChange)="updateRow($index, 'unit_price', $event)" />
+          <button mat-icon-button (click)="removeRow($index)" aria-label="Remove line">
+            <mat-icon class="material-icons-outlined text-danger">close</mat-icon>
+          </button>
+        </div>
+      }
+      <button mat-button (click)="addRow()"><mat-icon class="material-icons-outlined">add</mat-icon> Add line</button>
+
+      <div class="mt-4 flex justify-end">
+        <button mat-flat-button color="primary" [disabled]="!form.client_name.trim() || saving()" (click)="submit()">
+          {{ saving() ? 'Creating…' : 'Create invoice' }}
+        </button>
+      </div>
+    </section>
+  }
+
+  <div class="flex gap-2 border-b border-line mb-4 flex-wrap">
+    @for (f of filters; track f) {
+      <button class="vs-tab capitalize" [class.vs-tab-active]="filter() === f" (click)="setFilter(f)">{{ f }}</button>
+    }
+  </div>
+
+  @if (loading()) {
+    <p class="text-content-muted">Loading…</p>
+  } @else if (invoices().length === 0) {
+    <p class="text-content-muted">No invoices here yet.</p>
+  } @else {
+    <div class="rounded-card bg-surface-raised border border-line shadow-card divide-y divide-line">
+      @for (inv of invoices(); track inv.id) {
+        <a [routerLink]="['/app/billing', inv.id]" class="flex items-center gap-3 p-3 hover:bg-surface-sunken">
+          <div class="flex-1 min-w-0">
+            <p class="font-medium text-content">
+              <span class="font-mono text-content-muted">{{ inv.invoice_number }}</span> · {{ inv.client_name }}
+            </p>
+            <p class="text-xs text-content-muted">
+              {{ money(inv.total) }} · paid {{ money(inv.amount_paid) }}@if (inv.due_date) { · due {{ inv.due_date | date: 'dd/MM/yyyy' }} }
+            </p>
+          </div>
+          <span class="vs-chip capitalize"
+                [class.vs-chip--danger]="inv.status === 'overdue'">{{ inv.status }}</span>
+        </a>
+      }
+    </div>
+  }
+</div>

@@ -1,0 +1,50 @@
+<div class="mx-auto w-full">
+  <h1 class="text-2xl font-bold text-content mb-1">Notification settings</h1>
+  <p class="text-content-muted mb-6">Choose where each notification reaches you. In-app is always on.</p>
+
+  @if (loading()) {
+    <p class="text-content-muted">Loading…</p>
+  } @else {
+    <section class="rounded-card bg-surface-raised border border-line shadow-card divide-y divide-line mb-8">
+      @for (c of channels; track c.channel) {
+        <div class="flex items-center gap-3 p-4">
+          <mat-icon class="material-icons-outlined text-content-muted">{{ c.icon }}</mat-icon>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="font-medium text-content">{{ c.label }}</span>
+              @if (!c.live) { <span class="vs-chip text-xs">Coming soon</span> }
+            </div>
+            <p class="text-sm text-content-muted">{{ c.hint }}</p>
+          </div>
+          <mat-slide-toggle
+            [checked]="enabled(c.channel)"
+            [disabled]="c.channel === 'in_app' || saving() === c.channel"
+            (change)="toggle(c, $event.checked)"
+            [attr.aria-label]="c.label"
+          ></mat-slide-toggle>
+        </div>
+      }
+    </section>
+
+    <h2 class="font-semibold text-content mb-3">Recent deliveries</h2>
+    @if (deliveries().length === 0) {
+      <p class="text-content-muted text-sm">No notifications delivered yet.</p>
+    } @else {
+      <div class="rounded-card bg-surface-raised border border-line shadow-card divide-y divide-line">
+        @for (d of deliveries(); track d.id) {
+          <div class="flex items-center gap-3 p-3 text-sm">
+            <span class="capitalize text-content flex-1 min-w-0 truncate">{{ label(d.type) }}</span>
+            <span class="vs-chip capitalize">{{ d.channel }}</span>
+            <span
+              class="text-xs font-medium capitalize"
+              [class.text-success]="d.status === 'sent'"
+              [class.text-danger]="d.status === 'failed'"
+              [class.text-content-muted]="d.status === 'skipped'"
+            >{{ d.status }}</span>
+            <span class="text-xs text-content-muted w-16 text-right">{{ d.created_at | date: 'dd/MM/yyyy' }}</span>
+          </div>
+        }
+      </div>
+    }
+  }
+</div>

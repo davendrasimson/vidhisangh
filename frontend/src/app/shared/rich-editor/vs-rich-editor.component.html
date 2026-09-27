@@ -1,0 +1,139 @@
+<div class="vs-editor" [class.vs-editor--compact]="compact()" (keydown)="onKeydown($event)">
+  <!-- ── Toolbar ─────────────────────────────────────────────────── -->
+  <div class="vs-toolbar" role="toolbar" aria-label="Formatting">
+    <div class="vs-tb-group">
+      <button type="button" title="Undo (Ctrl+Z)" [disabled]="!can('undo')" (click)="chain.undo().run()"><mat-icon class="material-icons-outlined">undo</mat-icon></button>
+      <button type="button" title="Redo (Ctrl+Y)" [disabled]="!can('redo')" (click)="chain.redo().run()"><mat-icon class="material-icons-outlined">redo</mat-icon></button>
+    </div>
+
+    <div class="vs-tb-group">
+      <select class="vs-tb-select vs-tb-select--style" title="Paragraph style" [ngModel]="currentBlock()" (ngModelChange)="setBlock($event)">
+        <option value="p">Normal</option>
+        <option value="1">Heading 1</option>
+        <option value="2">Heading 2</option>
+        <option value="3">Heading 3</option>
+        <option value="4">Heading 4</option>
+      </select>
+      <select class="vs-tb-select vs-tb-select--font" title="Font" [ngModel]="currentFont()" (ngModelChange)="setFont($event)">
+        @for (f of fonts; track f.value) { <option [value]="f.value" [style.fontFamily]="f.value">{{ f.label }}</option> }
+      </select>
+      <select class="vs-tb-select vs-tb-select--size" title="Font size (pt)" [ngModel]="currentSize()" (ngModelChange)="setSize($event)">
+        @for (s of sizes; track s) { <option [value]="s">{{ s }}</option> }
+      </select>
+    </div>
+
+    <div class="vs-tb-group">
+      <button type="button" title="Bold (Ctrl+B)" [class.on]="is('bold')" (click)="chain.toggleBold().run()"><mat-icon class="material-icons-outlined">format_bold</mat-icon></button>
+      <button type="button" title="Italic (Ctrl+I)" [class.on]="is('italic')" (click)="chain.toggleItalic().run()"><mat-icon class="material-icons-outlined">format_italic</mat-icon></button>
+      <button type="button" title="Underline (Ctrl+U)" [class.on]="is('underline')" (click)="chain.toggleUnderline().run()"><mat-icon class="material-icons-outlined">format_underlined</mat-icon></button>
+      <button type="button" title="Strikethrough" [class.on]="is('strike')" (click)="chain.toggleStrike().run()"><mat-icon class="material-icons-outlined">strikethrough_s</mat-icon></button>
+      <button type="button" title="Subscript" [class.on]="is('subscript')" (click)="chain.toggleSubscript().run()"><mat-icon class="material-icons-outlined">subscript</mat-icon></button>
+      <button type="button" title="Superscript" [class.on]="is('superscript')" (click)="chain.toggleSuperscript().run()"><mat-icon class="material-icons-outlined">superscript</mat-icon></button>
+      <span class="vs-tb-popover-anchor">
+        <button type="button" title="Text colour" (click)="toggleMenu('color')">
+          <mat-icon class="material-icons-outlined">format_color_text</mat-icon><i class="vs-swatch" [style.background]="attr('textStyle', 'color') || '#000'"></i>
+        </button>
+        @if (openMenu() === 'color') {
+          <div class="vs-tb-popover vs-palette">
+            @for (c of palette; track c) { <button type="button" [style.background]="c" [title]="c" (click)="setColor(c)"></button> }
+            <label class="vs-palette-custom">Custom <input type="color" (change)="setColor($any($event.target).value)" /></label>
+            <button type="button" class="vs-palette-reset" (click)="chain.unsetColor().run(); openMenu.set(null)">Automatic</button>
+          </div>
+        }
+      </span>
+      <span class="vs-tb-popover-anchor">
+        <button type="button" title="Highlight" [class.on]="is('highlight')" (click)="toggleMenu('highlight')">
+          <mat-icon class="material-icons-outlined">border_color</mat-icon><i class="vs-swatch" [style.background]="attr('highlight', 'color') || '#fff176'"></i>
+        </button>
+        @if (openMenu() === 'highlight') {
+          <div class="vs-tb-popover vs-palette">
+            @for (c of highlights; track c) { <button type="button" [style.background]="c" [title]="c" (click)="setHighlight(c)"></button> }
+            <button type="button" class="vs-palette-reset" (click)="setHighlight(null)">No colour</button>
+          </div>
+        }
+      </span>
+      <button type="button" title="Clear formatting" (click)="clearFormatting()"><mat-icon class="material-icons-outlined">format_clear</mat-icon></button>
+    </div>
+
+    <div class="vs-tb-group">
+      <button type="button" title="Align left" [class.on]="is('paragraph', { textAlign: 'left' }) || is('heading', { textAlign: 'left' })" (click)="chain.setTextAlign('left').run()"><mat-icon class="material-icons-outlined">format_align_left</mat-icon></button>
+      <button type="button" title="Centre" [class.on]="is('paragraph', { textAlign: 'center' }) || is('heading', { textAlign: 'center' })" (click)="chain.setTextAlign('center').run()"><mat-icon class="material-icons-outlined">format_align_center</mat-icon></button>
+      <button type="button" title="Align right" [class.on]="is('paragraph', { textAlign: 'right' }) || is('heading', { textAlign: 'right' })" (click)="chain.setTextAlign('right').run()"><mat-icon class="material-icons-outlined">format_align_right</mat-icon></button>
+      <button type="button" title="Justify" [class.on]="is('paragraph', { textAlign: 'justify' }) || is('heading', { textAlign: 'justify' })" (click)="chain.setTextAlign('justify').run()"><mat-icon class="material-icons-outlined">format_align_justify</mat-icon></button>
+      <select class="vs-tb-select vs-tb-select--lh" title="Line spacing" [ngModel]="currentLineHeight()" (ngModelChange)="setLineHeight($event)">
+        @for (lh of lineHeights; track lh) { <option [value]="lh">{{ lh }}</option> }
+      </select>
+    </div>
+
+    <div class="vs-tb-group">
+      <button type="button" title="Bullets" [class.on]="is('bulletList')" (click)="chain.toggleBulletList().run()"><mat-icon class="material-icons-outlined">format_list_bulleted</mat-icon></button>
+      <button type="button" title="Numbering" [class.on]="is('orderedList')" (click)="chain.toggleOrderedList().run()"><mat-icon class="material-icons-outlined">format_list_numbered</mat-icon></button>
+      <button type="button" title="Checklist" [class.on]="is('taskList')" (click)="chain.toggleTaskList().run()"><mat-icon class="material-icons-outlined">checklist</mat-icon></button>
+      <button type="button" title="Decrease indent" (click)="indent(-1)"><mat-icon class="material-icons-outlined">format_indent_decrease</mat-icon></button>
+      <button type="button" title="Increase indent" (click)="indent(1)"><mat-icon class="material-icons-outlined">format_indent_increase</mat-icon></button>
+      <button type="button" title="Quote" [class.on]="is('blockquote')" (click)="chain.toggleBlockquote().run()"><mat-icon class="material-icons-outlined">format_quote</mat-icon></button>
+    </div>
+
+    <div class="vs-tb-group">
+      <span class="vs-tb-popover-anchor">
+        <button type="button" title="Insert table" [class.on]="inTable()" (click)="toggleMenu('table')"><mat-icon class="material-icons-outlined">table_chart</mat-icon></button>
+        @if (openMenu() === 'table') {
+          <div class="vs-tb-popover vs-table-menu">
+            @if (!inTable()) {
+              <label>Rows <input type="number" min="1" max="50" [(ngModel)]="tableRows" /></label>
+              <label>Columns <input type="number" min="1" max="12" [(ngModel)]="tableCols" /></label>
+              <button type="button" class="vs-tb-primary" (click)="insertTable()">Insert table</button>
+            } @else {
+              <button type="button" (click)="chain.addRowAfter().run()">Row below</button>
+              <button type="button" (click)="chain.addRowBefore().run()">Row above</button>
+              <button type="button" (click)="chain.addColumnAfter().run()">Column right</button>
+              <button type="button" (click)="chain.addColumnBefore().run()">Column left</button>
+              <button type="button" (click)="chain.deleteRow().run()">Delete row</button>
+              <button type="button" (click)="chain.deleteColumn().run()">Delete column</button>
+              <button type="button" (click)="chain.mergeOrSplit().run()">Merge / split cells</button>
+              <button type="button" (click)="chain.toggleHeaderRow().run()">Header row</button>
+              <button type="button" class="vs-tb-danger" (click)="chain.deleteTable().run(); openMenu.set(null)">Delete table</button>
+            }
+          </div>
+        }
+      </span>
+      <label class="vs-tb-file" title="Insert image"><mat-icon class="material-icons-outlined">image</mat-icon><input type="file" accept="image/*" (change)="pickImage($event)" /></label>
+      <button type="button" title="Link (Ctrl+K)" [class.on]="is('link')" (click)="setLink()"><mat-icon class="material-icons-outlined">link</mat-icon></button>
+      <button type="button" title="Horizontal line" (click)="chain.setHorizontalRule().run()"><mat-icon class="material-icons-outlined">horizontal_rule</mat-icon></button>
+      <button type="button" title="Page break (Ctrl+Enter)" (click)="chain.setPageBreak().run()"><mat-icon class="material-icons-outlined">insert_page_break</mat-icon></button>
+      <button type="button" title="Insert today's date" (click)="insertDate()"><mat-icon class="material-icons-outlined">event</mat-icon></button>
+    </div>
+
+    <div class="vs-tb-group vs-tb-group--end">
+      <span class="vs-tb-popover-anchor">
+        <button type="button" title="Find & replace (Ctrl+F)" [class.on]="openMenu() === 'find'" (click)="toggleMenu('find')"><mat-icon class="material-icons-outlined">find_replace</mat-icon></button>
+        @if (openMenu() === 'find') {
+          <div class="vs-tb-popover vs-find">
+            <input placeholder="Find" [(ngModel)]="findText" (keyup.enter)="findNext()" />
+            <input placeholder="Replace with" [(ngModel)]="replaceText" />
+            <div class="vs-find-actions">
+              <button type="button" (click)="findNext()">Find next</button>
+              <button type="button" (click)="replaceOne()">Replace</button>
+              <button type="button" (click)="replaceAll()">Replace all</button>
+              @if (findCount() !== null) { <span>{{ findCount() }} match{{ findCount() === 1 ? '' : 'es' }}</span> }
+            </div>
+          </div>
+        }
+      </span>
+    </div>
+  </div>
+
+  <!-- ── Page canvas ─────────────────────────────────────────────── -->
+  <div class="vs-canvas" (click)="openMenu.set(null)">
+    <div class="vs-page" [style.width]="compact() ? null : pageStyle().width" [style.minHeight]="compact() ? null : pageStyle().minHeight" [style.padding]="compact() ? null : pageStyle().padding">
+      <div #host class="vs-host"></div>
+    </div>
+  </div>
+
+  <div class="vs-statusbar">
+    <span>{{ words() }} words</span>
+    <span>{{ characters() }} characters</span>
+    @if (!compact()) { <span>{{ page().size }} · {{ page().orientation }}</span> }
+    <ng-content select="[status]" />
+  </div>
+</div>

@@ -1,0 +1,111 @@
+<div class="draft-editor">
+  <!-- ── Title bar ───────────────────────────────────────────────── -->
+  <header class="de-header">
+    <a routerLink="/app/documents" [queryParams]="{ view: 'drafts' }" class="de-back" title="Back to documents">
+      <mat-icon class="material-icons-outlined">arrow_back</mat-icon>
+    </a>
+    <div class="de-title">
+      <input class="de-title-input" [ngModel]="title" (ngModelChange)="onTitle($event)" placeholder="Untitled document" aria-label="Document title" />
+      <span class="de-client">
+        <mat-icon class="material-icons-outlined">badge</mat-icon>
+        @if (client(); as c) {
+          <a [routerLink]="['/app/clients', c.id]">{{ c.name }}</a>
+          <button type="button" (click)="showClient.set(!showClient())">change</button>
+          <button type="button" (click)="onClient(null)">none</button>
+        } @else {
+          <span>No client</span>
+          <button type="button" (click)="showClient.set(!showClient())">select or add</button>
+        }
+      </span>
+      <span class="de-save" [class.error]="saveState() === 'error'">
+        @switch (saveState()) {
+          @case ('saving') { <mat-icon class="material-icons-outlined">cloud_upload</mat-icon> Saving… }
+          @case ('dirty') { <mat-icon class="material-icons-outlined">edit</mat-icon> Unsaved changes }
+          @case ('error') { <mat-icon class="material-icons-outlined">cloud_off</mat-icon> Could not save — retrying on next change }
+          @default {
+            <mat-icon class="material-icons-outlined">cloud_done</mat-icon>
+            Saved @if (lastSavedAt(); as t) { {{ t | date: 'dd/MM/yyyy, h:mm a' }} }
+          }
+        }
+      </span>
+    </div>
+    <div class="de-actions">
+      <button mat-stroked-button (click)="showPageSetup.set(!showPageSetup())" title="Page size, orientation and margins">
+        <mat-icon class="material-icons-outlined">crop_portrait</mat-icon> Page setup
+      </button>
+      <button mat-stroked-button (click)="toggleVersions()" title="Named versions">
+        <mat-icon class="material-icons-outlined">history</mat-icon> Versions @if (draft(); as d) { ({{ d.version_count }}) }
+      </button>
+      <button mat-stroked-button (click)="print()" title="Print or save as PDF">
+        <mat-icon class="material-icons-outlined">print</mat-icon> Print / PDF
+      </button>
+      <button mat-stroked-button [disabled]="busy() === 'docx'" (click)="exportDocx()" title="Download a Word document">
+        <mat-icon class="material-icons-outlined">download</mat-icon> {{ busy() === 'docx' ? 'Preparing…' : 'Word (.docx)' }}
+      </button>
+      <button mat-flat-button color="primary" [disabled]="busy() === 'file'" (click)="fileToLibrary()" title="Save a .docx into My documents (a new version if already filed)">
+        <mat-icon class="material-icons-outlined">save</mat-icon> {{ busy() === 'file' ? 'Filing…' : (draft()?.library_document_id ? 'File new version' : 'File to My documents') }}
+      </button>
+      <button mat-icon-button [matMenuTriggerFor]="more" aria-label="More"><mat-icon class="material-icons-outlined">more_vert</mat-icon></button>
+      <mat-menu #more="matMenu">
+        <button mat-menu-item (click)="saveVersion()"><mat-icon class="material-icons-outlined">bookmark_add</mat-icon> Save a named version</button>
+        <button mat-menu-item (click)="remove()"><mat-icon class="material-icons-outlined">delete</mat-icon> Delete document</button>
+      </mat-menu>
+    </div>
+  </header>
+  @if (showClient()) {
+    <div class="de-client-picker">
+      <vs-client-picker placeholder="Search clients, or add a new one…" (changed)="onClient($event)" />
+    </div>
+  }
+
+  <!-- ── Page setup ──────────────────────────────────────────────── -->
+  @if (showPageSetup()) {
+    <section class="de-panel">
+      <h3>Page setup</h3>
+      <div class="de-page-grid">
+        <label>Size
+          <select class="vs-input" [(ngModel)]="page.size">@for (s of sizes; track s) { <option [value]="s">{{ s }}</option> }</select>
+        </label>
+        <label>Orientation
+          <select class="vs-input" [(ngModel)]="page.orientation">@for (o of orientations; track o) { <option [value]="o">{{ o }}</option> }</select>
+        </label>
+        <label>Top (mm) <input class="vs-input" type="number" min="0" max="80" step="0.1" [(ngModel)]="page.margins.top" /></label>
+        <label>Bottom (mm) <input class="vs-input" type="number" min="0" max="80" step="0.1" [(ngModel)]="page.margins.bottom" /></label>
+        <label>Left (mm) <input class="vs-input" type="number" min="0" max="80" step="0.1" [(ngModel)]="page.margins.left" /></label>
+        <label>Right (mm) <input class="vs-input" type="number" min="0" max="80" step="0.1" [(ngModel)]="page.margins.right" /></label>
+      </div>
+      <div class="de-panel-actions">
+        <button mat-button (click)="showPageSetup.set(false)">Cancel</button>
+        <button mat-flat-button color="primary" (click)="applyPage()">Apply</button>
+      </div>
+    </section>
+  }
+
+  <!-- ── Versions ────────────────────────────────────────────────── -->
+  @if (versions(); as list) {
+    <section class="de-panel">
+      <div class="de-panel-head">
+        <h3>Versions</h3>
+        <button mat-stroked-button (click)="saveVersion()"><mat-icon class="material-icons-outlined">bookmark_add</mat-icon> Save current as a version</button>
+      </div>
+      @if (!list.length) { <p class="de-muted">No named versions yet. Autosave keeps your latest text; a version is a point you can come back to.</p> }
+      <ul class="de-versions">
+        @for (v of list; track v.id) {
+          <li>
+            <span class="de-vno">v{{ v.version_no }}</span>
+            <span class="de-vnote">{{ v.note || '—' }}</span>
+            <span class="de-muted">{{ v.created_at | date: 'dd/MM/yyyy, h:mm a' }} · {{ v.word_count }} words</span>
+            <button mat-button (click)="restore(v)">Restore</button>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  <!-- ── Editor ──────────────────────────────────────────────────── -->
+  @if (loading()) {
+    <p class="de-muted de-loading">Opening document…</p>
+  } @else if (draft()) {
+    <vs-rich-editor class="de-editor" [page]="page" (changed)="onChange($event)" placeholder="Start drafting — or paste from Word." />
+  }
+</div>

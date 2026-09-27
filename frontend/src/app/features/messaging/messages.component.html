@@ -1,0 +1,109 @@
+<div class="mx-auto w-full h-[calc(100vh-7rem)] flex gap-4">
+  <!-- Conversation list -->
+  <aside class="w-72 shrink-0 rounded-card bg-surface-raised border border-line shadow-card flex flex-col overflow-hidden">
+    <div class="flex items-center justify-between p-3 border-b border-line">
+      <h1 class="font-semibold">Messages</h1>
+      <button mat-icon-button (click)="toggleNewChat()" aria-label="New message">
+        <mat-icon class="material-icons-outlined">{{ showNewChat() ? 'close' : 'edit_square' }}</mat-icon>
+      </button>
+    </div>
+
+    @if (showNewChat()) {
+      <div class="border-b border-line max-h-64 overflow-y-auto">
+        @if (directory().length === 0) {
+          <p class="text-sm text-content-muted p-3">No one in your directory yet.</p>
+        } @else {
+          @for (person of directory(); track person.user_id) {
+            <button type="button" class="flex items-center gap-2 w-full p-2 text-left hover:bg-surface-sunken"
+                    (click)="startChat(person)">
+              <span class="vs-avatar-xs">{{ initials(person.display_name) }}</span>
+              <span class="flex-1 min-w-0 truncate text-sm">{{ person.display_name }}</span>
+            </button>
+          }
+        }
+      </div>
+    }
+
+    <div class="flex-1 overflow-y-auto">
+      @if (loading()) {
+        <p class="text-content-muted text-sm p-3">Loading…</p>
+      } @else if (conversations().length === 0) {
+        <p class="text-content-muted text-sm p-3">No conversations yet. Start one with the compose button.</p>
+      } @else {
+        @for (c of conversations(); track c.id) {
+          <button type="button" class="flex items-center gap-3 w-full p-3 text-left border-b border-line hover:bg-surface-sunken"
+                  [class.bg-surface-sunken]="active()?.id === c.id" (click)="select(c)">
+            <span class="relative">
+              <span class="vs-avatar-sm">{{ initials(title(c)) }}</span>
+              @if (otherOnline(c)) { <span class="vs-online-dot"></span> }
+            </span>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1">
+                <p class="font-medium truncate flex-1">{{ title(c) }}</p>
+                @if (c.unread_count) { <span class="vs-unread">{{ c.unread_count }}</span> }
+              </div>
+              <p class="text-xs text-content-muted truncate">{{ c.last_message_preview || 'No messages yet' }}</p>
+            </div>
+          </button>
+        }
+      }
+    </div>
+  </aside>
+
+  <!-- Thread -->
+  <section class="flex-1 rounded-card bg-surface-raised border border-line shadow-card flex flex-col overflow-hidden">
+    @if (active(); as a) {
+      <header class="flex items-center gap-3 p-3 border-b border-line">
+        <span class="relative">
+          <span class="vs-avatar-sm">{{ initials(title(a)) }}</span>
+          @if (otherOnline(a)) { <span class="vs-online-dot"></span> }
+        </span>
+        <div class="min-w-0">
+          <p class="font-semibold truncate">{{ title(a) }}</p>
+          <p class="text-xs text-content-muted">
+            @if (typingIn() === a.id) {
+              <span class="text-brand">typing…</span>
+            } @else {
+              {{ a.type === 'group' ? a.participants.length + ' participants'
+                 : (otherOnline(a) ? 'Online' : 'Direct message') }}
+            }
+          </p>
+        </div>
+      </header>
+
+      <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
+        @for (m of messages(); track m.id) {
+          <div class="flex flex-col max-w-[75%]" [class.self-end]="m.sender_id === myId()">
+            @if (a.type === 'group' && m.sender_id !== myId()) {
+              <span class="text-xs text-content-muted ml-1">{{ m.sender_name }}</span>
+            }
+            <div class="vs-bubble" [class.vs-bubble--mine]="m.sender_id === myId()">
+              <p class="whitespace-pre-line">{{ m.body }}</p>
+            </div>
+            <span class="text-[0.65rem] text-content-muted mt-0.5" [class.self-end]="m.sender_id === myId()">
+              {{ m.created_at | date: 'h:mm a' }}
+            </span>
+          </div>
+        }
+        @if (messages().length === 0) {
+          <p class="text-content-muted text-sm text-center my-auto">No messages yet. Say hello.</p>
+        }
+      </div>
+
+      <div class="flex gap-2 items-center p-3 border-t border-line">
+        <input class="vs-comment-input" placeholder="Write a message…"
+               [ngModel]="draft()" (ngModelChange)="onType($event)" (keyup.enter)="send()" />
+        <button mat-flat-button color="primary" [disabled]="!draft().trim() || sending()" (click)="send()">
+          <mat-icon class="material-icons-outlined">send</mat-icon>
+        </button>
+      </div>
+    } @else {
+      <div class="flex-1 grid place-items-center text-content-muted">
+        <div class="text-center">
+          <mat-icon class="material-icons-outlined" style="font-size:40px;height:40px;width:40px">forum</mat-icon>
+          <p class="mt-2">Select a conversation to start messaging.</p>
+        </div>
+      </div>
+    }
+  </section>
+</div>

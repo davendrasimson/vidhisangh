@@ -1,0 +1,110 @@
+<div class="min-h-screen bg-surface-sunken">
+  <header class="bg-surface-raised border-b border-line">
+    <div class="mx-auto w-full px-4 py-4 flex items-center gap-2">
+      <span aria-hidden="true">⚖️</span>
+      <span class="font-bold text-content">VidhiSangh</span>
+      <span class="text-content-muted text-sm">· Client portal</span>
+    </div>
+  </header>
+
+  <main class="mx-auto w-full px-4 py-6">
+    @if (loading()) {
+      <p class="text-content-muted">Loading…</p>
+    } @else if (invalid()) {
+      <div class="rounded-card bg-surface-raised border border-line shadow-card p-8 text-center">
+        <mat-icon class="material-icons-outlined text-danger" style="font-size:40px;height:40px;width:40px">link_off</mat-icon>
+        <p class="mt-2 text-content">This portal link is invalid or has been revoked.</p>
+        <p class="text-sm text-content-muted">Please contact your legal team for a new link.</p>
+      </div>
+    } @else if (view(); as v) {
+      <!-- Matter summary -->
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
+        <p class="text-sm text-content-muted">Hello {{ v.client_name }},</p>
+        <h1 class="text-xl font-bold text-content mt-1">{{ v.matter_title }}</h1>
+        <p class="text-sm text-content-muted">
+          <span class="font-mono">{{ v.matter_number }}</span> ·
+          <span class="capitalize">{{ v.status.replace('_', ' ') }}</span> ·
+          <span class="capitalize">{{ v.stage }}</span>@if (v.court) { · {{ v.court }} }
+        </p>
+      </section>
+
+      <!-- Pending approvals -->
+      @if (v.approvals.length) {
+        <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
+          <h2 class="font-semibold mb-3">Approvals</h2>
+          @for (a of v.approvals; track a.id) {
+            <div class="py-2 border-b border-line last:border-0">
+              <p class="font-medium">{{ a.title }}</p>
+              @if (a.description) { <p class="text-sm text-content-muted whitespace-pre-line">{{ a.description }}</p> }
+              @if (a.status === 'pending') {
+                <div class="flex gap-2 mt-2">
+                  <button mat-flat-button color="primary" (click)="respond(a, true)">Approve</button>
+                  <button mat-stroked-button (click)="respond(a, false)">Decline</button>
+                </div>
+              } @else {
+                <span class="vs-chip capitalize" [class.vs-chip--danger]="a.status === 'rejected'">{{ a.status }}</span>
+              }
+            </div>
+          }
+        </section>
+      }
+
+      <!-- Updates -->
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
+        <h2 class="font-semibold mb-3">Updates</h2>
+        @for (u of v.updates; track u.id) {
+          <div class="border-l-2 border-brand/40 pl-3 py-1 mb-3">
+            <p class="font-medium">{{ u.title }}</p>
+            <p class="text-sm text-content whitespace-pre-line">{{ u.body }}</p>
+            <p class="text-xs text-content-muted">{{ u.created_at | date: 'dd/MM/yyyy' }}</p>
+          </div>
+        } @empty { <p class="text-sm text-content-muted">No updates yet.</p> }
+      </section>
+
+      <!-- Hearings -->
+      @if (v.hearings.length) {
+        <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
+          <h2 class="font-semibold mb-3">Hearings</h2>
+          @for (h of v.hearings; track $index) {
+            <div class="flex items-center gap-3 py-1">
+              <mat-icon class="material-icons-outlined text-brand">gavel</mat-icon>
+              <div>
+                <p class="text-sm font-medium">{{ h.scheduled_on | date: 'EEE, dd/MM/yyyy · h:mm a' }}</p>
+                <p class="text-xs text-content-muted capitalize">{{ h.purpose || 'Hearing' }} · {{ h.status }}</p>
+              </div>
+            </div>
+          }
+        </section>
+      }
+
+      <!-- Documents -->
+      @if (v.invoices.length) {
+        <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
+          <h2 class="font-semibold mb-3">Invoices</h2>
+          @for (invoice of v.invoices; track invoice.id) {
+            <div class="flex flex-wrap items-center gap-3 py-2 border-b border-line last:border-0">
+              <span class="font-mono text-sm">{{ invoice.invoice_number }}</span>
+              <span class="flex-1">₹{{ invoice.total.toLocaleString('en-IN') }} · paid ₹{{ invoice.amount_paid.toLocaleString('en-IN') }}</span>
+              @if (invoice.due_date) { <span class="text-xs text-content-muted">Due {{ invoice.due_date | date:'dd/MM/yyyy' }}</span> }
+              <span class="vs-chip capitalize">{{ invoice.status }}</span>
+            </div>
+          }
+        </section>
+      }
+
+      <!-- Documents -->
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-5">
+        <h2 class="font-semibold mb-3">Shared documents</h2>
+        @for (d of v.documents; track d.id) {
+          <div class="flex items-center gap-2 py-1">
+            <mat-icon class="material-icons-outlined text-content-muted">description</mat-icon>
+            <span class="flex-1 min-w-0 truncate">{{ d.name }}</span>
+            <button mat-button (click)="download(d)">
+              <mat-icon class="material-icons-outlined">download</mat-icon>
+            </button>
+          </div>
+        } @empty { <p class="text-sm text-content-muted">No documents shared yet.</p> }
+      </section>
+    }
+  </main>
+</div>

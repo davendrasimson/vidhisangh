@@ -1,0 +1,89 @@
+<div class="w-full">
+  <h2 class="vs-display text-3xl font-semibold text-content">Welcome back</h2>
+  <p class="text-sm text-content-muted mt-1.5 mb-6">Sign in to your VidhiSangh account.</p>
+
+  @if (submitting()) {
+    <mat-progress-bar mode="indeterminate" class="mb-4"></mat-progress-bar>
+  }
+
+  @if (errorMsg()) {
+    <div class="mb-4 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
+      {{ errorMsg() }}
+    </div>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="submit()" class="grid gap-1">
+    <mat-form-field appearance="outline">
+      <mat-label>Email</mat-label>
+      <input matInput type="email" formControlName="email" autocomplete="username" required />
+      @if (form.controls.email.hasError('email') && form.controls.email.touched) {
+        <mat-error>Enter a valid email address.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Password</mat-label>
+      <input
+        matInput
+        [type]="hidePassword() ? 'password' : 'text'"
+        formControlName="password"
+        autocomplete="current-password"
+        required
+      />
+      <button
+        mat-icon-button
+        matSuffix
+        type="button"
+        (click)="hidePassword.set(!hidePassword())"
+        [attr.aria-label]="hidePassword() ? 'Show password' : 'Hide password'"
+      >
+        <mat-icon class="material-icons-outlined">{{ hidePassword() ? 'visibility' : 'visibility_off' }}</mat-icon>
+      </button>
+    </mat-form-field>
+
+    @if (mfaRequired()) {
+      <mat-form-field appearance="outline">
+        <mat-label>Authentication code</mat-label>
+        <input matInput formControlName="mfa_code" inputmode="numeric" autocomplete="one-time-code" maxlength="8" />
+      </mat-form-field>
+    }
+
+    <button mat-flat-button color="primary" type="submit" [disabled]="submitting()" class="h-11">
+      Sign in
+    </button>
+  </form>
+
+  @if (passkeySupported) {
+    <button mat-stroked-button type="button" class="h-11 w-full mt-2" [disabled]="submitting()"
+            (click)="signInWithPasskey()">
+      <mat-icon class="material-icons-outlined">fingerprint</mat-icon>
+      Sign in with a passkey
+    </button>
+  }
+
+  @if (ssoProviders().length > 0) {
+    <div class="flex items-center gap-3 my-5">
+      <span class="h-px flex-1 bg-line"></span>
+      <span class="text-xs text-content-muted">or continue with</span>
+      <span class="h-px flex-1 bg-line"></span>
+    </div>
+    <div class="grid gap-2">
+      @for (p of ssoProviders(); track p.name) {
+        <button mat-stroked-button type="button" class="h-11" [disabled]="submitting()" (click)="startSso(p)">
+          <mat-icon class="material-icons-outlined">login</mat-icon>
+          {{ p.display_name }}
+        </button>
+      }
+    </div>
+  }
+
+  <p class="text-sm text-content-muted mt-6 text-center">
+    New to VidhiSangh?
+    <a routerLink="/auth/register" class="text-brand font-medium">Create an account</a>
+  </p>
+
+  <p class="mt-6 border-t border-line pt-4 text-center text-xs leading-relaxed text-content-muted">
+    Privileged and confidential. Access is logged and audited in keeping with
+    your obligations under the Advocates Act and the Bar Council of India Rules.
+  </p>
+</div>

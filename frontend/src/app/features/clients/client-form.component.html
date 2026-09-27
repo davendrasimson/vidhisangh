@@ -1,0 +1,166 @@
+<div class="grid gap-5">
+  <!-- ── Identity ───────────────────────────────────────────────── -->
+  <section>
+    <h3 class="text-xs font-semibold uppercase tracking-wide text-content-muted mb-2">
+      {{ kind() === 'business' ? 'Business' : 'Personal details' }}
+    </h3>
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      @if (kind() === 'business') {
+        <label class="grid gap-1 lg:col-span-2"><span class="text-sm text-content-muted">Legal name *</span>
+          <input class="vs-input" [ngModel]="form().legal_name" (ngModelChange)="set('legal_name', $event)" placeholder="As on PAN / incorporation" />
+          @if (issue('legal_name'); as i) { <small class="text-danger">{{ i.message }}</small> }
+        </label>
+        <label class="grid gap-1"><span class="text-sm text-content-muted">Trade name</span>
+          <input class="vs-input" [ngModel]="form().trade_name" (ngModelChange)="set('trade_name', $event)" /></label>
+        <label class="grid gap-1"><span class="text-sm text-content-muted">Type of entity</span>
+          <select class="vs-input" [ngModel]="form().business_type" (ngModelChange)="set('business_type', $event)">
+            <option [ngValue]="null">Select…</option>
+            @for (t of businessTypes(); track t) { <option [value]="t">{{ businessTypeLabels[t] || t }}</option> }
+          </select></label>
+        <label class="grid gap-1"><span class="text-sm text-content-muted">CIN / LLPIN</span>
+          <input class="vs-input font-mono uppercase" [ngModel]="form().cin" (ngModelChange)="set('cin', $event)" maxlength="21" />
+          @if (issue('cin'); as i) { <small class="text-danger">{{ i.message }}</small> }</label>
+        <label class="grid gap-1"><span class="text-sm text-content-muted">Incorporation date</span>
+          <vs-date-input [ngModel]="form().incorporation_date" (ngModelChange)="set('incorporation_date', $event)" /></label>
+        <label class="grid gap-1"><span class="text-sm text-content-muted">Udyam (MSME) number</span>
+          <input class="vs-input font-mono uppercase" [ngModel]="form().msme_udyam" (ngModelChange)="set('msme_udyam', $event)" placeholder="UDYAM-DL-01-0012345" />
+          @if (issue('msme_udyam'); as i) { <small class="text-danger">{{ i.message }}</small> }</label>
+      } @else {
+        <label class="grid gap-1"><span class="text-sm text-content-muted">First name *</span>
+          <input class="vs-input" [ngModel]="form().first_name" (ngModelChange)="set('first_name', $event)" />
+          @if (issue('first_name'); as i) { <small class="text-danger">{{ i.message }}</small> }</label>
+        <label class="grid gap-1"><span class="text-sm text-content-muted">Last name</span>
+          <input class="vs-input" [ngModel]="form().last_name" (ngModelChange)="set('last_name', $event)" /></label>
+        <label class="grid gap-1"><span class="text-sm text-content-muted">Date of birth</span>
+          <vs-date-input [ngModel]="form().date_of_birth" (ngModelChange)="set('date_of_birth', $event)" /></label>
+        <label class="grid gap-1"><span class="text-sm text-content-muted">Father's / spouse's name</span>
+          <input class="vs-input" [ngModel]="form().father_or_spouse_name" (ngModelChange)="set('father_or_spouse_name', $event)" /></label>
+        <label class="grid gap-1"><span class="text-sm text-content-muted">Occupation</span>
+          <input class="vs-input" [ngModel]="form().occupation" (ngModelChange)="set('occupation', $event)" /></label>
+      }
+      <label class="grid gap-1"><span class="text-sm text-content-muted">PAN</span>
+        <input class="vs-input font-mono uppercase" [ngModel]="form().pan" (ngModelChange)="set('pan', $event)" maxlength="10" placeholder="ABCDE1234F" />
+        @if (issue('pan'); as i) { <small [class]="i.severity === 'error' ? 'text-danger' : 'text-warning'">{{ i.message }}</small> }</label>
+    </div>
+  </section>
+
+  <!-- ── Contact ────────────────────────────────────────────────── -->
+  <section>
+    <h3 class="text-xs font-semibold uppercase tracking-wide text-content-muted mb-2">Contact</h3>
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <label class="grid gap-1"><span class="text-sm text-content-muted">Email</span>
+        <input class="vs-input" type="email" [ngModel]="form().email" (ngModelChange)="set('email', $event)" />
+        @if (issue('email'); as i) { <small class="text-danger">{{ i.message }}</small> }</label>
+      <label class="grid gap-1"><span class="text-sm text-content-muted">Mobile</span>
+        <input class="vs-input" inputmode="tel" [ngModel]="form().mobile" (ngModelChange)="set('mobile', $event)" placeholder="10 digits" />
+        @if (issue('mobile'); as i) { <small class="text-danger">{{ i.message }}</small> }</label>
+      <label class="grid gap-1"><span class="text-sm text-content-muted">Phone (landline)</span>
+        <input class="vs-input" inputmode="tel" [ngModel]="form().phone" (ngModelChange)="set('phone', $event)" />
+        @if (issue('phone'); as i) { <small class="text-danger">{{ i.message }}</small> }</label>
+      <label class="grid gap-1 lg:col-span-2"><span class="text-sm text-content-muted">Address line 1</span>
+        <input class="vs-input" [ngModel]="form().address_line1" (ngModelChange)="set('address_line1', $event)" /></label>
+      <label class="grid gap-1"><span class="text-sm text-content-muted">Address line 2</span>
+        <input class="vs-input" [ngModel]="form().address_line2" (ngModelChange)="set('address_line2', $event)" /></label>
+      <label class="grid gap-1"><span class="text-sm text-content-muted">City</span>
+        <input class="vs-input" [ngModel]="form().city" (ngModelChange)="set('city', $event)" /></label>
+      <label class="grid gap-1"><span class="text-sm text-content-muted">State</span>
+        <select class="vs-input" [ngModel]="form().state" (ngModelChange)="set('state', $event)">
+          <option [ngValue]="null">Select…</option>
+          @for (s of states(); track s.code) { <option [value]="s.name">{{ s.name }} ({{ s.code }})</option> }
+        </select>
+        @if (issue('state'); as i) { <small class="text-warning">{{ i.message }}</small> }</label>
+      <label class="grid gap-1"><span class="text-sm text-content-muted">PIN code</span>
+        <input class="vs-input" inputmode="numeric" maxlength="6" [ngModel]="form().pincode" (ngModelChange)="set('pincode', $event)" />
+        @if (issue('pincode'); as i) { <small class="text-danger">{{ i.message }}</small> }</label>
+      @if (kind() === 'business') {
+        <label class="grid gap-1"><span class="text-sm text-content-muted">Contact person</span>
+          <input class="vs-input" [ngModel]="form().contact_person_name" (ngModelChange)="set('contact_person_name', $event)" /></label>
+        <label class="grid gap-1"><span class="text-sm text-content-muted">Designation</span>
+          <input class="vs-input" [ngModel]="form().contact_person_designation" (ngModelChange)="set('contact_person_designation', $event)" /></label>
+        <label class="grid gap-1"><span class="text-sm text-content-muted">Contact person's email</span>
+          <input class="vs-input" type="email" [ngModel]="form().contact_person_email" (ngModelChange)="set('contact_person_email', $event)" />
+          @if (issue('contact_person_email'); as i) { <small class="text-danger">{{ i.message }}</small> }</label>
+        <label class="grid gap-1"><span class="text-sm text-content-muted">Contact person's mobile</span>
+          <input class="vs-input" inputmode="tel" [ngModel]="form().contact_person_mobile" (ngModelChange)="set('contact_person_mobile', $event)" />
+          @if (issue('contact_person_mobile'); as i) { <small class="text-danger">{{ i.message }}</small> }</label>
+      }
+    </div>
+  </section>
+
+  <!-- ── Consent ────────────────────────────────────────────────── -->
+  <section>
+    <h3 class="text-xs font-semibold uppercase tracking-wide text-content-muted mb-2">
+      {{ mode() === 'kyc' ? 'How may we contact you?' : 'Consent to contact' }}
+    </h3>
+    <div class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+      <label class="inline-flex items-center gap-2"><input type="checkbox" [ngModel]="!!form().consent_email" (ngModelChange)="set('consent_email', $event)" /> Email</label>
+      <label class="inline-flex items-center gap-2"><input type="checkbox" [ngModel]="!!form().consent_mobile" (ngModelChange)="set('consent_mobile', $event)" /> SMS / phone calls</label>
+      <label class="inline-flex items-center gap-2"><input type="checkbox" [ngModel]="!!form().consent_whatsapp" (ngModelChange)="set('consent_whatsapp', $event)" /> WhatsApp</label>
+    </div>
+    @if (issue('consent_email') || issue('consent_mobile'); as i) { <small class="text-warning">{{ i.message }}</small> }
+  </section>
+
+  <!-- ── Tax ────────────────────────────────────────────────────── -->
+  <section>
+    <h3 class="text-xs font-semibold uppercase tracking-wide text-content-muted mb-2">Tax configuration</h3>
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <label class="inline-flex items-center gap-2 text-sm sm:col-span-2 lg:col-span-4">
+        <input type="checkbox" [ngModel]="!!form().gst_applicable" (ngModelChange)="set('gst_applicable', $event)" /> GST applicable
+      </label>
+      @if (form().gst_applicable) {
+        <label class="grid gap-1"><span class="text-sm text-content-muted">GSTIN</span>
+          <input class="vs-input font-mono uppercase" maxlength="15" [ngModel]="form().gstin" (ngModelChange)="set('gstin', $event)" placeholder="07ABCDE1234F1Z5" />
+          @if (issue('gstin'); as i) { <small class="text-danger">{{ i.message }}</small> }</label>
+        <label class="grid gap-1"><span class="text-sm text-content-muted">Registration</span>
+          <select class="vs-input" [ngModel]="form().gst_treatment" (ngModelChange)="set('gst_treatment', $event)">
+            @for (t of gstTreatments; track t.value) { <option [value]="t.value">{{ t.label }}</option> }
+          </select></label>
+        <label class="grid gap-1"><span class="text-sm text-content-muted">Place of supply</span>
+          <select class="vs-input" [ngModel]="form().place_of_supply_code" (ngModelChange)="set('place_of_supply_code', $event)">
+            <option [ngValue]="null">Same as GSTIN state</option>
+            @for (s of states(); track s.code) { <option [value]="s.code">{{ s.code }} — {{ s.name }}</option> }
+          </select></label>
+        @if (mode() === 'staff') {
+          <label class="inline-flex items-start gap-2 text-sm pt-6">
+            <input type="checkbox" [ngModel]="!!form().reverse_charge" (ngModelChange)="set('reverse_charge', $event)" />
+            <span>Reverse charge<br /><small class="text-content-muted">Legal services to a business entity are under RCM by default.</small></span>
+          </label>
+        }
+      }
+      <label class="inline-flex items-center gap-2 text-sm sm:col-span-2 lg:col-span-4">
+        <input type="checkbox" [ngModel]="!!form().tds_applicable" (ngModelChange)="set('tds_applicable', $event)" />
+        {{ mode() === 'kyc' ? 'We deduct TDS on professional fees' : 'Client deducts TDS' }}
+      </label>
+      @if (form().tds_applicable) {
+        <label class="grid gap-1 lg:col-span-2"><span class="text-sm text-content-muted">Section</span>
+          <select class="vs-input" [ngModel]="form().tds_section" (ngModelChange)="set('tds_section', $event)">
+            <option [ngValue]="null">Select…</option>
+            @for (s of tdsSections(); track s.section) { <option [value]="s.section">{{ s.label }}</option> }
+          </select>
+          @if (issue('tds_section'); as i) { <small class="text-danger">{{ i.message }}</small> }</label>
+        <label class="grid gap-1"><span class="text-sm text-content-muted">Rate (%)</span>
+          <input class="vs-input" type="number" min="0" max="30" step="0.01" [ngModel]="form().tds_rate" (ngModelChange)="set('tds_rate', $event)" />
+          @if (issue('tds_rate'); as i) { <small class="text-danger">{{ i.message }}</small> }</label>
+        <label class="grid gap-1"><span class="text-sm text-content-muted">TAN</span>
+          <input class="vs-input font-mono uppercase" maxlength="10" [ngModel]="form().tan" (ngModelChange)="set('tan', $event)" placeholder="ABCD12345E" />
+          @if (issue('tan'); as i) { <small class="text-danger">{{ i.message }}</small> }</label>
+      }
+    </div>
+  </section>
+
+  @if (mode() === 'staff') {
+    <section>
+      <h3 class="text-xs font-semibold uppercase tracking-wide text-content-muted mb-2">Internal</h3>
+      <div class="grid gap-3 sm:grid-cols-3">
+        <label class="grid gap-1"><span class="text-sm text-content-muted">Client code</span>
+          <input class="vs-input" [ngModel]="form().client_code" (ngModelChange)="set('client_code', $event)" /></label>
+        <label class="grid gap-1"><span class="text-sm text-content-muted">Status</span>
+          <select class="vs-input" [ngModel]="form().status || 'active'" (ngModelChange)="set('status', $event)">
+            <option value="active">Active</option><option value="inactive">Inactive</option>
+          </select></label>
+        <label class="grid gap-1 sm:col-span-3"><span class="text-sm text-content-muted">Notes</span>
+          <textarea class="vs-input" rows="2" [ngModel]="form().notes" (ngModelChange)="set('notes', $event)"></textarea></label>
+      </div>
+    </section>
+  }
+</div>

@@ -1,0 +1,70 @@
+<div class="mx-auto w-full">
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="text-2xl font-bold text-content">CRM · Pipeline</h1>
+    <button mat-flat-button color="primary" (click)="showForm.set(!showForm())">
+      <mat-icon class="material-icons-outlined">{{ showForm() ? 'close' : 'person_add' }}</mat-icon>
+      {{ showForm() ? 'Cancel' : 'New lead' }}
+    </button>
+  </div>
+
+  @if (showForm()) {
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-6">
+      <div class="grid gap-3 sm:grid-cols-2">
+        <input class="vs-input" placeholder="Name" [(ngModel)]="form.name" />
+        <select class="vs-input capitalize" [(ngModel)]="form.source">
+          @for (s of sourceOptions; track s) { <option [value]="s">{{ label(s) }}</option> }
+        </select>
+        <input class="vs-input" placeholder="Phone" [(ngModel)]="form.phone" />
+        <input class="vs-input" type="email" placeholder="Email" [(ngModel)]="form.email" />
+        <input class="vs-input" placeholder="Practice area" [(ngModel)]="form.practice_area" />
+        <input class="vs-input" type="number" placeholder="Estimated value (₹)" [(ngModel)]="form.estimated_value" />
+        <input class="vs-input sm:col-span-2" placeholder="Referred by (optional)" [(ngModel)]="form.referred_by" />
+      </div>
+      <div class="mt-4 flex justify-end">
+        <button mat-flat-button color="primary" [disabled]="!form.name.trim() || saving()" (click)="submit()">
+          {{ saving() ? 'Adding…' : 'Add lead' }}
+        </button>
+      </div>
+    </section>
+  }
+
+  @if (loading()) {
+    <p class="text-content-muted">Loading…</p>
+  } @else {
+    <!-- Source analytics -->
+    @if (sources().length) {
+      <div class="flex flex-wrap gap-2 mb-4">
+        @for (s of sources(); track s.source) {
+          <span class="vs-chip capitalize">{{ label(s.source) }}: {{ s.total }} · won {{ s.won }}</span>
+        }
+      </div>
+    }
+
+    <!-- Pipeline board -->
+    <div class="flex gap-3 overflow-x-auto pb-2">
+      @for (col of pipeline(); track col.status) {
+        <div class="w-64 shrink-0">
+          <div class="flex items-center justify-between px-1 mb-2">
+            <span class="font-semibold capitalize">{{ label(col.status) }}</span>
+            <span class="vs-chip">{{ col.count }}</span>
+          </div>
+          @if (rupees(col.value)) { <p class="text-xs text-content-muted px-1 mb-2">{{ rupees(col.value) }}</p> }
+          <div class="flex flex-col gap-2">
+            @for (lead of col.leads; track lead.id) {
+              <a [routerLink]="['/app/crm', lead.id]"
+                 class="rounded-card bg-surface-raised border border-line shadow-card p-3 hover:border-brand transition-colors">
+                <p class="font-medium text-content truncate">{{ lead.name }}</p>
+                <p class="text-xs text-content-muted capitalize">
+                  {{ label(lead.source) }}@if (lead.practice_area) { · {{ lead.practice_area }} }
+                </p>
+                @if (rupees(lead.estimated_value ?? 0)) {
+                  <p class="text-xs text-brand mt-1">{{ rupees(lead.estimated_value ?? 0) }}</p>
+                }
+              </a>
+            } @empty { <p class="text-xs text-content-muted px-1">—</p> }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

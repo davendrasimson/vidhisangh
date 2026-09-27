@@ -1,0 +1,126 @@
+<!-- Hero -->
+<section class="vs-hero px-6 py-6 md:px-8 md:py-7 mb-6">
+  <div class="relative z-10 flex items-center gap-4 flex-wrap">
+    <div class="vs-hero__avatar">{{ initials() }}</div>
+    <div class="min-w-0 flex-1">
+      <h1 class="text-2xl md:text-3xl font-bold leading-tight">{{ greeting() }}, {{ user()?.full_name }}</h1>
+      <p class="text-sm opacity-85 mt-1">
+        @if (tenant.current(); as t) {
+          {{ t.name }} · {{ t.plan | uppercase }} plan · {{ t.status }}
+        } @else {
+          Welcome to your VidhiSangh workspace.
+        }
+      </p>
+    </div>
+    <div class="flex gap-2">
+      <a routerLink="/app/research" class="vs-hero__btn"><mat-icon class="material-icons-outlined">search</mat-icon> Research</a>
+      <a routerLink="/app/matters" class="vs-hero__btn vs-hero__btn--solid"><mat-icon class="material-icons-outlined">add</mat-icon> New matter</a>
+    </div>
+  </div>
+</section>
+
+<!-- Stat tiles -->
+<section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-6">
+  @for (stat of stats(); track stat.label) {
+    <a [routerLink]="stat.route" class="vs-tile vs-lift rounded-card bg-surface-raised border border-line shadow-card p-5 tone-{{ stat.tone }}">
+      <div class="flex items-start justify-between">
+        <span class="vs-iconchip"><mat-icon class="material-icons-outlined">{{ stat.icon }}</mat-icon></span>
+        <mat-icon class="material-icons-outlined text-content-muted vs-tile__go">north_east</mat-icon>
+      </div>
+      <div class="mt-4 text-3xl font-bold text-content tracking-tight">{{ stat.value }}</div>
+      <div class="mt-0.5 text-sm font-medium text-content">{{ stat.label }}</div>
+      <div class="mt-1 text-xs text-content-muted">{{ stat.hint }}</div>
+    </a>
+  }
+</section>
+
+<!-- Revenue trend + insights -->
+<section class="grid gap-4 lg:grid-cols-3 mb-6">
+  <div class="lg:col-span-2 rounded-card bg-surface-raised border border-line shadow-card p-5">
+    <div class="flex items-center justify-between mb-1">
+      <h2 class="font-semibold text-content">Revenue trend</h2>
+      <div class="flex items-center gap-4 text-xs text-content-muted">
+        <span class="flex items-center gap-1.5"><i class="vs-dot" style="background:rgb(var(--vs-brand))"></i> Invoiced</span>
+        <span class="flex items-center gap-1.5"><i class="vs-dot" style="background:rgb(var(--vs-success))"></i> Collected</span>
+      </div>
+    </div>
+    <p class="text-xs text-content-muted mb-3">Last 6 months</p>
+    @if (chart(); as c) {
+      <svg [attr.viewBox]="'0 0 ' + c.W + ' ' + c.H" class="w-full" style="height:auto" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Revenue trend chart">
+        <defs>
+          <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="rgb(var(--vs-brand))" stop-opacity="0.28" />
+            <stop offset="100%" stop-color="rgb(var(--vs-brand))" stop-opacity="0.02" />
+          </linearGradient>
+        </defs>
+        @for (gy of c.grid; track gy) {
+          <line [attr.x1]="0" [attr.x2]="c.W" [attr.y1]="gy" [attr.y2]="gy"
+                stroke="rgb(var(--vs-border))" stroke-width="1" stroke-dasharray="3 5" opacity="0.7" />
+        }
+        <path [attr.d]="c.area" fill="url(#areaFill)" />
+        <path [attr.d]="c.invLine" fill="none" stroke="rgb(var(--vs-brand))" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+        <path [attr.d]="c.colLine" fill="none" stroke="rgb(var(--vs-success))" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+        @for (d of c.dots; track $index) {
+          <circle [attr.cx]="d.cx" [attr.cy]="d.cyc" r="3.5" fill="rgb(var(--vs-success))"
+                  stroke="rgb(var(--vs-surface-raised))" stroke-width="2" />
+        }
+        @for (lb of c.labels; track $index) {
+          <text [attr.x]="lb.x" [attr.y]="c.baseY + 18" text-anchor="middle"
+                fill="rgb(var(--vs-text-muted))" font-size="12">{{ lb.text }}</text>
+        }
+      </svg>
+    } @else {
+      <div class="h-40 grid place-items-center text-content-muted text-sm">Loading revenue…</div>
+    }
+  </div>
+
+  <div class="rounded-card bg-surface-raised border border-line shadow-card p-5">
+    <h2 class="font-semibold text-content mb-4">This period</h2>
+    @if (insights(); as ins) {
+      <div class="space-y-4">
+        <div>
+          <div class="flex items-end justify-between">
+            <span class="text-sm text-content-muted">Collected</span>
+            <span class="font-bold text-content">{{ ins.collected }}</span>
+          </div>
+          <div class="vs-meter mt-1.5"><span [style.width.%]="ins.collectRate"></span></div>
+          <div class="text-xs text-content-muted mt-1">{{ ins.collectRate }}% of {{ ins.invoiced }} invoiced</div>
+        </div>
+        <div class="vs-divider"></div>
+        <div class="flex items-center justify-between">
+          <span class="text-sm text-content-muted">Leads</span>
+          <span class="font-semibold text-content">{{ ins.leads }}</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-sm text-content-muted">Conversion</span>
+          <span class="vs-chip"><span class="text-brand">{{ ins.conversion }}%</span></span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-sm text-content-muted">Won value</span>
+          <span class="font-semibold text-content">{{ ins.wonValue }}</span>
+        </div>
+      </div>
+    } @else {
+      <p class="text-content-muted text-sm">Loading…</p>
+    }
+  </div>
+</section>
+
+<!-- Modules -->
+<section>
+  <h2 class="text-lg font-semibold text-content mb-3">Your platform</h2>
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    @for (mod of modules; track mod.name) {
+      <a [routerLink]="mod.route" class="vs-module vs-lift rounded-card bg-surface-raised border border-line shadow-card p-5">
+        <span class="vs-iconchip"><mat-icon class="material-icons-outlined">{{ mod.icon }}</mat-icon></span>
+        <h3 class="mt-3 font-semibold text-content flex items-center gap-1">
+          {{ mod.name }}
+          <mat-icon class="material-icons-outlined vs-module__arrow">arrow_forward</mat-icon>
+        </h3>
+        <p class="mt-1 text-sm text-content-muted">{{ mod.desc }}</p>
+      </a>
+    }
+  </div>
+</section>

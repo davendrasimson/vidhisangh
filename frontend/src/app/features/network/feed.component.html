@@ -1,0 +1,238 @@
+<div class="w-full">
+  <div class="flex gap-2 border-b border-line mb-4">
+    <button class="vs-tab" [class.vs-tab-active]="view() === 'all'" (click)="switchView('all')">Feed</button>
+    <button class="vs-tab" [class.vs-tab-active]="view() === 'saved'" (click)="switchView('saved')">Saved</button>
+    <button class="vs-tab" [class.vs-tab-active]="view() === 'mentions'" (click)="switchView('mentions')">Mentions</button>
+  </div>
+
+  <!-- Content fills the full page width, fluid at every breakpoint. -->
+  <div class="w-full">
+    <div class="min-w-0">
+      @if (view() === 'all' && trending().length) {
+        <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-4">
+          <h2 class="text-sm font-semibold text-content-muted mb-2">Trending now</h2>
+          <div class="flex flex-wrap gap-2">
+            @for (t of trending(); track t.tag) {
+              <span class="vs-chip"><span class="text-brand">#{{ t.tag }}</span> · {{ t.count }}</span>
+            }
+          </div>
+        </section>
+      }
+
+  <!-- Composer -->
+  @if (view() === 'all') {
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-6">
+      <div class="flex gap-3">
+        <span class="vs-avatar-sm">{{ myInitials() }}</span>
+        <div class="flex-1">
+          <textarea
+            class="vs-composer"
+            rows="2"
+            placeholder="Share an update, a judgment, or a question…"
+            [ngModel]="draft()"
+            (ngModelChange)="onDraftInput($event)"
+          ></textarea>
+          @if (taggedPeople().length) {
+            <div class="flex flex-wrap gap-2 mt-2">
+              @for (p of taggedPeople(); track p.user_id) {
+                <span class="vs-chip"><span class="text-brand">&#64;{{ p.display_name }}</span></span>
+              }
+            </div>
+          }
+
+          <!-- Link preview (unfurl) -->
+          @if (previewLoading()) {
+            <div class="vs-linkcard vs-linkcard--loading mt-3">
+              <mat-icon class="material-icons-outlined animate-spin">progress_activity</mat-icon>
+              <span class="text-sm text-content-muted">Fetching preview…</span>
+            </div>
+          } @else if (linkPreview(); as lp) {
+            <div class="vs-linkcard mt-3">
+              @if (lp.image) {
+                <img class="vs-linkcard__img" [src]="lp.image" alt="" loading="lazy" (error)="onPreviewImgError($event)" />
+              }
+              <div class="vs-linkcard__body">
+                @if (lp.site_name) {
+                  <span class="vs-linkcard__site">{{ lp.site_name }}</span>
+                }
+                <span class="vs-linkcard__title">{{ lp.title || lp.url }}</span>
+                @if (lp.description) {
+                  <span class="vs-linkcard__desc">{{ lp.description }}</span>
+                }
+              </div>
+              <button
+                type="button"
+                class="vs-linkcard__remove"
+                (click)="removePreview()"
+                aria-label="Remove preview"
+              >
+                <mat-icon class="material-icons-outlined">close</mat-icon>
+              </button>
+            </div>
+          }
+
+          <div class="flex justify-between items-center mt-2">
+            <button mat-button (click)="toggleTagPicker()">
+              <mat-icon class="material-icons-outlined">alternate_email</mat-icon> Tag people
+            </button>
+            <button mat-flat-button color="primary" (click)="publish()" [disabled]="posting() || !draft().trim()">
+              <mat-icon class="material-icons-outlined">send</mat-icon> Post
+            </button>
+          </div>
+
+          @if (showTagPicker()) {
+            <div class="rounded-card border border-line bg-surface-sunken p-3 mt-2 max-h-64 overflow-y-auto">
+              @if (directory().length === 0) {
+                <p class="text-content-muted text-sm">No one in your directory yet.</p>
+              } @else {
+                @for (person of directory(); track person.user_id) {
+                  <button type="button" class="flex items-center gap-3 w-full py-1.5 text-left"
+                          (click)="toggleTag(person)">
+                    <span class="vs-avatar-xs">{{ initials(person.display_name) }}</span>
+                    <span class="flex-1 min-w-0 truncate text-sm">{{ person.display_name }}</span>
+                    <mat-icon class="material-icons-outlined" [class.text-brand]="isTagged(person.user_id)">
+                      {{ isTagged(person.user_id) ? 'check_circle' : 'radio_button_unchecked' }}
+                    </mat-icon>
+                  </button>
+                }
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+  }
+
+  @if (loading()) {
+    <p class="text-content-muted text-center py-6">Loading…</p>
+  } @else if (posts().length === 0) {
+    <div class="text-center py-10 text-content-muted">
+      <mat-icon class="material-icons-outlined" style="font-size:40px;height:40px;width:40px">
+        @switch (view()) {
+          @case ('saved') { bookmark_border }
+          @case ('mentions') { alternate_email }
+          @default { forum }
+        }
+      </mat-icon>
+      <p class="mt-2">
+        @switch (view()) {
+          @case ('saved') { No saved posts yet. Tap Save on a post to keep it here. }
+          @case ('mentions') { No one has mentioned you yet. }
+          @default { Your feed is quiet. Publish the first post, or connect with people. }
+        }
+      </p>
+    </div>
+  }
+
+  <!-- Feed -->
+  @for (post of posts(); track post.id) {
+    <article class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-4">
+      <header class="flex items-center gap-3">
+        <span class="vs-avatar-sm">{{ initials(post.author_name) }}</span>
+        <div class="min-w-0">
+          <p class="font-semibold text-content truncate">{{ post.author_name }}</p>
+          <p class="text-xs text-content-muted truncate">
+            {{ post.author_headline || 'Legal professional' }} · {{ post.created_at | date: 'dd/MM/yyyy, h:mm a' }}
+          </p>
+        </div>
+      </header>
+
+      @if (post.title) { <h3 class="font-semibold mt-3">{{ post.title }}</h3> }
+      @if (post.content) { <p class="mt-2 text-content whitespace-pre-line">{{ post.content }}</p> }
+
+      @if (post.link_url) {
+        <a class="vs-linkcard vs-linkcard--link mt-3" [href]="post.link_url" target="_blank" rel="noopener noreferrer">
+          @if (post.link_image) {
+            <img class="vs-linkcard__img" [src]="post.link_image" alt="" loading="lazy" (error)="onPreviewImgError($event)" />
+          }
+          <div class="vs-linkcard__body">
+            @if (post.link_site_name) {
+              <span class="vs-linkcard__site">{{ post.link_site_name }}</span>
+            }
+            <span class="vs-linkcard__title">{{ post.link_title || post.link_url }}</span>
+            @if (post.link_description) {
+              <span class="vs-linkcard__desc">{{ post.link_description }}</span>
+            }
+          </div>
+        </a>
+      }
+
+      @if (post.shared_from_id) {
+        <div class="mt-3 rounded-card border border-line bg-surface-sunken p-3">
+          <div class="flex items-center gap-2">
+            <span class="vs-avatar-xs">{{ initials(post.shared_author_name || '?') }}</span>
+            <p class="text-sm font-medium text-content">{{ post.shared_author_name }}</p>
+            @if (post.shared_created_at) {
+              <span class="text-xs text-content-muted">· {{ post.shared_created_at | date: 'dd/MM/yyyy' }}</span>
+            }
+          </div>
+          <p class="mt-1 text-sm text-content whitespace-pre-line">{{ post.shared_content }}</p>
+        </div>
+      }
+
+      @if (post.hashtags.length) {
+        <div class="flex flex-wrap gap-2 mt-2">
+          @for (tag of post.hashtags; track tag) { <span class="text-brand text-sm">#{{ tag }}</span> }
+        </div>
+      }
+
+      @if (post.mentions.length) {
+        <div class="flex flex-wrap items-center gap-1 mt-2 text-sm text-content-muted">
+          <mat-icon class="material-icons-outlined text-base">alternate_email</mat-icon>
+          @for (m of post.mentions; track m.user_id) {
+            <a [routerLink]="['/app/people', m.user_id]" class="text-brand hover:underline">&#64;{{ m.name }}</a>
+          }
+        </div>
+      }
+
+      <div class="flex items-center gap-1 text-xs text-content-muted mt-3">
+        @if (post.like_count) { <span>{{ post.like_count }} reactions</span> }
+        @if (post.comment_count) { <span>· {{ post.comment_count }} comments</span> }
+        @if (post.share_count) { <span>· {{ post.share_count }} shares</span> }
+      </div>
+
+      <div class="flex items-center gap-1 border-t border-line mt-2 pt-1">
+        <button mat-button (click)="toggleLike(post)" [class.vs-liked]="post.my_reaction">
+          <mat-icon class="material-icons-outlined">thumb_up</mat-icon>
+          {{ post.my_reaction ? 'Liked' : 'Like' }}
+        </button>
+        <button mat-button (click)="toggleComments(post)">
+          <mat-icon class="material-icons-outlined">chat_bubble_outline</mat-icon> Comment
+        </button>
+        <button mat-button (click)="share(post)">
+          <mat-icon class="material-icons-outlined">repeat</mat-icon> Repost
+        </button>
+        <button mat-button class="ml-auto" (click)="toggleBookmark(post)" [class.vs-liked]="post.bookmarked">
+          <mat-icon class="material-icons-outlined">{{ post.bookmarked ? 'bookmark' : 'bookmark_border' }}</mat-icon>
+          {{ post.bookmarked ? 'Saved' : 'Save' }}
+        </button>
+      </div>
+
+      @if (openComments()[post.id] !== undefined) {
+        <div class="mt-3 border-t border-line pt-3">
+          @for (c of openComments()[post.id]; track c.id) {
+            <div class="flex gap-2 mb-3">
+              <span class="vs-avatar-xs">{{ initials(c.author_name) }}</span>
+              <div class="vs-comment">
+                <p class="text-sm font-medium">{{ c.author_name }}</p>
+                <p class="text-sm">{{ c.body }}</p>
+              </div>
+            </div>
+          }
+          <div class="flex gap-2 items-center">
+            <span class="vs-avatar-xs">{{ myInitials() }}</span>
+            <input
+              class="vs-comment-input"
+              placeholder="Add a comment…"
+              [ngModel]="commentDraft()[post.id]"
+              (ngModelChange)="setCommentDraft(post.id, $event)"
+              (keyup.enter)="submitComment(post)"
+            />
+          </div>
+        </div>
+      }
+    </article>
+  }
+    </div><!-- /column -->
+  </div>
+</div>

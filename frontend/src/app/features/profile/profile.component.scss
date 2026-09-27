@@ -1,0 +1,74 @@
+.vs-cover {
+  height: 120px;
+  background: linear-gradient(120deg, #1e3a8a, #2563eb 60%, #4f46e5);
+}
+
+.vs-pfp {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: rgb(var(--vs-brand));
+  color: rgb(var(--vs-brand-fg));
+  font-size: 1.75rem;
+  font-weight: 700;
+  border: 4px solid rgb(var(--vs-surface-raised));
+}
+
+.vs-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+
+  &--ok { background: color-mix(in srgb, rgb(var(--vs-success)) 18%, transparent); color: rgb(var(--vs-success)); }
+  &--pending { background: color-mix(in srgb, rgb(var(--vs-warning)) 18%, transparent); color: rgb(var(--vs-warning)); }
+  &--muted { background: rgb(var(--vs-surface-sunken)); color: rgb(var(--vs-text-muted)); }
+}
+
+.vs-chip {
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  background: color-mix(in srgb, rgb(var(--vs-brand)) 12%, transparent);
+  color: rgb(var(--vs-brand));
+
+  &--alt {
+    background: rgb(var(--vs-surface-sunken));
+    color: rgb(var(--vs-text));
+    border: 1px solid rgb(var(--vs-border));
+  }
+}
+
+.vs-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgb(var(--vs-surface-sunken));
+  border: 1px solid rgb(var(--vs-border));
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.vs-qr {
+  display: flex;
+  justify-content: center;
+
+  // The QR is injected via [innerHTML], so pierce view encapsulation to size it.
+  ::ng-deep svg {
+    width: 100%;
+    height: auto;
+    max-width: 200px;
+    display: block;
+  }
+}

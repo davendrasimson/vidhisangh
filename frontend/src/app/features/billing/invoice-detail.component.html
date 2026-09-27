@@ -1,0 +1,83 @@
+<div class="mx-auto w-full">
+  <a routerLink="/app/billing" class="text-sm text-content-muted inline-flex items-center gap-1 mb-3">
+    <mat-icon class="material-icons-outlined text-base">arrow_back</mat-icon> Invoices
+  </a>
+
+  @if (loading()) {
+    <p class="text-content-muted">Loading…</p>
+  } @else if (invoice(); as inv) {
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h1 class="text-xl font-bold text-content">{{ inv.invoice_number }}</h1>
+          <p class="text-sm text-content-muted">{{ inv.client_name }}@if (inv.due_date) { · due {{ inv.due_date | date: 'dd/MM/yyyy' }} }</p>
+        </div>
+        <label class="flex flex-col gap-1">
+          <span class="text-xs text-content-muted">Status</span>
+          <select class="vs-input capitalize" [ngModel]="inv.status" (ngModelChange)="setStatus($event)">
+            @for (s of statuses; track s) { <option [value]="s">{{ s }}</option> }
+          </select>
+        </label>
+      </div>
+
+      <!-- Line items -->
+      <table class="w-full mt-4 text-sm">
+        <thead>
+          <tr class="text-content-muted text-left border-b border-line">
+            <th class="py-1 font-medium">Description</th>
+            <th class="py-1 font-medium text-right">Qty</th>
+            <th class="py-1 font-medium text-right">Unit</th>
+            <th class="py-1 font-medium text-right">Amount</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (li of inv.line_items; track li.id) {
+            <tr class="border-b border-line">
+              <td class="py-2">{{ li.description }}</td>
+              <td class="py-2 text-right">{{ li.quantity }}</td>
+              <td class="py-2 text-right">{{ money(li.unit_price) }}</td>
+              <td class="py-2 text-right">{{ money(li.amount) }}</td>
+              <td class="py-2 text-right">
+                @if (editable()) {
+                  <button class="text-content-muted" (click)="removeLine(li.id)" aria-label="Remove line">
+                    <mat-icon class="material-icons-outlined text-base">close</mat-icon>
+                  </button>
+                }
+              </td>
+            </tr>
+          } @empty { <tr><td colspan="5" class="py-2 text-content-muted">No line items.</td></tr> }
+        </tbody>
+      </table>
+
+      @if (editable()) {
+        <div class="flex flex-wrap gap-2 mt-3">
+          <input class="vs-input flex-1 min-w-[8rem]" placeholder="Description" [(ngModel)]="newItem.description" />
+          <input class="vs-input w-16" type="number" min="0" placeholder="Qty" [(ngModel)]="newItem.quantity" />
+          <input class="vs-input w-24" type="number" min="0" placeholder="Unit ₹" [(ngModel)]="newItem.unit_price" />
+          <button mat-stroked-button (click)="addLine()"><mat-icon class="material-icons-outlined">add</mat-icon></button>
+        </div>
+      }
+
+      <!-- Totals -->
+      <div class="mt-4 ml-auto max-w-xs text-sm">
+        <div class="flex justify-between py-0.5"><span class="text-content-muted">Subtotal</span><span>{{ money(inv.subtotal) }}</span></div>
+        <div class="flex justify-between py-0.5"><span class="text-content-muted">GST ({{ inv.tax_rate }}%)</span><span>{{ money(inv.tax_amount) }}</span></div>
+        <div class="flex justify-between py-1 border-t border-line font-semibold"><span>Total</span><span>{{ money(inv.total) }}</span></div>
+        <div class="flex justify-between py-0.5"><span class="text-content-muted">Paid</span><span>{{ money(inv.amount_paid) }}</span></div>
+        <div class="flex justify-between py-0.5 font-medium"><span>Balance</span><span>{{ money(balance()) }}</span></div>
+      </div>
+
+      @if (balance() > 0 && inv.status !== 'cancelled') {
+        <div class="mt-4 flex justify-end">
+          <button mat-flat-button color="primary" [disabled]="paying()" (click)="pay()">
+            <mat-icon class="material-icons-outlined">payments</mat-icon>
+            {{ paying() ? 'Processing…' : 'Collect ' + money(balance()) }}
+          </button>
+        </div>
+      }
+    </section>
+  } @else {
+    <p class="text-content-muted">Invoice not found.</p>
+  }
+</div>

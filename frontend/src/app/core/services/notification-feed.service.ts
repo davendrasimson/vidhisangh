@@ -1,0 +1,51 @@
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { Observable } from 'rxjs';
+import { environment } from '@env/environment';
+import {
+  AppNotification,
+  ChannelPreference,
+  NotificationChannel,
+  NotificationDelivery,
+} from '@core/models/notification.models';
+
+/** API client for the in-app notification centre (distinct from the toast
+ *  `NotificationService`, which wraps MatSnackBar). */
+@Injectable({ providedIn: 'root' })
+export class NotificationFeedService {
+  private readonly http = inject(HttpClient);
+  private readonly api = `${environment.apiBaseUrl}/notifications`;
+
+  list(page = 1, size = 20): Observable<AppNotification[]> {
+    return this.http.get<AppNotification[]>(this.api, { params: { page, size } });
+  }
+
+  unreadCount(): Observable<{ count: number }> {
+    return this.http.get<{ count: number }>(`${this.api}/unread-count`);
+  }
+
+  markRead(id: string): Observable<void> {
+    return this.http.post<void>(`${this.api}/${id}/read`, {});
+  }
+
+  markAllRead(): Observable<void> {
+    return this.http.post<void>(`${this.api}/read-all`, {});
+  }
+
+  preferences(): Observable<ChannelPreference[]> {
+    return this.http.get<ChannelPreference[]>(`${this.api}/preferences`);
+  }
+
+  updatePreference(
+    channel: NotificationChannel,
+    payload: { enabled: boolean; types: string[] },
+  ): Observable<ChannelPreference> {
+    return this.http.put<ChannelPreference>(`${this.api}/preferences/${channel}`, payload);
+  }
+
+  deliveries(page = 1, size = 20): Observable<NotificationDelivery[]> {
+    return this.http.get<NotificationDelivery[]>(`${this.api}/deliveries`, {
+      params: { page, size },
+    });
+  }
+}

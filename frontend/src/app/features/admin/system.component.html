@@ -1,0 +1,75 @@
+<div class="mx-auto w-full">
+  <h1 class="text-2xl font-bold text-content mb-1">System</h1>
+  <p class="text-content-muted mb-6">Health, configuration, and integration status for your deployment.</p>
+
+  @if (loading()) {
+    <p class="text-content-muted">Loading…</p>
+  } @else if (data(); as d) {
+    <!-- App + checks -->
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-6">
+      <div class="flex flex-wrap items-center gap-x-6 gap-y-2 mb-4">
+        <div>
+          <p class="text-xs text-content-muted">Application</p>
+          <p class="font-semibold text-content">{{ d.app.name }} <span class="text-content-muted font-normal">v{{ d.app.version }}</span></p>
+        </div>
+        <div>
+          <p class="text-xs text-content-muted">Environment</p>
+          <p class="font-semibold text-content capitalize">{{ d.app.environment }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-content-muted">Migration</p>
+          <p class="font-semibold text-content font-mono text-sm">{{ d.migration || '—' }}</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        @for (c of d.checks; track c.name) {
+          <span class="inline-flex items-center gap-2 rounded-full border border-line px-3 py-1 text-sm">
+            <span class="w-2 h-2 rounded-full"
+                  [class.bg-success]="tone(c.status) === 'ok'"
+                  [class.bg-warning]="tone(c.status) === 'warn'"
+                  [class.bg-danger]="tone(c.status) === 'bad'"></span>
+            <span class="capitalize text-content">{{ c.name }}</span>
+            <span class="text-content-muted">{{ c.status }}</span>
+          </span>
+        }
+      </div>
+    </section>
+
+    <!-- Integrations -->
+    <h2 class="font-semibold text-content mb-3">Integrations</h2>
+    <section class="rounded-card bg-surface-raised border border-line shadow-card divide-y divide-line mb-6">
+      @for (i of d.integrations; track i.key) {
+        <div class="flex items-center gap-3 p-3">
+          <span class="flex-1 text-content">{{ i.name }}</span>
+          <span class="inline-flex items-center gap-2 text-sm">
+            <span class="w-2 h-2 rounded-full"
+                  [class.bg-success]="tone(i.status) === 'ok'"
+                  [class.bg-warning]="tone(i.status) === 'warn'"
+                  [class.bg-danger]="tone(i.status) === 'bad'"></span>
+            <span class="text-content-muted capitalize">{{ label(i.status) }}</span>
+          </span>
+        </div>
+      }
+    </section>
+
+    <!-- Notification channels -->
+    <h2 class="font-semibold text-content mb-3">Notification channels</h2>
+    <section class="rounded-card bg-surface-raised border border-line shadow-card divide-y divide-line">
+      @for (c of d.channels; track c.channel) {
+        <div class="flex items-center gap-3 p-3 text-sm">
+          <span class="flex-1 capitalize text-content">{{ label(c.channel) }}</span>
+          <span class="text-content-muted">{{ c.provider }}</span>
+          <span class="inline-flex items-center gap-2 w-32 justify-end">
+            <span class="w-2 h-2 rounded-full"
+                  [class.bg-success]="tone(c.status) === 'ok'"
+                  [class.bg-warning]="tone(c.status) === 'warn'"
+                  [class.bg-danger]="tone(c.status) === 'bad'"></span>
+            <span class="text-content-muted capitalize">{{ label(c.status) }}</span>
+          </span>
+        </div>
+      }
+    </section>
+  } @else {
+    <p class="text-content-muted">System information is unavailable right now.</p>
+  }
+</div>

@@ -1,0 +1,202 @@
+:host {
+  display: block;
+  height: 100vh;
+}
+
+.vs-shell {
+  height: 100vh;
+  /* mat-sidenav-container paints its content area with Material's own
+     on-background/background tokens, which the prebuilt theme defines for
+     light only — every un-styled heading went dark-on-dark in dark mode.
+     Point it at our tokens instead (the content area paints its own mesh). */
+  --mat-sidenav-content-text-color: rgb(var(--vs-text));
+  --mat-sidenav-content-background-color: transparent;
+  color: rgb(var(--vs-text));
+}
+
+.vs-sidenav {
+  width: 268px;
+  border-right: 1px solid rgb(var(--vs-border));
+  background: rgb(var(--vs-surface-raised));
+  display: flex;
+  flex-direction: column;
+}
+
+.vs-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  height: 60px;
+  padding: 0 1.25rem;
+  font-weight: 700;
+  font-size: 1.2rem;
+  border-bottom: 1px solid rgb(var(--vs-border));
+
+  &__mark { font-size: 1.45rem; line-height: 1; }
+  &__name {
+    letter-spacing: -0.02em;
+    background: linear-gradient(90deg, rgb(var(--vs-brand)), color-mix(in srgb, rgb(var(--vs-brand)) 60%, #7c3aed));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+// Give the scrollable nav list breathing room + its own scroll.
+::ng-deep .vs-sidenav mat-nav-list {
+  padding: 0.5rem 0 !important;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.vs-sidenav__footer {
+  margin-top: auto;
+  padding: 0.75rem 0 1rem;
+  border-top: 1px solid rgb(var(--vs-border));
+}
+
+// ── Nav items rendered as rounded "pills" with clear hover/active states ──
+::ng-deep .vs-sidenav {
+  .mat-mdc-list-item,
+  .vs-group-toggle {
+    width: auto !important;
+    margin: 1px 10px;
+    border-radius: 10px;
+    min-height: 42px !important;
+    transition: background 0.15s ease, color 0.15s ease;
+
+    .mdc-list-item__primary-text {
+      font-size: 14px;          /* integer px keeps glyph edges crisp */
+      font-weight: 500;
+      letter-spacing: 0;
+      color: rgb(var(--vs-text));
+    }
+    .material-icons-outlined {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      color: rgb(var(--vs-text-muted));
+      transition: color 0.15s ease;
+    }
+    &:hover {
+      background: color-mix(in srgb, rgb(var(--vs-text-muted)) 10%, transparent);
+    }
+  }
+
+  .vs-active {
+    background: var(--vs-gradient-brand);
+    box-shadow: var(--vs-glow);
+    &:hover { background: var(--vs-gradient-brand); filter: brightness(1.03); }
+    .mdc-list-item__primary-text { color: rgb(var(--vs-brand-fg)); font-weight: 600; }
+    .material-icons-outlined { color: rgb(var(--vs-brand-fg)); }
+  }
+
+  // Section headings above each group of nav items.
+  .vs-navsubheader {
+    margin: 0.9rem 0 0.15rem;
+    padding: 0 1.35rem;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgb(var(--vs-text-muted));
+    opacity: 0.85;
+  }
+
+  // Nested items under the collapsible "Settings" group.
+  .vs-subitem {
+    margin-left: 22px;
+    .mdc-list-item__primary-text { font-size: 13px; font-weight: 500; }
+    .material-icons-outlined { font-size: 18px; width: 18px; height: 18px; }
+  }
+
+  // The trailing chevron sits in MDC's "meta" slot, whose Roboto font otherwise
+  // wins over .material-icons-outlined and prints the ligature name ("ex…").
+  // Element+class specificity + !important restores the icon font → real glyph.
+  .vs-group-toggle mat-icon.mat-mdc-list-item-meta {
+    font-family: 'Material Icons Outlined' !important;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: rgb(var(--vs-text-muted));
+  }
+}
+
+.vs-group-toggle {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.vs-content {
+  /* Ambient brand-tinted mesh gives every page subtle depth. */
+  background:
+    radial-gradient(1100px 520px at 100% -8%, color-mix(in srgb, rgb(var(--vs-brand)) 9%, transparent), transparent 60%),
+    radial-gradient(900px 480px at -6% 108%, color-mix(in srgb, rgb(var(--vs-accent2)) 7%, transparent), transparent 55%),
+    rgb(var(--vs-surface-sunken));
+}
+
+.vs-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  height: 60px;
+  padding: 0 1rem;
+  background: color-mix(in srgb, rgb(var(--vs-surface-raised)) 88%, transparent);
+  backdrop-filter: saturate(180%) blur(8px);
+  border-bottom: 1px solid rgb(var(--vs-border));
+  color: rgb(var(--vs-text));
+}
+
+.vs-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  min-width: 240px;
+  max-width: 420px;
+  border-radius: 10px;
+  background: rgb(var(--vs-surface-sunken));
+  border: 1px solid rgb(var(--vs-border));
+  color: rgb(var(--vs-text-muted));
+
+  input {
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: rgb(var(--vs-text));
+    width: 100%;
+    font-size: 0.9rem;
+  }
+}
+
+.vs-userbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.vs-avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgb(var(--vs-brand));
+  color: rgb(var(--vs-brand-fg));
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.vs-main {
+  padding: 1.5rem;
+  min-height: calc(100vh - 60px);
+}
+
+@media (max-width: 768px) {
+  .vs-search { display: none; }
+}

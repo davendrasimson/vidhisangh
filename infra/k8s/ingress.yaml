@@ -1,0 +1,67 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vidhisangh
+  namespace: vidhisangh
+  labels:
+    app.kubernetes.io/name: vidhisangh
+    app.kubernetes.io/part-of: vidhisangh
+  annotations:
+    # TLS via cert-manager — replace with your real ClusterIssuer name.
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    # WebSocket / SSE realtime endpoints under /api/v1.
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - vidhisangh.com
+        - www.vidhisangh.com
+      secretName: vidhisangh-tls
+    - hosts:
+        - api.vidhisangh.com
+      secretName: vidhisangh-api-tls
+  rules:
+    # ─── Web app ────────────────────────────────────────────────────
+    - host: vidhisangh.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: vidhisangh-backend
+                port:
+                  number: 8000
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: vidhisangh-frontend
+                port:
+                  number: 80
+    - host: www.vidhisangh.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: vidhisangh-frontend
+                port:
+                  number: 80
+    # ─── API host ───────────────────────────────────────────────────
+    - host: api.vidhisangh.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: vidhisangh-backend
+                port:
+                  number: 8000

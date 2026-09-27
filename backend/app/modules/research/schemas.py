@@ -1,0 +1,222 @@
+"""Pydantic schemas for the legal research module."""
+
+from __future__ import annotations
+
+import uuid
+from datetime import date, datetime
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.modules.research.models import CitationRelationship, CourtLevel
+
+
+class JudgmentCreate(BaseModel):
+    case_name: str = Field(min_length=2, max_length=500)
+    citation: str = Field(min_length=1, max_length=200)
+    neutral_citation: str | None = Field(default=None, max_length=200)
+    # eCourts CNR — groups this order with the case's other orders.
+    cnr_number: str | None = Field(default=None, min_length=10, max_length=20)
+    court: str = Field(min_length=1, max_length=200)
+    court_level: CourtLevel = CourtLevel.OTHER
+    bench: str | None = Field(default=None, max_length=120)
+    judges: list[str] = Field(default_factory=list, max_length=15)
+    judgment_date: date | None = None
+    acts: list[str] = Field(default_factory=list, max_length=30)
+    sections: list[str] = Field(default_factory=list, max_length=50)
+    keywords: list[str] = Field(default_factory=list, max_length=30)
+    headnote: str | None = Field(default=None, max_length=20000)
+    outcome: str | None = Field(default=None, max_length=300)
+    url: str | None = Field(default=None, max_length=500)
+    # Optional full text of the order/judgment (pasted or from a document).
+    full_text: str | None = Field(default=None, max_length=2_000_000)
+
+
+class _RegistryFields(BaseModel):
+    """Structured fields shared by list and detail shapes (migration 0036)."""
+
+    model_config = ConfigDict(from_attributes=True)
+    # High Court order records carry no citation — only reported judgments do.
+    citation: str | None
+    cnr_number: str | None = None
+    case_type: str | None = None
+    case_number: str | None = None
+    case_year: int | None = None
+    # Title with the "TYPE/NUM/YEAR of" prefix stripped; null until backfilled.
+    cause_title: str | None = None
+    # Normalised bare judge names — what to display and filter by. The raw
+    # provider strings stay in `judges` on the detail shape.
+    judge_names: list[str] = Field(default_factory=list)
+    # Case parties and counsel (migration 0039). Advocates are only known where
+    # the registry prints them in the order's opening.
+    filed_on: date | None = None
+    petitioner: str | None = None
+    respondent: str | None = None
+    petitioner_advocates: list[str] = Field(default_factory=list)
+    respondent_advocates: list[str] = Field(default_factory=list)
+
+
+def _split_judges(value: str | None) -> list[str]:
+    return [name for name in (value or "").split(" | ") if name]
+
+
+class CaseOrder(BaseModel):
+    """One order/judgment in a case's timeline."""
+
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    judgment_date: date | None
+    judge_names: list[str] = Field(default_factory=list)
+    outcome: str | None
+    url: str | None
+    # The registry's opening line of the order — enough to tell orders apart.
+    summary: str | None = None
+
+    @classmethod
+    def from_orm_row(cls, j) -> "CaseOrder":  # noqa: ANN001
+        return cls(
+            id=j.id, judgment_date=j.judgment_date,
+            judge_names=_split_judges(j.judge_text), outcome=j.outcome, url=j.url,
+            summary=(j.headnote or "")[:300] or None,
+        )
+
+
+class CaseRead(BaseModel):
+    """A case (one CNR) with every order the corpus holds for it, oldest first.
+
+    The corpus lists *orders*; a case has many. This is the view that groups
+    them: what the case is, who the parties and counsel are, when it was filed,
+    and each hearing's order with its outcome.
+    """
+
+    cnr_number: str
+    court: str
+    court_level: CourtLevel
+    case_type: str | None
+    case_number: str | None
+    case_year: int | None
+    cause_title: str | None
+    petitioner: str | None
+    respondent: str | None
+    # Union across the case's orders — counsel can change between hearings.
+    petitioner_advocates: list[str] = Field(default_factory=list)
+    respondent_advocates: list[str] = Field(default_factory=list)
+    judge_names: list[str] = Field(default_factory=list)
+    filed_on: date | None
+    first_order_on: date | None
+    latest_order_on: date | None
+    # The most recent order's disposal — the case's current position.
+    latest_outcome: str | None
+    orders: list[CaseOrder]
+
+
+class JudgmentRead(_RegistryFields):
+    id: uuid.UUID
+    case_name: str
+    neutral_citation: str | None
+    court: str
+    court_level: CourtLevel
+    bench: str | None
+    judges: list[str]
+    judgment_date: date | None
+    acts: list[str]
+    sections: list[str]
+    keywords: list[str]
+    headnote: str | None
+    outcome: str | None
+    url: str | None
+    # Text extracted from the PDF (migration 0040); null until extracted.
+    full_text: str | None = None
+    text_extracted_at: datetime | None = None
+    created_at: datetime
+
+    @classmethod
+    def from_orm_row(cls, judgment) -> "JudgmentRead":  # noqa: ANN001
+        read = cls.model_validate(judgment)
+        read.judge_names = _split_judges(getattr(judgment, "judge_text", None))
+        return read
+
+
+class JudgmentSummary(_RegistryFields):
+    """Search-result shape: the registry line plus a ranked, highlighted snippet."""
+
+    id: uuid.UUID
+    case_name: str
+    court: str
+    court_level: CourtLevel
+    judgment_date: date | None
+    outcome: str | None
+    # Fragment of the text that matched, with <mark>…</mark> around the hits.
+    # Only produced by the PostgreSQL full-text path.
+    snippet: str | None = None
+    # How many orders the corpus holds for this row's case (CNR) — so a result
+    # can say "1 of 7 orders" and link to the case view.
+    order_count: int | None = None
+
+    @classmethod
+    def from_orm_row(cls, judgment, snippet: str | None = None) -> "JudgmentSummary":  # noqa: ANN001
+        summary = cls.model_validate(judgment)
+        summary.judge_names = _split_judges(getattr(judgment, "judge_text", None))
+        summary.snippet = snippet
+        return summary
+
+
+class SearchPage(BaseModel):
+    """A page of results plus how many matched in total."""
+
+    items: list[JudgmentSummary]
+    total: int
+    # True when `total` is the planner's estimate for a very large match set
+    # ("About 1,40,000 results") rather than an exact count.
+    total_is_estimate: bool = False
+    # True when `total` is a floor we counted past, not a guess: the UI should
+    # say "More than N", not "About N".
+    total_is_lower_bound: bool = False
+    page: int
+    size: int
+    # False when the match set was too large to rank interactively and the
+    # page is newest-first instead — the UI should say so.
+    ranked: bool = True
+    # Set when an unranked page was drawn from only the most recent N years.
+    recent_years: int | None = None
+
+
+class FacetBucket(BaseModel):
+    value: str
+    count: int
+
+
+class SearchFacets(BaseModel):
+    """Counts for the current query, for the filter sidebar."""
+
+    total: int
+    total_is_estimate: bool = False
+    total_is_lower_bound: bool = False
+    # Set when the counts (like the results) cover only the most recent N years.
+    recent_years: int | None = None
+    # True when the aggregation timed out and buckets are empty — results still work.
+    facets_partial: bool = False
+    courts: list[FacetBucket] = Field(default_factory=list)
+    years: list[FacetBucket] = Field(default_factory=list)
+    case_types: list[FacetBucket] = Field(default_factory=list)
+    judges: list[FacetBucket] = Field(default_factory=list)
+    advocates: list[FacetBucket] = Field(default_factory=list)
+    outcomes: list[FacetBucket] = Field(default_factory=list)
+
+
+class CitationCreate(BaseModel):
+    to_judgment_id: uuid.UUID | None = None
+    external_citation: str | None = Field(default=None, max_length=200)
+    relationship_type: CitationRelationship = CitationRelationship.REFERRED
+
+
+class CitationEdge(BaseModel):
+    id: uuid.UUID
+    relationship_type: CitationRelationship
+    judgment_id: uuid.UUID | None = None  # the other judgment (if in-corpus)
+    case_name: str | None = None
+    citation: str  # the other case's citation (in-corpus or external)
+
+
+class CitationGraph(BaseModel):
+    cites: list[CitationEdge] = Field(default_factory=list)      # outgoing
+    cited_by: list[CitationEdge] = Field(default_factory=list)   # incoming

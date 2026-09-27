@@ -1,0 +1,96 @@
+<div class="mx-auto w-full">
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <h1 class="text-2xl font-bold text-content">Webhooks</h1>
+      <p class="text-content-muted">Send signed event notifications to your own systems.</p>
+    </div>
+    <button mat-flat-button color="primary" (click)="showForm.set(!showForm())">
+      <mat-icon class="material-icons-outlined">{{ showForm() ? 'close' : 'add' }}</mat-icon>
+      {{ showForm() ? 'Cancel' : 'Add webhook' }}
+    </button>
+  </div>
+
+  @if (newSecret(); as secret) {
+    <div class="rounded-card border border-line bg-surface-raised shadow-card p-4 mb-4">
+      <p class="text-sm text-content">
+        <mat-icon class="material-icons-outlined text-success align-middle text-base">key</mat-icon>
+        Signing secret — copy it now, it won't be shown again. Verify deliveries with
+        <code class="font-mono">HMAC-SHA256</code> over the raw body:
+      </p>
+      <div class="mt-2 flex items-center gap-2">
+        <code class="px-2 py-1 rounded bg-surface font-mono text-sm break-all">{{ secret }}</code>
+        <button mat-button (click)="newSecret.set(null)">Dismiss</button>
+      </div>
+    </div>
+  }
+
+  @if (showForm()) {
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-6">
+      <input class="vs-input w-full" placeholder="Endpoint URL (https://…)" [(ngModel)]="form.url" />
+      <input class="vs-input w-full mt-3" placeholder="Description (optional)" [(ngModel)]="form.description" />
+      <p class="text-sm text-content-muted mt-3 mb-1">Events</p>
+      <div class="flex flex-wrap gap-2">
+        @for (e of events(); track e.key) {
+          <button type="button" class="vs-chip" [title]="e.description"
+                  [class.vs-chip-selected]="form.event_types.includes(e.key)"
+                  (click)="toggleEvent(e.key)">{{ e.key }}</button>
+        }
+      </div>
+      <div class="mt-4 flex justify-end">
+        <button mat-flat-button color="primary"
+                [disabled]="!form.url.trim() || form.event_types.length === 0 || saving()"
+                (click)="submit()">{{ saving() ? 'Saving…' : 'Add webhook' }}</button>
+      </div>
+    </section>
+  }
+
+  @if (loading()) {
+    <p class="text-content-muted">Loading…</p>
+  } @else if (items().length === 0) {
+    <p class="text-content-muted text-sm">No webhooks yet.</p>
+  } @else {
+    <div class="grid gap-3">
+      @for (w of items(); track w.id) {
+        <div class="rounded-card bg-surface-raised border border-line shadow-card p-4">
+          <div class="flex items-center gap-3">
+            <div class="flex-1 min-w-0">
+              <p class="font-mono text-sm text-content truncate">{{ w.url }}</p>
+              @if (w.description) { <p class="text-sm text-content-muted">{{ w.description }}</p> }
+            </div>
+            <mat-slide-toggle [checked]="w.is_active" [disabled]="busy() === w.id"
+                              (change)="toggleActive(w, $event.checked)" aria-label="Active"></mat-slide-toggle>
+          </div>
+          <div class="flex flex-wrap gap-1 mt-2">
+            @for (e of w.event_types; track e) { <span class="vs-chip text-xs">{{ e }}</span> }
+          </div>
+          <div class="flex items-center gap-1 mt-2">
+            <button mat-button [disabled]="busy() === w.id" (click)="sendTest(w)">
+              <mat-icon class="material-icons-outlined">bolt</mat-icon> Test
+            </button>
+            <button mat-button (click)="viewDeliveries(w)">
+              <mat-icon class="material-icons-outlined">receipt_long</mat-icon> Deliveries
+            </button>
+            <button mat-button class="ml-auto" [disabled]="busy() === w.id" (click)="remove(w)">
+              <mat-icon class="material-icons-outlined">delete</mat-icon> Delete
+            </button>
+          </div>
+
+          @if (deliveries()[w.id]; as ds) {
+            <div class="mt-2 border-t border-line pt-2 flex flex-col gap-1">
+              @for (d of ds; track d.id) {
+                <div class="flex items-center gap-2 text-sm">
+                  <span class="w-2 h-2 rounded-full"
+                        [class.bg-success]="d.status === 'success'"
+                        [class.bg-danger]="d.status !== 'success'"></span>
+                  <span class="text-content">{{ d.event_type }}</span>
+                  <span class="text-content-muted">{{ d.status_code ?? '—' }}</span>
+                  <span class="text-xs text-content-muted ml-auto">{{ d.created_at | date: 'dd/MM/yyyy, h:mm a' }}</span>
+                </div>
+              } @empty { <p class="text-sm text-content-muted">No deliveries yet.</p> }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

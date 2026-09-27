@@ -1,0 +1,181 @@
+<div class="mx-auto w-full">
+  <a routerLink="/app/clients" class="text-sm text-content-muted inline-flex items-center gap-1 mb-3">
+    <mat-icon class="material-icons-outlined text-base">arrow_back</mat-icon> Clients
+  </a>
+
+  @if (loading()) {
+    <p class="text-content-muted">Loading…</p>
+  } @else if (client(); as c) {
+    <header class="flex flex-wrap items-start justify-between gap-3 mb-4">
+      <div>
+        <div class="flex flex-wrap items-center gap-1.5 mb-1">
+          <span class="vs-chip">{{ c.kind === 'business' ? 'Business' : 'Individual' }}</span>
+          @if (c.client_code) { <span class="vs-chip font-mono">{{ c.client_code }}</span> }
+          @if (c.pan) { <span class="vs-chip font-mono">PAN {{ c.pan }}</span> }
+          @if (c.gstin) { <span class="vs-chip font-mono">GSTIN {{ c.gstin }}</span> }
+          <span class="vs-chip" [class.text-success]="c.kyc_status === 'verified'" [class.vs-chip-selected]="c.kyc_status === 'submitted'">
+            @switch (c.kyc_status) {
+              @case ('verified') { KYC verified {{ c.kyc_verified_at | date }} }
+              @case ('submitted') { KYC submitted — review below }
+              @case ('pending') { KYC form sent }
+              @default { KYC not started }
+            }
+          </span>
+          @if (c.status === 'inactive') { <span class="vs-chip text-warning">Inactive</span> }
+        </div>
+        <h1 class="vs-display text-2xl font-semibold text-content">{{ c.display_name }}</h1>
+        <p class="text-sm text-content-muted">
+          @if (c.email) { {{ c.email }} } @if (c.mobile) { · {{ c.mobile }} } @if (c.city) { · {{ c.city }}@if (c.state) {, {{ c.state }}} }
+          @if (c.consent_recorded_at) { · consent recorded {{ c.consent_recorded_at | date }} ({{ c.consent_source === 'kyc_form' ? 'by the client' : 'by staff' }}) }
+        </p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button mat-stroked-button (click)="showSend.set(!showSend())"><mat-icon class="material-icons-outlined">send</mat-icon> Send KYC form</button>
+        <button mat-flat-button color="primary" [disabled]="!dirty() || saving()" (click)="save()">{{ saving() ? 'Saving…' : 'Save changes' }}</button>
+        <button mat-icon-button title="Delete client" (click)="remove()"><mat-icon class="material-icons-outlined">delete</mat-icon></button>
+      </div>
+    </header>
+
+    <!-- Tax summary strip: what invoices will default to. -->
+    <section class="grid gap-3 sm:grid-cols-3 mb-5">
+      <div class="rounded-card bg-surface-raised border border-line p-3">
+        <div class="text-xs uppercase tracking-wide text-content-muted">GST</div>
+        <div class="font-medium">{{ c.gst_applicable ? ((c.gst_treatment || 'registered').replace('_', ' — ')) : 'Not applicable' }}</div>
+        @if (c.gst_applicable) { <div class="text-xs text-content-muted">{{ c.reverse_charge ? 'Reverse charge (client pays GST)' : 'Forward charge' }}@if (c.place_of_supply_code) { · POS {{ c.place_of_supply_code }} }</div> }
+      </div>
+      <div class="rounded-card bg-surface-raised border border-line p-3">
+        <div class="text-xs uppercase tracking-wide text-content-muted">TDS deducted by client</div>
+        <div class="font-medium">{{ c.tds_applicable ? ('Section ' + c.tds_section + ' @ ' + c.tds_rate + '%') : 'No' }}</div>
+        @if (c.tan) { <div class="text-xs text-content-muted font-mono">TAN {{ c.tan }}</div> }
+      </div>
+      <div class="rounded-card bg-surface-raised border border-line p-3">
+        <div class="text-xs uppercase tracking-wide text-content-muted">May be contacted by</div>
+        <div class="font-medium">{{ contactChannels(c) }}</div>
+      </div>
+    </section>
+
+    <!-- Client 360: legal work and money around the same master record. -->
+    <section class="grid gap-3 sm:grid-cols-3 mb-5">
+      <a class="rounded-card bg-surface-raised border border-line p-4 hover:border-brand" routerLink="/app/documents" [queryParams]="{ client_id: c.id, client_name: c.display_name, view: 'files' }"><p class="text-xs uppercase tracking-wide text-content-muted">Documents</p><p class="text-2xl font-semibold">{{ documents().length }}</p><span class="text-sm text-brand">Open client files →</span></a>
+      <a class="rounded-card bg-surface-raised border border-line p-4 hover:border-brand" routerLink="/app/billing"><p class="text-xs uppercase tracking-wide text-content-muted">Invoices</p><p class="text-2xl font-semibold">{{ invoices().length }}</p><span class="text-sm text-content-muted">₹{{ outstanding().toLocaleString('en-IN') }} outstanding</span></a>
+      <div class="rounded-card bg-surface-raised border border-line p-4"><p class="text-xs uppercase tracking-wide text-content-muted">Portal / KYC actions</p><p class="text-2xl font-semibold">{{ requests().length }}</p><span class="text-sm text-content-muted">{{ submittedRequest() ? 'KYC review waiting' : openRequest() ? 'KYC request pending' : 'No KYC action waiting' }}</span></div>
+    </section>
+
+    @if (errors().length || warnings().length) {
+      <section class="rounded-card border p-3 mb-5" [class]="errors().length ? 'border-danger/40 bg-danger/5' : 'border-warning/40 bg-warning/5'">
+        <p class="text-sm font-medium mb-1">{{ errors().length ? 'These details need attention' : 'Worth a look' }}</p>
+        <ul class="text-sm grid gap-0.5">
+          @for (i of errors(); track i.field + i.message) { <li><strong>{{ label(i.field) }}:</strong> {{ i.message }}</li> }
+          @for (i of warnings(); track i.field + i.message) { <li class="text-content-muted"><strong>{{ label(i.field) }}:</strong> {{ i.message }}</li> }
+        </ul>
+      </section>
+    }
+
+    <!-- ── Matters for this client ─────────────────────────────── -->
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-5">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+        <h2 class="font-semibold">Matters</h2>
+        <a mat-stroked-button routerLink="/app/matters" [queryParams]="{ client_id: c.id, client_name: c.display_name }">
+          <mat-icon class="material-icons-outlined">add</mat-icon> New matter for this client
+        </a>
+      </div>
+      @for (m of matters(); track m.id) {
+        <a [routerLink]="['/app/matters', m.id]" class="flex flex-wrap items-center gap-2 py-1.5 border-t border-line first:border-0 text-sm hover:text-brand">
+          <span class="font-mono text-xs text-content-muted">{{ m.matter_number }}</span>
+          <span class="flex-1 min-w-0 truncate">{{ m.cause_title || m.title }}</span>
+          <span class="vs-chip capitalize">{{ m.status.replace('_', ' ') }}</span>
+          <span class="text-xs text-content-muted">Lead: {{ m.lead_counsel_name || '—' }}</span>
+          @if (m.next_hearing_date) { <span class="text-xs text-content-muted">Next hearing {{ m.next_hearing_date | date }}</span> }
+        </a>
+      } @empty { <p class="text-sm text-content-muted">No matters linked to this client yet.</p> }
+    </section>
+
+    <!-- ── Send KYC ────────────────────────────────────────────── -->
+    @if (showSend()) {
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-5">
+        <h2 class="font-semibold mb-1">Send a KYC form</h2>
+        <p class="text-sm text-content-muted mb-3">The client gets a private link (no login) prefilled with what you have. What they submit comes back here for you to review and apply.</p>
+        <div class="grid gap-3 sm:grid-cols-3">
+          <label class="grid gap-1"><span class="text-sm text-content-muted">Send to email</span>
+            <input class="vs-input" type="email" [(ngModel)]="sendForm.send_to_email" placeholder="Leave blank to just get a link" /></label>
+          <label class="grid gap-1"><span class="text-sm text-content-muted">Link valid for (days)</span>
+            <input class="vs-input" type="number" min="1" max="90" [(ngModel)]="sendForm.expires_in_days" /></label>
+          <label class="grid gap-1 sm:col-span-3"><span class="text-sm text-content-muted">Message to the client (optional)</span>
+            <textarea class="vs-input" rows="2" [(ngModel)]="sendForm.message" placeholder="e.g. Please confirm your GST registration and the TDS section you deduct under."></textarea></label>
+        </div>
+        <div class="flex justify-end gap-2 mt-3">
+          <button mat-button (click)="showSend.set(false)">Cancel</button>
+          <button mat-flat-button color="primary" [disabled]="saving()" (click)="sendKyc()">{{ saving() ? 'Sending…' : 'Create link & send' }}</button>
+        </div>
+      </section>
+    }
+
+    <!-- ── KYC requests ────────────────────────────────────────── -->
+    @if (requests().length) {
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-5">
+        <h2 class="font-semibold mb-2">KYC forms</h2>
+        <ul class="grid gap-2 text-sm">
+          @for (r of requests(); track r.id) {
+            <li class="flex flex-wrap items-center gap-2 border-t border-line pt-2 first:border-0 first:pt-0">
+              <span class="vs-chip" [class.vs-chip-selected]="r.status === 'submitted'">{{ statusLabel(r.status) }}</span>
+              <span class="text-content-muted">sent {{ r.created_at | date: 'dd/MM/yyyy, h:mm a' }}@if (r.sent_to_email) { to {{ r.sent_to_email }} } · expires {{ r.expires_at | date }}</span>
+              @if (r.submitted_at) { <span class="text-content-muted">· submitted {{ r.submitted_at | date: 'dd/MM/yyyy, h:mm a' }}</span> }
+              @if (r.issues.length) { <span class="text-warning">· {{ r.issues.length }} finding{{ r.issues.length === 1 ? '' : 's' }}</span> }
+              <span class="ml-auto flex gap-1">
+                @if (r.url) { <button mat-button (click)="copyLink(r.url!)"><mat-icon class="material-icons-outlined">link</mat-icon> Copy link</button> }
+                @if (r.status === 'submitted') { <button mat-flat-button color="primary" (click)="openReview(r.id)">Review</button> }
+                @if (r.status === 'sent' || r.status === 'submitted') { <button mat-button (click)="cancelKyc(r)">Withdraw</button> }
+              </span>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    <!-- ── Review a submission ─────────────────────────────────── -->
+    @if (review(); as r) {
+      <section class="rounded-card bg-surface-raised border-2 border-brand/40 shadow-card p-4 mb-5">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <h2 class="font-semibold">What the client submitted</h2>
+          <span class="text-sm text-content-muted">{{ r.submitted_at | date: 'dd/MM/yyyy, h:mm a' }}</span>
+        </div>
+        @if (r.issues.length) {
+          <ul class="text-sm mb-3 grid gap-0.5">
+            @for (i of r.issues; track i.field + i.message) {
+              <li [class]="i.severity === 'error' ? 'text-danger' : 'text-warning'"><strong>{{ label(i.field) }}:</strong> {{ i.message }}</li>
+            }
+          </ul>
+        } @else if (r.status === 'submitted') {
+          <p class="text-sm text-success mb-3">All format and consistency checks passed.</p>
+        }
+        @if (r.changes.length) {
+          <table class="w-full text-sm">
+            <thead class="text-xs uppercase tracking-wide text-content-muted"><tr><th class="text-left py-1">Field</th><th class="text-left py-1">On record</th><th class="text-left py-1">Submitted</th></tr></thead>
+            <tbody>
+              @for (ch of r.changes; track ch.field) {
+                <tr class="border-t border-line"><td class="py-1.5 pr-3 text-content-muted">{{ label(ch.field) }}</td><td class="py-1.5 pr-3">{{ show(ch.current) }}</td><td class="py-1.5 font-medium">{{ show(ch.submitted) }}</td></tr>
+              }
+            </tbody>
+          </table>
+        } @else if (r.status === 'submitted') {
+          <p class="text-sm text-content-muted">Nothing differs from the record — the client confirmed the details as they are.</p>
+        }
+        @if (r.status === 'submitted') {
+          <div class="flex justify-end gap-2 mt-3">
+            <button mat-button (click)="review.set(null)">Close</button>
+            <button mat-flat-button color="primary" [disabled]="saving()" (click)="apply()">{{ saving() ? 'Applying…' : 'Apply & mark verified' }}</button>
+          </div>
+        }
+      </section>
+    }
+
+    <!-- ── Details ─────────────────────────────────────────────── -->
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-5">
+      <h2 class="font-semibold mb-4">Details</h2>
+      <vs-client-form [kind]="c.kind" [value]="c" [reference]="reference()" [issues]="c.issues" (changed)="onChange($event)" />
+      <div class="flex justify-end mt-5">
+        <button mat-flat-button color="primary" [disabled]="!dirty() || saving()" (click)="save()">{{ saving() ? 'Saving…' : 'Save changes' }}</button>
+      </div>
+    </section>
+  }
+</div>
