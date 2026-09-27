@@ -149,9 +149,12 @@ class User(TenantScopedBase):
     is_email_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
-    # MFA
+    # MFA. ``mfa_pending_secret`` holds a secret being enrolled; it only becomes
+    # ``mfa_secret`` once the user proves possession with a valid code, so a
+    # re-enrolment never breaks the authenticator that is currently in use.
     mfa_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     mfa_secret: Mapped[str | None] = mapped_column(EncryptedString(255), nullable=True)
+    mfa_pending_secret: Mapped[str | None] = mapped_column(EncryptedString(255), nullable=True)
 
     # Brute-force protection / account lockout
     failed_login_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
@@ -159,6 +162,29 @@ class User(TenantScopedBase):
         DateTime(timezone=True), nullable=True
     )
     last_login_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    # ── DPDP s.5/s.6 (privacy agent): which Terms/Privacy Notice version the
+    # user accepted at sign-up, and when. Compared with CURRENT_TERMS_VERSION
+    # so the SPA can re-prompt after a change.
+    terms_version: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    terms_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Admin-issued temporary credential: until changed, tokens are scoped to
+    # /auth/change-password (claim ``pmc``).
+    password_must_change: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, server_default=text("false")
+    )
+    # Bumped on every revocation event (role change, deactivation, password
+    # change/reset, revoke-all); access tokens carry it as ``ep`` and are
+    # denied when older than the Redis denylist entry (immediate revocation).
+    token_epoch: Mapped[int] = mapped_column(
+        Integer, default=0, nullable=False, server_default=text("0")
+    )
+    # Email verification (hashed single-use token; does not block sign-in).
+    email_verification_token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    email_verification_expires_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
 
@@ -263,6 +289,50 @@ class OAuthState(AuditedBase):
     nonce: Mapped[str] = mapped_column(String(64), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     consumed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+
+class OAuthIdentity(AuditedBase):
+    """A federated identity ``(provider, subject)`` linked to a user.
+
+    SSO matches on this first; the provider email is only used to *establish*
+    the link (once, and only when the provider says it is verified). Global
+    like ``oauth_states`` — the tenant is that of the linked user.
+    """
+
+    __tablename__ = "oauth_identities"
+    __table_args__ = (
+        UniqueConstraint("provider", "subject", name="uq_oauth_identity_provider_subject"),
+    )
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    provider: Mapped[str] = mapped_column(String(40), nullable=False)
+    subject: Mapped[str] = mapped_column(String(255), nullable=False)
+    email: Mapped[str | None] = mapped_column(String(320), nullable=True)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class TokenPurpose(StrEnum):
+    RESET = "reset"    # self-service "forgot password"
+    INVITE = "invite"  # admin-created account: set the first password
+
+
+class PasswordResetToken(AuditedBase):
+    """Single-use, hashed, expiring token that lets its holder set a password
+    (self-service reset or accepting an admin invitation). Global — the flow
+    starts before any tenant context exists."""
+
+    __tablename__ = "password_reset_tokens"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    token_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
+    purpose: Mapped[TokenPurpose] = mapped_column(String(12), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
 
 
 # ─── WebAuthn / passkeys ────────────────────────────────────────────

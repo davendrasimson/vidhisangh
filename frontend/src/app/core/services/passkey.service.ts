@@ -68,7 +68,7 @@ export class PasskeyService {
     const assertion = (await navigator.credentials.get({ publicKey })) as PublicKeyCredential;
     const response = this.serializeAssertion(assertion);
     const pair = await firstValueFrom(
-      this.http.post<TokenPair>(`${this.api}/authenticate/finish`, { response }),
+      this.http.post<TokenPair>(`${this.api}/authenticate/finish`, { response }, { withCredentials: true }),
     );
     this.tokens.setSession(pair);
     return pair;

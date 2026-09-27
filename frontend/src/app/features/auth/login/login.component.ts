@@ -14,6 +14,11 @@ import { ApiProblem, SsoProvider } from '@core/models/auth.models';
 
 export const SSO_PROVIDER_KEY = 'vs_sso_provider';
 
+/** In-app paths only: must start with "/" (not "//"), no backslash, no scheme (A-33). */
+export function safeReturnUrl(raw: string | null): string {
+  return raw && raw.startsWith('/') && !raw.startsWith('//') && !raw.includes('\\') && !raw.includes(':') ? raw : '/app/dashboard';
+}
+
 @Component({
   selector: 'app-login',
   standalone: true,
@@ -34,6 +39,11 @@ export class LoginComponent implements OnInit {
   protected readonly submitting = signal(false);
   protected readonly mfaRequired = signal(false);
   protected readonly errorMsg = signal<string | null>(null);
+  protected readonly infoMsg = signal<string | null>(
+    this.route.snapshot.queryParamMap.get('changed') === '1'
+      ? 'Your password was changed. Sign in again with the new one.'
+      : null,
+  );
   protected hidePassword = signal(true);
   protected readonly ssoProviders = signal<SsoProvider[]>([]);
   protected readonly passkeySupported = PasskeyService.supported();
@@ -57,7 +67,7 @@ export class LoginComponent implements OnInit {
     try {
       await this.passkeys.authenticate(email);
       await firstValueFrom(this.auth.loadCurrentUser());
-      const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/app/dashboard';
+      const returnUrl = safeReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl'));
       await this.router.navigateByUrl(returnUrl);
     } catch (err) {
       const problem = (err as HttpErrorResponse)?.error as ApiProblem | undefined;
@@ -94,11 +104,16 @@ export class LoginComponent implements OnInit {
 
     try {
       const { email, password, mfa_code } = this.form.getRawValue();
-      await firstValueFrom(
+      const pair = await firstValueFrom(
         this.auth.login({ email, password, mfa_code: mfa_code || null }),
       );
+      // A temporary (admin-issued) password can do nothing but be replaced.
+      if (pair.password_must_change || this.auth.mustChangePassword()) {
+        await this.router.navigateByUrl('/auth/change-password');
+        return;
+      }
       await firstValueFrom(this.auth.loadCurrentUser());
-      const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/app/dashboard';
+      const returnUrl = safeReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl'));
       await this.router.navigateByUrl(returnUrl);
     } catch (err) {
       this.handleError(err as HttpErrorResponse);

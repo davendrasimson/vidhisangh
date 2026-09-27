@@ -18,6 +18,8 @@ spec:
         {{- include "vidhisangh.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: worker
     spec:
+      serviceAccountName: {{ include "vidhisangh.worker.fullname" . }}
+      automountServiceAccountToken: false
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}

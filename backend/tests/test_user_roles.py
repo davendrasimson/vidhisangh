@@ -42,12 +42,18 @@ async def test_invite_and_role_assignment(client: AsyncClient, strong_password: 
         json={"email": "junior@roles.co", "full_name": "Junior Advocate", "role_codes": ["associate"]},
     )
     assert created.status_code == 201, created.text
-    temp = created.json()["temporary_password"]
+    # The admin gets an invitation link and the invitee chooses their own
+    # password (audit A-24b; the temporary password is off by default in prod).
+    invite_token = created.json()["invitation_url"].rsplit("/", 1)[-1].split("?", 1)[0]
     new_id = created.json()["user"]["id"]
     assert [r["code"] for r in created.json()["user"]["roles"]] == ["associate"]
 
-    # The new user can sign in with the temporary password.
-    login = await client.post(f"{API}/auth/login", json={"email": "junior@roles.co", "password": temp})
+    accepted = await client.post(
+        f"{API}/auth/reset-password", json={"token": invite_token, "new_password": strong_password}
+    )
+    assert accepted.status_code == 204, accepted.text
+    # The new user can sign in with the password they chose.
+    login = await client.post(f"{API}/auth/login", json={"email": "junior@roles.co", "password": strong_password})
     assert login.status_code == 200, login.text
     junior_h = {"Authorization": f"Bearer {login.json()['access_token']}"}
     # …but as an associate cannot manage roles.

@@ -5,15 +5,17 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Response, status
 
-from app.core.deps import CurrentUserDep, TenantSessionDep
+from app.core.deps import CurrentUserDep, TenantSessionDep, require_flag, require_permission
 from app.core.pagination import PageParams, page_params
 from app.modules.news.models import NewsCategory
 from app.modules.news.schemas import NewsItemCreate, NewsItemRead
 from app.modules.news.service import NewsService
 
-router = APIRouter(prefix="/news", tags=["Legal News"])
+# Reads: any authenticated user of a tenant with the ``legal_news`` flag on.
+# Writes: ``news:curate`` only (the feed is shared across every tenant — A-5).
+router = APIRouter(prefix="/news", tags=["Legal News"], dependencies=[require_flag("legal_news")])
 
 Pagination = Annotated[PageParams, Depends(page_params)]
 
@@ -41,7 +43,8 @@ async def list_news(
     "",
     response_model=NewsItemRead,
     status_code=status.HTTP_201_CREATED,
-    summary="Add a news item to the feed",
+    summary="Add a news item to the feed (curators)",
+    dependencies=[require_permission("news:curate")],
 )
 async def create_news(
     data: NewsItemCreate, current: CurrentUserDep, session: TenantSessionDep
@@ -56,3 +59,16 @@ async def get_news(
 ) -> NewsItemRead:
     item = await _svc(current, session).get(item_id)
     return NewsItemRead.model_validate(item)
+
+
+@router.delete(
+    "/{item_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Remove a news item from the feed (curators)",
+    dependencies=[require_permission("news:curate")],
+)
+async def delete_news(
+    item_id: uuid.UUID, current: CurrentUserDep, session: TenantSessionDep
+) -> Response:
+    await _svc(current, session).delete(item_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

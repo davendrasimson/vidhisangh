@@ -30,6 +30,12 @@ async def _user(client: AsyncClient, org: str, email: str, pw: str) -> tuple[dic
     return headers, me
 
 
+async def _discoverable(client: AsyncClient, headers: dict) -> None:
+    """Opt in to the people directory (new identities are hidden — audit P-10)."""
+    resp = await client.patch("/api/v1/network/me/visibility", headers=headers, json={"discoverable": True})
+    assert resp.status_code == 200, resp.text
+
+
 async def test_post_appears_in_feed(client: AsyncClient, strong_password: str) -> None:
     headers, _ = await _user(client, "Firm A", "asha@firma.co", strong_password)
     create = await client.post(
@@ -49,7 +55,8 @@ async def test_post_appears_in_feed(client: AsyncClient, strong_password: str) -
 
 async def test_directory_is_cross_tenant(client: AsyncClient, strong_password: str) -> None:
     h1, me1 = await _user(client, "Firm A", "a1@firma.co", strong_password)
-    _h2, me2 = await _user(client, "Firm B", "b1@firmb.co", strong_password)
+    h2, me2 = await _user(client, "Firm B", "b1@firmb.co", strong_password)
+    await _discoverable(client, h2)
 
     # User 1 (tenant A) can discover user 2 (tenant B) in the global directory.
     directory = await client.get("/api/v1/network/directory", headers=h1)
@@ -121,7 +128,8 @@ async def test_react_and_comment(client: AsyncClient, strong_password: str) -> N
 
 async def test_follow_and_unfollow(client: AsyncClient, strong_password: str) -> None:
     h1, _ = await _user(client, "Firm A", "follower@firma.co", strong_password)
-    _h2, me2 = await _user(client, "Firm B", "followee@firmb.co", strong_password)
+    h2, me2 = await _user(client, "Firm B", "followee@firmb.co", strong_password)
+    await _discoverable(client, h2)
 
     assert (await client.put(f"/api/v1/network/follow/{me2['id']}", headers=h1)).status_code == 204
     directory = await client.get("/api/v1/network/directory", headers=h1)
@@ -234,7 +242,8 @@ async def test_trending_hashtags(client: AsyncClient, strong_password: str) -> N
 
 async def test_public_profile_cross_tenant(client: AsyncClient, strong_password: str) -> None:
     h1, me1 = await _user(client, "Firm A", "pp1@firma.co", strong_password)
-    _h2, me2 = await _user(client, "Firm B", "pp2@firmb.co", strong_password)
+    h2, me2 = await _user(client, "Firm B", "pp2@firmb.co", strong_password)
+    await _discoverable(client, h2)
 
     # User 1 (tenant A) can view user 2's (tenant B) public profile.
     other = await client.get(f"/api/v1/network/people/{me2['id']}", headers=h1)

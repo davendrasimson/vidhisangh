@@ -8,9 +8,10 @@ isolated by row-level security.
 
 from __future__ import annotations
 
+from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import JSON, String
+from sqlalchemy import JSON, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base_class import AuditedBase
@@ -58,6 +59,10 @@ class Tenant(AuditedBase):
     primary_contact_email: Mapped[str | None] = mapped_column(String(320), nullable=True)
     # Free-form per-tenant configuration (feature flags, branding, limits).
     settings: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    # Offboarding (DPDP s.8(7)): when the owner cancelled, and when the
+    # retention job may cascade-delete everything the tenant holds.
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    erase_after: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
 
     def __repr__(self) -> str:  # pragma: no cover - debug aid
         return f"<Tenant {self.slug} ({self.status})>"

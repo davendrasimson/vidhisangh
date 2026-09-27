@@ -31,7 +31,7 @@ export class UsersComponent implements OnInit {
   protected readonly showInvite = signal(false);
   protected readonly inviting = signal(false);
   protected invite = this.blankInvite();
-  protected readonly tempPassword = signal<{ email: string; password: string } | null>(null);
+  protected readonly tempPassword = signal<{ email: string; password: string | null; link: string | null } | null>(null);
 
   // Per-user role editing.
   protected readonly editingId = signal<string | null>(null);
@@ -78,7 +78,7 @@ export class UsersComponent implements OnInit {
           role_codes: this.invite.role_codes,
         }),
       );
-      this.tempPassword.set({ email: created.user.email, password: created.temporary_password });
+      this.tempPassword.set({ email: created.user.email, password: created.temporary_password ?? null, link: created.invitation_url ?? null });
       this.invite = this.blankInvite();
       this.showInvite.set(false);
       await this.loadUsers();

@@ -22,6 +22,7 @@
             }
           </span>
           @if (c.status === 'inactive') { <span class="vs-chip text-warning">Inactive</span> }
+          @if (c.is_minor) { <span class="vs-chip text-warning" [title]="c.guardian_consent_recorded_at ? 'Guardian consent recorded ' + (c.guardian_consent_recorded_at | date) : 'Guardian consent NOT yet recorded'">Minor{{ c.guardian_consent_recorded_at ? ' · guardian consent ✓' : ' · guardian consent missing' }}</span> }
         </div>
         <h1 class="vs-display text-2xl font-semibold text-content">{{ c.display_name }}</h1>
         <p class="text-sm text-content-muted">
@@ -32,7 +33,9 @@
       <div class="flex flex-wrap gap-2">
         <button mat-stroked-button (click)="showSend.set(!showSend())"><mat-icon class="material-icons-outlined">send</mat-icon> Send KYC form</button>
         <button mat-flat-button color="primary" [disabled]="!dirty() || saving()" (click)="save()">{{ saving() ? 'Saving…' : 'Save changes' }}</button>
-        <button mat-icon-button title="Delete client" (click)="remove()"><mat-icon class="material-icons-outlined">delete</mat-icon></button>
+        <button mat-icon-button title="Export this client's data (JSON, DPDP s.11)" (click)="exportData()"><mat-icon class="material-icons-outlined">download</mat-icon></button>
+        <button mat-icon-button title="Delete client (kept for the retention period)" (click)="remove()"><mat-icon class="material-icons-outlined">delete</mat-icon></button>
+        <button mat-icon-button title="Erase permanently (DPDP s.12 — checks legal hold)" class="!text-danger" (click)="erase()"><mat-icon class="material-icons-outlined">delete_forever</mat-icon></button>
       </div>
     </header>
 
@@ -48,11 +51,48 @@
         <div class="font-medium">{{ c.tds_applicable ? ('Section ' + c.tds_section + ' @ ' + c.tds_rate + '%') : 'No' }}</div>
         @if (c.tan) { <div class="text-xs text-content-muted font-mono">TAN {{ c.tan }}</div> }
       </div>
-      <div class="rounded-card bg-surface-raised border border-line p-3">
+      <button type="button" class="rounded-card bg-surface-raised border border-line p-3 text-left hover:border-brand" (click)="showConsents.set(!showConsents())">
         <div class="text-xs uppercase tracking-wide text-content-muted">May be contacted by</div>
         <div class="font-medium">{{ contactChannels(c) }}</div>
-      </div>
+        <div class="text-xs text-brand mt-1">{{ consents().length }} consent event{{ consents().length === 1 ? '' : 's' }} · {{ showConsents() ? 'hide' : 'view / record' }}</div>
+      </button>
     </section>
+
+    <!-- ── Consent ledger (append-only; DPDP s.6) ────────────────── -->
+    @if (showConsents()) {
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-5">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <h2 class="font-semibold">Consent record</h2>
+          <span class="text-xs text-content-muted">Every grant and withdrawal is kept; the contact flags follow the latest event per purpose.</span>
+        </div>
+        <div class="grid gap-2 sm:grid-cols-[1fr_auto_1fr_auto] items-end mb-3">
+          <label class="grid gap-1"><span class="text-sm text-content-muted">Purpose</span>
+            <select class="vs-input" [(ngModel)]="consentForm.purpose">
+              @for (p of purposes; track p) { <option [value]="p">{{ purposeLabels[p] }}</option> }
+            </select></label>
+          <label class="grid gap-1"><span class="text-sm text-content-muted">Decision</span>
+            <select class="vs-input" [ngModel]="consentForm.granted ? 'yes' : 'no'" (ngModelChange)="consentForm.granted = $event === 'yes'">
+              <option value="yes">Granted</option><option value="no">Withdrawn / refused</option>
+            </select></label>
+          <label class="grid gap-1"><span class="text-sm text-content-muted">Note (how it was given)</span>
+            <input class="vs-input" [(ngModel)]="consentForm.note" placeholder="e.g. signed engagement letter dated 12/09/2026" /></label>
+          <button mat-flat-button color="primary" [disabled]="saving()" (click)="recordConsent()">Record</button>
+        </div>
+        @if (c.is_minor && !c.guardian_consent_recorded_at) {
+          <p class="text-sm text-warning mb-2">This client is a minor: record “Parent's / guardian's consent” before sending a KYC form.</p>
+        }
+        <ul class="grid gap-1 text-sm">
+          @for (e of consents(); track e.id) {
+            <li class="flex flex-wrap items-center gap-2 border-t border-line pt-1.5 first:border-0 first:pt-0">
+              <span class="vs-chip" [class.text-success]="e.granted" [class.text-danger]="!e.granted">{{ e.granted ? 'Granted' : 'Withdrawn' }}</span>
+              <span class="font-medium">{{ purposeLabels[e.purpose] || e.purpose }}</span>
+              <span class="text-content-muted">{{ e.recorded_at | date: 'dd/MM/yyyy, h:mm a' }} · {{ sourceLabel(e.source) }}@if (e.notice_version) { · notice {{ e.notice_version }} }</span>
+              @if (e.note) { <span class="text-content-muted">· {{ e.note }}</span> }
+            </li>
+          } @empty { <li class="text-content-muted">No consent recorded yet.</li> }
+        </ul>
+      </section>
+    }
 
     <!-- Client 360: legal work and money around the same master record. -->
     <section class="grid gap-3 sm:grid-cols-3 mb-5">

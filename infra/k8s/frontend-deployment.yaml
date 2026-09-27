@@ -25,6 +25,8 @@ spec:
         app.kubernetes.io/component: frontend
         app.kubernetes.io/part-of: vidhisangh
     spec:
+      serviceAccountName: vidhisangh-frontend
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 101          # nginx user in nginx:1.27-alpine
@@ -33,8 +35,9 @@ spec:
           type: RuntimeDefault
       containers:
         - name: frontend
-          image: ghcr.io/vidhisangh/frontend:0.1.0
-          imagePullPolicy: IfNotPresent
+          # Pin by digest in CD: ghcr.io/vidhisangh/frontend@sha256:<digest-from-build>
+          image: ghcr.io/vidhisangh/frontend:0.1.0@sha256:REPLACE_WITH_IMAGE_DIGEST
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8080
@@ -63,10 +66,12 @@ spec:
               memory: "128Mi"
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
-          # nginx needs to write its cache + pid; provide writable scratch dirs.
+          # Root filesystem is read-only; the image redirects every nginx write
+          # (pid, temp, cache) to /tmp, so these are the only writable mounts.
           volumeMounts:
             - name: nginx-cache
               mountPath: /var/cache/nginx

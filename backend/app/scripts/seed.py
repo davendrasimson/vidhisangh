@@ -22,6 +22,7 @@ from app.modules.identity.rbac import (
     PERMISSIONS,
     SYSTEM_ROLES,
     WILDCARD,
+    expand_permissions,
 )
 
 log = structlog.get_logger("app.seed")
@@ -80,12 +81,24 @@ async def seed() -> None:
                     rdef.description,
                     True,
                 )
+            # Assigning the full list every run adds any code the catalog gained
+            # since the last seed (e.g. the CRUD codes implied by ``X:manage``).
             codes = (
                 ALL_PERMISSION_CODES
                 if rdef.permissions == [WILDCARD]
                 else rdef.permissions
             )
             role.permissions = [existing_perms[c] for c in codes if c in existing_perms]
+
+        # ── Tenant custom roles: ``X:manage`` ⊇ CRUD there too ──────
+        custom_roles = (
+            await session.execute(select(Role).where(Role.tenant_id.is_not(None)))
+        ).scalars().all()
+        for role in custom_roles:
+            have = [p.code for p in role.permissions]
+            want = expand_permissions(have)
+            if want != have:
+                role.permissions = [existing_perms[c] for c in want if c in existing_perms]
 
         log.info(
             "seed_complete",

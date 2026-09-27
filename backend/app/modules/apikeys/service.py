@@ -1,11 +1,18 @@
-"""API-key service: issuance, listing, revocation, and authentication."""
+"""API-key service: issuance, listing, revocation, and authentication.
+
+A key acts *as its creator* with a subset of the creator's permissions. That
+relationship is re-validated on every use (audit A-19): a key dies with its
+creator (deactivated, deleted, moved tenant) and can never grant a scope the
+creator no longer holds — the stored scopes are intersected with the creator's
+current permission codes at authentication time.
+"""
 
 from __future__ import annotations
 
 import hashlib
 import secrets
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,10 +20,12 @@ from app.core.exceptions import AuthenticationError, NotFoundError, ValidationEr
 from app.modules.apikeys.models import ApiKey
 from app.modules.apikeys.repository import ApiKeyRepository
 from app.modules.identity.rbac import ALL_PERMISSION_CODES
+from app.modules.identity.repository import UserRepository
 from app.modules.identity.schemas import CurrentUser
 
 _KEY_PREFIX = "vsk_"
 _PREFIX_DISPLAY_LEN = 12
+MAX_KEY_LIFETIME_DAYS = 365
 
 
 def hash_key(raw: str) -> str:
@@ -31,19 +40,30 @@ def _as_utc(dt: datetime) -> datetime:
 async def authenticate_api_key(session: AsyncSession, raw_token: str) -> CurrentUser:
     """Resolve an ``vsk_`` bearer token to a principal, or raise. Runs on a
     bypass-RLS session (pre-tenant). The principal acts AS the key's creator but
-    with only the key's scopes."""
+    with only the key's scopes ∩ the creator's *current* permissions."""
     key = await ApiKeyRepository(session).get_by_hash(hash_key(raw_token))
     if key is None or key.revoked:
         raise AuthenticationError("Invalid API key.")
     if key.expires_at is not None and _as_utc(key.expires_at) < datetime.now(UTC):
         raise AuthenticationError("This API key has expired.")
+    creator = await UserRepository(session).get_by_id_global(key.created_by)
+    if (
+        creator is None
+        or not creator.is_active
+        or creator.deleted_at is not None
+        or creator.tenant_id != key.tenant_id
+    ):
+        raise AuthenticationError("This API key is no longer valid (its owner cannot sign in).")
+    allowed = set(ALL_PERMISSION_CODES) if creator.is_superuser else creator.permission_codes
+    scopes = [s for s in (key.scopes or []) if s in allowed]
     key.last_used_at = datetime.now(UTC)
     return CurrentUser(
         id=key.created_by,
         tenant_id=key.tenant_id,
         email=f"apikey:{key.name}",
         is_superuser=False,
-        scopes=list(key.scopes or []),
+        scopes=scopes,
+        token_epoch=creator.token_epoch or 0,
     )
 
 
@@ -72,6 +92,14 @@ class ApiKeyService:
             raise ValidationError(
                 f"You cannot grant scope(s) you don't hold: {', '.join(forbidden)}"
             )
+        if expires_at is None:
+            raise ValidationError("An expiry date is required for API keys.")
+        now = datetime.now(UTC)
+        expires_at = _as_utc(expires_at)
+        if expires_at <= now:
+            raise ValidationError("The expiry date must be in the future.")
+        if expires_at > now + timedelta(days=MAX_KEY_LIFETIME_DAYS):
+            raise ValidationError(f"API keys may live at most {MAX_KEY_LIFETIME_DAYS} days.")
         raw = _KEY_PREFIX + secrets.token_urlsafe(32)
         key = ApiKey(
             tenant_id=self.tenant_id,

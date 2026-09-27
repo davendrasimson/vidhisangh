@@ -326,6 +326,10 @@ class MatterParty(TenantScopedBase):
     )
     # Order as printed in the cause title (Respondent No. 2, etc.).
     position: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # DPDP s.4/s.7: the basis on which a non-client's details are held. Parties
+    # to litigation are recorded under the legitimate-use limb by default.
+    lawful_basis: Mapped[str] = mapped_column(String(20), nullable=False, default="legitimate_use")
+    basis_note: Mapped[str | None] = mapped_column(String(300), nullable=True)
 
     matter: Mapped[Matter] = relationship(back_populates="parties")
 

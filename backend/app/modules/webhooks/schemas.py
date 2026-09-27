@@ -20,6 +20,7 @@ class WebhookCreate(BaseModel):
 
 
 class WebhookUpdate(BaseModel):
+    url: HttpUrl | None = None
     description: str | None = Field(default=None, max_length=200)
     event_types: list[str] | None = Field(default=None, max_length=50)
     is_active: bool | None = None
@@ -32,6 +33,8 @@ class WebhookRead(BaseModel):
     description: str | None
     event_types: list[str]
     is_active: bool
+    consecutive_failures: int = 0
+    auto_disabled_at: datetime | None = None
     created_at: datetime
 
 
@@ -46,5 +49,5 @@ class DeliveryRead(BaseModel):
     event_type: str
     status: str
     status_code: int | None
-    detail: str | None
+    detail: str | None  # fixed reason only; never the receiver's response body
     created_at: datetime

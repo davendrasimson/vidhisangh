@@ -237,5 +237,17 @@ class DocumentService:
         return document
 
     async def delete_document(self, document_id: uuid.UUID) -> None:
+        """Soft-delete the row and remove every version's bytes from storage.
+
+        The bytes go first: a document whose row is gone but whose content is
+        still on disk / in the bucket is the data-retention failure the audit
+        flagged (A-13). Storage deletes are idempotent, so a retry after a
+        partial failure is safe; the row is only marked deleted once every
+        version's bytes are gone, so a failed delete stays visible and can be
+        retried rather than silently leaving orphans behind.
+        """
         document = await self._require_document(document_id)
-        document.deleted_at = datetime.now(UTC)  # bytes are GC'd by a storage sweep (follow-up)
+        versions = await self.repo.list_versions(self.tenant_id, document_id)
+        for version in versions:
+            await self.storage.delete(version.storage_key)
+        document.deleted_at = datetime.now(UTC)

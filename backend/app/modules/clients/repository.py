@@ -7,6 +7,8 @@ import uuid
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.crypto import BlindIndex
+from app.core.db_utils import LIKE_ESCAPE, contains
 from app.modules.clients.models import Client, ClientKind, ClientKycRequest, ClientStatus
 
 
@@ -45,15 +47,31 @@ class ClientRepository:
         if status is not None:
             stmt = stmt.where(Client.status == status)
         if q:
-            like = f"%{q}%"
+            like = contains(q)
+            # Substring search only on plaintext columns; the encrypted
+            # identifiers (PAN, GSTIN) and email match exactly via blind index.
             stmt = stmt.where(
                 or_(
-                    Client.display_name.ilike(like), Client.legal_name.ilike(like),
-                    Client.email.ilike(like), Client.mobile.ilike(like), Client.pan.ilike(like),
-                    Client.gstin.ilike(like), Client.client_code.ilike(like), Client.city.ilike(like),
+                    Client.display_name.ilike(like, escape=LIKE_ESCAPE),
+                    Client.legal_name.ilike(like, escape=LIKE_ESCAPE),
+                    Client.email.ilike(like, escape=LIKE_ESCAPE),
+                    Client.client_code.ilike(like, escape=LIKE_ESCAPE),
+                    Client.city.ilike(like, escape=LIKE_ESCAPE),
+                    Client.pan_bidx == BlindIndex.pan(q),
+                    Client.gstin_bidx == BlindIndex.gstin(q),
+                    Client.email_bidx == BlindIndex.email(q),
                 )
             )
         return list((await self.session.execute(stmt)).scalars().all())
+
+    async def find_by_pan(self, tenant_id: uuid.UUID, pan: str) -> Client | None:
+        res = await self.session.execute(
+            select(Client).where(
+                Client.tenant_id == tenant_id, Client.deleted_at.is_(None),
+                Client.pan_bidx == BlindIndex.pan(pan),
+            ).limit(1)
+        )
+        return res.scalar_one_or_none()
 
     # ── KYC requests ──────────────────────────────────────────────
     async def kyc_requests(self, tenant_id: uuid.UUID, client_id: uuid.UUID) -> list[ClientKycRequest]:
@@ -76,9 +94,11 @@ class ClientRepository:
         )
         return res.scalar_one_or_none()
 
-    async def kyc_by_token(self, token: str) -> ClientKycRequest | None:
-        """Public lookup — runs on a bypass-RLS session; the token is the credential."""
-        res = await self.session.execute(select(ClientKycRequest).where(ClientKycRequest.token == token))
+    async def kyc_by_token_hash(self, token_hash: str) -> ClientKycRequest | None:
+        """Public lookup — runs on a bypass-RLS session; the (hashed) token is the credential."""
+        res = await self.session.execute(
+            select(ClientKycRequest).where(ClientKycRequest.token_hash == token_hash)
+        )
         return res.scalar_one_or_none()
 
     async def client_any_tenant(self, client_id: uuid.UUID) -> Client | None:

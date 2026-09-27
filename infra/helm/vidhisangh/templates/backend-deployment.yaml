@@ -29,6 +29,8 @@ spec:
         prometheus.io/path: "/metrics"
         prometheus.io/port: {{ .Values.backend.containerPort | quote }}
     spec:
+      serviceAccountName: {{ include "vidhisangh.backend.fullname" . }}
+      automountServiceAccountToken: false
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}

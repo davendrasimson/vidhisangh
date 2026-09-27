@@ -10,6 +10,7 @@ import pytest
 from httpx import AsyncClient
 
 from app.core.webhook_transport import RecordingTransport
+from app.modules.webhooks.service import dispatcher, verify_signature
 
 pytestmark = pytest.mark.asyncio
 
@@ -59,21 +60,28 @@ async def test_register_test_and_fanout(
     assert test.json()["event_type"] == "ping" and test.json()["status"] == "success"
     assert test.json()["status_code"] == 200
 
-    # The transport received a correctly HMAC-signed body.
+    # The transport received a timestamped ``t=…,v1=…`` signature over
+    # ``"{t}.{body}"`` plus the body-only legacy header (kept for one release).
     call = webhook_transport.calls[-1]
-    expected = hmac.new(secret.encode(), call["body"], hashlib.sha256).hexdigest()
-    assert call["headers"]["X-VidhiSangh-Signature"] == expected
+    assert verify_signature(secret, call["headers"]["X-VidhiSangh-Signature"], call["body"])
+    legacy = hmac.new(secret.encode(), call["body"], hashlib.sha256).hexdigest()
+    assert call["headers"]["X-VidhiSangh-Signature-Legacy"] == legacy
     assert json.loads(call["body"])["event"] == "ping"
 
-    # Creating a matter fans out a matter.created delivery to the subscribed hook.
+    # Creating a matter queues a matter.created delivery for the subscribed hook;
+    # it is delivered off the request path (drain = the background worker).
     await client.post(f"{API}/matters", headers=h, json={"title": "New Matter", "client_name": "C"})
+    assert dispatcher.pending == 1
+    await dispatcher.drain()
     deliveries = (await client.get(f"{API}/webhooks/{wid}/deliveries", headers=h)).json()
     kinds = [d["event_type"] for d in deliveries]
     assert "matter.created" in kinds and "ping" in kinds
+    assert all(d["detail"] == "delivered" or d["detail"].startswith("delivered (attempt") for d in deliveries)
 
     # Deactivating stops fan-out.
     await client.patch(f"{API}/webhooks/{wid}", headers=h, json={"is_active": False})
     await client.post(f"{API}/matters", headers=h, json={"title": "Another Matter", "client_name": "C"})
+    await dispatcher.drain()
     after = (await client.get(f"{API}/webhooks/{wid}/deliveries", headers=h)).json()
     assert [d["event_type"] for d in after].count("matter.created") == 1
 

@@ -1,21 +1,36 @@
 """WebSocket endpoint for real-time messaging (delivery, presence, typing).
 
 Messages are still *sent* over REST (validated, persisted); this socket only
-*delivers* them live, plus presence and typing signals. Authenticated via the
-JWT access token passed as a ``?token=`` query parameter (browsers can't set
-Authorization headers on a WebSocket handshake).
+*delivers* them live, plus presence and typing signals.
+
+Authentication (audit A-26): the client first calls ``POST /auth/ws-ticket``
+and connects with ``?ticket=`` — a 60-second, single-use opaque ticket, so the
+long-lived access token never appears in a URL or an access log. ``?token=``
+(the access token itself) is still accepted for one release with a deprecation
+warning. Before accepting, the handshake is throttled per IP and the user is
+checked to be active and not on the revocation denylist.
 """
 
 from __future__ import annotations
 
 import uuid
 
+import structlog
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
+from app.core import deps
 from app.core.database import session_scope
+from app.core.deps import client_ip
+from app.core.exceptions import RateLimitError
+from app.core.ratelimit import ws_handshake_rate_limit
+from app.core.revocation import revoked_epoch
 from app.core.security import TokenType, decode_token
+from app.core.ws_tickets import redeem_ws_ticket
+from app.modules.identity.repository import UserRepository
 from app.modules.messaging.realtime import manager
 from app.modules.messaging.repository import ConversationRepository
+
+log = structlog.get_logger("app.ws")
 
 ws_router = APIRouter()
 
@@ -49,15 +64,67 @@ async def _co_participants(
         return [uid for uid in members if uid != user_id]
 
 
-@ws_router.websocket("/ws")
-async def messaging_ws(websocket: WebSocket, token: str = Query(...)) -> None:
+async def _user_may_connect(user_id: uuid.UUID, tenant: str | None, token_epoch: int) -> bool:
+    """Active account, and not revoked since the ticket/token was minted."""
+    stored = await revoked_epoch(user_id)
+    if stored is not None and token_epoch < stored:
+        return False
+    # Short pre-tenant lookup (same seam API-key auth uses; the test suite
+    # points it at SQLite). The tenant claim must match the account's tenant.
+    async with deps.bypass_session_scope() as session:
+        user = await UserRepository(session).get_by_id_global(user_id)
+        if user is None or not user.is_active:
+            return False
+        return tenant is None or str(user.tenant_id) == tenant
+
+
+async def authenticate_handshake(
+    websocket: WebSocket, *, ticket: str | None, token: str | None
+) -> dict | None:
+    """Resolve the handshake credential to claims, or ``None`` when rejected."""
+    payload: dict | None = None
+    if ticket:
+        payload = await redeem_ws_ticket(ticket)
+    elif token:
+        log.warning(
+            "ws_token_query_deprecated",
+            detail="?token= on the WebSocket URL is deprecated; use POST /auth/ws-ticket and ?ticket=",
+        )
+        try:
+            payload = decode_token(token, expected_type=TokenType.ACCESS)
+        except Exception:  # noqa: BLE001
+            payload = None
+    if not payload or not payload.get("sub"):
+        return None
     try:
-        payload = decode_token(token, expected_type=TokenType.ACCESS)
-    except Exception:
+        user_id = uuid.UUID(str(payload["sub"]))
+    except ValueError:
+        return None
+    if not await _user_may_connect(user_id, _tenant(payload), int(payload.get("ep", 0) or 0)):
+        return None
+    return payload
+
+
+@ws_router.websocket("/ws")
+async def messaging_ws(
+    websocket: WebSocket,
+    ticket: str | None = Query(default=None),
+    token: str | None = Query(default=None),
+) -> None:
+    try:
+        await ws_handshake_rate_limit.check(client_ip(websocket))
+    except RateLimitError:
+        await websocket.close(code=4429)
+        return
+    except Exception:  # noqa: BLE001 - limiter outage never blocks a socket (fail-open scope)
+        pass
+
+    payload = await authenticate_handshake(websocket, ticket=ticket, token=token)
+    if payload is None:
         await websocket.close(code=4401)
         return
 
-    user_id = uuid.UUID(payload["sub"])
+    user_id = uuid.UUID(str(payload["sub"]))
     tenant = _tenant(payload)
     await websocket.accept()
     became_online = manager.add(user_id, websocket)

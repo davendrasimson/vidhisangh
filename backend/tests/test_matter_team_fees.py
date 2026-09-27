@@ -34,7 +34,11 @@ async def _colleague(client: AsyncClient, h: dict, name: str, email: str, pw: st
     assert resp.status_code == 201, resp.text
     body = resp.json()
     user = body["user"]
-    user["_password"] = body["temporary_password"]
+    # Accept the invitation link (no temporary password since the 2026-09 hardening).
+    invite_token = body["invitation_url"].rsplit("/", 1)[-1].split("?", 1)[0]
+    accepted = await client.post(f"{API}/auth/reset-password", json={"token": invite_token, "new_password": pw})
+    assert accepted.status_code == 204, accepted.text
+    user["_password"] = pw
     return user
 
 

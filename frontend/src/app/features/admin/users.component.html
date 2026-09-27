@@ -15,10 +15,13 @@
     <div class="rounded-card border border-line bg-surface-raised shadow-card p-4 mb-4">
       <p class="text-sm text-content">
         <mat-icon class="material-icons-outlined text-success align-middle text-base">check_circle</mat-icon>
-        Added <span class="font-medium">{{ tp.email }}</span>. Share this temporary password securely — it won't be shown again:
+        Added <span class="font-medium">{{ tp.email }}</span>.
+        @if (tp.link) { An invitation link has been emailed; you can also share it directly — it expires in 7 days and works once: }
+        @else if (tp.password) { Share this temporary password securely — it won't be shown again: }
       </p>
-      <div class="mt-2 flex items-center gap-2">
-        <code class="px-2 py-1 rounded bg-surface font-mono text-sm">{{ tp.password }}</code>
+      <div class="mt-2 flex flex-wrap items-center gap-2">
+        @if (tp.link) { <code class="px-2 py-1 rounded bg-surface font-mono text-xs break-all">{{ tp.link }}</code> }
+        @else if (tp.password) { <code class="px-2 py-1 rounded bg-surface font-mono text-sm">{{ tp.password }}</code> }
         <button mat-button (click)="tempPassword.set(null)">Dismiss</button>
       </div>
     </div>

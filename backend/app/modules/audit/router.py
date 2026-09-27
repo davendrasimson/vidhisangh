@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Query
 from app.core.deps import CurrentUserDep, TenantSessionDep, require_permission
 from app.core.exceptions import TenantError
 from app.core.pagination import PageParams, page_params
-from app.modules.audit.schemas import AuditEventRead
+from app.modules.audit.schemas import AuditEventRead, ChainStatus
 from app.modules.audit.service import AuditService
 
 router = APIRouter(tags=["Audit"])
@@ -37,3 +37,14 @@ async def list_audit(
 ) -> list[AuditEventRead]:
     events = await _svc(current, session).list(action=action, limit=page.limit, offset=page.offset)
     return [AuditEventRead.model_validate(e) for e in events]
+
+
+@router.get(
+    "/admin/audit/verify",
+    response_model=ChainStatus,
+    summary="Verify the audit log's hash chain",
+    dependencies=[require_permission("audit:read")],
+)
+async def verify_audit(current: CurrentUserDep, session: TenantSessionDep) -> ChainStatus:
+    ok, bad = await _svc(current, session).verify()
+    return ChainStatus(ok=ok, first_broken_id=bad)

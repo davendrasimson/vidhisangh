@@ -10,17 +10,22 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Query, Request, Response, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
+from fastapi.responses import JSONResponse
 
+from app.core.ratelimit import public_token_rate_limit
 from app.core.deps import AuthSessionDep, CurrentUserDep, TenantSessionDep, client_ip, require_permission
 from app.core.exceptions import TenantError
 from app.modules.clients.kyc import BUSINESS_TYPES, GST_STATE_CODES, TDS_SECTIONS
 from app.modules.clients.models import ClientKind, ClientStatus
 from app.modules.clients.schemas import (
     ClientCreate,
+    ClientEraseResult,
     ClientRead,
     ClientSummary,
     ClientUpdate,
+    ConsentEventCreate,
+    ConsentEventRead,
     KycApply,
     KycPublicView,
     KycRequestCreate,
@@ -103,11 +108,66 @@ async def update_client(
     return _read(await _svc(current, session).update(client_id, data))
 
 
-@router.delete("/{client_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a client",
-               dependencies=[require_permission("client:delete")])
-async def delete_client(client_id: uuid.UUID, current: CurrentUserDep, session: TenantSessionDep) -> Response:
-    await _svc(current, session).delete(client_id)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{client_id}",
+    summary="Delete a client (soft by default; `?erase=true` hard-deletes the identity data — DPDP s.12)",
+    dependencies=[require_permission("client:delete")],
+    responses={204: {"description": "Soft-deleted"}, 200: {"model": ClientEraseResult, "description": "Erased"},
+               409: {"description": "Legal hold: open matters or matters closed within the retention period"}},
+)
+async def delete_client(
+    client_id: uuid.UUID,
+    current: CurrentUserDep,
+    session: TenantSessionDep,
+    erase: Annotated[bool, Query(description="Hard-delete the client, its KYC and consent records; unlink matters/documents/invoices.")] = False,
+    override_legal_hold: Annotated[bool, Query(description="tenant:manage only — proceed despite a legal hold; `reason` is recorded in the audit log.")] = False,
+    reason: Annotated[str | None, Query(max_length=500)] = None,
+) -> Response:
+    svc = _svc(current, session)
+    if not erase:
+        await svc.delete(client_id)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    result = await svc.erase(
+        client_id, override_legal_hold=override_legal_hold, reason=reason,
+        actor_label=current.email, may_override=current.has_permission("tenant:manage"),
+    )
+    return JSONResponse(status_code=200, content=ClientEraseResult(**result).model_dump(mode="json"))
+
+
+@router.get("/{client_id}/export", summary="Everything held about this client, as JSON (DPDP s.11 access)",
+            dependencies=[require_permission("client:read")])
+async def export_client(client_id: uuid.UUID, current: CurrentUserDep, session: TenantSessionDep) -> Response:
+    bundle = await _svc(current, session).export(client_id)
+    return JSONResponse(
+        content=bundle,
+        headers={"Content-Disposition": f'attachment; filename="client-{client_id}.json"'},
+    )
+
+
+@router.get("/{client_id}/legal-holds", summary="Matters that block erasure of this client",
+            dependencies=[require_permission("client:read")])
+async def client_legal_holds(client_id: uuid.UUID, current: CurrentUserDep, session: TenantSessionDep) -> list[dict]:
+    svc = _svc(current, session)
+    await svc.get(client_id)
+    return await svc.legal_holds(client_id)
+
+
+# ═══ Consent ledger (append-only) ═══════════════════════════════════
+@router.get("/{client_id}/consents", response_model=list[ConsentEventRead],
+            summary="Consent history for this client — every grant and withdrawal, newest first",
+            dependencies=[require_permission("client:read")])
+async def list_consents(client_id: uuid.UUID, current: CurrentUserDep, session: TenantSessionDep) -> list[ConsentEventRead]:
+    return [ConsentEventRead.model_validate(e) for e in await _svc(current, session).consents(client_id)]
+
+
+@router.post("/{client_id}/consents", response_model=ConsentEventRead, status_code=status.HTTP_201_CREATED,
+             summary="Record a consent grant or withdrawal on the client's behalf (staff source)",
+             dependencies=[require_permission("client:update")])
+async def record_consent(
+    client_id: uuid.UUID, data: ConsentEventCreate, request: Request, current: CurrentUserDep, session: TenantSessionDep
+) -> ConsentEventRead:
+    event = await _svc(current, session).record_consent(client_id, data, ip=client_ip(request))
+    return ConsentEventRead.model_validate(event)
 
 
 # ═══ KYC (firm side) ═══════════════════════════════════════════════
@@ -155,12 +215,14 @@ async def cancel_kyc(
 
 
 # ═══ KYC (client side, public) ══════════════════════════════════════
-@public_router.get("/{token}", response_model=KycPublicView, summary="The KYC form for a token (public)")
+@public_router.get("/{token}", response_model=KycPublicView, summary="The KYC form for a token (public)",
+                   dependencies=[Depends(public_token_rate_limit)])
 async def kyc_view(token: str, session: AuthSessionDep) -> KycPublicView:
     return KycPublicView(**await PublicKycService(session).view(token))
 
 
-@public_router.post("/{token}", response_model=KycSubmitResult, summary="Submit the KYC form (public)")
+@public_router.post("/{token}", response_model=KycSubmitResult, summary="Submit the KYC form (public)",
+                    dependencies=[Depends(public_token_rate_limit)])
 async def kyc_submit(token: str, data: KycSubmission, request: Request, session: AuthSessionDep) -> KycSubmitResult:
     req, issues = await PublicKycService(session).submit(token, data, ip=client_ip(request))
     errors = [i for i in issues if i.severity == "error"]

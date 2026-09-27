@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import secrets
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import set_committed_value
 
+from app.core.config import settings
 from app.core.exceptions import ConflictError, NotFoundError
+from app.core.security import hash_link_token
 from app.core.storage import Storage
 from app.modules.documents.models import Document, DocumentVersion
 from app.modules.documents.repository import DocumentRepository
@@ -45,17 +48,25 @@ class FirmPortalService:
         return matter
 
     async def create_access(self, data: PortalAccessCreate) -> PortalAccess:
+        """Issue a portal link. Only the hash is persisted; the raw token is
+        exposed on the returned instance (``access.token``) for this response
+        only — it is never written to the database."""
         await self._require_matter(data.matter_id)
+        raw = secrets.token_urlsafe(32)
         access = PortalAccess(
             tenant_id=self.tenant_id,
             matter_id=data.matter_id,
             client_name=data.client_name,
             client_email=str(data.client_email),
-            token=secrets.token_urlsafe(32),
+            token=None,
+            token_hash=hash_link_token(raw),
+            expires_at=datetime.now(UTC) + timedelta(days=settings.PORTAL_ACCESS_EXPIRE_DAYS),
             created_by=self.user_id,
         )
         self.repo.add(access)
         await self.session.flush()
+        # Present the raw token to the caller without marking the row dirty.
+        set_committed_value(access, "token", raw)
         return access
 
     async def list_access(self, matter_id: uuid.UUID) -> list[PortalAccess]:
@@ -142,9 +153,14 @@ class ClientPortalService:
         self.documents = DocumentRepository(session)
 
     async def resolve(self, token: str) -> PortalAccess:
-        access = await self.repo.by_token(token)
+        access = await self.repo.by_token_hash(hash_link_token(token))
         if access is None or not access.is_active:
             raise NotFoundError("This portal link is invalid or has been revoked.")
+        if access.expires_at is not None:
+            expires = access.expires_at if access.expires_at.tzinfo else access.expires_at.replace(tzinfo=UTC)
+            if expires < datetime.now(UTC):
+                raise NotFoundError("This portal link has expired. Ask your advocate for a new one.")
+        access.last_accessed_at = datetime.now(UTC)
         return access
 
     async def view(self, token: str) -> dict:

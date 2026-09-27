@@ -9,6 +9,7 @@ retrieval date and selected official record are written to manifest.json.
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 import time
@@ -18,7 +19,20 @@ from datetime import date
 from pathlib import Path
 
 API = "https://www.legislative.gov.in/cms/wp-json/custom/api/search?s="
-HEADERS = {"apikey": "4bW5t13453pa", "User-Agent": "VidhiSangh statutory-library/1.0"}
+API_KEY_ENV = "VS_LEGISLATIVE_API_KEY"
+HEADERS = {"User-Agent": "VidhiSangh statutory-library/1.0"}
+
+
+def _headers() -> dict[str, str]:
+    """Request headers with the Legislative Department API key from the
+    environment. The key is a credential: it is never committed (A-12)."""
+    key = os.environ.get(API_KEY_ENV, "").strip()
+    if not key:
+        raise SystemExit(
+            f"{API_KEY_ENV} is not set. Export the Legislative Department API key "
+            f"in the environment (see backend/.env.example) and re-run."
+        )
+    return {**HEADERS, "apikey": key}
 OUTPUT = Path(__file__).resolve().parents[1] / "frontend" / "public" / "bare-acts"
 
 ACTS = {
@@ -157,7 +171,7 @@ def request(url: str) -> bytes:
     last_error: Exception | None = None
     for attempt in range(1, 5):
         try:
-            req = urllib.request.Request(url, headers=HEADERS)
+            req = urllib.request.Request(url, headers=_headers())
             with urllib.request.urlopen(req, timeout=120) as response:
                 return response.read()
         except Exception as exc:
@@ -199,6 +213,7 @@ def select_record(query: str, payload: dict) -> tuple[dict, str]:
 
 
 def main() -> int:
+    _headers()  # fail before any work if the API key is missing
     OUTPUT.mkdir(parents=True, exist_ok=True)
     manifest_path = OUTPUT / "manifest.json"
     manifest: dict[str, dict[str, str | int]] = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}

@@ -7,6 +7,7 @@ import uuid
 from sqlalchemy import String, cast, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.db_utils import LIKE_ESCAPE, contains
 from app.modules.knowledge.models import KnowledgeCategory, KnowledgeItem
 
 
@@ -46,14 +47,14 @@ class KnowledgeRepository:
         if category is not None:
             stmt = stmt.where(KnowledgeItem.category == category)
         if practice_area:
-            stmt = stmt.where(KnowledgeItem.practice_area.ilike(f"%{practice_area}%"))
+            stmt = stmt.where(KnowledgeItem.practice_area.ilike(contains(practice_area), escape=LIKE_ESCAPE))
         if query:
-            like = f"%{query}%"
+            like = contains(query)
             stmt = stmt.where(
                 or_(
-                    KnowledgeItem.title.ilike(like),
-                    KnowledgeItem.body.ilike(like),
-                    cast(KnowledgeItem.tags, String).ilike(like),
+                    KnowledgeItem.title.ilike(like, escape=LIKE_ESCAPE),
+                    KnowledgeItem.body.ilike(like, escape=LIKE_ESCAPE),
+                    cast(KnowledgeItem.tags, String).ilike(like, escape=LIKE_ESCAPE),
                 )
             )
         res = await self.session.execute(

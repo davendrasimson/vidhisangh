@@ -104,7 +104,10 @@ export class NewsComponent implements OnInit {
 
   protected async share(item: NewsItem): Promise<void> {
     if (!item.url) return;
-    try { await navigator.clipboard.writeText(item.url); this.notify.success('Link copied.'); } catch { window.open(item.url, '_blank', 'noopener'); }
+    try { await navigator.clipboard.writeText(item.url); this.notify.success('Link copied.'); } catch {
+      // Feed URLs are third-party data: only ever open http(s), never javascript:/data: (A-33).
+      if (/^https?:\/\//i.test(item.url)) window.open(item.url, '_blank', 'noopener,noreferrer');
+    }
   }
 
   protected icon(category: NewsCategory): string {

@@ -23,8 +23,12 @@ class PortalAccessRead(BaseModel):
     matter_id: uuid.UUID
     client_name: str
     client_email: str
-    token: str
+    # The raw token is returned ONCE, in the create response; listings carry null
+    # (only a hash is stored). Revoke and re-issue to get a new link.
+    token: str | None = None
     is_active: bool
+    expires_at: datetime | None = None
+    last_accessed_at: datetime | None = None
     created_at: datetime
 
 

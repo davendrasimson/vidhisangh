@@ -2,9 +2,12 @@
 
 export interface TokenPair {
   access_token: string;
-  refresh_token: string;
+  /** Null once the API stops echoing it: the refresh token lives in an HttpOnly cookie. */
+  refresh_token: string | null;
   token_type: 'bearer';
   expires_in: number;
+  /** True when this session may only call /auth/change-password (temporary password). */
+  password_must_change?: boolean;
 }
 
 export interface RegisterRequest {
@@ -41,6 +44,7 @@ export interface User {
   is_email_verified: boolean;
   is_superuser: boolean;
   mfa_enabled: boolean;
+  password_must_change?: boolean;
   last_login_at: string | null;
   roles: Role[];
 }

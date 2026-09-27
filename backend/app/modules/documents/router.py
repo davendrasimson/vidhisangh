@@ -9,12 +9,30 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, Query, Response, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    Response,
+    UploadFile,
+    status,
+)
 
+from app.core.ratelimit import upload_rate_limit
 from app.core.deps import CurrentUserDep, TenantSessionDep, require_permission
 from app.core.exceptions import TenantError
+from app.core.http_utils import content_disposition, sanitize_filename
 from app.core.pagination import PageParams, page_params
 from app.core.storage import Storage, get_storage
+from app.core.uploads import (
+    UnsupportedUploadTypeError,
+    UploadTooLargeError,
+    read_limited,
+    validate_upload,
+)
 from app.modules.documents.schemas import (
     DocumentRead,
     DocumentUpdate,
@@ -40,6 +58,24 @@ def _svc(
 
 def _parse_tags(raw: str | None) -> list[str]:
     return [t.strip() for t in (raw or "").split(",") if t.strip()]
+
+
+async def _receive_upload(file: UploadFile) -> tuple[bytes, str]:
+    """Read an upload under the size cap and verify its type.
+
+    Returns ``(bytes, verified_content_type)``. Oversize → 413, a type outside
+    the allow-list or bytes that contradict the declared type → 415. The
+    verified type — never the client's header — is what gets stored and served.
+    """
+    try:
+        data = await read_limited(file)
+    except UploadTooLargeError as exc:
+        raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, str(exc)) from exc
+    try:
+        content_type = validate_upload(data, file.content_type, file.filename)
+    except UnsupportedUploadTypeError as exc:
+        raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, str(exc)) from exc
+    return data, content_type
 
 
 # ─── Folders ────────────────────────────────────────────────────────
@@ -83,7 +119,7 @@ async def list_folders(
     response_model=DocumentRead,
     status_code=status.HTTP_201_CREATED,
     summary="Upload a document (multipart)",
-    dependencies=[require_permission("document:create")],
+    dependencies=[Depends(upload_rate_limit), require_permission("document:create")],
 )
 async def upload_document(
     current: CurrentUserDep,
@@ -96,11 +132,11 @@ async def upload_document(
     client_id: Annotated[uuid.UUID | None, Form()] = None,
     tags: Annotated[str | None, Form()] = None,
 ) -> DocumentRead:
-    data = await file.read()
+    data, content_type = await _receive_upload(file)
     svc = _svc(current, session, storage)
     document = await svc.upload(
-        name=name or file.filename or "untitled",
-        content_type=file.content_type or "application/octet-stream",
+        name=sanitize_filename(name or file.filename or "untitled"),
+        content_type=content_type,
         data=data,
         folder_id=folder_id,
         matter_id=matter_id,
@@ -128,7 +164,12 @@ async def list_documents(
 ) -> list[DocumentRead]:
     svc = _svc(current, session, storage)
     documents = await svc.list_documents(
-        folder_id=folder_id, matter_id=matter_id, query=q, limit=page.limit, offset=page.offset, client_id=client_id
+        folder_id=folder_id,
+        matter_id=matter_id,
+        query=q,
+        limit=page.limit,
+        offset=page.offset,
+        client_id=client_id,
     )
     return await svc.to_read(documents)
 
@@ -218,10 +259,10 @@ async def add_version(
     file: Annotated[UploadFile, File()],
     comment: Annotated[str | None, Form()] = None,
 ) -> DocumentRead:
-    data = await file.read()
+    data, content_type = await _receive_upload(file)
     document = await _svc(current, session, storage).add_version(
         document_id,
-        content_type=file.content_type or "application/octet-stream",
+        content_type=content_type,
         data=data,
         comment=comment,
     )
@@ -232,7 +273,10 @@ def _download(name: str, content_type: str, data: bytes) -> Response:
     return Response(
         content=data,
         media_type=content_type,
-        headers={"Content-Disposition": f'attachment; filename="{name}"'},
+        headers={
+            "Content-Disposition": content_disposition(name),
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 

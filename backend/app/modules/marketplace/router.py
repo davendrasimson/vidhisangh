@@ -7,7 +7,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.core.deps import CurrentUserDep, TenantSessionDep, require_permission
+from app.core.deps import CurrentUserDep, TenantSessionDep, require_flag, require_permission
 from app.core.exceptions import TenantError
 from app.core.pagination import PageParams, page_params
 from app.modules.marketplace.models import ListingStatus, ListingType
@@ -19,7 +19,7 @@ from app.modules.marketplace.schemas import (
 )
 from app.modules.marketplace.service import MarketplaceService
 
-router = APIRouter(prefix="/marketplace", tags=["Marketplace"])
+router = APIRouter(prefix="/marketplace", tags=["Marketplace"], dependencies=[require_flag("marketplace")])
 
 Pagination = Annotated[PageParams, Depends(page_params)]
 

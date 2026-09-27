@@ -5,7 +5,16 @@ import { TokenService } from '@core/auth/token.service';
 import { AuthService } from '@core/auth/auth.service';
 
 /** Requests to these paths must not carry a bearer token / trigger refresh. */
-const AUTH_FREE = ['/auth/login', '/auth/register', '/auth/refresh'];
+const AUTH_FREE = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/refresh',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+  '/auth/verify-email/',
+  '/auth/oauth/',
+  '/auth/passkeys/authenticate/',
+];
 
 // Single in-flight refresh shared across concurrent 401s (avoids a stampede).
 let refreshInFlight: Promise<string | null> | null = null;

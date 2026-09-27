@@ -7,6 +7,7 @@ import uuid
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.db_utils import LIKE_ESCAPE, contains
 from app.modules.marketplace.models import (
     Listing,
     ListingResponse,
@@ -44,11 +45,11 @@ class MarketplaceRepository:
         if status is not None:
             stmt = stmt.where(Listing.status == status)
         if practice_area:
-            stmt = stmt.where(Listing.practice_area.ilike(f"%{practice_area}%"))
+            stmt = stmt.where(Listing.practice_area.ilike(contains(practice_area), escape=LIKE_ESCAPE))
         if query:
-            like = f"%{query}%"
+            like = contains(query)
             stmt = stmt.where(
-                or_(Listing.title.ilike(like), Listing.description.ilike(like), Listing.location.ilike(like))
+                or_(Listing.title.ilike(like, escape=LIKE_ESCAPE), Listing.description.ilike(like, escape=LIKE_ESCAPE), Listing.location.ilike(like, escape=LIKE_ESCAPE))
             )
         res = await self.session.execute(
             stmt.order_by(Listing.created_at.desc()).limit(limit).offset(offset)

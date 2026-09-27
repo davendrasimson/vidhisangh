@@ -7,8 +7,9 @@ composition root for the HTTP surface.
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from app.core.ratelimit import default_rate_limit
 from app.modules.analytics.router import router as analytics_router
 from app.modules.apikeys.router import router as apikeys_router
 from app.modules.audit.router import router as audit_router
@@ -35,12 +36,15 @@ from app.modules.notifications.router import router as notifications_router
 from app.modules.payments.router import router as payments_router
 from app.modules.portal.router import router as portal_router
 from app.modules.research.router import router as research_router
+from app.modules.privacy.router import router as privacy_router
 from app.modules.profile.router import router as profile_router
 from app.modules.rates.router import router as rates_router
 from app.modules.tenancy.router import router as tenancy_router
 from app.modules.webhooks.router import router as webhooks_router
 
-api_router = APIRouter()
+# Every versioned route gets the general per-IP bucket (audit A-2); routes add
+# their own tighter buckets on top (credentials, MFA, uploads, public tokens).
+api_router = APIRouter(dependencies=[Depends(default_rate_limit)])
 api_router.include_router(identity_router)
 api_router.include_router(tenancy_router)
 api_router.include_router(profile_router)
@@ -61,6 +65,7 @@ api_router.include_router(payments_router)
 api_router.include_router(crm_router)
 api_router.include_router(billing_router)
 api_router.include_router(rates_router)
+api_router.include_router(privacy_router)
 api_router.include_router(knowledge_router)
 api_router.include_router(marketplace_router)
 api_router.include_router(analytics_router)

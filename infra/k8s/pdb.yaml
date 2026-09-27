@@ -1,0 +1,50 @@
+# PodDisruptionBudgets (audit A-28): a node drain or cluster upgrade can never
+# take the API or the SPA fully offline, and always leaves a worker draining
+# the queue.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: vidhisangh-backend
+  namespace: vidhisangh
+  labels:
+    app.kubernetes.io/name: vidhisangh
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: vidhisangh
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vidhisangh
+      app.kubernetes.io/component: backend
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: vidhisangh-worker
+  namespace: vidhisangh
+  labels:
+    app.kubernetes.io/name: vidhisangh
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/part-of: vidhisangh
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vidhisangh
+      app.kubernetes.io/component: worker
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: vidhisangh-frontend
+  namespace: vidhisangh
+  labels:
+    app.kubernetes.io/name: vidhisangh
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/part-of: vidhisangh
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vidhisangh
+      app.kubernetes.io/component: frontend

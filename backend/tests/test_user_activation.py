@@ -36,7 +36,11 @@ async def test_deactivate_and_reactivate(client: AsyncClient, strong_password: s
     )
     assert created.status_code == 201
     member_id = created.json()["user"]["id"]
-    temp = created.json()["temporary_password"]
+    # Accept the invitation (sets the password) — no temporary password is returned.
+    invite_token = created.json()["invitation_url"].rsplit("/", 1)[-1].split("?", 1)[0]
+    temp = "Member!Pass#2026"
+    assert (await client.post(f"{API}/auth/reset-password",
+                              json={"token": invite_token, "new_password": temp})).status_code == 204
 
     # The member can sign in and gets a session.
     login = await client.post(f"{API}/auth/login", json={"email": "member@active.co", "password": temp})

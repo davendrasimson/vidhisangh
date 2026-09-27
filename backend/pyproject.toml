@@ -25,7 +25,7 @@ dependencies = [
     "argon2-cffi>=23.1",              # Argon2id password hashing
     "pyjwt[crypto]>=2.10",            # JWT with RS256/ES256 support
     "pyotp>=2.9",                     # TOTP MFA
-    "cryptography>=44.0",             # envelope encryption / column crypto
+    "cryptography>=50.0",             # envelope encryption / column crypto (>=50.0: PYSEC-2026-3552, A-30)
     "itsdangerous>=2.2",
     # ── Async infra ─────────────────────────────────────────────────
     "redis>=5.2",
@@ -33,7 +33,7 @@ dependencies = [
     "httpx>=0.28",
     # ── Misc ────────────────────────────────────────────────────────
     "segno>=1.6",                     # pure-python QR codes (digital visiting card)
-    "python-multipart>=0.0.9",        # multipart/form-data (document uploads)
+    "python-multipart>=0.0.18",       # multipart/form-data (document uploads); <0.0.18 has DoS CVEs
     "pypdf>=5.1",                     # judgment PDF text (research enrichment)
     "python-docx>=1.1",               # DOCX export of drafted documents
     "pyarrow>=18.0",                  # parquet metadata from the open-data corpus
@@ -55,6 +55,7 @@ dev = [
     "mypy>=1.13",
     "types-redis",
     "faker>=33.0",
+    "pip-audit>=2.7",                 # SCA (also run in CI)
 ]
 storage = [
     "boto3>=1.35",                    # S3-compatible object storage
@@ -78,7 +79,7 @@ packages = ["app"]
 [tool.ruff]
 target-version = "py313"
 line-length = 100
-src = ["app", "tests"]
+src = ["."]   # makes `app` first-party for isort (I001)
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "C4", "SIM", "ASYNC", "S", "RUF"]
@@ -102,7 +103,22 @@ ignore_missing_imports = true
 asyncio_mode = "auto"
 testpaths = ["tests"]
 addopts = "-ra -q"
+filterwarnings = ["error::DeprecationWarning:app.*"]
+
+# ─── coverage (CI gate: pytest --cov=app --cov-fail-under uses fail_under) ──
+[tool.coverage.run]
+source = ["app"]
+branch = true
+omit = ["app/scripts/*", "app/worker.py"]
 
 [tool.coverage.report]
 fail_under = 85
 show_missing = true
+skip_covered = true
+
+# ─── Dependency locking ─────────────────────────────────────────────
+# requirements.lock / requirements-dev.lock are hash-pinned and are what the
+# Dockerfile and CI install (`pip install --require-hashes`). The floors above
+# are the *policy*; the lock is the *build*. Regenerate after any change here:
+#   backend/.venv-linux/bin/python -m pip install -e ".[dev,storage,search,ai]"
+#   then follow docs/DEPLOYMENT.md → CI → "Lock file".

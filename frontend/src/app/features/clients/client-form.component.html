@@ -31,17 +31,61 @@
           @if (issue('first_name'); as i) { <small class="text-danger">{{ i.message }}</small> }</label>
         <label class="grid gap-1"><span class="text-sm text-content-muted">Last name</span>
           <input class="vs-input" [ngModel]="form().last_name" (ngModelChange)="set('last_name', $event)" /></label>
-        <label class="grid gap-1"><span class="text-sm text-content-muted">Date of birth</span>
-          <vs-date-input [ngModel]="form().date_of_birth" (ngModelChange)="set('date_of_birth', $event)" /></label>
-        <label class="grid gap-1"><span class="text-sm text-content-muted">Father's / spouse's name</span>
-          <input class="vs-input" [ngModel]="form().father_or_spouse_name" (ngModelChange)="set('father_or_spouse_name', $event)" /></label>
-        <label class="grid gap-1"><span class="text-sm text-content-muted">Occupation</span>
-          <input class="vs-input" [ngModel]="form().occupation" (ngModelChange)="set('occupation', $event)" /></label>
       }
       <label class="grid gap-1"><span class="text-sm text-content-muted">PAN</span>
         <input class="vs-input font-mono uppercase" [ngModel]="form().pan" (ngModelChange)="set('pan', $event)" maxlength="10" placeholder="ABCDE1234F" />
         @if (issue('pan'); as i) { <small [class]="i.severity === 'error' ? 'text-danger' : 'text-warning'">{{ i.message }}</small> }</label>
     </div>
+
+    @if (kind() === 'individual') {
+      <!-- Data minimisation (DPDP s.6/s.8): identity details beyond what the engagement needs are behind a fold. -->
+      <div class="mt-3 rounded-card border border-line p-3">
+        <button type="button" class="flex w-full items-center gap-2 text-left text-sm font-medium" (click)="showMore.set(!showMore())">
+          <mat-icon class="material-icons-outlined text-base">{{ showMore() ? 'expand_less' : 'expand_more' }}</mat-icon>
+          Additional identity details <span class="text-content-muted font-normal">(collect only where required)</span>
+        </button>
+        @if (showMore()) {
+          <p class="text-xs text-content-muted mt-2 mb-3">
+            {{ mode() === 'kyc'
+              ? 'Only fill these in if your advocate has asked for them — for example for an affidavit, vakalatnama or court form that needs them.'
+              : 'Record these only when a filing, affidavit or KYC requirement needs them. They are encrypted at rest and included in the data export for this client.' }}
+          </p>
+          <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <label class="grid gap-1"><span class="text-sm text-content-muted">Date of birth</span>
+              <vs-date-input [ngModel]="form().date_of_birth" (ngModelChange)="set('date_of_birth', $event)" /></label>
+            <label class="grid gap-1"><span class="text-sm text-content-muted">Father's / spouse's name</span>
+              <input class="vs-input" [ngModel]="form().father_or_spouse_name" (ngModelChange)="set('father_or_spouse_name', $event)" /></label>
+            <label class="grid gap-1"><span class="text-sm text-content-muted">Occupation</span>
+              <input class="vs-input" [ngModel]="form().occupation" (ngModelChange)="set('occupation', $event)" /></label>
+          </div>
+        }
+      </div>
+
+      @if (mode() === 'staff') {
+        <!-- DPDP s.9: a child's data needs verifiable guardian consent. -->
+        <div class="mt-3 rounded-card border border-line p-3">
+          <label class="inline-flex items-center gap-2 text-sm font-medium">
+            <input type="checkbox" [ngModel]="!!form().is_minor" (ngModelChange)="set('is_minor', $event)" /> This client is a minor (under 18)
+          </label>
+          @if (form().is_minor) {
+            <p class="text-xs text-content-muted mt-2 mb-3">
+              Record the parent's or lawful guardian's details here, then record their consent in the <strong>Consent</strong> panel
+              (purpose “Parent's / guardian's consent”). A KYC form cannot be sent until that consent is on record.
+            </p>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <label class="grid gap-1"><span class="text-sm text-content-muted">Guardian's name *</span>
+                <input class="vs-input" [ngModel]="form().guardian_name" (ngModelChange)="set('guardian_name', $event)" /></label>
+              <label class="grid gap-1"><span class="text-sm text-content-muted">Relationship</span>
+                <select class="vs-input" [ngModel]="form().guardian_relation" (ngModelChange)="set('guardian_relation', $event)">
+                  <option [ngValue]="null">Select…</option>
+                  <option value="mother">Mother</option><option value="father">Father</option>
+                  <option value="legal_guardian">Legal guardian</option><option value="other">Other</option>
+                </select></label>
+            </div>
+          }
+        </div>
+      }
+    }
   </section>
 
   <!-- ── Contact ────────────────────────────────────────────────── -->
@@ -98,6 +142,11 @@
       <label class="inline-flex items-center gap-2"><input type="checkbox" [ngModel]="!!form().consent_whatsapp" (ngModelChange)="set('consent_whatsapp', $event)" /> WhatsApp</label>
     </div>
     @if (issue('consent_email') || issue('consent_mobile'); as i) { <small class="text-warning">{{ i.message }}</small> }
+    <p class="text-xs text-content-muted mt-2">
+      {{ mode() === 'kyc'
+        ? 'You may withdraw any of these at any time by telling your advocate; withdrawing is as easy as agreeing and does not affect what was done before.'
+        : 'Every tick and un-tick is saved as a dated consent event with who recorded it. Withdrawing keeps the original grant on record (DPDP s.6). Messages on a channel without a current grant are not sent.' }}
+    </p>
   </section>
 
   <!-- ── Tax ────────────────────────────────────────────────────── -->

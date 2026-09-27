@@ -11,6 +11,7 @@ from app.core.exceptions import NotFoundError
 from app.modules.calendar.models import CalendarEvent
 from app.modules.calendar.repository import CalendarRepository
 from app.modules.calendar.schemas import AgendaItem, EventCreate, EventUpdate
+from app.modules.tenancy.lookup import require_tenant_matter, require_tenant_user
 
 
 def _sort_key(item: AgendaItem) -> datetime:
@@ -26,7 +27,15 @@ class CalendarService:
         self.repo = CalendarRepository(session)
 
     # ── Events ──────────────────────────────────────────────────────
+    async def _validate_refs(self, matter_id: uuid.UUID | None, assigned_to: uuid.UUID | None) -> None:
+        """Referenced matter / person must belong to this tenant (audit A-32)."""
+        if matter_id is not None:
+            await require_tenant_matter(self.session, self.tenant_id, matter_id)
+        if assigned_to is not None:
+            await require_tenant_user(self.session, self.tenant_id, assigned_to)
+
     async def create_event(self, data: EventCreate) -> CalendarEvent:
+        await self._validate_refs(data.matter_id, data.assigned_to)
         event = CalendarEvent(
             tenant_id=self.tenant_id,
             title=data.title,
@@ -51,7 +60,9 @@ class CalendarService:
         event = await self.repo.get_event(self.tenant_id, event_id)
         if event is None:
             raise NotFoundError("Event not found.")
-        for field, value in data.model_dump(exclude_unset=True).items():
+        values = data.model_dump(exclude_unset=True)
+        await self._validate_refs(values.get("matter_id"), values.get("assigned_to"))
+        for field, value in values.items():
             setattr(event, field, value)
         return event
 

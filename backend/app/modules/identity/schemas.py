@@ -2,33 +2,18 @@
 
 from __future__ import annotations
 
-import re
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from app.core.config import settings
-
-_PASSWORD_RULES = (
-    "Password must be at least "
-    f"{settings.PASSWORD_MIN_LENGTH} characters and include upper- and "
-    "lower-case letters, a digit, and a symbol."
-)
+from app.core.password_policy import RULES_MESSAGE as _PASSWORD_RULES  # noqa: F401 - re-export
+from app.core.password_policy import validate_password
 
 
 def _validate_password_strength(value: str) -> str:
-    if len(value) < settings.PASSWORD_MIN_LENGTH:
-        raise ValueError(_PASSWORD_RULES)
-    checks = [
-        re.search(r"[a-z]", value),
-        re.search(r"[A-Z]", value),
-        re.search(r"\d", value),
-        re.search(r"[^\w\s]", value),
-    ]
-    if not all(checks):
-        raise ValueError(_PASSWORD_RULES)
-    return value
+    return validate_password(value)
 
 
 # ─── Registration & login ───────────────────────────────────────────
@@ -56,34 +41,63 @@ class RegisterRequest(BaseModel):
 
 class LoginRequest(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(max_length=256)
     tenant_slug: str | None = Field(
         default=None, description="Optional when the email is unique platform-wide."
     )
-    mfa_code: str | None = Field(default=None, description="6-digit TOTP or backup code.")
-    device_label: str | None = None
+    mfa_code: str | None = Field(
+        default=None, max_length=16, description="6-digit TOTP or backup code."
+    )
+    device_label: str | None = Field(default=None, max_length=200)
 
 
 class RefreshRequest(BaseModel):
-    refresh_token: str
+    # Optional: the token normally arrives in the HttpOnly cookie. The body is
+    # still accepted for clients that stored it themselves (transition period).
+    refresh_token: str | None = Field(default=None, max_length=256)
 
 
 class LogoutRequest(BaseModel):
-    refresh_token: str | None = None
+    refresh_token: str | None = Field(default=None, max_length=256)
     all_devices: bool = False
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(min_length=16, max_length=256)
+    new_password: str = Field(min_length=settings.PASSWORD_MIN_LENGTH, max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def _pw(cls, v: str) -> str:
+        return _validate_password_strength(v)
 
 
 # ─── Tokens ─────────────────────────────────────────────────────────
 class TokenPair(BaseModel):
     access_token: str
-    refresh_token: str
+    # ``None`` once REFRESH_TOKEN_IN_BODY is off: the refresh token then travels
+    # only in the HttpOnly cookie scoped to /auth.
+    refresh_token: str | None = None
     token_type: str = "bearer"
     expires_in: int = Field(description="Access-token lifetime in seconds.")
+    password_must_change: bool = Field(
+        default=False,
+        description="True when the session may only call /auth/change-password.",
+    )
 
 
 class MfaRequiredResponse(BaseModel):
     mfa_required: bool = True
     detail: str = "Multi-factor authentication code required."
+
+
+class WsTicketResponse(BaseModel):
+    ticket: str
+    expires_in: int
 
 
 # ─── Read models ────────────────────────────────────────────────────
@@ -166,16 +180,32 @@ class UserRead(BaseModel):
     is_email_verified: bool
     is_superuser: bool
     mfa_enabled: bool
+    password_must_change: bool = False
     last_login_at: datetime | None
+    # Privacy agent: accepted Terms/Notice version (frontend may re-prompt when
+    # it differs from GET /privacy/notice `terms_version`).
+    terms_version: str | None = None
+    terms_accepted_at: datetime | None = None
     roles: list[RoleRead] = []
+    # Transient, never serialised: ``UserAdminService.create_user`` attaches the
+    # invitation link to the ORM instance and ``UserCreatedRead`` lifts it out.
+    invitation_url: str | None = Field(default=None, exclude=True)
 
 
 class UserCreatedRead(BaseModel):
-    """Returned once when an admin adds a user — carries the temporary password
-    to hand off out-of-band (until an email-invite flow is wired)."""
+    """Returned once when an admin adds a user. Carries the invitation link the
+    admin can forward (also emailed when SMTP is configured) and — only when
+    ``INVITES_RETURN_TEMP_PASSWORD`` is on — a temporary password."""
 
     user: UserRead
-    temporary_password: str
+    temporary_password: str | None = None
+    invitation_url: str | None = None
+
+    @model_validator(mode="after")
+    def _lift_invitation(self) -> UserCreatedRead:
+        if self.invitation_url is None and self.user.invitation_url:
+            self.invitation_url = self.user.invitation_url
+        return self
 
 
 class CurrentUser(BaseModel):
@@ -187,6 +217,8 @@ class CurrentUser(BaseModel):
     is_superuser: bool
     scopes: list[str] = []
     session_id: uuid.UUID | None = None  # the refresh-token/session this token belongs to
+    token_epoch: int = 0  # ``ep`` claim — see app.core.revocation
+    password_must_change: bool = False  # ``pmc`` claim — change-password-only session
 
     def has_permission(self, code: str) -> bool:
         return self.is_superuser or "*" in self.scopes or code in self.scopes
@@ -213,6 +245,13 @@ class MfaVerifyRequest(BaseModel):
     code: str = Field(min_length=6, max_length=8)
 
 
+class MfaDisableRequest(BaseModel):
+    """Disabling the second factor needs both factors again (audit A-18)."""
+
+    password: str = Field(max_length=128)
+    code: str = Field(min_length=6, max_length=8, description="Current TOTP or a backup code.")
+
+
 class MfaEnableResponse(BaseModel):
     mfa_enabled: bool
     backup_codes: list[str] = Field(description="Shown once — store securely.")
@@ -220,7 +259,7 @@ class MfaEnableResponse(BaseModel):
 
 # ─── Password change ────────────────────────────────────────────────
 class ChangePasswordRequest(BaseModel):
-    current_password: str
+    current_password: str = Field(max_length=128)
     new_password: str = Field(min_length=settings.PASSWORD_MIN_LENGTH, max_length=128)
 
     @field_validator("new_password")

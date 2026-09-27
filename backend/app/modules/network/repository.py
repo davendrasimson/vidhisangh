@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Sequence
+from datetime import UTC, datetime
 
 from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -43,9 +44,13 @@ class IdentityRepository:
     async def list_directory(
         self, exclude_user: uuid.UUID, limit: int, offset: int
     ) -> list[NetworkIdentity]:
+        """Only people who opted in to the directory (``discoverable``)."""
         res = await self.session.execute(
             select(NetworkIdentity)
-            .where(NetworkIdentity.user_id != exclude_user)
+            .where(
+                NetworkIdentity.user_id != exclude_user,
+                NetworkIdentity.discoverable.is_(True),
+            )
             .order_by(NetworkIdentity.display_name)
             .limit(limit)
             .offset(offset)
@@ -184,10 +189,17 @@ class PostRepository:
         )
         return list(res.scalars().all())
 
-    async def by_author(self, author_id: uuid.UUID, limit: int, offset: int) -> list[Post]:
+    async def by_author(
+        self, author_id: uuid.UUID, limit: int, offset: int, *, include_private: bool
+    ) -> list[Post]:
+        """An author's posts. ``include_private`` (viewer is the author or a
+        connection) adds connections-only posts; otherwise public posts only."""
+        conds = [Post.author_id == author_id, Post.deleted_at.is_(None)]
+        if not include_private:
+            conds.append(Post.visibility == PostVisibility.PUBLIC)
         res = await self.session.execute(
             select(Post)
-            .where(Post.author_id == author_id, Post.deleted_at.is_(None))
+            .where(*conds)
             .order_by(Post.created_at.desc())
             .limit(limit)
             .offset(offset)
@@ -314,6 +326,10 @@ class CommentRepository:
             select(Comment).where(Comment.id == comment_id, Comment.deleted_at.is_(None))
         )
         return res.scalar_one_or_none()
+
+    async def delete_for_post(self, post_id: uuid.UUID) -> None:  # pragma: no cover - admin tooling
+        for c in await self.list_for_post(post_id):
+            c.deleted_at = datetime.now(UTC)
 
     async def list_for_post(self, post_id: uuid.UUID) -> list[Comment]:
         res = await self.session.execute(

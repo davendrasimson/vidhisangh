@@ -1,0 +1,17 @@
+[Unit]
+Description=VidhiSangh retention purge (DPDP s.8(7): expired tokens, deleted documents, cancelled tenants)
+After=network-online.target postgresql.service
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/opt/vidhisangh/backend
+EnvironmentFile=/opt/vidhisangh/backend/.env
+ExecStart=/opt/vidhisangh/backend/.venv/bin/python -m app.scripts.retention_purge
+TimeoutStartSec=1800
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+# The purge deletes document bytes: the store must be writable.
+ReadWritePaths=/opt/vidhisangh/documents

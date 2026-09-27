@@ -127,6 +127,7 @@ export class SettingsHomeComponent {
         { label: 'Appearance', icon: 'palette', description: 'Theme (light / dark) and accent colour.', route: '/app/settings/appearance' },
         { label: 'Account Security', icon: 'fingerprint', description: 'Passkeys, active sessions and MFA.', route: '/app/settings/security' },
         { label: 'Notifications', icon: 'notifications', description: 'Channels and per-type delivery preferences.', route: '/app/settings/notifications' },
+        { label: 'Privacy & data', icon: 'privacy_tip', description: 'Download your data, delete your account, directory listing, grievance officer.', route: '/app/settings/privacy' },
       ],
     },
   ];

@@ -43,9 +43,13 @@ class PageSettings(BaseModel):
 
 
 def _check_size(value: Any) -> Any:
+    """Cap a content field (JSON or HTML) at 8 MB, measured as serialised bytes."""
     import json
 
-    if value is not None and len(json.dumps(value)) > _MAX_CONTENT_BYTES:
+    if value is None:
+        return value
+    size = len(value.encode("utf-8")) if isinstance(value, str) else len(json.dumps(value))
+    if size > _MAX_CONTENT_BYTES:
         raise ValueError("Document is too large (8 MB limit).")
     return value
 
@@ -60,7 +64,7 @@ class DraftCreate(BaseModel):
     content_html: str = ""
     page: PageSettings = Field(default_factory=PageSettings)
 
-    _size = field_validator("content_json")(_check_size)
+    _size = field_validator("content_json", "content_html")(_check_size)
 
 
 class DraftUpdate(BaseModel):
@@ -75,7 +79,7 @@ class DraftUpdate(BaseModel):
     content_html: str | None = None
     page: PageSettings | None = None
 
-    _size = field_validator("content_json")(_check_size)
+    _size = field_validator("content_json", "content_html")(_check_size)
 
 
 class DraftSummary(BaseModel):

@@ -11,6 +11,7 @@ Permissions-Policy). Frontend HTML is served by NGINX which layers its own CSP.
 
 from __future__ import annotations
 
+import re
 from uuid import uuid4
 
 import structlog
@@ -19,6 +20,17 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from app.core.config import settings
+
+
+# KYC and portal links carry their credential as a path segment. The path is
+# bound to every log line, so the token is replaced before binding (audit
+# P-12 / I-7). nginx must mask it in its own access log independently.
+_TOKEN_PATH_RE = re.compile(r"/(kyc|portal/client|portal)/[^/?#]+")
+
+
+def mask_token_path(path: str) -> str:
+    """``/api/v1/kyc/abc123`` → ``/api/v1/kyc/<token>`` (also portal links)."""
+    return _TOKEN_PATH_RE.sub(lambda m: f"/{m.group(1)}/<token>", path)
 
 
 class RequestContextMiddleware(BaseHTTPMiddleware):
@@ -32,7 +44,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         structlog.contextvars.bind_contextvars(
             request_id=request_id,
             method=request.method,
-            path=request.url.path,
+            path=mask_token_path(request.url.path),
         )
         try:
             response = await call_next(request)

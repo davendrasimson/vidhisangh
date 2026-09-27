@@ -4,6 +4,8 @@
 - Access tokens are short-lived JWTs; refresh tokens are opaque, rotated, and
   stored hashed (see the identity module). This file only handles the crypto.
 - Supports symmetric (HS256, dev) and asymmetric (RS256/ES256, prod) signing.
+- Opaque link/one-time tokens (portal, KYC, reset, invite, verify) are stored
+  as peppered SHA-256 hashes (``hash_link_token``) — never in clear.
 """
 
 from __future__ import annotations
@@ -37,6 +39,7 @@ _password_hasher = PasswordHasher(
 class TokenType(StrEnum):
     ACCESS = "access"
     REFRESH = "refresh"
+    WS = "ws"  # short-lived WebSocket handshake ticket (Redis-less fallback)
 
 
 # ─── Password hashing ───────────────────────────────────────────────
@@ -57,6 +60,14 @@ def password_needs_rehash(hashed: str) -> bool:
         return _password_hasher.check_needs_rehash(hashed)
     except InvalidHashError:
         return True
+
+
+@lru_cache
+def dummy_password_hash() -> str:
+    """A precomputed hash to verify against when the account does not exist,
+    so unknown emails cost the same Argon2 work as wrong passwords (no
+    timing side-channel) without hashing a fresh dummy on every attempt."""
+    return hash_password(secrets.token_urlsafe(24))
 
 
 # ─── JWT signing keys ───────────────────────────────────────────────
@@ -86,8 +97,9 @@ def create_access_token(
     scopes: list[str] | None = None,
     extra: dict[str, Any] | None = None,
     expires_delta: timedelta | None = None,
+    token_type: TokenType = TokenType.ACCESS,
 ) -> str:
-    """Create a signed short-lived access token.
+    """Create a signed short-lived token (access by default).
 
     ``subject`` is the user id. ``tenant_id`` scopes the token to a tenant so a
     stolen token cannot be replayed against another tenant.
@@ -99,7 +111,7 @@ def create_access_token(
     claims: dict[str, Any] = {
         "sub": subject,
         "tid": tenant_id,
-        "type": TokenType.ACCESS.value,
+        "type": token_type.value,
         "scopes": scopes or [],
         "iat": int(now.timestamp()),
         "nbf": int(now.timestamp()),
@@ -136,7 +148,20 @@ def generate_refresh_token() -> str:
 
 def hash_refresh_token(token: str) -> str:
     """Deterministic hash for at-rest storage & constant-time lookup."""
-    return hashlib.sha256(f"{settings.SECRET_KEY}:{token}".encode()).hexdigest()
+    return hashlib.sha256(f"{settings.refresh_token_pepper}:{token}".encode()).hexdigest()
+
+
+def hash_backup_code(code: str) -> str:
+    return hashlib.sha256(f"{settings.backup_code_pepper}:backup:{code}".encode()).hexdigest()
+
+
+def hash_link_token(token: str) -> str:
+    """Peppered hash for opaque link tokens (portal, KYC, reset, invite, verify).
+
+    The tokens are 256-bit random values, so a fast hash is appropriate; the
+    pepper means a database dump alone cannot be turned back into usable links.
+    """
+    return hashlib.sha256(f"{settings.link_token_pepper}:{token}".encode()).hexdigest()
 
 
 def constant_time_compare(a: str, b: str) -> bool:

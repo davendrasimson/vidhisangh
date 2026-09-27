@@ -58,6 +58,21 @@ class GroupRead(BaseModel):
     my_status: MemberStatus | None = None
 
 
+class GroupPreview(BaseModel):
+    """Reduced projection of a *private* group for non-members (audit A-17):
+    enough to decide whether to request to join, nothing else."""
+
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    slug: str
+    name: str
+    group_type: GroupType
+    visibility: GroupVisibility
+    is_verified: bool
+    member_count: int
+    my_status: MemberStatus | None = None
+
+
 # ─── Members ────────────────────────────────────────────────────────
 class MemberRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)

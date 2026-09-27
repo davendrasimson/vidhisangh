@@ -1,0 +1,138 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- $np := .Values.networkPolicy }}
+{{- $meta := "169.254.169.254/32" }}
+---
+# Default deny for every pod of this release (A-28).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "vidhisangh.fullname" . }}-default-deny
+  labels:
+    {{- include "vidhisangh.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "vidhisangh.selectorLabels" . | nindent 6 }}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "vidhisangh.fullname" . }}-allow-dns
+  labels:
+    {{- include "vidhisangh.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "vidhisangh.selectorLabels" . | nindent 6 }}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+{{- if .Values.frontend.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "vidhisangh.frontend.fullname" . }}-ingress
+  labels:
+    {{- include "vidhisangh.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "vidhisangh.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: frontend
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            {{- toYaml $np.ingressController.namespaceSelector | nindent 12 }}
+          podSelector:
+            {{- toYaml $np.ingressController.podSelector | nindent 12 }}
+      ports:
+        - { protocol: TCP, port: {{ .Values.frontend.containerPort }} }
+  egress: []   # static files only; DNS comes from the allow-dns policy
+{{- end }}
+{{- if .Values.backend.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "vidhisangh.backend.fullname" . }}-ingress
+  labels:
+    {{- include "vidhisangh.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "vidhisangh.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backend
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            {{- toYaml $np.ingressController.namespaceSelector | nindent 12 }}
+          podSelector:
+            {{- toYaml $np.ingressController.podSelector | nindent 12 }}
+      ports:
+        - { protocol: TCP, port: {{ .Values.backend.containerPort }} }
+    - from:
+        - namespaceSelector:
+            {{- toYaml $np.monitoring.namespaceSelector | nindent 12 }}
+      ports:
+        - { protocol: TCP, port: {{ .Values.backend.containerPort }} }
+{{- end }}
+---
+# Backend + worker egress: data services and outbound integrations only.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "vidhisangh.fullname" . }}-app-egress
+  labels:
+    {{- include "vidhisangh.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/instance
+        operator: In
+        values: [{{ .Release.Name | quote }}]
+      - key: app.kubernetes.io/component
+        operator: In
+        values: [backend, worker]
+  policyTypes: [Egress]
+  egress:
+    {{- range $name, $svc := dict "postgres" $np.egress.postgres "redis" $np.egress.redis "s3" $np.egress.s3 "opensearch" $np.egress.opensearch }}
+    # {{ $name }}
+    - to:
+        - ipBlock:
+            cidr: {{ $svc.cidr | default "0.0.0.0/0" | quote }}
+            {{- if not $svc.cidr }}
+            except: [{{ $meta }}]
+            {{- end }}
+      ports: [{ protocol: TCP, port: {{ $svc.port }} }]
+    {{- end }}
+    {{- if $np.egress.https }}
+    # Outbound HTTPS (Razorpay, IdPs, LLM APIs, webhooks); metadata + RFC1918 excluded (A-3/A-4).
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [{{ $meta }}, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16]
+      ports: [{ protocol: TCP, port: 443 }]
+    {{- end }}
+    {{- if $np.egress.smtp }}
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [{{ $meta }}]
+      ports:
+        - { protocol: TCP, port: 587 }
+        - { protocol: TCP, port: 465 }
+    {{- end }}
+{{- end }}

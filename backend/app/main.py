@@ -34,6 +34,13 @@ log = get_logger("app.main")
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     settings.assert_production_ready()
+    from app.core.storage import assert_storage_ready
+
+    assert_storage_ready()
+    # Refuse to run RLS-dependent code as a SUPERUSER / BYPASSRLS role (A-14).
+    from app.core.startup_checks import assert_database_role_safe
+
+    await assert_database_role_safe()
     log.info(
         "startup",
         project=settings.PROJECT_NAME,
@@ -41,12 +48,56 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         environment=settings.ENVIRONMENT.value,
     )
     yield
+    from app.modules.webhooks.service import dispatcher
+
+    await dispatcher.drain()
     await close_redis()
     await dispose_engine()
     log.info("shutdown")
 
 
+def _metrics_app():  # noqa: ANN202
+    """Prometheus scrape target. With ``VS_METRICS_TOKEN`` set, the request must
+    carry ``Authorization: Bearer <token>`` (audit A-27); otherwise the edge
+    proxy is the only guard (production nginx denies /metrics publicly)."""
+    inner = make_asgi_app()
+    token = settings.METRICS_TOKEN
+    if not token:
+        return inner
+
+    import hmac
+
+    async def guarded(scope, receive, send):  # noqa: ANN001, ANN202
+        if scope["type"] == "http":
+            auth = ""
+            for name, value in scope.get("headers", []):
+                if name == b"authorization":
+                    auth = value.decode("latin-1")
+                    break
+            presented = auth[7:] if auth.lower().startswith("bearer ") else ""
+            if not hmac.compare_digest(presented, token):
+                await send(
+                    {
+                        "type": "http.response.start",
+                        "status": 401,
+                        "headers": [
+                            (b"content-type", b"text/plain"),
+                            (b"www-authenticate", b"Bearer"),
+                            (b"cache-control", b"no-store"),
+                        ],
+                    }
+                )
+                await send({"type": "http.response.body", "body": b"unauthorized"})
+                return
+        await inner(scope, receive, send)
+
+    return guarded
+
+
 def create_app() -> FastAPI:
+    # Interactive docs and the OpenAPI document are off in production unless
+    # explicitly re-enabled (A-27 / I-6); never persist bearer tokens in Swagger.
+    expose_docs = settings.EXPOSE_API_DOCS or not settings.is_production
     app = FastAPI(
         title=f"{settings.PROJECT_NAME} API",
         version=__version__,
@@ -54,11 +105,11 @@ def create_app() -> FastAPI:
             "Integrated legal ecosystem — networking, research, practice "
             "management, and AI productivity for legal professionals."
         ),
-        docs_url=f"{settings.API_V1_PREFIX}/docs",
-        redoc_url=f"{settings.API_V1_PREFIX}/redoc",
-        openapi_url=f"{settings.API_V1_PREFIX}/openapi.json",
+        docs_url=f"{settings.API_V1_PREFIX}/docs" if expose_docs else None,
+        redoc_url=f"{settings.API_V1_PREFIX}/redoc" if expose_docs else None,
+        openapi_url=f"{settings.API_V1_PREFIX}/openapi.json" if expose_docs else None,
         lifespan=lifespan,
-        swagger_ui_parameters={"persistAuthorization": True},
+        swagger_ui_parameters={"persistAuthorization": False},
     )
 
     # ── Middleware (order matters: last added runs first) ───────────
@@ -94,7 +145,7 @@ def create_app() -> FastAPI:
     app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
     # ── Metrics (Prometheus scrape target) ──────────────────────────
-    app.mount("/metrics", make_asgi_app())
+    app.mount("/metrics", _metrics_app())
 
     return app
 

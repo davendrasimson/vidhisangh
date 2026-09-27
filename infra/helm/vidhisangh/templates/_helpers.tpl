@@ -68,5 +68,10 @@ Usage: {{ include "vidhisangh.image" (dict "root" . "component" .Values.backend)
 */}}
 {{- define "vidhisangh.image" -}}
 {{- $tag := .component.image.tag | default .root.Values.image.tag | default .root.Chart.AppVersion -}}
+{{- $digest := .component.image.digest | default "" -}}
+{{- if $digest -}}
+{{- printf "%s/%s:%s@%s" .root.Values.image.registry .component.image.repository $tag $digest -}}
+{{- else -}}
 {{- printf "%s/%s:%s" .root.Values.image.registry .component.image.repository $tag -}}
+{{- end -}}
 {{- end -}}

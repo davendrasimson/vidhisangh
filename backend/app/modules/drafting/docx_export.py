@@ -28,7 +28,16 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Mm, Pt, RGBColor
 
+from app.core.exceptions import ValidationError
+
 _PAGE_SIZES_MM = {"A4": (210, 297), "Letter": (215.9, 279.4), "Legal": (215.9, 355.6)}
+# Resource bounds (A-31): the editor JSON is client-controlled, so every axis
+# a hostile payload could stretch is clamped before python-docx sees it.
+MAX_IMAGE_BYTES = 5 * 1024 * 1024          # one embedded image
+MAX_TOTAL_IMAGE_BYTES = 20 * 1024 * 1024   # all images in one export
+MAX_SPAN = 64                              # colspan / rowspan
+MAX_COLS = 64                              # columns per table
+MAX_DEPTH = 50                             # nested block levels
 _ALIGN = {
     "left": WD_ALIGN_PARAGRAPH.LEFT,
     "center": WD_ALIGN_PARAGRAPH.CENTER,
@@ -78,6 +87,8 @@ def _pt(size: str | None) -> float | None:
 class _Exporter:
     def __init__(self, page: dict | None) -> None:
         self.doc = DocxDocument()
+        self._depth = 0
+        self._image_bytes = 0
         self._page_setup(page or {})
         style = self.doc.styles["Normal"]
         style.font.name = _DEFAULT_FONT
@@ -105,6 +116,20 @@ class _Exporter:
             self.block(node, container, list_style=list_style, level=level)
 
     def block(self, node: dict, container, *, list_style: str | None = None, level: int = 0) -> None:  # noqa: ANN001
+        # Every nested construct (list in list, table in cell, quote in quote)
+        # re-enters here, so a depth counter on this one method bounds the
+        # recursion of the whole exporter.
+        self._depth += 1
+        try:
+            if self._depth > MAX_DEPTH:
+                raise ValidationError(
+                    f"Document nesting exceeds {MAX_DEPTH} levels; flatten the structure and retry."
+                )
+            self._block(node, container, list_style=list_style, level=level)
+        finally:
+            self._depth -= 1
+
+    def _block(self, node: dict, container, *, list_style: str | None = None, level: int = 0) -> None:  # noqa: ANN001
         t = node.get("type")
         attrs = node.get("attrs") or {}
         if t == "paragraph":
@@ -201,8 +226,9 @@ class _Exporter:
         if not rows:
             return
         ncols = max(
-            sum(int((c.get("attrs") or {}).get("colspan", 1)) for c in r.get("content") or []) for r in rows
+            sum(_span(c, "colspan") for c in r.get("content") or []) for r in rows
         )
+        ncols = max(1, min(ncols, MAX_COLS))
         table = container.add_table(rows=len(rows), cols=ncols)
         table.style = "Table Grid"
         occupied: set[tuple[int, int]] = set()
@@ -211,8 +237,12 @@ class _Exporter:
             for cell in row.get("content") or []:
                 while (ri, ci) in occupied:
                     ci += 1
-                a = cell.get("attrs") or {}
-                colspan, rowspan = int(a.get("colspan", 1)), int(a.get("rowspan", 1))
+                if ci >= ncols:
+                    break  # cells beyond the clamped width are dropped, not crashed on
+                colspan, rowspan = _span(cell, "colspan"), _span(cell, "rowspan")
+                # Spans are clamped to the table so a merge never reaches outside it.
+                colspan = min(colspan, ncols - ci)
+                rowspan = min(rowspan, len(rows) - ri)
                 target = table.cell(ri, ci)
                 if colspan > 1 or rowspan > 1:
                     target = target.merge(table.cell(ri + rowspan - 1, ci + colspan - 1))
@@ -245,7 +275,26 @@ class _Exporter:
         if not m:
             p.add_run(f"[image: {attrs.get('alt') or src[:80]}]")
             return
-        data = base64.b64decode(m.group(1))
+        encoded = m.group(1)
+        # base64 is 4/3 the payload: bound the decode from the encoded length
+        # so a multi-hundred-MB data URI is refused before any allocation.
+        approx = len(encoded) * 3 // 4
+        if approx > MAX_IMAGE_BYTES:
+            raise ValidationError(
+                f"An embedded image exceeds {MAX_IMAGE_BYTES // (1024 * 1024)} MB; "
+                "reduce it and retry."
+            )
+        if self._image_bytes + approx > MAX_TOTAL_IMAGE_BYTES:
+            raise ValidationError(
+                f"Embedded images exceed {MAX_TOTAL_IMAGE_BYTES // (1024 * 1024)} MB in total; "
+                "reduce them and retry."
+            )
+        try:
+            data = base64.b64decode(encoded, validate=False)
+        except (ValueError, TypeError):
+            p.add_run("[image]")
+            return
+        self._image_bytes += len(data)
         width = attrs.get("width")
         try:
             run = p.add_run()
@@ -312,17 +361,30 @@ class _Exporter:
 _INLINE = {"text", "hardBreak", "image"}
 
 
-def _text_of(node: dict) -> str:
+def _span(cell: dict, name: str) -> int:
+    """``colspan`` / ``rowspan`` as an int clamped to ``[1, MAX_SPAN]``."""
+    try:
+        value = int((cell.get("attrs") or {}).get(name, 1) or 1)
+    except (TypeError, ValueError):
+        value = 1
+    return max(1, min(value, MAX_SPAN))
+
+
+def _text_of(node: dict, _depth: int = 0) -> str:
     """Plain text of a node. Inline children run together; block children
     (paragraphs, cells, list items) are separated, so "DELHI" + "The" stays
     two words for counting."""
+    if _depth > MAX_DEPTH * 2:
+        raise ValidationError(
+            f"Document nesting exceeds {MAX_DEPTH * 2} levels; flatten the structure and retry."
+        )
     if node.get("type") == "text":
         return node.get("text", "")
     if node.get("type") == "hardBreak":
         return "\n"
     children = node.get("content") or []
     sep = "" if all(c.get("type") in _INLINE for c in children) else "\n"
-    return sep.join(_text_of(c) for c in children)
+    return sep.join(_text_of(c, _depth + 1) for c in children)
 
 
 def export_docx(content_json: dict, page: dict | None = None, *, title: str | None = None) -> bytes:

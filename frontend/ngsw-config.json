@@ -14,7 +14,7 @@
       "installMode": "lazy",
       "updateMode": "prefetch",
       "resources": {
-        "files": ["/assets/**", "/icons/**", "/*.(svg|png|jpg|webp|woff2)"]
+        "files": ["/assets/**", "/icons/**", "/fonts/**", "/*.(svg|png|jpg|webp|woff2)"]
       }
     },
     {
@@ -26,16 +26,16 @@
       }
     }
   ],
-  "dataGroups": [
-    {
-      "name": "api-freshness",
-      "urls": ["/api/v1/**"],
-      "cacheConfig": {
-        "strategy": "freshness",
-        "maxSize": 100,
-        "maxAge": "1h",
-        "timeout": "55s"
-      }
-    }
-  ]
+  "_dataGroups_note": [
+    "Audit A-11 / P-9: the service worker used to cache every /api/v1/** response",
+    "(matters, clients with PAN/GSTIN, documents, messages) in the browser's",
+    "Cache Storage for an hour — readable after logout and by anyone with the",
+    "device. No API response is cached any more: every /api/v1 route, including",
+    "the news feed, requires a signed-in user (CurrentUserDep) and there is no",
+    "unauthenticated reference API — the statutory library is served as static",
+    "files under /bare-acts/** and stays cached via the asset group above.",
+    "If a genuinely public, tenant-independent read is added later, give it its",
+    "own `freshness` group with maxAge <= 10m here; never add /api/v1/** back."
+  ],
+  "dataGroups": []
 }

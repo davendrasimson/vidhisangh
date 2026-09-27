@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
+
 import pytest
 from httpx import AsyncClient
 
 pytestmark = pytest.mark.asyncio
 
 API = "/api/v1"
+
+
+def _expiry(days: int = 30) -> str:
+    return (datetime.now(UTC) + timedelta(days=days)).isoformat()
 
 
 async def _owner(client: AsyncClient, org: str, email: str, pw: str) -> dict:
@@ -30,7 +36,7 @@ async def test_key_grants_scoped_access(client: AsyncClient, strong_password: st
 
     created = await client.post(
         f"{API}/api-keys", headers=h,
-        json={"name": "CI bot", "scopes": ["matter:read", "matter:create"]},
+        json={"name": "CI bot", "scopes": ["matter:read", "matter:create"], "expires_at": _expiry()},
     )
     assert created.status_code == 201, created.text
     raw = created.json()["key"]
@@ -64,11 +70,18 @@ async def test_key_guards_and_isolation(client: AsyncClient, strong_password: st
 
     # Cannot grant a scope you don't hold (also rejects unknown codes).
     assert (await client.post(f"{API}/api-keys", headers=a,
-                              json={"name": "bad", "scopes": ["not:a-real-scope"]})).status_code == 422
+                              json={"name": "bad", "scopes": ["not:a-real-scope"], "expires_at": _expiry()})).status_code == 422
+    # Expiry is mandatory, must be in the future, and at most a year out (A-19).
+    assert (await client.post(f"{API}/api-keys", headers=a,
+                              json={"name": "forever", "scopes": ["matter:read"]})).status_code == 422
+    assert (await client.post(f"{API}/api-keys", headers=a,
+                              json={"name": "past", "scopes": ["matter:read"], "expires_at": _expiry(-1)})).status_code == 422
+    assert (await client.post(f"{API}/api-keys", headers=a,
+                              json={"name": "too long", "scopes": ["matter:read"], "expires_at": _expiry(400)})).status_code == 422
 
     a_key = (
         await client.post(f"{API}/api-keys", headers=a,
-                          json={"name": "A key", "scopes": ["matter:read"]})
+                          json={"name": "A key", "scopes": ["matter:read"], "expires_at": _expiry()})
     ).json()["key"]
 
     # A tenant admin does not see another tenant's keys…

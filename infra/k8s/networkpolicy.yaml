@@ -1,0 +1,152 @@
+# ════════════════════════════════════════════════════════════════════
+#  NetworkPolicies (audit A-28): default deny for the whole namespace,
+#  then the minimum explicit allows.
+#
+#    ingress-nginx ──► frontend:8080
+#    ingress-nginx ──► backend:8000        (also monitoring for /metrics)
+#    backend/worker ─► postgres, redis, S3, opensearch, DNS, HTTPS/SMTP out
+#    frontend ───────► DNS only (static files; the browser talks to the API)
+#
+#  Adjust the ingress/monitoring namespace labels and the CIDRs of the
+#  managed data services to the target cluster before applying.
+# ════════════════════════════════════════════════════════════════════
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: vidhisangh
+  labels:
+    app.kubernetes.io/name: vidhisangh
+    app.kubernetes.io/part-of: vidhisangh
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+# Every pod may resolve DNS (kube-dns / CoreDNS in kube-system).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+  namespace: vidhisangh
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+---
+# Frontend: only the ingress controller may reach nginx on 8080.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-ingress
+  namespace: vidhisangh
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: vidhisangh
+      app.kubernetes.io/component: frontend
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingress-nginx
+      ports:
+        - { protocol: TCP, port: 8080 }
+---
+# Backend: ingress controller (API traffic) + monitoring (Prometheus /metrics).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-ingress
+  namespace: vidhisangh
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: vidhisangh
+      app.kubernetes.io/component: backend
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingress-nginx
+      ports:
+        - { protocol: TCP, port: 8000 }
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - { protocol: TCP, port: 8000 }
+---
+# Backend + worker egress: data services and the outbound integrations only.
+# Replace the 0.0.0.0/0 blocks with the real service CIDRs when they are known;
+# the port restriction already stops arbitrary lateral movement.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-worker-egress
+  namespace: vidhisangh
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: [vidhisangh]
+      - key: app.kubernetes.io/component
+        operator: In
+        values: [backend, worker]
+  policyTypes: [Egress]
+  egress:
+    # PostgreSQL (TLS enforced by VS_DB_SSL_MODE=require off-host)
+    - to: [{ ipBlock: { cidr: 0.0.0.0/0, except: [169.254.169.254/32] } }]
+      ports: [{ protocol: TCP, port: 5432 }]
+    # Redis
+    - to: [{ ipBlock: { cidr: 0.0.0.0/0, except: [169.254.169.254/32] } }]
+      ports: [{ protocol: TCP, port: 6379 }]
+    # S3 / MinIO
+    - to: [{ ipBlock: { cidr: 0.0.0.0/0, except: [169.254.169.254/32] } }]
+      ports: [{ protocol: TCP, port: 9000 }]
+    # OpenSearch
+    - to: [{ ipBlock: { cidr: 0.0.0.0/0, except: [169.254.169.254/32] } }]
+      ports: [{ protocol: TCP, port: 9200 }]
+    # Outbound HTTPS: Razorpay, OAuth IdPs, LLM APIs, webhooks, S3 over TLS.
+    # The cloud metadata endpoint is excluded (SSRF → credential theft, A-3/A-4).
+    - to: [{ ipBlock: { cidr: 0.0.0.0/0, except: [169.254.169.254/32, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16] } }]
+      ports: [{ protocol: TCP, port: 443 }]
+    # SMTP submission (STARTTLS 587 / implicit TLS 465).
+    - to: [{ ipBlock: { cidr: 0.0.0.0/0, except: [169.254.169.254/32] } }]
+      ports:
+        - { protocol: TCP, port: 587 }
+        - { protocol: TCP, port: 465 }
+---
+# Frontend egress: nothing but DNS (covered by allow-dns-egress). Declared
+# explicitly so the intent is visible in `kubectl get netpol`.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-egress-none
+  namespace: vidhisangh
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: vidhisangh
+      app.kubernetes.io/component: frontend
+  policyTypes: [Egress]
+  egress: []

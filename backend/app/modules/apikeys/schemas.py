@@ -11,7 +11,8 @@ from pydantic import BaseModel, ConfigDict, Field
 class ApiKeyCreate(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     scopes: list[str] = Field(min_length=1, max_length=100)
-    expires_at: datetime | None = None
+    # Required: keys must expire (at most 365 days out — enforced in the service).
+    expires_at: datetime = Field(description="When the key stops working (max 365 days).")
 
 
 class ApiKeyRead(BaseModel):

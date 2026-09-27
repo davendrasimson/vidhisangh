@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -38,6 +39,10 @@ class NewsService:
         if item is None:
             raise NotFoundError("News item not found.")
         return item
+
+    async def delete(self, item_id: uuid.UUID) -> None:
+        item = await self.get(item_id)
+        item.deleted_at = datetime.now(UTC)
 
     async def list(
         self,

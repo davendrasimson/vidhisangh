@@ -145,8 +145,9 @@
                    ts_headline returns the start of the text, which for an
                    order PDF is page furniture ("Page 1 of 3 $~73 *…"). -->
               @if (j.snippet?.includes('<mark>')) {
+                <!-- `snippet` escapes everything except our own <mark> tags (audit A-5). -->
                 <p class="research-result__snippet [&_mark]:bg-warning/25 [&_mark]:text-content [&_mark]:rounded-sm [&_mark]:px-0.5"
-                   [innerHTML]="j.snippet"></p>
+                   [innerHTML]="j.snippet | snippet"></p>
               }
 
               @if (j.petitioner_advocates.length || j.respondent_advocates.length) {

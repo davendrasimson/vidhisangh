@@ -56,6 +56,33 @@
           @if (v.message) { <blockquote class="mt-3 text-sm border-l-2 border-brand pl-3 text-content">{{ v.message }}</blockquote> }
         </section>
 
+        @if (v.notice; as n) {
+          <!-- DPDP s.5 notice: the firm (Data Fiduciary) tells the client what, why, how long, and their rights. -->
+          <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5 text-sm">
+            <h2 class="font-semibold mb-2">How {{ v.firm_name }} will use your details</h2>
+            <p class="text-xs text-content-muted mb-3">Notice under the Digital Personal Data Protection Act, 2023 · version {{ n.version }}</p>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div>
+                <p class="font-medium mb-1">Why we ask</p>
+                <ul class="list-disc pl-5 grid gap-0.5">@for (p of n.purposes; track p) { <li>{{ p }}</li> }</ul>
+              </div>
+              <div>
+                <p class="font-medium mb-1">Your rights</p>
+                <ul class="list-disc pl-5 grid gap-0.5">@for (r of n.rights; track r) { <li>{{ r }}</li> }</ul>
+              </div>
+            </div>
+            <p class="mt-3"><span class="font-medium">How long we keep it:</span> {{ n.retention }}</p>
+            <p class="mt-2">
+              <span class="font-medium">Questions or complaints:</span> {{ v.firm_name }} is responsible for your data.
+              The platform's grievance officer is {{ n.grievance_officer.name }}
+              (<a class="text-brand" [href]="'mailto:' + n.grievance_officer.email">{{ n.grievance_officer.email }}</a>, {{ n.grievance_officer.address }}).
+              Unresolved grievances may be taken to the Data Protection Board of India.
+              <a class="text-brand underline" [href]="n.notice_url" target="_blank" rel="noopener noreferrer">Full privacy notice</a>.
+            </p>
+            <p class="mt-2 text-content-muted">Your identity details (PAN, GSTIN, date of birth, phone numbers) are stored encrypted. Only fill in the “additional identity details” if your advocate asked for them.</p>
+          </section>
+        }
+
         <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
           <vs-client-form mode="kyc" [kind]="v.client_kind" [value]="v.prefill"
                           [reference]="{ tds_sections: v.tds_sections, business_types: v.business_types, states: v.states }"
@@ -65,7 +92,7 @@
         <section class="rounded-card bg-surface-raised border border-line shadow-card p-5">
           <label class="flex items-start gap-3 text-sm">
             <input type="checkbox" class="mt-1" [(ngModel)]="declaration" />
-            <span>I confirm that the details above are true and complete to the best of my knowledge, and I agree to be contacted through the channels I have ticked.</span>
+            <span>I confirm that the details above are true and complete to the best of my knowledge, I have read the notice above@if (v.notice) { (version {{ v.notice.version }}) }, and I agree to be contacted through the channels I have ticked. I understand I can withdraw that consent at any time.</span>
           </label>
           @if (error()) { <p class="text-sm text-danger mt-2">{{ error() }}</p> }
           <div class="flex justify-end mt-4">

@@ -33,11 +33,14 @@ async def _matter(client: AsyncClient, h: dict) -> str:
     ).json()["id"]
 
 
-async def _document(client: AsyncClient, h: dict, content: bytes) -> str:
+async def _document(client: AsyncClient, h: dict, content: bytes, matter_id: str | None = None) -> str:
+    data = {"name": "Agreement"}
+    if matter_id:
+        data["matter_id"] = matter_id  # portal sharing requires the document to be filed to the matter
     return (
         await client.post(
             f"{API}/documents", headers=h,
-            files={"file": ("agreement.txt", content, "text/plain")}, data={"name": "Agreement"},
+            files={"file": ("agreement.txt", content, "text/plain")}, data=data,
         )
     ).json()["id"]
 
@@ -45,7 +48,7 @@ async def _document(client: AsyncClient, h: dict, content: bytes) -> str:
 async def test_portal_end_to_end(client: AsyncClient, strong_password: str) -> None:
     h, _ = await _user(client, "Portal LLP", "firm@firm.co", strong_password)
     mid = await _matter(client, h)
-    did = await _document(client, h, b"draft agreement")
+    did = await _document(client, h, b"draft agreement", mid)
 
     # Firm grants portal access.
     access = await client.post(
@@ -120,7 +123,7 @@ async def test_invalid_and_revoked_tokens(client: AsyncClient, strong_password: 
 async def test_client_cannot_download_unshared_doc(client: AsyncClient, strong_password: str) -> None:
     h, _ = await _user(client, "Share LLP", "share@firm.co", strong_password)
     mid = await _matter(client, h)
-    did = await _document(client, h, b"confidential")
+    did = await _document(client, h, b"confidential", mid)
     token = (
         await client.post(
             f"{API}/portal/access", headers=h,

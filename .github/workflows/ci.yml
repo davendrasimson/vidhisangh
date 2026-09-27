@@ -1,0 +1,216 @@
+# ════════════════════════════════════════════════════════════════════
+#  VidhiSangh — CI (audit A-12: lint / types / tests+coverage / build /
+#  SCA / secrets / filesystem scan / SBOM). Every job must pass before
+#  merge — enable branch protection on `main` requiring this workflow.
+# ════════════════════════════════════════════════════════════════════
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.13"
+  NODE_VERSION: "22"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+jobs:
+  # ─── Backend: ruff + mypy ───────────────────────────────────────────
+  backend-lint:
+    name: backend · ruff + mypy
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: backend } }
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.lock
+      - name: Install (hash-verified)
+        run: pip install --require-hashes --no-deps -r requirements-dev.lock
+      - name: ruff check
+        run: ruff check app tests --output-format=github
+      - name: ruff format --check
+        run: ruff format --check app tests
+      - name: mypy --strict (app/)
+        run: mypy --strict app
+
+  # ─── Backend: tests + coverage gate ────────────────────────────────
+  backend-test:
+    name: backend · pytest (coverage ≥ pyproject fail_under)
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: backend } }
+    env:
+      VS_ENVIRONMENT: local
+      VS_RATE_LIMITING_ENABLED: "false"
+      VS_STORAGE_BACKEND: memory
+      VS_SECRET_KEY: ci-only-secret-key-not-used-anywhere-else-0123456789abcdef
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.lock
+      - name: Install (hash-verified)
+        run: pip install --require-hashes --no-deps -r requirements-dev.lock
+      - name: pytest with coverage gate
+        # --cov-fail-under is read from [tool.coverage.report].fail_under.
+        run: |
+          PYTHONPATH=$PWD pytest -q -p no:logging \
+            --cov=app --cov-branch --cov-report=xml --cov-report=term-missing:skip-covered
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-coverage
+          path: backend/coverage.xml
+          retention-days: 14
+
+  # ─── Backend: dependency vulnerabilities ───────────────────────────
+  backend-audit:
+    name: backend · pip-audit
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: backend } }
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: actions/setup-python@v5
+        with: { python-version: "${{ env.PYTHON_VERSION }}" }
+      - name: pip-audit the production lock
+        run: |
+          pip install pip-audit
+          pip-audit --strict --require-hashes --disable-pip -r requirements.lock
+
+  # ─── Frontend: build + audit ───────────────────────────────────────
+  frontend:
+    name: frontend · npm ci + ng build + npm audit
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: frontend } }
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --ignore-scripts
+      - name: ng build (production)
+        run: npx ng build --configuration production
+      - name: npm audit (production deps, high+)
+        run: npm audit --omit=dev --audit-level=high
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/vidhisangh/browser
+          retention-days: 7
+
+  # ─── Secrets: gitleaks over full history ───────────────────────────
+  gitleaks:
+    name: security · gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_SUMMARY: "true"
+
+  # ─── Filesystem / IaC / dependency scan: trivy ─────────────────────
+  trivy:
+    name: security · trivy fs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: sarif
+          output: trivy.sarif
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with: { sarif_file: trivy.sarif }
+
+  # ─── SBOM: syft (CycloneDX + SPDX) as a build artifact ─────────────
+  sbom:
+    name: supply-chain · SBOM (syft)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: cyclonedx-json
+          artifact-name: sbom-vidhisangh.cdx.json
+          upload-artifact: true
+          upload-artifact-retention: 90
+      - uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: spdx-json
+          artifact-name: sbom-vidhisangh.spdx.json
+          upload-artifact: true
+          upload-artifact-retention: 90
+
+  # ─── Container images build (no push) so a broken Dockerfile fails CI ──
+  images:
+    name: images · docker build (backend, frontend)
+    runs-on: ubuntu-latest
+    needs: [backend-lint, frontend]
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: docker/setup-buildx-action@v3
+      - name: backend (prod target)
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          target: prod
+          push: false
+          load: true
+          tags: vidhisangh-backend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: frontend (prod target)
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          target: prod
+          push: false
+          load: true
+          tags: vidhisangh-frontend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: trivy image scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: image
+          image-ref: vidhisangh-backend:ci
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"

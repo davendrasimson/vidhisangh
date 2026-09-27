@@ -5,12 +5,28 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.core.http_utils import sanitize_filename
+
+
+def _clean_name(value: str | None) -> str | None:
+    """Strip quotes, backslashes, semicolons, path separators and control
+    characters from a user-supplied name so it can never break a
+    ``Content-Disposition`` header or a storage path."""
+    if value is None:
+        return None
+    cleaned = sanitize_filename(value)
+    if cleaned == "untitled" and value.strip() not in ("", "untitled"):
+        raise ValueError("Name contains no usable characters.")
+    return cleaned
 
 
 # ─── Folders ────────────────────────────────────────────────────────
 class FolderCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
+
+    _clean = field_validator("name")(_clean_name)
     parent_id: uuid.UUID | None = None
     matter_id: uuid.UUID | None = None
 
@@ -51,6 +67,8 @@ class DocumentUpdate(BaseModel):
     # Explicit null unlinks the client; absent leaves it alone.
     client_id: uuid.UUID | None = None
     tags: list[str] | None = Field(default=None, max_length=30)
+
+    _clean = field_validator("name")(_clean_name)
 
 
 class VersionRead(BaseModel):

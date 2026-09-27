@@ -1,5 +1,6 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Subject } from 'rxjs';
+import { Subject, firstValueFrom } from 'rxjs';
 import { environment } from '@env/environment';
 import { TokenService } from '@core/auth/token.service';
 import { Message } from '@core/models/messaging.models';
@@ -10,13 +11,25 @@ export type RealtimeEvent =
   | { type: 'presence_snapshot'; online: string[] }
   | { type: 'typing'; conversation_id: string; user_id: string };
 
+interface WsTicket {
+  ticket: string;
+  expires_in: number;
+}
+
 /** Live messaging socket: delivers messages, presence and typing signals.
- *  Single connection, auto-reconnecting while authenticated. */
+ *  Single connection, auto-reconnecting while authenticated.
+ *
+ *  The handshake carries a 60-second single-use ticket from
+ *  `POST /auth/ws-ticket`, never the access token itself (audit A-26: the
+ *  query string ends up in access logs). */
 @Injectable({ providedIn: 'root' })
 export class RealtimeService {
   private readonly tokens = inject(TokenService);
+  private readonly http = inject(HttpClient);
+  private readonly api = environment.apiBaseUrl;
 
   private socket: WebSocket | null = null;
+  private connecting = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private closedByUs = false;
 
@@ -27,13 +40,26 @@ export class RealtimeService {
   readonly online = computed(() => this._online());
 
   connect(): void {
-    if (this.socket && this.socket.readyState <= WebSocket.OPEN) return;
-    const token = this.tokens.accessToken();
-    if (!token) return;
-
+    if (this.connecting || (this.socket && this.socket.readyState <= WebSocket.OPEN)) return;
+    if (!this.tokens.accessToken()) return;
     this.closedByUs = false;
-    const base = environment.apiBaseUrl.replace(/^http/, 'ws');
-    const socket = new WebSocket(`${base}/ws?token=${encodeURIComponent(token)}`);
+    this.connecting = true;
+    void this.openWithTicket().finally(() => (this.connecting = false));
+  }
+
+  private async openWithTicket(): Promise<void> {
+    let ticket: string;
+    try {
+      ({ ticket } = await firstValueFrom(this.http.post<WsTicket>(`${this.api}/auth/ws-ticket`, {})));
+    } catch {
+      // Not signed in (or the API is down): try again later unless we were told to stop.
+      if (!this.closedByUs) this.scheduleReconnect();
+      return;
+    }
+    if (this.closedByUs) return;
+
+    const base = this.wsBase();
+    const socket = new WebSocket(`${base}/ws?ticket=${encodeURIComponent(ticket)}`);
     this.socket = socket;
 
     socket.onmessage = (e) => this.handle(JSON.parse(e.data) as RealtimeEvent);
@@ -43,6 +69,12 @@ export class RealtimeService {
       if (!this.closedByUs) this.scheduleReconnect();
     };
     socket.onerror = () => socket.close();
+  }
+
+  /** `apiBaseUrl` may be relative in production (`/api/v1`): resolve against the page. */
+  private wsBase(): string {
+    const absolute = new URL(this.api, window.location.origin).toString().replace(/\/$/, '');
+    return absolute.replace(/^http/, 'ws');
   }
 
   disconnect(): void {

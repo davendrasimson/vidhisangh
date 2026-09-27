@@ -4,57 +4,61 @@
 #  Multi-stage:  dev  |  build → prod (nginx)
 #  Build dev :  docker build --target dev  -t vidhisangh-frontend:dev  .
 #  Build prod:  docker build --target prod -t vidhisangh-frontend:prod .
+#
+#  Base images are pinned by digest (multi-arch index, resolved 2026-09-27;
+#  the tag is kept in the comment so Dependabot/renovate can bump both).
+#  Node 22 LTS is the minimum for Angular 21 (20.19+/22.12+).
 # ════════════════════════════════════════════════════════════════════
 
 # ─── dev ────────────────────────────────────────────────────────────
-# Angular CLI dev server with HMR. Source is bind-mounted by
-# docker-compose; deps are baked so the container is usable standalone.
-FROM node:20-alpine AS dev
+# node:22-alpine
+FROM node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402 AS dev
 WORKDIR /app
+ENV NPM_CONFIG_UPDATE_NOTIFIER=false NPM_CONFIG_FUND=false NPM_CONFIG_AUDIT=false
 
-# Cached dependency layer — only re-runs when the manifest/lockfile change.
-COPY package*.json ./
-RUN npm ci
+# Cached dependency layer — only re-runs when the lockfile changes.
+COPY package.json package-lock.json ./
+RUN npm ci --ignore-scripts
 
 COPY . .
-
+USER node
 EXPOSE 4200
 CMD ["npm", "start", "--", "--host", "0.0.0.0"]
 
 # ─── build ──────────────────────────────────────────────────────────
-# Produces the optimized static bundle in dist/vidhisangh/browser.
-FROM node:20-alpine AS build
+# node:22-alpine
+FROM node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402 AS build
 WORKDIR /app
+ENV NPM_CONFIG_UPDATE_NOTIFIER=false NPM_CONFIG_FUND=false NPM_CONFIG_AUDIT=false
 
-COPY package*.json ./
-RUN npm ci
+COPY package.json package-lock.json ./
+RUN npm ci --ignore-scripts
 
 COPY . .
 RUN npm run build
 
 # ─── prod ───────────────────────────────────────────────────────────
-# Static assets served by nginx, hardened to run as the unprivileged
-# `nginx` user on port 8080 (no root, no privileged ports).
-FROM nginx:1.27-alpine AS prod
+# Static assets served by nginx as the unprivileged `nginx` user on :8080
+# with a read-only root filesystem: every path nginx writes is redirected
+# to /tmp (mounted as an emptyDir in Kubernetes).
+# nginx:1.27-alpine
+FROM nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10 AS prod
 
 RUN apk add --no-cache curl \
-    # Serve on a non-privileged port and let the nginx user own runtime paths.
-    && sed -i 's,listen\s*80;,listen 8080;,'            /etc/nginx/conf.d/default.conf 2>/dev/null || true \
-    && sed -i '/^user\s*nginx;/d'                       /etc/nginx/nginx.conf \
-    && sed -i 's,/var/run/nginx.pid,/tmp/nginx.pid,'    /etc/nginx/nginx.conf
+    && rm -f /etc/nginx/conf.d/default.conf \
+    # Drop the `user` directive (we run as nginx already) and move the pid
+    # and every temp/cache path under /tmp so `/` can be read-only.
+    && sed -i '/^user\s*nginx;/d' /etc/nginx/nginx.conf \
+    && sed -i 's,/var/run/nginx.pid,/tmp/nginx.pid,' /etc/nginx/nginx.conf \
+    && sed -i 's,^http {,http {\n    client_body_temp_path /tmp/client_temp;\n    proxy_temp_path       /tmp/proxy_temp;\n    fastcgi_temp_path     /tmp/fastcgi_temp;\n    uwsgi_temp_path       /tmp/uwsgi_temp;\n    scgi_temp_path        /tmp/scgi_temp;\n    server_tokens off;,' /etc/nginx/nginx.conf
 
 # SPA server config (SPA fallback, gzip, caching, security headers, API proxy).
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Built Angular bundle.
-COPY --from=build /app/dist/vidhisangh/browser /usr/share/nginx/html
-
-# Make runtime paths writable by the unprivileged user.
-RUN chown -R nginx:nginx /usr/share/nginx/html /var/cache/nginx \
-    && touch /tmp/nginx.pid && chown nginx:nginx /tmp/nginx.pid
+COPY --from=build --chown=nginx:nginx /app/dist/vidhisangh/browser /usr/share/nginx/html
 
 USER nginx
-
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

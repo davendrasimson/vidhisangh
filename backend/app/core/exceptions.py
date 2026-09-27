@@ -94,6 +94,24 @@ def _problem(
     return JSONResponse(status_code=status_code, content=body)
 
 
+_SCALARS = (str, int, float, bool, type(None))
+
+
+def _public_validation_error(err: dict[str, Any]) -> dict[str, Any]:
+    """Reduce a pydantic error to ``{loc, msg, type[, ctx]}`` — never ``input``/``url``."""
+    out: dict[str, Any] = {
+        "loc": list(err.get("loc", ())),
+        "msg": str(err.get("msg", "Invalid value.")),
+        "type": str(err.get("type", "value_error")),
+    }
+    ctx = err.get("ctx")
+    if isinstance(ctx, dict):
+        safe = {k: (v if isinstance(v, _SCALARS) else str(v)) for k, v in ctx.items() if k != "input"}
+        if safe:
+            out["ctx"] = safe
+    return out
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppError)
     async def _app_error(request: Request, exc: AppError) -> JSONResponse:
@@ -111,15 +129,14 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def _validation(
         request: Request, exc: RequestValidationError
     ) -> JSONResponse:
-        # A validator that raises ValueError leaves the exception object in
-        # `ctx`, which is not JSON — strip it so the client gets a 422, not a 500.
-        details = []
-        for err in exc.errors():
-            err = dict(err)
-            ctx = err.get("ctx")
-            if isinstance(ctx, dict):
-                err["ctx"] = {k: (v if isinstance(v, (str, int, float, bool, type(None))) else str(v)) for k, v in ctx.items()}
-            details.append(err)
+        # Emit only what the client needs to fix the request: where (loc),
+        # what (msg) and the rule (type). Pydantic also puts the submitted
+        # value in `input` and a docs link in `url` — `input` echoes passwords,
+        # PAN/GSTIN and whatever else was posted back into the response (and
+        # into any log/proxy that captures it), so both are dropped (A-10/P-2).
+        # `ctx` is kept only as JSON-safe scalars (a validator's ValueError
+        # object is not JSON) — it holds rule parameters, never the value.
+        details = [_public_validation_error(err) for err in exc.errors()]
         return _problem(
             status_code=422,
             code="validation_error",

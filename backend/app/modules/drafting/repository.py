@@ -7,6 +7,7 @@ import uuid
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.db_utils import LIKE_ESCAPE, contains
 from app.modules.drafting.models import Draft, DraftVersion
 
 
@@ -45,7 +46,7 @@ class DraftRepository:
         if client_id is not None:
             stmt = stmt.where(Draft.client_id == client_id)
         if q:
-            stmt = stmt.where(Draft.title.ilike(f"%{q}%"))
+            stmt = stmt.where(Draft.title.ilike(contains(q), escape=LIKE_ESCAPE))
         return list((await self.session.execute(stmt)).scalars().all())
 
     async def versions(self, tenant_id: uuid.UUID, draft_id: uuid.UUID) -> list[DraftVersion]:

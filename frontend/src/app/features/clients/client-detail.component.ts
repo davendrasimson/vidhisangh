@@ -23,6 +23,9 @@ import {
   ReferenceData,
 } from '@core/models/clients.models';
 import { ClientFormComponent } from './client-form.component';
+import { ClientPrivacyService, saveBlob } from './client-privacy.service';
+import { CONSENT_PURPOSE_LABELS, ClientFormFields, ConsentEvent, ConsentPurpose, LegalHold } from './client-privacy.models';
+import { AuthService } from '@core/auth/auth.service';
 
 /** One client: details (editable), tax defaults, and the KYC form workflow. */
 @Component({
@@ -40,6 +43,8 @@ export class ClientDetailComponent {
   private readonly notify = inject(NotificationService);
   private readonly documentsApi = inject(DocumentsService);
   private readonly billingApi = inject(BillingService);
+  private readonly privacy = inject(ClientPrivacyService);
+  private readonly auth = inject(AuthService);
 
   protected readonly client = signal<Client | null>(null);
   /** Matters filed for this client (linked through the client master). */
@@ -56,7 +61,14 @@ export class ClientDetailComponent {
   protected readonly showSend = signal(false);
   protected readonly fieldLabels = FIELD_LABELS;
   protected sendForm = { send_to_email: '', message: '', expires_in_days: 14 };
-  private edits: ClientFields = {};
+  private edits: ClientFormFields = {};
+  /** Consent ledger (newest first) and the staff "record consent" mini-form. */
+  protected readonly consents = signal<ConsentEvent[]>([]);
+  protected readonly showConsents = signal(false);
+  protected readonly purposeLabels = CONSENT_PURPOSE_LABELS;
+  protected readonly purposes = Object.keys(CONSENT_PURPOSE_LABELS) as ConsentPurpose[];
+  protected consentForm: { purpose: ConsentPurpose; granted: boolean; note: string } = { purpose: 'contact_email', granted: true, note: '' };
+  protected readonly canOverrideHold = this.auth.hasPermission('tenant:manage');
 
   protected readonly errors = computed(() => this.client()?.issues.filter((i) => i.severity === 'error') ?? []);
   protected readonly warnings = computed(() => this.client()?.issues.filter((i) => i.severity === 'warning') ?? []);
@@ -82,6 +94,7 @@ export class ClientDetailComponent {
       this.reference.set(reference);
       this.requests.set(requests);
       this.sendForm.send_to_email = client.email || client.contact_person_email || '';
+      firstValueFrom(this.privacy.consents(id)).then((x) => this.consents.set(x)).catch(() => this.consents.set([]));
       // Matters for this client — non-fatal if the user cannot read matters.
       firstValueFrom(this.mattersApi.list(undefined, 1, 50, { client_id: id }))
         .then((m) => this.matters.set(m))
@@ -100,7 +113,7 @@ export class ClientDetailComponent {
   }
 
   // ── Details ────────────────────────────────────────────────────
-  protected onChange(v: ClientFields): void {
+  protected onChange(v: ClientFormFields): void {
     this.edits = v;
     this.dirty.set(true);
   }
@@ -120,11 +133,68 @@ export class ClientDetailComponent {
 
   protected async remove(): Promise<void> {
     const c = this.client();
-    if (!c || !window.confirm(`Delete ${c.display_name}? Matters and invoices keep their own copies of the name.`)) return;
+    if (!c || !window.confirm(`Delete ${c.display_name}? The record is kept (recoverable) for the retention period; matters and invoices keep their own copies of the name.`)) return;
     try {
       await firstValueFrom(this.clients.remove(c.id));
       await this.router.navigate(['/app/clients']);
     } catch { /* handled */ }
+  }
+
+  // ── Privacy: export, consent ledger, erasure ───────────────────
+  protected async exportData(): Promise<void> {
+    const c = this.client();
+    if (!c) return;
+    try {
+      saveBlob(await firstValueFrom(this.privacy.exportBlob(c.id)), `client-${c.display_name.replace(/[^\w-]+/g, '_')}.json`);
+      this.notify.success('Client data export downloaded (DPDP s.11).');
+    } catch { /* handled */ }
+  }
+
+  protected async recordConsent(): Promise<void> {
+    const c = this.client();
+    if (!c) return;
+    this.saving.set(true);
+    try {
+      const ev = await firstValueFrom(this.privacy.recordConsent(c.id, this.consentForm.purpose, this.consentForm.granted, this.consentForm.note.trim() || undefined));
+      this.consents.update((list) => [ev, ...list]);
+      this.client.set(await firstValueFrom(this.clients.get(c.id)));
+      this.consentForm.note = '';
+      this.notify.success(this.consentForm.granted ? 'Consent recorded.' : 'Withdrawal recorded — the original grant stays on file.');
+    } catch { /* handled */ } finally { this.saving.set(false); }
+  }
+
+  protected async erase(): Promise<void> {
+    const c = this.client();
+    if (!c) return;
+    let holds: LegalHold[] = [];
+    try { holds = await firstValueFrom(this.privacy.legalHolds(c.id)); } catch { /* handled */ }
+    let overrideLegalHold = false;
+    let reason: string | undefined;
+    if (holds.length) {
+      const list = holds.map((h) => `${h.matter_number} — ${h.reason}`).join('\n');
+      if (!this.canOverrideHold) {
+        window.alert(`This client is under legal hold and cannot be erased:\n\n${list}\n\nClose the matters or ask an organisation administrator.`);
+        return;
+      }
+      reason = window.prompt(`Legal hold on:\n\n${list}\n\nTo override, enter the reason (recorded in the audit log):`)?.trim();
+      if (!reason) return;
+      overrideLegalHold = true;
+    }
+    if (!window.confirm(`Permanently erase ${c.display_name}? Identity data, KYC forms and consent records are deleted; matters, documents and invoices are kept but unlinked and shown as “Erased client”. This cannot be undone.`)) return;
+    this.saving.set(true);
+    try {
+      const res = await firstValueFrom(this.privacy.erase(c.id, { overrideLegalHold, reason }));
+      const n = Object.values(res.unlinked).reduce((a, b) => a + b, 0);
+      this.notify.success(`Client erased. ${n} linked record${n === 1 ? '' : 's'} unlinked.`);
+      await this.router.navigate(['/app/clients']);
+    } catch (err) {
+      const detail = (err as { error?: { detail?: string } })?.error?.detail;
+      if (detail) this.notify.error(detail);
+    } finally { this.saving.set(false); }
+  }
+
+  protected sourceLabel(s: ConsentEvent['source']): string {
+    return { staff: 'by staff', kyc_form: 'by the client (KYC form)', portal: 'by the client (portal)' }[s];
   }
 
   // ── KYC ────────────────────────────────────────────────────────

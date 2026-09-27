@@ -44,10 +44,33 @@ These ship complete and mock/flow-tested; flip them on by setting env in `backen
   - `SearchFacets.advocates` on SQLite (tests) groups the whole " | " string; Postgres unnests per advocate.
 
 ## 🔴 Security & operations hardening
-- **Security & privacy audit (27 Sep 2026)** — see [SECURITY_AUDIT_2026-09.md](SECURITY_AUDIT_2026-09.md): 65 findings (4 critical, 25 high) against OWASP Top 10, ISO 27001/27701, DPDP Act 2023 and SOC 2, with a 7/30/90-day remediation plan. Confirmed on production: lockout never persists (A-1), login limiter bypassed via `X-Forwarded-For` (A-2), passwords echoed in 422 bodies (A-10/P-2), cross-tenant people directory (P-10). Critical to start immediately: backups (I-1), A-1, A-2, SPA security headers (I-2/I-3). Nothing from the audit has been fixed yet; work the plan in order.
+- **Security & privacy audit (27 Sep 2026) — remediated the same day.** Report: [SECURITY_AUDIT_2026-09.md](SECURITY_AUDIT_2026-09.md) (+ PDF); status of every finding is in its "Remediation status" section. Code fixes shipped as migrations 0047–0051 and deployed; host hardened (SSH keys-only, fail2ban, nginx headers+CSP, XFF, log masking, Redis auth, SPF/DMARC, journald cap, nightly encrypted backups + retention timer). **Still open, needs a decision or external infra (not code):**
+  - **Off-host backup destination** — nightly encrypted dumps land in `/opt/vidhisangh/backups/db` on the same host; set `BACKUP_S3_URI` (rclone remote) in `/opt/vidhisangh/.secrets/backup.env` once the user's S3 bucket exists, and run the documented restore drill (I-1).
+  - **Disk encryption at rest** — needs a LUKS data volume or provider-side encryption; requires downtime/migration of `/var/lib/postgresql` and `/opt/vidhisangh/documents` (I-5).
+  - **Secondary authoritative DNS** on separate infrastructure + repoint ns2 glue (I-11). **SNMPv3** or disable snmpd (I-13).
+  - **KMS/HSM for the field-encryption key** — keys are now separate, rotatable (`VS_FIELD_ENCRYPTION_KEYS`, key-id prefixed) but file/env-held; `crypto._load_key()` is the KMS swap point (A-7).
+  - **Grievance officer** — `VS_GRIEVANCE_OFFICER_*` on production hold placeholder values ("Grievance Officer, VidhiSangh" / privacy@vidhisangh.com); DPDP s.8(9) needs a named person and a working mailbox. **Privacy notice/terms** text (`docs/PRIVACY_NOTICE.md`, `docs/TERMS.md`) needs Indian privacy counsel review before it is relied on.
+  - **SMTP** — password-reset, invitation, email-verification and KYC emails go to the log provider until `VS_SMTP_*` is set; DKIM + SPF include to add then (I-9).
+  - **Branch protection / required CI checks** on the git remote (`git.simsononline.com`) — CI workflows exist in-repo but the server-side policy is the owner's to enable (A-12). **Off-host git push** of the remediation commit.
+  - **REFRESH_TOKEN_IN_BODY** — still `true` for the transition; flip to `false` after all users have reloaded the SPA (A-11). `?token=` WebSocket auth to be removed next release (A-26). Legacy webhook signature header to be removed next release (A-25).
+  - **Peppers** `VS_REFRESH_TOKEN_PEPPER` / `VS_BACKUP_CODE_PEPPER` deliberately left derived from `SECRET_KEY` (setting them logs every user out and voids MFA backup codes); do it in a planned maintenance window (A-7).
+  - **Registration enumeration** — 201/409 kept (product decision), mitigated by 5/min per-IP + per-account limits (A-21). **Team-scoped ABAC** for externals not built; their read permissions were removed instead (A-6).
+  - **Penetration test / DAST**, ISMS policy set, risk register, restore drill on record — process items in the audit's 90-day plan.
+  - **Webhook queue** is process-local (Celery remains deferred); **Google Fonts** removed (self-hosted).
 - ✅ **Non-superuser Postgres role (DONE)** — provisioning shipped: `python -m app.scripts.provision_db_role --role vidhisangh_app --password …` creates a least-privilege `NOSUPERUSER NOBYPASSRLS` role (DML-only, no DDL) so RLS is actually enforced; idempotent, `--dry-run` previews SQL. Go-live checklist in `docs/SECURITY.md`; verified by `tests/test_rls_app_role.py` (DB-enforced read + `WITH CHECK` write isolation, default-deny, no-DDL, real login verified). **Remaining ops step:** in each non-local env, set `VS_POSTGRES_USER/PASSWORD` to the app role and run migrations as an admin/owner role.
 - **KMS/HSM envelope encryption + secrets-manager wiring** — `EncryptedString` (MFA secret) uses an app key today.
 - **DAST, malware scanning of uploads, backups/PITR/DR, ABAC policy expansion.**
+
+## 🔐 Privacy / DPDP — deferred after the 27 Sep 2026 remediation (privacy agent)
+Shipped: validation errors no longer echo input; client identity data encrypted at rest with blind-index search (0049); append-only consent ledger gating client-facing sends; minor/guardian consent; user/client/tenant export; user/client/tenant erasure with legal hold and 30-day tenant grace; rights-request register; retention purge (`app/scripts/retention_purge.py`, `infra/jobs/vidhisangh-retention.*`); public `/privacy` and `/terms`; Settings → Privacy & data; SECURITY.md rewritten as a controls matrix. Still to do:
+- **`lawful_basis` on `matter_parties` and `leads`** (P-5): `lawful_basis VARCHAR(20) NOT NULL DEFAULT 'legitimate_use'` (enum consent/contract/legal_obligation/legitimate_use/public_data) + `basis_note VARCHAR(300) NULL`; surface on the party/lead forms. Owned by the matters/crm modules.
+- **Portal rights-request route** (P-1 g): `POST /portal/{token}/privacy-requests {kind, message}` → `app.modules.privacy.service.create_rights_request(session, access, kind, message)`; a "Your data rights" block on the client portal page.
+- **Frontend re-prompt on terms change**: compare `/auth/me.terms_version` with `GET /privacy/notice.terms_version` after login and show an accept dialog that records the new version (needs a `POST /auth/me/accept-terms` endpoint in identity).
+- **Directory opt-in default** (P-10): `Tenant.settings.privacy.directory_listing_default` exists; registration still publishes a `NetworkIdentity` for everyone — honour the setting (and default new tenants to opt-in) in `identity/service.py::register`.
+- **Generic `PATCH /tenants/current` settings write** can overwrite the `privacy` block the way it already protects `notifications`; add `PRIVACY_KEY` to the filter in `tenancy/service.py::update`.
+- **Notification bodies still carry client names** (P-12): purge covers it (365 d); moving to ids-only needs a template layer.
+- **Breach runbook + alerting** (P-6, s.8(6)): security events are audited; alerting/runbook not written.
+- **S3/SSE object storage** (P-8/A-13) so `storage.delete` in the purge removes encrypted objects rather than local files.
 
 ## 🧪 Testing & tooling
 - **Browser e2e (Playwright/Cypress)** — backend has an ASGI cross-module smoke (`test_smoke_journey.py`); a real browser e2e is deferred (no browser tooling in the build env).

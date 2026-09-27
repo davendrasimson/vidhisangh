@@ -74,6 +74,10 @@ export interface ClientFields {
   msme_udyam?: string | null;
   notes?: string | null;
   tags?: string[] | null;
+  // DPDP s.9: a minor needs a recorded guardian consent before KYC can be sent.
+  is_minor?: boolean | null;
+  guardian_name?: string | null;
+  guardian_relation?: string | null;
 }
 
 export interface ClientSummary {
@@ -99,6 +103,7 @@ export interface Client extends ClientSummary, Required<Omit<ClientFields, keyof
   tags: string[];
   consent_recorded_at: string | null;
   consent_source: string | null;
+  guardian_consent_recorded_at: string | null;
   kyc_verified_at: string | null;
   kyc_verified_by: string | null;
   created_by: string;

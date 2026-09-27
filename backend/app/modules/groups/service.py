@@ -156,6 +156,16 @@ class GroupService:
         membership = await self.members.get(group_id, self.user_id)
         return group, membership
 
+    async def view_group(self, group_id: uuid.UUID) -> tuple[Group, GroupMembership | None, bool]:
+        """``(group, membership, full)`` — ``full`` is False when the viewer is
+        not an active member of a private group, in which case the router
+        returns only the reduced :class:`GroupPreview` projection."""
+        group, membership = await self.get_group(group_id)
+        full = group.visibility == GroupVisibility.PUBLIC or (
+            membership is not None and membership.status == MemberStatus.ACTIVE
+        )
+        return group, membership, full
+
     async def update_group(self, group_id: uuid.UUID, data: GroupUpdate) -> Group:
         group = await self._get_group(group_id)
         await self._require_manager(group_id)
@@ -382,6 +392,7 @@ class GroupService:
         post = await self.posts.get(post_id)
         if post is None:
             raise NotFoundError("Post not found.")
+        await self._require_active_member(post.group_id)
         existing = await self.likes.get(post_id, self.user_id)
         if existing is None:
             return

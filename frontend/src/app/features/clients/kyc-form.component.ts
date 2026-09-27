@@ -8,8 +8,9 @@ import { firstValueFrom } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { ClientsService } from '@core/services/clients.service';
-import { ClientFields, FIELD_LABELS, KycPublicView, KycSubmitResult } from '@core/models/clients.models';
+import { ClientFields, FIELD_LABELS, KycSubmitResult } from '@core/models/clients.models';
 import { ClientFormComponent } from './client-form.component';
+import { KycPublicViewWithNotice } from './client-privacy.models';
 
 /**
  * The client's KYC form, reached from the tokenised link (no login).
@@ -27,7 +28,7 @@ export class KycFormComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly clients = inject(ClientsService);
 
-  protected readonly view = signal<KycPublicView | null>(null);
+  protected readonly view = signal<KycPublicViewWithNotice | null>(null);
   protected readonly loading = signal(true);
   protected readonly invalid = signal(false);
   protected readonly submitting = signal(false);
@@ -48,7 +49,7 @@ export class KycFormComponent {
   private async load(): Promise<void> {
     this.loading.set(true);
     try {
-      const v = await firstValueFrom(this.clients.kycView(this.token));
+      const v = (await firstValueFrom(this.clients.kycView(this.token))) as KycPublicViewWithNotice;
       this.view.set(v);
       this.values = { ...v.prefill };
     } catch {
@@ -71,7 +72,9 @@ export class KycFormComponent {
         consent_mobile: !!this.values.consent_mobile,
         consent_whatsapp: !!this.values.consent_whatsapp,
         declaration_accepted: true,
-      })));
+        // Which notice text the client saw with the declaration (DPDP s.5/s.6).
+        notice_version: this.view()?.notice?.version ?? null,
+      } as ClientFields & { declaration_accepted: boolean })));
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       const detail = err instanceof HttpErrorResponse ? (err.error?.detail as string | undefined) : undefined;

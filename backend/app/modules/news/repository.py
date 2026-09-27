@@ -7,6 +7,7 @@ import uuid
 from sqlalchemy import String, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.db_utils import LIKE_ESCAPE, contains
 from app.modules.news.models import NewsCategory, NewsItem
 
 
@@ -42,18 +43,18 @@ class NewsRepository:
     ) -> list[NewsItem]:
         stmt = select(NewsItem).where(NewsItem.deleted_at.is_(None), permitted_source())
         if query:
-            like = f"%{query}%"
+            like = contains(query)
             stmt = stmt.where(
                 or_(
-                    NewsItem.title.ilike(like),
-                    NewsItem.summary.ilike(like),
-                    cast(NewsItem.tags, String).ilike(like),
+                    NewsItem.title.ilike(like, escape=LIKE_ESCAPE),
+                    NewsItem.summary.ilike(like, escape=LIKE_ESCAPE),
+                    cast(NewsItem.tags, String).ilike(like, escape=LIKE_ESCAPE),
                 )
             )
         if category is not None:
             stmt = stmt.where(NewsItem.category == category)
         if source:
-            stmt = stmt.where(NewsItem.source.ilike(f"%{source}%"))
+            stmt = stmt.where(NewsItem.source.ilike(contains(source), escape=LIKE_ESCAPE))
         res = await self.session.execute(
             stmt.order_by(NewsItem.published_at.desc()).limit(limit).offset(offset)
         )

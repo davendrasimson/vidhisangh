@@ -396,6 +396,8 @@ class PartyCreate(BaseModel):
     contact: str | None = Field(default=None, max_length=200)
     side: PartySide = PartySide.OTHER
     position: int | None = Field(default=None, ge=1)
+    lawful_basis: str = Field(default="legitimate_use", max_length=20)
+    basis_note: str | None = Field(default=None, max_length=300)
 
 
 class PartyRead(BaseModel):
@@ -406,6 +408,8 @@ class PartyRead(BaseModel):
     contact: str | None
     side: PartySide
     position: int | None
+    lawful_basis: str = "legitimate_use"
+    basis_note: str | None = None
 
 
 # ─── Advocates on record ────────────────────────────────────────────

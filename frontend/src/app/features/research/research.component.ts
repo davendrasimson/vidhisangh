@@ -18,6 +18,7 @@ import {
   SearchFilters,
 } from '@core/models/research.models';
 import { VsDateInputComponent } from '@shared/date-input/vs-date-input.component';
+import { SnippetPipe } from '@shared/pipes/snippet.pipe';
 import { DatePipe } from '@angular/common';
 import { ResearchFolder, ResearchWorkspaceService, SavedAuthority } from './research-workspace.service';
 
@@ -46,7 +47,7 @@ const ISSUE_RULES: { terms: string[]; suggestion: LegalIssueSuggestion }[] = [
   selector: 'app-research',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, VsDateInputComponent, NgTemplateOutlet, FormsModule, RouterLink, MatIconModule, MatButtonModule],
+  imports: [DatePipe, SnippetPipe, VsDateInputComponent, NgTemplateOutlet, FormsModule, RouterLink, MatIconModule, MatButtonModule],
   templateUrl: './research.component.html',
   styleUrl: './research.component.scss',
 })

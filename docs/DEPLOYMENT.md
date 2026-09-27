@@ -112,7 +112,177 @@ of contents:
 sudo -u postgres pg_dump -d vidhisangh -Fc -f /tmp/vs.dump && echo OK || echo FAILED
 ```
 
-There is still no scheduled backup — see Open items.
+That is exactly what `infra/jobs/backup-db.sh` does — and it is the **one**
+sanctioned superuser use on this host.
+
+### Nightly backup (I-1) — RPO 24 h, RTO 2 h
+
+| | |
+|---|---|
+| **RPO** (max data loss) | **24 hours** — one full `pg_dump -Fc` per night at 01:30 IST (`backup-db.timer`, 20:00 UTC). WAL archiving is not configured; if the business needs a tighter RPO, add `archive_command` + `pgBackRest`/`wal-g` (open item). |
+| **RTO** (time to restore) | **2 hours** — measured budget for: provision/clean host (30 min) → `restore-db.sh` of the 28 GB dump (`-j 4`, ~45 min) → documents/secrets untar → smoke test → DNS/nginx cutover. Re-measure at every drill. |
+| Retention | 30 days local (`RETENTION_DAYS`), pruned by the script; off-host copies keep their bucket lifecycle. |
+| Encryption | `age` to the public keys in `/opt/vidhisangh/.secrets/backup_age_recipients` (the host cannot read its own backups; the identity lives with the operator, off-host). Fallback: `openssl aes-256-cbc -pbkdf2` with `/opt/vidhisangh/.secrets/backup_key`. |
+| Verified before kept | `pg_dump` exit code **and** `pg_restore --list` must succeed and list `TABLE DATA` for `tenants/users/matters/documents`; anything else exits non-zero, deletes the partial file and fires `vidhisangh-job-failed@`. |
+| What is included | database (`backups/db/vidhisangh-YYYYmmdd-HHMM.dump.age`), document store `VS_STORAGE_DIR` (`backups/files/documents-*.tar.zst.age`), `.secrets/` minus the backup key itself (`backups/files/secrets-*.tar.age`), `.sha256` beside each. |
+| Success marker | `/opt/vidhisangh/backups/last-success` (UTC timestamp). Alert if older than 26 h. |
+
+Install once:
+
+```bash
+sudo install -m 0755 infra/jobs/backup-db.sh infra/jobs/restore-db.sh /opt/vidhisangh/infra/jobs/
+sudo install -m 0644 infra/jobs/backup-db.service infra/jobs/backup-db.timer \
+                     infra/jobs/vidhisangh-job-failed@.service /etc/systemd/system/
+# keys — generate the age identity OFF-HOST and copy only the public key here:
+#   age-keygen -o backup_age_identity.txt   (keep in the password manager / HSM)
+sudo install -m 0600 -o root -g root backup_age_recipients /opt/vidhisangh/.secrets/
+sudo apt-get install -y age zstd            # (openssl fallback works without age)
+sudo systemctl daemon-reload && sudo systemctl enable --now backup-db.timer
+sudo systemctl start backup-db.service && tail -20 /opt/vidhisangh/backups/backup.log
+```
+
+**Off-host copy (required to close I-1 fully — needs a destination).** Set
+`BACKUP_S3_URI=<rclone-remote>:<bucket>/vidhisangh` in
+`/opt/vidhisangh/.secrets/backup.env` (0600) after `rclone config` as root; the
+script copies `db/` and `files/` with `--immutable --checksum`. Until a bucket
+exists the step logs "skipped" and the backup is local-only, which does not
+survive loss of the host.
+
+### Restore drill (quarterly — record date, duration, row counts)
+
+```bash
+# 1. pick the newest backup and restore it into a FRESH database (never over live)
+LATEST=$(ls -t /opt/vidhisangh/backups/db/*.dump.* | head -1)
+sudo AGE_IDENTITY=/root/backup_age_identity.txt infra/jobs/restore-db.sh "$LATEST" vidhisangh_drill
+# 2. the script prints alembic_version + row counts + count of FORCE RLS tables;
+#    compare with production:  sudo -u postgres psql -d vidhisangh -Atc "select count(*) from matters"
+# 3. smoke-test: point a copy of backend/.env at VS_POSTGRES_DB=vidhisangh_drill,
+#    run  PYTHONPATH=$PWD .venv/bin/python -m app.scripts.provision_db_role --check  and log in
+# 4. drop it:  sudo -u postgres dropdb vidhisangh_drill
+# 5. write the drill down in docs/ops/restore-drills.md: date, backup file, wall time, checks
+```
+
+Real disaster: restore into `vidhisangh_restore_<stamp>`, run steps 2–3, then
+promote with `ALTER DATABASE ... RENAME` (the script prints the exact statements),
+untar `documents-*.tar.zst.age` into `VS_STORAGE_DIR` and `secrets-*.tar.age`
+into `/opt/vidhisangh/.secrets`, restart `vidhisangh-api`.
+
+### Maintenance role (VACUUM without the superuser)
+
+The corpus jobs used to run `sudo -u postgres psql ... VACUUM`. They now connect
+as a dedicated `vidhisangh_maint` role through `PGPASSFILE` (A-28):
+
+```sql
+CREATE ROLE vidhisangh_maint LOGIN PASSWORD '<from .secrets>' NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;
+GRANT CONNECT ON DATABASE vidhisangh TO vidhisangh_maint;
+GRANT USAGE ON SCHEMA public TO vidhisangh_maint;
+-- PostgreSQL 17: per-table MAINTAIN privilege (VACUUM, ANALYZE, REINDEX, CLUSTER, REFRESH MV, LOCK)
+GRANT MAINTAIN ON judgments, case_citations TO vidhisangh_maint;
+-- or, for every table:  GRANT pg_maintain TO vidhisangh_maint;
+```
+
+```bash
+sudo install -m 0600 -o ubuntu /dev/stdin /opt/vidhisangh/.secrets/pgpass_maint <<< "localhost:5432:vidhisangh:vidhisangh_maint:<password>"
+```
+
+`GRANT MAINTAIN` needs PostgreSQL ≥ 17 (production is 16.15 — use the
+`pg_maintain` predefined role, or upgrade). The scripts also stopped exporting
+the whole `.env.admin`; only `VS_POSTGRES_*`/`VS_DATABASE_URL` reach the loaders.
+
+## Service management
+
+```bash
+sudo systemctl status  vidhisangh-api          # API (gunicorn/uvicorn, 127.0.0.1:8000)
+sudo systemctl restart vidhisangh-api          # after a backend deploy
+sudo systemctl stop    vidhisangh-api          # stop for this boot only
+sudo systemctl disable vidhisangh-api          # stop auto-starting on boot
+sudo journalctl -u vidhisangh-api -f           # live logs
+sudo journalctl -u vidhisangh-api --since -1h -p warning
+
+sudo systemctl list-timers 'vidhisangh-*' 'backup-db*'   # hourly news import, nightly backup
+sudo systemctl start vidhisangh-official-news.service    # run the importer now
+sudo journalctl -u vidhisangh-official-news -n 50
+sudo journalctl -u backup-db -n 50
+
+sudo nginx -t && sudo systemctl reload nginx   # after editing sites-available/vidhisangh.conf
+sudo systemctl status postgresql redis-server named
+```
+
+Every timer unit carries `OnFailure=vidhisangh-job-failed@%n.service`, which
+appends the failing unit's last 40 journal lines to
+`/opt/vidhisangh/backups/job-failures.log` and posts to `VS_SLACK_WEBHOOK` when
+`/opt/vidhisangh/.secrets/ops.env` defines it.
+
+## Storage — where document bytes live
+
+`VS_STORAGE_BACKEND` selects the backend in `app/core/storage.py`; the app
+**refuses to start** (`assert_storage_ready()` in the lifespan) when the choice
+would lose or expose documents:
+
+| Backend | When | Startup gate |
+|---|---|---|
+| `s3` | **Production target.** Any S3-compatible bucket (AWS ap-south-1, MinIO). Every object is written with server-side encryption: `aws:kms` + `VS_S3_KMS_KEY_ID` when set, else `AES256`. | bucket must answer `HeadBucket`. |
+| `local` | Single host (today). `VS_STORAGE_DIR` is **required** — there is no temp-dir default any more (a temp dir is world-readable and wiped on reboot). | dir must exist and be writable by the service user; in production it also logs a warning that at-rest encryption is the disk's job (I-5). |
+| `memory` | Tests only. | refused in production. |
+
+Production `.env` today:
+
+```
+VS_STORAGE_BACKEND=local
+VS_STORAGE_DIR=/opt/vidhisangh/documents        # 0700 ubuntu; on the LUKS volume once I-5 is done
+VS_MAX_UPLOAD_BYTES=26214400                    # = nginx client_max_body_size 25m
+```
+
+Moving to S3: create the bucket (versioning on, public access blocked, default
+SSE-KMS), set `VS_S3_*`, flip `VS_STORAGE_BACKEND=s3`, then copy the existing
+tree with `aws s3 sync /opt/vidhisangh/documents s3://<bucket>/ --sse aws:kms`.
+Keys are `tenant_id/document_id/<hex>` in both backends, so no DB change is
+needed. Deleting a document now deletes every version's bytes immediately (A-13);
+soft-deleted rows stay for the audit trail.
+
+Uploads (A-22): 25 MiB cap enforced three times (browser pre-check, nginx 413,
+app 413 while streaming); allow-list `pdf doc docx xls xlsx pptx txt csv rtf odt
+png jpg jpeg gif webp zip` (`VS_ALLOWED_UPLOAD_TYPES` overrides); magic-byte
+sniffing rejects a mismatch with 415 and the **sniffed** type is what is stored
+and served, with RFC 6266 `filename*=` downloads.
+
+## CI
+
+`.github/workflows/ci.yml` runs on every push/PR: ruff + `mypy --strict app/`,
+pytest with the coverage gate from `pyproject.toml` (`fail_under = 85`),
+`npm ci && ng build`, `pip-audit` on the production lock, `npm audit --omit=dev
+--audit-level=high`, gitleaks (full history), trivy (fs + built images), a
+CycloneDX/SPDX SBOM artifact, and a no-push build of both Dockerfiles.
+`codeql.yml` scans Python + TypeScript weekly and on PRs; `dependabot.yml` opens
+weekly update PRs for pip, npm, GitHub Actions, Docker and compose. Turn on
+branch protection for `main` requiring "CI" and "CodeQL".
+
+Locally: `pip install pre-commit && pre-commit install` (ruff + gitleaks on commit).
+
+### Lock file
+
+Runtime dependencies are installed **only** from the hash-pinned locks
+(`backend/requirements.lock` = runtime + storage/search/ai extras;
+`requirements-dev.lock` adds test/lint tooling). The Dockerfile and CI use
+`pip install --require-hashes --no-deps`, so a tampered or substituted wheel
+fails the build. Regenerate after editing `pyproject.toml` dependencies:
+
+```bash
+cd backend
+.venv-linux/bin/python -m pip install -U <changed package>        # upgrade the venv first
+.venv-linux/bin/python -m pip freeze --exclude-editable > /tmp/constraints.txt
+python3 -m venv --without-pip /tmp/lockenv
+for set in "storage,search,ai" "dev,storage,search,ai"; do
+  .venv-linux/bin/python -m pip --python /tmp/lockenv/bin/python install --dry-run \
+     --ignore-requires-python -c /tmp/constraints.txt --report /tmp/lock-$set.json ".[$set]"
+done
+# then hashes: for each name==version in the reports, fetch
+#   https://pypi.org/pypi/<name>/<version>/json → urls[].digests.sha256 (all files, so the
+#   lock works for any platform) and write "name==ver \ --hash=sha256:…" lines.
+# (The one-off script used on 2026-09-27 is in the CI notes; pip-compile --generate-hashes
+#  from pip-tools produces the same shape if you prefer a tool.)
+.venv-linux/bin/python -m pip_audit --require-hashes --disable-pip -r requirements.lock
+```
 
 ## Deploying a change
 
@@ -391,9 +561,105 @@ PYTHONPATH=$PWD .venv/bin/python -m app.scripts.enrich_judgments --limit 0 --con
 
 ## Open items
 
-- **No backups.** Nothing dumps Postgres anywhere. This is the biggest gap.
+- **Backups are local-only until `BACKUP_S3_URI` points at an off-host bucket** (see Backups). No WAL archiving (RPO 24 h).
+- Disk is unencrypted (I-5): put `VS_STORAGE_DIR` and the Postgres data dir on a LUKS volume.
 - No second nameserver (see above).
 - No node toolchain on the server, so frontend builds happen locally.
 - Let's Encrypt registered without a contact email, so no expiry warnings:
   `sudo certbot update_account --email <you@example.com>` to add one.
 - Firewall is open on 22, 53, 80, 443 (plus SNMP from one IP). `ufw status`.
+
+## Auth changes 2026-09-27 (security audit A-1/2/7/8/9/11/14/18/19/20/21/23/24/26/27/33/34)
+
+Migration **0050_auth_hardening** (after 0049_privacy). Run it with `.env.admin` as
+usual; it hashes every existing portal / KYC token in place (links already sent
+keep working) and nulls the clear-text column.
+
+### New / changed environment variables (`backend/.env`)
+
+| Variable | Default | Production |
+|---|---|---|
+| `VS_SECRET_KEY` | **required, no default** (≥ 32 chars) | Already set. Never rotate casually: it still signs HS256 tokens in dev and derives the sub-keys below when they are unset. |
+| `VS_REFRESH_TOKEN_PEPPER` | derived (= SECRET_KEY, so existing sessions survive) | Set a separate 64-char random value. **Setting it signs everyone out once.** |
+| `VS_BACKUP_CODE_PEPPER` | derived (= SECRET_KEY) | Set separately. **Setting it invalidates every MFA backup code** — announce it. |
+| `VS_LINK_TOKEN_PEPPER` | derived (sha256 label `link-token`) | Set separately **before** running 0050 if you want a non-derived value; changing it afterwards breaks every portal/KYC/reset link already issued. |
+| `VS_BLIND_INDEX_PEPPER` | derived | Set separately (privacy agent's searchable encrypted columns). |
+| `VS_FIELD_ENCRYPTION_KEYS` | derived Fernet key from SECRET_KEY (`k1`) | Comma-separated Fernet keys, **newest first**. Rotate by prepending; old rows decrypt with their `k<n>:` key id, un-prefixed legacy rows with the derived key. Generate: `python -c "from cryptography.fernet import Fernet;print(Fernet.generate_key().decode())"`. |
+| `VS_JWT_ALGORITHM` | `HS256` | Must be `ES256`/`RS256` in production (already ES256 with `VS_JWT_PRIVATE_KEY_PATH`/`VS_JWT_PUBLIC_KEY_PATH`); HS256 is now refused unconditionally. |
+| `VS_TRUSTED_PROXY_IPS` | `127.0.0.1,::1` | nginx is on loopback, so the default is right. `X-Forwarded-For` is only honoured when the TCP peer is in this list, read right-to-left. Add the LB address/CIDR if one is ever put in front. |
+| `VS_RATE_LIMITING_ENABLED` | `true` | Keep `true` (production refuses `false`). Credential limiters now **fail closed (503)** when Redis is down — Redis is a hard dependency of sign-in. |
+| `VS_AUTH_ACCOUNT_RATE_LIMIT_PER_MINUTE` | `10` | Per lower-cased email, on top of the per-IP bucket. |
+| `VS_REGISTER_RATE_LIMIT_PER_MINUTE` | `5` | Sign-ups per IP (also throttles the 409 email-exists oracle, which is kept by product decision). |
+| `VS_MFA_RATE_LIMIT_PER_MINUTE` `VS_PUBLIC_TOKEN_RATE_LIMIT_PER_MINUTE` `VS_LINK_PREVIEW_RATE_LIMIT_PER_MINUTE` `VS_UPLOAD_RATE_LIMIT_PER_MINUTE` `VS_WS_HANDSHAKE_RATE_LIMIT_PER_MINUTE` | 10 / 30 / 20 / 30 / 30 | Defaults are fine. |
+| `VS_LOGIN_MAX_FAILED_ATTEMPTS` / `VS_LOGIN_LOCKOUT_MINUTES` | 5 / 15 | Lockout now actually persists (the counter is committed before the 401). |
+| `VS_REFRESH_TOKEN_IN_BODY` | `true` | Leave `true` until every browser has loaded the new SPA (it still returns the refresh token in JSON for old tabs), then set `false` so it travels only in the cookie. |
+| `VS_REFRESH_COOKIE_NAME` | `vs_refresh` | — |
+| `VS_INVITES_RETURN_TEMP_PASSWORD` | `false` | Keep `false`: admins get an invitation link (7 days) instead of a temporary password. |
+| `VS_INVITE_TOKEN_EXPIRE_DAYS` / `VS_PASSWORD_RESET_EXPIRE_MINUTES` / `VS_EMAIL_VERIFICATION_EXPIRE_HOURS` | 7 / 30 / 48 | — |
+| `VS_PORTAL_ACCESS_EXPIRE_DAYS` | `90` | Existing links get 90 days from the migration. |
+| `VS_OAUTH_MOCK_ENABLED` | `false` | Never `true` in production (start-up refuses). |
+| `VS_OAUTH_ALLOWED_REDIRECT_ORIGINS` | `` | Extra origins for SSO `redirect_uri`; `VS_PUBLIC_APP_URL` and `VS_BACKEND_CORS_ORIGINS` are always allowed. |
+| `VS_EXPOSE_API_DOCS` | `false` | `/api/v1/docs`, `/redoc`, `openapi.json` are off in production unless this is `true`. |
+| `VS_METRICS_TOKEN` | unset | Set a random value; `/metrics` then requires `Authorization: Bearer <token>` (nginx still denies it publicly). Point Prometheus at it with the header. |
+| `VS_DB_ROLE_CHECK` | `true` | At boot the app queries `pg_roles` for `current_user`; SUPERUSER or BYPASSRLS **refuses to start** in production. `vidhisangh_app` passes. |
+| `VS_WS_TICKET_TTL_SECONDS` | `60` | — |
+| `VS_SMTP_TLS` | `true` | New typed setting (with `VS_SMTP_HOST/PORT/USER/PASSWORD/FROM`, which existed). |
+| `VS_WEBAUTHN_RP_ID` / `VS_WEBAUTHN_RP_NAME` / `VS_WEBAUTHN_ORIGIN` | `localhost` / `VidhiSangh` / `http://localhost:4200` | Production: `vidhisangh.com` / `VidhiSangh` / `https://vidhisangh.com`. |
+
+`assert_production_ready()` logs a warning for every secret still derived from
+`SECRET_KEY` and for a missing `VS_METRICS_TOKEN`.
+
+### Behaviour changes operators should know
+
+- **Refresh token is an HttpOnly cookie** (`vs_refresh`, `Path=/api/v1/auth`,
+  `SameSite=Strict`, `Secure` outside `local`). `/auth/refresh` and `/auth/logout`
+  read it when the JSON body carries no token and then require the header
+  `X-Requested-With: VidhiSangh` (CSRF). The SPA no longer stores the refresh token
+  in localStorage; a token left by the old SPA is sent once and removed.
+- **Logout** clears the cookie, every CacheStorage cache, all `vs.*` /
+  `vidhisangh-*` localStorage keys, and broadcasts to other tabs. It returns 400
+  (`nothing_revoked`) when no session matched.
+- **Immediate revocation:** role change, deactivation, password change/reset and
+  "sign out everywhere" bump `users.token_epoch` and write
+  `vs:revoked_user:{id}` to Redis for one access-token lifetime; older access
+  tokens are refused without a DB read. **If Redis is down the check is skipped**
+  (tokens live out their ≤ 15 min); the refresh token is already dead in the DB.
+- **Deactivating a user also revokes the API keys they created**, and every API
+  key is re-validated against its creator on each use (inactive/deleted/moved
+  creator → 401; scopes ∩ creator's current permissions). Keys must now carry an
+  expiry ≤ 365 days.
+- **MFA:** `/auth/mfa/disable` needs the current password **and** a TOTP/backup
+  code; backup codes are deleted on disable and on re-enrolment; a re-enrolment
+  keeps the current authenticator working until the new one is confirmed.
+- **Portal / KYC links** are stored hashed. The raw token is returned once (create
+  response, email); listings show `token: null`. Portal links expire
+  (`expires_at`) and record `last_accessed_at`. Staff who need a link again must
+  revoke and re-issue.
+- **Admin "add user"** returns `invitation_url` (7-day single-use, also emailed via
+  the channel seam) and `temporary_password: null` by default. A temporary
+  password, when enabled, yields a session that can only call
+  `/auth/change-password` (claim `pmc`); the SPA routes it to `/auth/change-password`.
+- **Password reset:** `POST /auth/forgot-password` (always 202) → email link
+  `/auth/reset/{token}` → `POST /auth/reset-password`. Signs every session out.
+- **Email verification:** sign-up sends `/auth/verify-email/{token}`; login is not
+  blocked (product decision) but `is_email_verified` is exposed and audited.
+- **OAuth:** `redirect_uri` must be on the app origin; an `id_token` is verified
+  (JWKS, aud, iss, exp, nonce) when the provider returns one, otherwise userinfo
+  must say `email_verified: true`; identities are linked by `(provider, subject)`
+  in `oauth_identities` and matched by email only on first link.
+- **WebSocket:** clients call `POST /auth/ws-ticket` and connect with `?ticket=`
+  (60 s, single use, Redis-backed; signed 60 s JWT fallback without Redis).
+  `?token=` still works this release and logs `ws_token_query_deprecated` — remove
+  it next release.
+- **Audit trail:** `auth.registered`, `auth.login`, `auth.login_failed`,
+  `auth.lockout`, `auth.logout`, `auth.refresh_reuse`, `auth.password_changed`,
+  `auth.password_reset_requested`, `auth.password_reset`, `auth.invite_accepted`,
+  `auth.mfa_enrolled/enabled/disabled`, `auth.passkey_added/removed`,
+  `auth.session_revoked`, `auth.sessions_revoked_others`, `auth.email_verified`,
+  `auth.sso_login`, `auth.sso_linked`, `user.invited` — actor ids only, never
+  credentials or tokens. Failures and lockouts are committed with the counter.
+- **Password policy:** minimum stays 8 (product decision) plus a local deny-list
+  (`app/core/data/common_passwords.txt`, matched case-insensitively and after
+  stripping trailing digits/symbols and simple leet) on register / change / reset.
+- **Prometheus:** `vs_ratelimit_fallback_total{scope,mode}` counts rate-limit
+  checks that ran without Redis (`mode=open` allowed, `mode=closed` → 503).

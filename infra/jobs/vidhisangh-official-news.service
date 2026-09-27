@@ -1,11 +1,55 @@
 [Unit]
 Description=Import official Supreme Court judgment updates
-After=network-online.target
+After=network-online.target postgresql.service
+Wants=network-online.target
+OnFailure=vidhisangh-job-failed@%n.service
 
 [Service]
 Type=oneshot
-User=ubuntu
+User=vidhisangh
+Group=vidhisangh
 WorkingDirectory=/opt/vidhisangh/backend
+# App-role credentials only (never .env.admin): the importer needs DML, not DDL.
+EnvironmentFile=/opt/vidhisangh/backend/.env
+Environment=PYTHONPATH=/opt/vidhisangh/backend
 ExecStart=/opt/vidhisangh/backend/.venv/bin/python -m app.scripts.ingest_official_news
 TimeoutStartSec=120
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+# ── Sandbox (audit A-28) ────────────────────────────────────────────
 NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+ProcSubset=pid
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RemoveIPC=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources @mount
+# Network: TCP/UDP (Postgres, Redis, HTTPS to the court site) + unix sockets.
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+# The importer writes nothing but its log; the store below is the only
+# writable path outside /tmp.
+ReadWritePaths=/opt/vidhisangh/backups
+# Resource ceiling so a runaway parse cannot starve the API on the same host.
+MemoryMax=1G
+MemoryHigh=768M
+CPUQuota=100%
+TasksMax=64

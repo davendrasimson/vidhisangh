@@ -70,6 +70,10 @@ class NetworkIdentity(AuditedBase):
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     city: Mapped[str | None] = mapped_column(String(120), nullable=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Directory opt-in (audit P-10). New identities start hidden; the user opts in
+    # via PATCH /network/me/visibility. Existing rows were grandfathered to true
+    # by migration 0048. Connections, mentions and posts work regardless.
+    discoverable: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
 
 
 class Connection(AuditedBase):

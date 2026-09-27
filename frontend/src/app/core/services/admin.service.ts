@@ -9,7 +9,9 @@ import { ApiKey, ApiKeyCreated } from '@core/models/api-key.models';
 
 export interface UserCreated {
   user: User;
-  temporary_password: string;
+  /** Null unless INVITES_RETURN_TEMP_PASSWORD is on; the invitation link is the normal hand-off. */
+  temporary_password: string | null;
+  invitation_url?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })

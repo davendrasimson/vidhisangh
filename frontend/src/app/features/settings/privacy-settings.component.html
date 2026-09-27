@@ -1,0 +1,123 @@
+<div class="w-full max-w-3xl">
+  <a routerLink="/app/settings" class="text-sm text-content-muted inline-flex items-center gap-1 mb-3">
+    <mat-icon class="material-icons-outlined text-base">arrow_back</mat-icon> Settings
+  </a>
+  <header class="mb-6">
+    <h1 class="text-2xl font-bold text-content">Privacy &amp; data</h1>
+    <p class="text-content-muted mt-1">Your rights under the Digital Personal Data Protection Act, 2023 — and how to use them here.</p>
+  </header>
+
+  <!-- ── My data ──────────────────────────────────────────────── -->
+  <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
+    <h2 class="font-semibold mb-1">Download my data</h2>
+    <p class="text-sm text-content-muted mb-3">A JSON file with everything the platform holds about you: account, profile, sessions, notifications, network activity, and the records you authored (s.11).</p>
+    <button mat-stroked-button [disabled]="busy() === 'export'" (click)="exportMe()">
+      <mat-icon class="material-icons-outlined">download</mat-icon> {{ busy() === 'export' ? 'Preparing…' : 'Download my data (JSON)' }}
+    </button>
+  </section>
+
+  <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h2 class="font-semibold">Directory listing</h2>
+        <p class="text-sm text-content-muted">Whether other advocates on VidhiSangh can find your profile in the cross-firm directory. You can withdraw at any time.</p>
+      </div>
+      @if (discoverable() !== null) {
+        <mat-slide-toggle [checked]="discoverable()!" [disabled]="busy() === 'directory'" (change)="toggleDirectory($event.checked)">
+          {{ discoverable() ? 'Listed' : 'Hidden' }}
+        </mat-slide-toggle>
+      }
+    </div>
+  </section>
+
+  <section class="rounded-card bg-surface-raised border border-danger/40 shadow-card p-5 mb-5">
+    <h2 class="font-semibold text-danger mb-1">Delete my account</h2>
+    <p class="text-sm text-content-muted mb-3">
+      Your account is anonymised immediately, all sessions and API keys are revoked and your directory profile is removed (s.12).
+      Posts and messages you wrote stay, attributed to “Deleted user”. Audit-log entries naming you are retained (legal obligation).
+      If you are the only administrator of your organisation, make someone else an admin first — or delete the organisation below.
+    </p>
+    @if (!showDelete) {
+      <button mat-stroked-button class="!text-danger" (click)="showDelete = true"><mat-icon class="material-icons-outlined">person_off</mat-icon> Delete my account…</button>
+    } @else {
+      <div class="grid gap-3 sm:grid-cols-[1fr_auto_auto] items-end">
+        <label class="grid gap-1"><span class="text-sm text-content-muted">Confirm with your password</span>
+          <input class="vs-input" type="password" autocomplete="current-password" [(ngModel)]="deletePassword" /></label>
+        <button mat-button (click)="showDelete = false; deletePassword = ''">Cancel</button>
+        <button mat-flat-button color="warn" [disabled]="busy() === 'delete'" (click)="deleteMe()">{{ busy() === 'delete' ? 'Deleting…' : 'Delete permanently' }}</button>
+      </div>
+    }
+  </section>
+
+  <!-- ── Notice / grievance ───────────────────────────────────── -->
+  <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5 text-sm">
+    <h2 class="font-semibold mb-2">Notice, terms and grievances</h2>
+    <p class="mb-2">
+      <a class="text-brand underline" routerLink="/privacy" target="_blank">Privacy notice</a> ·
+      <a class="text-brand underline" routerLink="/terms" target="_blank">Terms of Service</a>
+      @if (facts(); as f) { <span class="text-content-muted">· Terms {{ f.terms_version }} · Notice {{ f.notice_version }} · hosted in {{ f.hosting_region }}</span> }
+    </p>
+    @if (facts(); as f) {
+      <p class="text-xs font-semibold uppercase tracking-wide text-content-muted mt-3 mb-1">Grievance Officer (s.13)</p>
+      <p class="font-medium">{{ f.grievance_officer.name }}</p>
+      <p><a class="text-brand" [href]="'mailto:' + f.grievance_officer.email">{{ f.grievance_officer.email }}</a></p>
+      <p class="text-content-muted">{{ f.grievance_officer.address }}</p>
+      <p class="text-content-muted mt-2">Not resolved within 30 days? You may complain to the
+        <a class="text-brand underline" [href]="f.data_protection_board_url" target="_blank" rel="noopener noreferrer">Data Protection Board of India</a>.</p>
+    }
+  </section>
+
+  <!-- ── Organisation (admins) ────────────────────────────────── -->
+  @if (isAdmin && tenantSettings(); as ts) {
+    <h2 class="text-xs font-bold uppercase tracking-wider text-content-muted mb-3 mt-8">Organisation</h2>
+
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
+      <h3 class="font-semibold mb-1">Your firm as Data Fiduciary</h3>
+      <p class="text-sm text-content-muted mb-3">Shown to your clients on KYC forms. VidhiSangh processes client data on your instructions (Terms, Schedule A, version {{ ts.dpa_version }}). Sub-processors: {{ ts.sub_processors.join(', ') }}.</p>
+      <div class="grid gap-3 sm:grid-cols-2">
+        <label class="grid gap-1"><span class="text-sm text-content-muted">Data-protection contact (name)</span>
+          <input class="vs-input" [(ngModel)]="orgForm.data_protection_contact_name" /></label>
+        <label class="grid gap-1"><span class="text-sm text-content-muted">Contact e-mail</span>
+          <input class="vs-input" type="email" [(ngModel)]="orgForm.data_protection_contact_email" /></label>
+        <label class="grid gap-1"><span class="text-sm text-content-muted">Contact phone</span>
+          <input class="vs-input" inputmode="tel" [(ngModel)]="orgForm.data_protection_contact_phone" /></label>
+        <label class="grid gap-1"><span class="text-sm text-content-muted">Retain closed matters for (years)</span>
+          <input class="vs-input" type="number" min="1" max="30" [(ngModel)]="orgForm.matter_retention_years" />
+          <small class="text-content-muted">Client records under an open or recently closed matter cannot be erased (legal hold).</small></label>
+      </div>
+      <div class="flex justify-end mt-3">
+        <button mat-flat-button color="primary" [disabled]="busy() === 'org'" (click)="saveOrg()">{{ busy() === 'org' ? 'Saving…' : 'Save' }}</button>
+      </div>
+    </section>
+
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
+      <h3 class="font-semibold mb-1">Export the organisation</h3>
+      <p class="text-sm text-content-muted mb-3">A zip with one JSON file per table — clients, matters, documents metadata, invoices, users, audit log. Secrets are excluded. Use it for offboarding or your own records.</p>
+      <button mat-stroked-button [disabled]="busy() === 'org-export'" (click)="exportOrg()">
+        <mat-icon class="material-icons-outlined">folder_zip</mat-icon> {{ busy() === 'org-export' ? 'Preparing…' : 'Download organisation export (zip)' }}
+      </button>
+    </section>
+
+    <section class="rounded-card bg-surface-raised border border-danger/40 shadow-card p-5 mb-5">
+      <h3 class="font-semibold text-danger mb-1">Delete the organisation</h3>
+      <p class="text-sm text-content-muted mb-3">
+        Cancels the subscription, disables every user immediately and erases all data — including document files —
+        after {{ facts()?.tenant_erase_grace_days ?? 30 }} days. Export first. Write to the grievance officer within the grace period to reverse it.
+      </p>
+      @if (!showOrgDelete) {
+        <button mat-stroked-button class="!text-danger" (click)="showOrgDelete = true"><mat-icon class="material-icons-outlined">domain_disabled</mat-icon> Delete organisation…</button>
+      } @else {
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label class="grid gap-1"><span class="text-sm text-content-muted">Type the organisation slug <code class="font-mono">{{ tenantSlug() }}</code></span>
+            <input class="vs-input font-mono" [(ngModel)]="orgConfirmSlug" /></label>
+          <label class="grid gap-1"><span class="text-sm text-content-muted">Your password</span>
+            <input class="vs-input" type="password" autocomplete="current-password" [(ngModel)]="orgPassword" /></label>
+        </div>
+        <div class="flex justify-end gap-2 mt-3">
+          <button mat-button (click)="showOrgDelete = false; orgConfirmSlug = ''; orgPassword = ''">Cancel</button>
+          <button mat-flat-button color="warn" [disabled]="busy() === 'org-delete'" (click)="deleteOrg()">{{ busy() === 'org-delete' ? 'Cancelling…' : 'Cancel & schedule erasure' }}</button>
+        </div>
+      }
+    </section>
+  }
+</div>

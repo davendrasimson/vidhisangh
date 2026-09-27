@@ -12,7 +12,10 @@ existingSecret: "vidhisangh-secrets"
 
 image:
   registry: ghcr.io
-  pullPolicy: IfNotPresent
+  # Always: a re-pushed tag can never be served from a stale node cache.
+  # Combined with per-component `digest` below, the pod runs exactly the
+  # image CI built and scanned (A-28).
+  pullPolicy: Always
   # Default tag applied to all components unless overridden per-component.
   tag: "0.1.0"
 
@@ -23,7 +26,8 @@ backend:
   enabled: true
   image:
     repository: vidhisangh/backend
-    tag: ""            # falls back to .Values.image.tag
+    tag: ""
+    digest: ""         # "sha256:<digest>" — set by CD from the build output            # falls back to .Values.image.tag
   replicaCount: 3
   containerPort: 8000
   resources:
@@ -45,6 +49,7 @@ worker:
   image:
     repository: vidhisangh/backend    # same image as backend
     tag: ""
+    digest: ""         # "sha256:<digest>" — set by CD from the build output
   replicaCount: 2
   command:
     - celery
@@ -67,6 +72,7 @@ frontend:
   image:
     repository: vidhisangh/frontend
     tag: ""
+    digest: ""         # "sha256:<digest>" — set by CD from the build output
   replicaCount: 2
   containerPort: 8080
   service:
@@ -113,7 +119,7 @@ ingress:
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-body-size: "25m"   # = VS_MAX_UPLOAD_BYTES
   hosts:
     web: vidhisangh.com
     api: api.vidhisangh.com
@@ -121,6 +127,44 @@ ingress:
     enabled: true
     webSecretName: vidhisangh-tls
     apiSecretName: vidhisangh-api-tls
+
+# ─── Hardening (A-28) ────────────────────────────────────────────
+networkPolicy:
+  # Default-deny for every pod in the release; explicit allows per component.
+  enabled: true
+  # Namespace/pod selectors that may reach the backend (ingress controller).
+  ingressController:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: ingress-nginx
+    podSelector:
+      matchLabels:
+        app.kubernetes.io/name: ingress-nginx
+  # Where the backend/worker are allowed to connect (managed services).
+  egress:
+    postgres: { port: 5432, cidr: "" }      # cidr "" = any destination on that port
+    redis:    { port: 6379, cidr: "" }
+    s3:       { port: 9000, cidr: "" }
+    opensearch: { port: 9200, cidr: "" }
+    # Outbound HTTPS (Razorpay, SMTP relays over 587/465, OAuth IdPs, LLM APIs).
+    https: true
+    smtp: true
+  # Prometheus scrape access to /metrics on the backend.
+  monitoring:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: monitoring
+
+podDisruptionBudget:
+  enabled: true
+  backend:  { minAvailable: 2 }
+  worker:   { minAvailable: 1 }
+  frontend: { minAvailable: 1 }
+
+serviceAccounts:
+  # One ServiceAccount per component; the API token is never mounted.
+  create: true
+  annotations: {}
 
 # ─── Bundled infra subcharts (dev / self-contained installs) ──────
 # Set to false in production and point config.* at managed services.
@@ -140,4 +184,6 @@ redis:
   enabled: false
   architecture: standalone
   auth:
-    enabled: false
+    enabled: true
+    existingSecret: vidhisangh-secrets
+    existingSecretPasswordKey: REDIS_PASSWORD

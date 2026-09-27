@@ -1,0 +1,26 @@
+# Failure notifier for every VidhiSangh timer job (OnFailure=vidhisangh-job-failed@%n).
+# Writes the failed unit's last 40 log lines to the ops log and, when
+# VS_SLACK_WEBHOOK is present in /opt/vidhisangh/.secrets/ops.env, posts a
+# short alert. It has no secrets of its own and runs unprivileged.
+[Unit]
+Description=Alert: VidhiSangh job %i failed
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+EnvironmentFile=-/opt/vidhisangh/.secrets/ops.env
+ExecStart=/bin/sh -c ' \
+  { echo "=== $(date -u +%%FT%%TZ) %i FAILED"; journalctl -u %i -n 40 --no-pager; } >> /opt/vidhisangh/backups/job-failures.log; \
+  if [ -n "$VS_SLACK_WEBHOOK" ]; then \
+    curl -fsS -m 10 -H "Content-Type: application/json" \
+      --data "{\\"text\\":\\"VidhiSangh job *%i* failed on $(hostname) at $(date -u +%%FT%%TZ). See /opt/vidhisangh/backups/job-failures.log\\"}" \
+      "$VS_SLACK_WEBHOOK" >/dev/null || true; \
+  fi'
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/vidhisangh/backups
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+MemoryMax=128M

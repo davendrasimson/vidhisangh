@@ -26,6 +26,18 @@ class IdentityRead(BaseModel):
     is_verified: bool
 
 
+class MyIdentityRead(IdentityRead):
+    """The caller's own identity, including the directory opt-in flag."""
+
+    discoverable: bool = False
+
+
+class VisibilityUpdate(BaseModel):
+    """Directory opt-in/out (audit P-10)."""
+
+    discoverable: bool
+
+
 class DirectoryPerson(IdentityRead):
     """A person in the directory with the viewer's relationship to them."""
 

@@ -8,7 +8,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.modules.clients.models import ClientKind, ClientStatus, GstTreatment, KycRequestStatus, KycStatus
+from app.modules.clients.models import ClientKind, ClientStatus, GstTreatment, KycRequestStatus, KycStatus, LawfulBasis
+from app.modules.privacy.models import ConsentPurpose, ConsentSource
 
 # Every editable client field, shared by create/update/KYC payloads.
 _EDITABLE_FIELDS = (
@@ -20,12 +21,16 @@ _EDITABLE_FIELDS = (
     "consent_email", "consent_mobile", "consent_whatsapp", "gst_applicable", "gstin",
     "gst_treatment", "reverse_charge", "place_of_supply_code", "tds_applicable", "tds_section",
     "tds_rate", "tan", "msme_udyam", "notes", "tags",
+    "is_minor", "guardian_name", "guardian_relation",
 )
 # What a client may set on the public KYC form (no status, code, notes, tags).
 # Reverse charge is a consequence of the law (RCM on legal services to a
 # business entity), decided by the firm's defaults — never by the client's tick.
+# Whether the client is a minor, and who the guardian is, is the firm's
+# determination (DPDP s.9) — not something the form lets the subject toggle.
 KYC_FIELDS = tuple(
-    f for f in _EDITABLE_FIELDS if f not in ("client_code", "status", "notes", "tags", "reverse_charge")
+    f for f in _EDITABLE_FIELDS
+    if f not in ("client_code", "status", "notes", "tags", "reverse_charge", "is_minor", "guardian_name", "guardian_relation")
 )
 
 
@@ -73,6 +78,9 @@ class _ClientFields(BaseModel):
     msme_udyam: str | None = Field(default=None, max_length=25)
     notes: str | None = Field(default=None, max_length=5000)
     tags: list[str] | None = None
+    is_minor: bool | None = None
+    guardian_name: str | None = Field(default=None, max_length=200)
+    guardian_relation: str | None = Field(default=None, max_length=60)
 
     @field_validator("pan", "gstin", "tan", "cin", "msme_udyam")
     @classmethod
@@ -148,6 +156,10 @@ class ClientRead(ClientSummary):
     consent_whatsapp: bool
     consent_recorded_at: datetime | None
     consent_source: str | None
+    is_minor: bool
+    guardian_name: str | None
+    guardian_relation: str | None
+    guardian_consent_recorded_at: datetime | None
     gst_treatment: GstTreatment
     reverse_charge: bool
     place_of_supply_code: str | None
@@ -186,16 +198,31 @@ class KycRequestRead(BaseModel):
     applied_at: datetime | None
     initiated_by: uuid.UUID
     created_at: datetime
+    # Why the link could be sent without marketing consent (DPDP s.7: the
+    # engagement itself) and which notice version the client accepted.
+    lawful_basis: LawfulBasis = LawfulBasis.CONTRACT
+    notice_version: str | None = None
     issues: list[ValidationIssue] = Field(default_factory=list)
     # The shareable link — the initiator may send it by any channel.
     url: str | None = None
 
 
 class KycRequestDetail(KycRequestRead):
-    prefill: dict[str, Any]
+    # Nulled once the submission is applied (the record then holds the data).
+    prefill: dict[str, Any] | None
     submitted_data: dict[str, Any] | None
     # Field-by-field: what the record holds now vs what the client submitted.
     changes: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class PrivacyNoticeSummary(BaseModel):
+    version: str
+    purposes: list[str]
+    retention: str
+    rights: list[str]
+    grievance_officer: dict[str, str]
+    notice_url: str
+    firm_is_fiduciary: bool = True
 
 
 class KycPublicView(BaseModel):
@@ -211,6 +238,9 @@ class KycPublicView(BaseModel):
     tds_sections: list[dict[str, Any]]
     business_types: list[str]
     states: list[dict[str, str]]
+    # DPDP s.5 notice shown with the form: purposes, retention, rights, contact.
+    notice: PrivacyNoticeSummary
+
 
 
 class KycSubmission(_ClientFields):
@@ -220,6 +250,8 @@ class KycSubmission(_ClientFields):
     consent_mobile: bool = False
     consent_whatsapp: bool = False
     declaration_accepted: bool = Field(description="The client confirms the details are true.")
+    # Which privacy-notice version was displayed with the declaration.
+    notice_version: str | None = Field(default=None, max_length=20)
 
 
 class KycSubmitResult(BaseModel):
@@ -233,3 +265,32 @@ class KycApply(BaseModel):
 
     fields: list[str] | None = None
     mark_verified: bool = True
+
+
+# ── Consent ledger ──────────────────────────────────────────────────
+class ConsentEventCreate(BaseModel):
+    purpose: ConsentPurpose
+    granted: bool
+    note: str | None = Field(default=None, max_length=300)
+
+
+class ConsentEventRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    client_id: uuid.UUID
+    purpose: ConsentPurpose
+    granted: bool
+    source: ConsentSource
+    notice_version: str | None
+    actor_id: uuid.UUID | None
+    recorded_at: datetime
+    ip_coarse: str | None
+    note: str | None
+
+
+# ── Erasure ─────────────────────────────────────────────────────────
+class ClientEraseResult(BaseModel):
+    client_id: uuid.UUID
+    erased: bool
+    unlinked: dict[str, int]
+    legal_hold_overridden: bool = False

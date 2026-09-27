@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import json
 import re
 import uuid
@@ -12,7 +13,10 @@ from sqlalchemy import String, cast, func, literal, literal_column, or_, select,
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette import status
 
+from app.core.db_utils import LIKE_ESCAPE, contains
+from app.core.exceptions import AppError
 from app.modules.research.models import CaseCitation, CourtLevel, Judgment
 
 # The generated tsvector (migration 0036) is not an ORM column — SQLite cannot
@@ -36,10 +40,55 @@ RECENT_YEARS = 2
 # Bound the facet aggregation. The sidebar is non-essential, so it is better to
 # return no counts than to hold a worker long enough for nginx/gunicorn to 504.
 _FACET_TIMEOUT_MS = 12_000
+# The result page itself is bounded too (A-29): a pathological ranked query
+# over a huge match set must fail as a 503 the client can retry narrower, not
+# hold a worker until gunicorn kills it. Below the 60 s worker timeout and the
+# 30 s session default so it fires first.
+_SEARCH_TIMEOUT_MS = 20_000
+_QUERY_CANCELED = "57014"
+
+
+_MARK_RE = re.compile(r"</?mark>")
+
+
+def _html_escape_sql(expr):  # noqa: ANN001, ANN202
+    """``&`` → ``&amp;``, ``<`` → ``&lt;``, ``>`` → ``&gt;`` in SQL (order matters)."""
+    expr = func.replace(expr, "&", "&amp;")
+    expr = func.replace(expr, "<", "&lt;")
+    return func.replace(expr, ">", "&gt;")
+
+
+def sanitise_snippet(snippet: str | None) -> str | None:
+    """Escape everything in a ``ts_headline`` snippet except our own
+    ``<mark>``/``</mark>`` tags, so it is safe to render as HTML. The SQL side
+    already escapes the source; this is the belt to that brace."""
+    if not snippet:
+        return snippet
+    out: list[str] = []
+    pos = 0
+    for m in _MARK_RE.finditer(snippet):
+        out.append(html.escape(snippet[pos:m.start()], quote=False))
+        out.append(m.group(0))
+        pos = m.end()
+    out.append(html.escape(snippet[pos:], quote=False))
+    return "".join(out)
 
 
 class FacetsTimeout(Exception):
     """The facet aggregation exceeded its statement_timeout."""
+
+
+class SearchTimeout(AppError):
+    """The search itself exceeded its statement_timeout — surfaced as 503 with
+    a hint to narrow the query rather than as an opaque 500."""
+
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    code = "search_timeout"
+    message = "The search took too long. Add a filter or a more specific phrase and try again."
+
+
+def _is_query_canceled(exc: DBAPIError) -> bool:
+    return getattr(getattr(exc, "orig", None), "sqlstate", None) == _QUERY_CANCELED
 
 
 @dataclass(slots=True)
@@ -139,18 +188,18 @@ class ResearchRepository:
                 if _CNR_RE.match(q.replace("-", "").replace(" ", "")):
                     matches.append(Judgment.cnr_number == q.upper().replace("-", ""))
                 if "/" in q:
-                    matches.append(Judgment.case_name.ilike(f"%{q}%"))
+                    matches.append(Judgment.case_name.ilike(contains(q), escape=LIKE_ESCAPE))
                 conds.append(or_(*matches))
             else:  # SQLite (tests): substring fallback, no ranking
-                like = f"%{q}%"
+                like = contains(q)
                 conds.append(
                     or_(
-                        Judgment.case_name.ilike(like),
-                        Judgment.citation.ilike(like),
-                        Judgment.headnote.ilike(like),
-                        Judgment.full_text.ilike(like),
-                        Judgment.judge_text.ilike(like),
-                        cast(Judgment.keywords, String).ilike(like),
+                        Judgment.case_name.ilike(like, escape=LIKE_ESCAPE),
+                        Judgment.citation.ilike(like, escape=LIKE_ESCAPE),
+                        Judgment.headnote.ilike(like, escape=LIKE_ESCAPE),
+                        Judgment.full_text.ilike(like, escape=LIKE_ESCAPE),
+                        Judgment.judge_text.ilike(like, escape=LIKE_ESCAPE),
+                        cast(Judgment.keywords, String).ilike(like, escape=LIKE_ESCAPE),
                     )
                 )
 
@@ -163,15 +212,15 @@ class ResearchRepository:
         if f.case_year is not None:
             conds.append(Judgment.case_year == f.case_year)
         if f.judge:
-            conds.append(Judgment.judge_text.ilike(f"%{f.judge}%"))
+            conds.append(Judgment.judge_text.ilike(contains(f.judge), escape=LIKE_ESCAPE))
         if f.advocate:
-            conds.append(Judgment.advocate_text.ilike(f"%{f.advocate}%"))
+            conds.append(Judgment.advocate_text.ilike(contains(f.advocate), escape=LIKE_ESCAPE))
         if f.outcome:
             conds.append(Judgment.outcome == f.outcome)
         if f.act:
-            conds.append(cast(Judgment.acts, String).ilike(f"%{f.act}%"))
+            conds.append(cast(Judgment.acts, String).ilike(contains(f.act), escape=LIKE_ESCAPE))
         if f.section:
-            conds.append(cast(Judgment.sections, String).ilike(f"%{f.section}%"))
+            conds.append(cast(Judgment.sections, String).ilike(contains(f.section), escape=LIKE_ESCAPE))
         if f.year_from is not None:
             conds.append(Judgment.judgment_date >= date(f.year_from, 1, 1))
         if f.year_to is not None:
@@ -218,7 +267,17 @@ class ResearchRepository:
         touch only the recent slice (measured: 12.7k rows instead of 126k).
         If the window is too tight to fill the first page, it is dropped.
         """
-        await self._tune_txn()
+        await self._tune_txn(statement_timeout_ms=_SEARCH_TIMEOUT_MS)
+        try:
+            return await self._search(f, limit=limit, offset=offset, rank=rank)
+        except DBAPIError as exc:
+            if _is_query_canceled(exc):
+                raise SearchTimeout() from exc
+            raise
+
+    async def _search(
+        self, f: SearchFilters, *, limit: int, offset: int, rank: bool
+    ) -> tuple[list[tuple[Judgment, str | None]], bool]:
         conds, tsquery = self._conditions(f)
         newest_first = [Judgment.judgment_date.desc().nulls_last(), Judgment.created_at.desc()]
 
@@ -228,9 +287,12 @@ class ResearchRepository:
 
         # Highlight from the full text when we have it — that is where a phrase
         # from the order actually matched — else the registry description.
+        # The source is HTML-escaped *before* ts_headline so the only markup in
+        # the snippet is the <mark> we add (the text is user-curated, A-5);
+        # ``sanitise_snippet`` re-checks the result in Python.
         snippet = func.ts_headline(
             _ENGLISH,
-            func.coalesce(Judgment.full_text, Judgment.headnote, Judgment.case_name),
+            _html_escape_sql(func.coalesce(Judgment.full_text, Judgment.headnote, Judgment.case_name)),
             tsquery,
             "StartSel=<mark>, StopSel=</mark>, MaxWords=35, MinWords=12, MaxFragments=2",
         )
@@ -325,7 +387,7 @@ class ResearchRepository:
                 # statement_timeout cancels as QueryCanceled (SQLSTATE 57014);
                 # surface as a typed signal so the service returns empty facets
                 # rather than a 500. Any other DB error is a real bug — re-raise.
-                if getattr(getattr(exc, "orig", None), "sqlstate", None) == "57014":
+                if _is_query_canceled(exc):
                     raise FacetsTimeout from exc
                 raise
 

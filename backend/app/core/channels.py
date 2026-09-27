@@ -24,8 +24,11 @@ step and is deliberately deferred.
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import os
+
+from app.core.config import settings
 import smtplib
 from dataclasses import dataclass
 from email.message import EmailMessage
@@ -55,27 +58,39 @@ class ChannelProvider(Protocol):
     async def send(self, message: ChannelMessage) -> None: ...
 
 
+def address_ref(address: str | None) -> str:
+    """A short, stable reference for a recipient address for log lines —
+    ``sha256(lower(address))[:12]`` — so routing stays traceable without the
+    journal ever holding an e-mail address or name (audit P-12)."""
+    if not address:
+        return "-"
+    return hashlib.sha256(address.strip().lower().encode()).hexdigest()[:12]
+
+
 class LogProvider:
     """Always-available provider that logs instead of sending. Keeps routing
-    observable in dev/test without any external dependency."""
+    observable in dev/test without any external dependency. Logs only a hash
+    prefix of the recipient, never the address or the body."""
 
     name = "log"
     configured = True
 
     async def send(self, message: ChannelMessage) -> None:
-        logger.info("notify[log] to=%s subject=%s", message.to_email or message.to_name, message.subject)
+        logger.info(
+            "notify[log] to=%s subject=%s", address_ref(message.to_email or message.to_name), message.subject
+        )
 
 
 class EmailSmtpProvider:
     name = "email"
 
     def __init__(self) -> None:
-        self.host = os.environ.get("VS_SMTP_HOST", "")
-        self.port = int(os.environ.get("VS_SMTP_PORT", "587"))
-        self.user = os.environ.get("VS_SMTP_USER", "")
-        self.password = os.environ.get("VS_SMTP_PASSWORD", "")
-        self.sender = os.environ.get("VS_SMTP_FROM", self.user or "no-reply@vidhisangh.app")
-        self.use_tls = os.environ.get("VS_SMTP_TLS", "true").lower() != "false"
+        self.host = settings.SMTP_HOST or ""
+        self.port = settings.SMTP_PORT
+        self.user = settings.SMTP_USER or ""
+        self.password = settings.SMTP_PASSWORD or ""
+        self.sender = settings.SMTP_FROM or self.user or "no-reply@vidhisangh.com"
+        self.use_tls = settings.SMTP_TLS
 
     @property
     def configured(self) -> bool:
@@ -105,7 +120,7 @@ class SlackWebhookProvider:
     name = "slack"
 
     def __init__(self) -> None:
-        self.webhook = os.environ.get("VS_SLACK_WEBHOOK", "")
+        self.webhook = getattr(settings, "SLACK_WEBHOOK", None) or os.environ.get("VS_SLACK_WEBHOOK", "")
 
     @property
     def configured(self) -> bool:

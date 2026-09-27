@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import uuid
 from typing import Annotated
-from urllib.parse import quote
-
 from fastapi import APIRouter, Depends, Query, Response, status
 
 from app.core.deps import CurrentUserDep, TenantSessionDep, require_permission
 from app.core.exceptions import TenantError
+from app.core.http_utils import content_disposition
 from app.core.storage import Storage, get_storage
 from app.modules.documents.schemas import DocumentRead
 from app.modules.drafting.schemas import (
@@ -184,7 +183,7 @@ async def export_docx(
     return Response(
         content=blob,
         media_type=_DOCX,
-        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}"},
+        headers={"Content-Disposition": content_disposition(filename)},
     )
 
 

@@ -88,6 +88,7 @@ async def update_webhook(
 ) -> WebhookRead:
     endpoint = await _svc(current, session).update(
         endpoint_id,
+        url=str(payload.url) if payload.url is not None else None,
         description=payload.description,
         event_types=payload.event_types,
         is_active=payload.is_active,

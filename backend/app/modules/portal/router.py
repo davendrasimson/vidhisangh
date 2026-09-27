@@ -13,12 +13,15 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query, Response, status
 
 from app.core.deps import (
+    require_flag,
     AuthSessionDep,
     CurrentUserDep,
     TenantSessionDep,
     require_permission,
 )
 from app.core.exceptions import TenantError
+from app.core.http_utils import content_disposition
+from app.core.ratelimit import public_token_rate_limit
 from app.core.storage import Storage, get_storage
 from app.modules.portal.schemas import (
     ApprovalCreate,
@@ -52,7 +55,7 @@ def _firm(current: CurrentUserDep, session: TenantSessionDep) -> FirmPortalServi
     response_model=PortalAccessRead,
     status_code=status.HTTP_201_CREATED,
     summary="Grant a client portal access to a matter",
-    dependencies=[require_permission("client:create")],
+    dependencies=[require_flag("client_portal"), require_permission("client:create")],
 )
 async def create_access(
     data: PortalAccessCreate, current: CurrentUserDep, session: TenantSessionDep
@@ -65,7 +68,7 @@ async def create_access(
     "/access",
     response_model=list[PortalAccessRead],
     summary="List portal access for a matter",
-    dependencies=[require_permission("client:read")],
+    dependencies=[require_flag("client_portal"), require_permission("client:read")],
 )
 async def list_access(
     current: CurrentUserDep,
@@ -80,7 +83,7 @@ async def list_access(
     "/access/{access_id}/revoke",
     response_model=PortalAccessRead,
     summary="Revoke a portal access",
-    dependencies=[require_permission("client:update")],
+    dependencies=[require_flag("client_portal"), require_permission("client:update")],
 )
 async def revoke_access(
     access_id: uuid.UUID, current: CurrentUserDep, session: TenantSessionDep
@@ -94,7 +97,7 @@ async def revoke_access(
     response_model=UpdateRead,
     status_code=status.HTTP_201_CREATED,
     summary="Post an update for the client",
-    dependencies=[require_permission("client:update")],
+    dependencies=[require_flag("client_portal"), require_permission("client:update")],
 )
 async def post_update(
     matter_id: uuid.UUID,
@@ -111,7 +114,7 @@ async def post_update(
     response_model=ApprovalRead,
     status_code=status.HTTP_201_CREATED,
     summary="Request client approval",
-    dependencies=[require_permission("client:update")],
+    dependencies=[require_flag("client_portal"), require_permission("client:update")],
 )
 async def request_approval(
     matter_id: uuid.UUID,
@@ -127,7 +130,7 @@ async def request_approval(
     "/matters/{matter_id}/approvals",
     response_model=list[ApprovalRead],
     summary="List approval requests (firm view)",
-    dependencies=[require_permission("client:read")],
+    dependencies=[require_flag("client_portal"), require_permission("client:read")],
 )
 async def list_approvals(
     matter_id: uuid.UUID, current: CurrentUserDep, session: TenantSessionDep
@@ -140,7 +143,7 @@ async def list_approvals(
     "/matters/{matter_id}/documents",
     response_model=list[uuid.UUID],
     summary="IDs of documents shared with the client",
-    dependencies=[require_permission("client:read")],
+    dependencies=[require_flag("client_portal"), require_permission("client:read")],
 )
 async def list_shared_documents(
     matter_id: uuid.UUID, current: CurrentUserDep, session: TenantSessionDep
@@ -152,7 +155,7 @@ async def list_shared_documents(
     "/matters/{matter_id}/documents/{document_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Share a document with the client",
-    dependencies=[require_permission("client:update")],
+    dependencies=[require_flag("client_portal"), require_permission("client:update")],
 )
 async def share_document(
     matter_id: uuid.UUID,
@@ -168,7 +171,7 @@ async def share_document(
     "/matters/{matter_id}/documents/{document_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Stop sharing a document",
-    dependencies=[require_permission("client:update")],
+    dependencies=[require_flag("client_portal"), require_permission("client:update")],
 )
 async def unshare_document(
     matter_id: uuid.UUID,
@@ -185,6 +188,7 @@ async def unshare_document(
     "/client/{token}",
     response_model=PortalView,
     summary="Client portal view (token-authenticated)",
+    dependencies=[Depends(public_token_rate_limit)],
 )
 async def portal_view(
     token: str, session: AuthSessionDep, storage: StorageDep
@@ -226,6 +230,7 @@ async def portal_view(
     "/client/{token}/approvals/{approval_id}/respond",
     response_model=ApprovalRead,
     summary="Approve or reject a request (client)",
+    dependencies=[Depends(public_token_rate_limit)],
 )
 async def respond_approval(
     token: str,
@@ -244,6 +249,7 @@ async def respond_approval(
     "/client/{token}/documents/{document_id}/download",
     summary="Download a shared document (client)",
     response_class=Response,
+    dependencies=[Depends(public_token_rate_limit)],
 )
 async def client_download(
     token: str,
@@ -255,5 +261,35 @@ async def client_download(
     return Response(
         content=content,
         media_type=document.content_type,
-        headers={"Content-Disposition": f'attachment; filename="{document.name}"'},
+        headers={
+            "Content-Disposition": content_disposition(document.name),
+            "X-Content-Type-Options": "nosniff",
+        },
     )
+
+
+# ─── Data-principal rights from the portal (DPDP s.11-13) ─────────
+from pydantic import BaseModel as _BaseModel, Field as _Field  # noqa: E402
+
+from app.modules.privacy.schemas import PrivacyRequestRead  # noqa: E402
+from app.modules.privacy.service import create_rights_request  # noqa: E402
+
+
+class PortalRightsRequest(_BaseModel):
+    kind: str = _Field(pattern="^(access|correction|erasure|grievance)$")
+    message: str = _Field(min_length=1, max_length=4000)
+
+
+@router.post(
+    "/client/{token}/privacy-requests",
+    response_model=PrivacyRequestRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Client raises an access / correction / erasure / grievance request",
+    dependencies=[Depends(public_token_rate_limit)],
+)
+async def portal_privacy_request(
+    token: str, data: PortalRightsRequest, session: AuthSessionDep, storage: StorageDep
+) -> PrivacyRequestRead:
+    access = await ClientPortalService(session, storage).resolve(token)
+    req = await create_rights_request(session, access, data.kind, data.message)
+    return PrivacyRequestRead.model_validate(req)

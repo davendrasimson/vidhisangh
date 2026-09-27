@@ -29,6 +29,8 @@ spec:
         prometheus.io/path: "/metrics"
         prometheus.io/port: "8000"
     spec:
+      serviceAccountName: vidhisangh-backend
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 1001
@@ -41,8 +43,9 @@ spec:
       # migrations across the 3 pods.
       containers:
         - name: backend
-          image: ghcr.io/vidhisangh/backend:0.1.0
-          imagePullPolicy: IfNotPresent
+          # Pin by digest in CD: ghcr.io/vidhisangh/backend@sha256:<digest-from-build>
+          image: ghcr.io/vidhisangh/backend:0.1.0@sha256:REPLACE_WITH_IMAGE_DIGEST
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8000

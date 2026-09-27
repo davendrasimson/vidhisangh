@@ -10,6 +10,8 @@ from __future__ import annotations
 import asyncio
 import os
 
+from app.core.storage import storage_backend_name
+
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -74,7 +76,7 @@ class SystemInfoService:
             {"name": "Payments (Razorpay)", "key": "razorpay",
              "status": "live" if razorpay else "mock"},
             {"name": "Object storage", "key": "storage",
-             "status": os.environ.get("VS_STORAGE_BACKEND", "local").lower()},
+             "status": storage_backend_name()},
         ]
 
     def _channels(self) -> list[dict]:

@@ -28,7 +28,8 @@ async def test_documents_and_drafts_link_to_client(client: AsyncClient, strong_p
                            files={"file": ("vakalatnama.pdf", b"%PDF-1.4 test", "application/pdf")})
     assert up.status_code == 201, up.text
     assert up.json()["client_id"] == c["id"] and up.json()["client_name"] == "Priya Sharma"
-    plain = await client.post(f"{API}/documents", headers=h, files={"file": ("office-format.docx", b"x", "application/octet-stream")})
+    plain = await client.post(f"{API}/documents", headers=h, data={"name": "office-format.docx"},
+                              files={"file": ("office-format.txt", b"x", "text/plain")})
     assert plain.status_code == 201 and plain.json()["client_id"] is None and plain.json()["client_name"] is None
 
     # Filter by client; the plain one stays out.

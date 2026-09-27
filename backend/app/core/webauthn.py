@@ -12,6 +12,8 @@ without the library or a browser authenticator.
 from __future__ import annotations
 
 import os
+
+from app.core.config import settings
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
@@ -26,15 +28,15 @@ class VerifiedRegistration:
 
 
 def rp_id() -> str:
-    return os.environ.get("VS_WEBAUTHN_RP_ID", "localhost")
+    return settings.WEBAUTHN_RP_ID
 
 
 def rp_name() -> str:
-    return os.environ.get("VS_WEBAUTHN_RP_NAME", "VidhiSangh")
+    return settings.WEBAUTHN_RP_NAME
 
 
 def origin() -> str:
-    return os.environ.get("VS_WEBAUTHN_ORIGIN", "http://localhost:4200")
+    return settings.WEBAUTHN_ORIGIN
 
 
 @runtime_checkable

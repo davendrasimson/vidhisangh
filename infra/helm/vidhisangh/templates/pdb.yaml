@@ -1,0 +1,20 @@
+{{- if .Values.podDisruptionBudget.enabled }}
+{{- range $comp := list "backend" "worker" "frontend" }}
+{{- if (index $.Values $comp).enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include (printf "vidhisangh.%s.fullname" $comp) $ }}
+  labels:
+    {{- include "vidhisangh.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $comp }}
+spec:
+  minAvailable: {{ (index $.Values.podDisruptionBudget $comp).minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "vidhisangh.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: {{ $comp }}
+{{- end }}
+{{- end }}
+{{- end }}

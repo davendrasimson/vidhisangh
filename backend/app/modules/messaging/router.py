@@ -7,7 +7,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Response, status
 
-from app.core.deps import CurrentUserDep, TenantSessionDep
+from app.core.deps import CurrentUserDep, TenantSessionDep, require_permission
 from app.core.exceptions import TenantError
 from app.core.pagination import PageParams, page_params
 from app.modules.messaging.models import Conversation
@@ -39,6 +39,7 @@ def _read(conversation: Conversation, unread: int = 0) -> ConversationRead:
 # ─── Conversations ──────────────────────────────────────────────────
 @router.post(
     "/direct/{user_id}",
+    dependencies=[require_permission("message:send")],
     response_model=ConversationRead,
     status_code=status.HTTP_201_CREATED,
     summary="Start (or open) a 1:1 conversation",
@@ -52,6 +53,7 @@ async def start_direct(
 
 @router.post(
     "/group",
+    dependencies=[require_permission("message:send")],
     response_model=ConversationRead,
     status_code=status.HTTP_201_CREATED,
     summary="Create a group conversation",
@@ -63,7 +65,7 @@ async def create_group(
     return _read(conversation)
 
 
-@router.get("", response_model=list[ConversationRead], summary="My conversations")
+@router.get("", dependencies=[require_permission("message:read")], response_model=list[ConversationRead], summary="My conversations")
 async def list_conversations(
     current: CurrentUserDep, session: TenantSessionDep
 ) -> list[ConversationRead]:
@@ -71,7 +73,7 @@ async def list_conversations(
     return [_read(conversation, unread) for conversation, unread in rows]
 
 
-@router.get("/{conversation_id}", response_model=ConversationRead, summary="Get a conversation")
+@router.get("/{conversation_id}", dependencies=[require_permission("message:read")], response_model=ConversationRead, summary="Get a conversation")
 async def get_conversation(
     conversation_id: uuid.UUID, current: CurrentUserDep, session: TenantSessionDep
 ) -> ConversationRead:
@@ -82,6 +84,7 @@ async def get_conversation(
 # ─── Messages ───────────────────────────────────────────────────────
 @router.get(
     "/{conversation_id}/messages",
+    dependencies=[require_permission("message:read")],
     response_model=list[MessageRead],
     summary="List messages (marks the thread read)",
 )
@@ -99,6 +102,7 @@ async def list_messages(
 
 @router.post(
     "/{conversation_id}/messages",
+    dependencies=[require_permission("message:send")],
     response_model=MessageRead,
     status_code=status.HTTP_201_CREATED,
     summary="Send a message",
@@ -115,6 +119,7 @@ async def send_message(
 
 @router.post(
     "/{conversation_id}/read",
+    dependencies=[require_permission("message:read")],
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Mark a conversation as read",
 )
@@ -127,6 +132,7 @@ async def mark_read(
 
 @router.post(
     "/{conversation_id}/leave",
+    dependencies=[require_permission("message:read")],
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Leave a group conversation",
 )

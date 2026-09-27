@@ -34,7 +34,8 @@ async def test_audit_records_admin_actions(client: AsyncClient, strong_password:
 
     events = (await client.get(f"{API}/admin/audit", headers=h)).json()
     actions = {e["action"] for e in events}
-    assert actions == {"feature_flag.updated", "subscription.changed"}
+    # (sign-up itself is audited too — "auth.registered" — since the 2026-09 hardening)
+    assert {"feature_flag.updated", "subscription.changed"} <= actions
     assert all(e["actor_label"] == email for e in events)
     flag_event = next(e for e in events if e["action"] == "feature_flag.updated")
     assert flag_event["entity_id"] == "marketplace" and "disabled" in flag_event["summary"]
@@ -55,7 +56,9 @@ async def test_user_listing_and_audit_isolation(client: AsyncClient, strong_pass
     assert users[0]["email"] == "owner@firma.co"
     assert any(r["code"] == "org_admin" for r in users[0]["roles"])
 
-    # Firm B does not see Firm A's audit trail or users.
-    assert (await client.get(f"{API}/admin/audit", headers=b)).json() == []
+    # Firm B does not see Firm A's audit trail or users (only its own sign-up event).
+    b_events = (await client.get(f"{API}/admin/audit", headers=b)).json()
+    assert {e["action"] for e in b_events} <= {"auth.registered"}
+    assert all(e["actor_label"] == "owner@firmb.co" for e in b_events)
     b_users = (await client.get(f"{API}/tenants/users", headers=b)).json()
     assert [u["email"] for u in b_users] == ["owner@firmb.co"]

@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import Boolean, ForeignKey, String, Text, UniqueConstraint, Uuid
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, UniqueConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base_class import TenantScopedBase
@@ -19,7 +19,13 @@ class ApprovalStatus(StrEnum):
 
 
 class PortalAccess(TenantScopedBase):
-    """A client's tokened access to a single matter's portal."""
+    """A client's tokened access to a single matter's portal.
+
+    The raw token is shown once at creation and stored only as a peppered
+    SHA-256 (``token_hash``); links expire (``expires_at``) and record their
+    last use (audit A-9). The legacy clear-text ``token`` column is kept
+    nullable for the migration and is always NULL for new rows.
+    """
 
     __tablename__ = "portal_accesses"
     __table_args__ = (UniqueConstraint("token", name="portal_access_token"),)
@@ -29,7 +35,10 @@ class PortalAccess(TenantScopedBase):
     )
     client_name: Mapped[str] = mapped_column(String(200), nullable=False)
     client_email: Mapped[str] = mapped_column(String(320), nullable=False)
-    token: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    token: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True, index=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_accessed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_by: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
 

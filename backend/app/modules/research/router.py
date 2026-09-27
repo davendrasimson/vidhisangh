@@ -1,7 +1,9 @@
 """Legal research HTTP endpoints — corpus, search, citation graph.
 
-Gated by ``research:use``. The corpus is a shared, cross-tenant reference
-library, so a plain (RLS-scoped) session is used but no tenant filter applies.
+Reads are gated by ``research:use``; writes to the corpus (judgments,
+citations) additionally require ``research:curate`` — the library is shared
+across every tenant, so only platform staff / firm leadership may curate it
+(audit A-5). A plain (RLS-scoped) session is used but no tenant filter applies.
 """
 
 from __future__ import annotations
@@ -14,7 +16,7 @@ from fastapi import APIRouter, Depends, Path, Query, status
 from app.core.deps import CurrentUserDep, TenantSessionDep, require_permission
 from app.core.pagination import PageParams, page_params
 from app.modules.research.models import CourtLevel
-from app.modules.research.repository import RECENT_YEARS, SearchFilters
+from app.modules.research.repository import RECENT_YEARS, SearchFilters, sanitise_snippet
 from app.modules.research.schemas import (
     CaseRead,
     CitationCreate,
@@ -44,7 +46,8 @@ def _svc(current: CurrentUserDep, session: TenantSessionDep) -> ResearchService:
     "/judgments",
     response_model=JudgmentRead,
     status_code=status.HTTP_201_CREATED,
-    summary="Add a judgment to the research library",
+    summary="Add a judgment to the research library (curators)",
+    dependencies=[require_permission("research:curate")],
 )
 async def add_judgment(
     data: JudgmentCreate, current: CurrentUserDep, session: TenantSessionDep
@@ -101,7 +104,7 @@ async def search_judgments(
     counts = await svc.order_counts(rows)
     items = []
     for j, snippet in rows:
-        item = JudgmentSummary.from_orm_row(j, snippet)
+        item = JudgmentSummary.from_orm_row(j, sanitise_snippet(snippet))
         item.order_count = counts.get(j.cnr_number) if j.cnr_number else None
         items.append(item)
     return SearchPage(
@@ -160,7 +163,8 @@ async def get_judgment(
 @router.post(
     "/judgments/{judgment_id}/citations",
     status_code=status.HTTP_201_CREATED,
-    summary="Record a citation from this judgment",
+    summary="Record a citation from this judgment (curators)",
+    dependencies=[require_permission("research:curate")],
 )
 async def add_citation(
     judgment_id: uuid.UUID,

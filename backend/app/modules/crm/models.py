@@ -54,6 +54,9 @@ class Lead(TenantScopedBase):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     estimated_value: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
     referred_by: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # DPDP s.4/s.7: prospects are recorded without a consent event; note why.
+    lawful_basis: Mapped[str] = mapped_column(String(20), nullable=False, default="legitimate_use")
+    basis_note: Mapped[str | None] = mapped_column(String(300), nullable=True)
     assigned_to: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True, index=True)
     converted_matter_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
     client_id: Mapped[uuid.UUID | None] = mapped_column(

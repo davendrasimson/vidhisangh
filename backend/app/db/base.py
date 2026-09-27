@@ -29,7 +29,9 @@ from app.modules.groups.models import (
 )
 from app.modules.identity.models import (
     MfaBackupCode,
+    OAuthIdentity,
     OAuthState,
+    PasswordResetToken,
     Permission,
     RefreshToken,
     Role,
@@ -78,6 +80,7 @@ from app.modules.notifications.models import (
     NotificationPreference,
 )
 from app.modules.payments.models import Payment
+from app.modules.privacy.models import ClientConsentEvent, PrivacyRequest
 from app.modules.portal.models import (
     PortalAccess,
     PortalApproval,
@@ -104,6 +107,8 @@ __all__ = [
     "MfaBackupCode",
     "TrustedDevice",
     "OAuthState",
+    "OAuthIdentity",
+    "PasswordResetToken",
     "WebAuthnCredential",
     "WebAuthnChallenge",
     "ProfessionalProfile",
@@ -148,6 +153,8 @@ __all__ = [
     "DraftVersion",
     "Client",
     "ClientKycRequest",
+    "ClientConsentEvent",
+    "PrivacyRequest",
     "PortalAccess",
     "PortalUpdate",
     "PortalApproval",

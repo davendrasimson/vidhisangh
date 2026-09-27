@@ -1,7 +1,8 @@
 """Feature-flag HTTP endpoints.
 
 Managing flags requires ``tenant:manage`` (org admins); the resolved on/off map
-is readable by any authenticated tenant user so the app can gate features.
+requires ``tenant:read`` (every internal role) so the app can gate features.
+Server-side enforcement is ``app.core.deps.require_flag(key)``.
 """
 
 from __future__ import annotations
@@ -60,6 +61,7 @@ async def set_flag(
     "/feature-flags",
     response_model=dict[str, bool],
     summary="Resolved feature flags for the current tenant",
+    dependencies=[require_permission("tenant:read")],
 )
 async def resolved_flags(current: CurrentUserDep, session: TenantSessionDep) -> dict[str, bool]:
     return await _svc(current, session).resolve()

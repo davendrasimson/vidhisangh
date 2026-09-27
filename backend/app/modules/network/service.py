@@ -52,6 +52,7 @@ from app.modules.network.schemas import (
 )
 from app.modules.notifications.models import NotificationType
 from app.modules.notifications.service import create_notification
+from app.modules.profile.models import ProfileVisibility
 from app.modules.profile.repository import ProfileRepository
 
 # Posts plus the viewer's per-post annotations: reactions, bookmarks, mentions.
@@ -108,7 +109,42 @@ class NetworkService:
             identity.avatar_url = user.avatar_url
             identity.city = city
             identity.is_verified = verified
+        # A profile the user made non-public always overrides the directory
+        # opt-in (ProfessionalProfile.visibility is tenant-scoped, so it is
+        # enforced here — at sync time — rather than in the cross-tenant query).
+        if profile is not None and profile.visibility != ProfileVisibility.PUBLIC and identity.discoverable:
+            identity.discoverable = False
         return identity
+
+    async def set_discoverable(self, discoverable: bool) -> NetworkIdentity:
+        """Directory opt-in / opt-out (audit P-10). Opting in requires a public
+        professional profile (or none)."""
+        identity = await self.ensure_my_identity()
+        if discoverable:
+            profile = await ProfileRepository(self.session).get_by_user(self.user_id)
+            if profile is not None and profile.visibility != ProfileVisibility.PUBLIC:
+                raise ValidationError(
+                    "Set your professional profile to public before joining the directory."
+                )
+        identity.discoverable = discoverable
+        return identity
+
+    # ── Visibility (audit A-17) ─────────────────────────────────────
+    async def _is_connected(self, other_id: uuid.UUID) -> bool:
+        conn = await self.connections.between(self.user_id, other_id)
+        return conn is not None and conn.status == ConnectionStatus.ACCEPTED
+
+    async def _can_view_author(self, author_id: uuid.UUID) -> bool:
+        return author_id == self.user_id or await self._is_connected(author_id)
+
+    async def _require_post_visible(self, post: Post) -> Post:
+        """Public posts are visible to everyone; connections-only posts to the
+        author and their accepted connections. Others get 404 (no existence leak)."""
+        if post.visibility == PostVisibility.PUBLIC:
+            return post
+        if await self._can_view_author(post.author_id):
+            return post
+        raise NotFoundError("Post not found.")
 
     async def network_ids(self) -> set[uuid.UUID]:
         ids = await self.connections.accepted_ids(self.user_id)
@@ -174,10 +210,18 @@ class NetworkService:
         post = await self.posts.get(post_id)
         if post is None:
             raise NotFoundError("Post not found.")
-        return post
+        return await self._require_post_visible(post)
 
     async def share(self, post_id: uuid.UUID, data: ShareCreate) -> Post:
         target = await self.get_post(post_id)
+        # A repost is always public, so only public content may be quoted —
+        # otherwise a connection could launder a connections-only post.
+        if target.visibility != PostVisibility.PUBLIC:
+            raise PermissionDeniedError("Only public posts can be reposted.")
+        if target.shared_from_id is not None:
+            origin = await self.posts.get(target.shared_from_id)
+            if origin is not None and origin.visibility != PostVisibility.PUBLIC:
+                raise PermissionDeniedError("Only public posts can be reposted.")
         me = await self.ensure_my_identity()
         # Dereference: sharing a repost quotes the ultimate original, not the repost.
         if target.shared_from_id is not None:
@@ -226,7 +270,8 @@ class NetworkService:
         return await self._annotate(posts)
 
     async def author_posts(self, author_id: uuid.UUID, limit: int, offset: int) -> list[Post]:
-        return await self.posts.by_author(author_id, limit, offset)
+        include_private = await self._can_view_author(author_id)
+        return await self.posts.by_author(author_id, limit, offset, include_private=include_private)
 
     async def _annotate(self, posts: list[Post]) -> "AnnotatedPosts":
         post_ids = [p.id for p in posts]
@@ -295,6 +340,10 @@ class NetworkService:
     # ── Comments ────────────────────────────────────────────────────
     async def add_comment(self, post_id: uuid.UUID, data: CommentCreate) -> Comment:
         post = await self.get_post(post_id)
+        if data.parent_id is not None:
+            parent = await self.comments.get(data.parent_id)
+            if parent is None or parent.post_id != post_id:
+                raise ValidationError("The parent comment does not belong to this post.")
         me = await self.ensure_my_identity()
         comment = Comment(
             post_id=post_id,
@@ -406,6 +455,10 @@ class NetworkService:
             raise NotFoundError("This person is not on the network.")
         following = user_id in await self.follows.following_ids(self.user_id)
         conn = await self.connections.between(self.user_id, user_id)
+        # Someone who opted out of the directory is only reachable by people
+        # already in a relationship with them (self, connections incl. pending).
+        if not identity.discoverable and user_id != self.user_id and conn is None:
+            raise NotFoundError("This person is not on the network.")
         status: str | None = None
         if conn is not None:
             if conn.status == ConnectionStatus.ACCEPTED:

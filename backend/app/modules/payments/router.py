@@ -8,6 +8,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Header, Request, status
 
 from app.core.deps import (
+    require_flag,
     AuthSessionDep,
     CurrentUserDep,
     TenantSessionDep,
@@ -43,7 +44,7 @@ def _svc(
     response_model=OrderResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create a payment order (opens Razorpay Checkout on the client)",
-    dependencies=[require_permission("invoice:create")],
+    dependencies=[require_flag("online_payments"), require_permission("invoice:create")],
 )
 async def create_order(
     data: OrderCreate,
@@ -66,7 +67,7 @@ async def create_order(
     "/{payment_id}/verify",
     response_model=PaymentRead,
     summary="Verify a completed checkout (signature)",
-    dependencies=[require_permission("invoice:create")],
+    dependencies=[require_flag("online_payments"), require_permission("invoice:create")],
 )
 async def verify_payment(
     payment_id: uuid.UUID,
@@ -97,7 +98,7 @@ async def webhook(
     "",
     response_model=list[PaymentRead],
     summary="List payments",
-    dependencies=[require_permission("invoice:read")],
+    dependencies=[require_flag("online_payments"), require_permission("invoice:read")],
 )
 async def list_payments(
     page: Pagination,
@@ -113,7 +114,7 @@ async def list_payments(
     "/{payment_id}",
     response_model=PaymentRead,
     summary="Payment detail",
-    dependencies=[require_permission("invoice:read")],
+    dependencies=[require_flag("online_payments"), require_permission("invoice:read")],
 )
 async def get_payment(
     payment_id: uuid.UUID,

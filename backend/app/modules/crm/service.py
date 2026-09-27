@@ -27,6 +27,7 @@ from app.modules.crm.schemas import (
     SourceStat,
 )
 from app.modules.matters.schemas import MatterCreate
+from app.modules.tenancy.lookup import require_tenant_user
 from app.modules.matters.service import MatterService
 from app.modules.clients.models import ClientKind
 from app.modules.clients.repository import ClientRepository
@@ -49,6 +50,8 @@ class CrmService:
 
     # ── Leads ───────────────────────────────────────────────────────
     async def create_lead(self, data: LeadCreate) -> Lead:
+        if data.assigned_to is not None:  # audit A-32: tenant FK validation
+            await require_tenant_user(self.session, self.tenant_id, data.assigned_to)
         lead = Lead(
             tenant_id=self.tenant_id,
             name=data.name,
@@ -78,7 +81,10 @@ class CrmService:
 
     async def update_lead(self, lead_id: uuid.UUID, data: LeadUpdate) -> Lead:
         lead = await self._require_lead(lead_id)
-        for field, value in data.model_dump(exclude_unset=True).items():
+        values = data.model_dump(exclude_unset=True)
+        if values.get("assigned_to") is not None:  # audit A-32: tenant FK validation
+            await require_tenant_user(self.session, self.tenant_id, values["assigned_to"])
+        for field, value in values.items():
             setattr(lead, field, value)
         return lead
 

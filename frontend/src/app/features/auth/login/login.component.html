@@ -11,6 +11,11 @@
       {{ errorMsg() }}
     </div>
   }
+  @if (infoMsg()) {
+    <div class="mb-4 rounded-lg border border-success/40 bg-success/10 px-3 py-2 text-sm text-content" role="status">
+      {{ infoMsg() }}
+    </div>
+  }
 
   <form [formGroup]="form" (ngSubmit)="submit()" class="grid gap-1">
     <mat-form-field appearance="outline">
@@ -47,6 +52,10 @@
         <input matInput formControlName="mfa_code" inputmode="numeric" autocomplete="one-time-code" maxlength="8" />
       </mat-form-field>
     }
+
+    <div class="flex justify-end -mt-1 mb-2">
+      <a routerLink="/auth/forgot" class="text-sm text-brand font-medium">Forgot password?</a>
+    </div>
 
     <button mat-flat-button color="primary" type="submit" [disabled]="submitting()" class="h-11">
       Sign in

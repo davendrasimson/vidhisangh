@@ -22,6 +22,7 @@ from app.core.exceptions import (
     PermissionDeniedError,
 )
 from app.core.webauthn import get_webauthn_verifier
+from app.modules.audit.service import record_audit
 from app.modules.identity.models import User, WebAuthnChallenge, WebAuthnCredential
 from app.modules.identity.repository import UserRepository
 from app.modules.identity.schemas import CurrentUser, TokenPair
@@ -114,7 +115,22 @@ class PasskeyService:
         )
         self.session.add(credential)
         await self.session.flush()
+        self._audit(current, "auth.passkey_added", f"Registered passkey '{name}'", credential)
         return credential
+
+    def _audit(self, current: CurrentUser, action: str, summary: str, credential: WebAuthnCredential) -> None:
+        if current.tenant_id is None:
+            return
+        record_audit(
+            self.session,
+            tenant_id=current.tenant_id,
+            actor_id=current.id,
+            actor_label=current.email,
+            action=action,
+            summary=summary,
+            entity_type="passkey",
+            entity_id=str(credential.id),
+        )
 
     async def list(self, current: CurrentUser) -> list[WebAuthnCredential]:
         return await self._credentials(current.id)
@@ -131,6 +147,7 @@ class PasskeyService:
         if credential is None:
             raise NotFoundError("Passkey not found.")
         credential.deleted_at = datetime.now(UTC)
+        self._audit(current, "auth.passkey_removed", f"Removed passkey '{credential.name}'", credential)
 
     # ─── Authentication (pre-login) ─────────────────────────────────
     async def authenticate_begin(self, email: str) -> dict:
@@ -169,10 +186,23 @@ class PasskeyService:
         credential.sign_count = new_count
         credential.last_used_at = datetime.now(UTC)
 
-        user = await self.users.get_by_id(credential.user_id)
+        user = await self.users.get_by_id_global(credential.user_id)
         if user is None or not user.is_active:
             raise PermissionDeniedError("This account is unavailable.")
         user.last_login_at = datetime.now(UTC)
+        user.failed_login_count = 0
+        user.locked_until = None
+        record_audit(
+            self.session,
+            tenant_id=user.tenant_id,
+            actor_id=user.id,
+            actor_label=user.email,
+            action="auth.login",
+            summary="Signed in with a passkey",
+            entity_type="user",
+            entity_id=str(user.id),
+            meta={"ip": ip, "passkey": credential.name},
+        )
         return await self.auth.issue_tokens_for_user(
             user, ip=ip, user_agent=user_agent, label="passkey"
         )

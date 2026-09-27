@@ -1,0 +1,31 @@
+# Local guard rails (audit A-12). Install once:  pip install pre-commit && pre-commit install
+# Runs ruff (lint + format) on backend Python and gitleaks on every staged file.
+minimum_pre_commit_version: "3.5.0"
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.9
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^backend/
+      - id: ruff-format
+        files: ^backend/
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.3
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+        args: [--maxkb=2048]
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: end-of-file-fixer
+        exclude: \.(lock|svg|woff2)$
+      - id: trailing-whitespace
+        exclude: \.(lock|md)$
+      - id: check-yaml
+        exclude: ^infra/helm/           # Go templates are not plain YAML

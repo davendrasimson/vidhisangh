@@ -25,6 +25,8 @@ spec:
         app.kubernetes.io/component: worker
         app.kubernetes.io/part-of: vidhisangh
     spec:
+      serviceAccountName: vidhisangh-worker
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 1001
@@ -34,8 +36,9 @@ spec:
           type: RuntimeDefault
       containers:
         - name: worker
-          image: ghcr.io/vidhisangh/backend:0.1.0
-          imagePullPolicy: IfNotPresent
+          # Pin by digest in CD: ghcr.io/vidhisangh/backend@sha256:<digest-from-build>
+          image: ghcr.io/vidhisangh/backend:0.1.0@sha256:REPLACE_WITH_IMAGE_DIGEST
+          imagePullPolicy: Always
           command: ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=info", "--concurrency=4"]
           envFrom:
             - configMapRef:

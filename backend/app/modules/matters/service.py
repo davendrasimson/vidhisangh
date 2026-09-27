@@ -134,6 +134,9 @@ class MatterService:
     async def create_matter(self, data: MatterCreate) -> Matter:
         number = data.matter_number or f"M-{await self.repo.count(self.tenant_id) + 1:04d}"
         client_id, client_name = await self._resolve_client(data.client_id, data.client_name)
+        for uid in (data.assigned_to, data.lead_counsel_id):  # audit A-32: tenant FK validation
+            if uid is not None:
+                await self._require_person(uid)
         matter = Matter(
             tenant_id=self.tenant_id,
             matter_number=number,
@@ -206,6 +209,9 @@ class MatterService:
     async def update_matter(self, matter_id: uuid.UUID, data: MatterUpdate) -> Matter:
         matter = await self._require_matter(matter_id)
         values = data.model_dump(exclude_unset=True)
+        for key in ("assigned_to", "lead_counsel_id"):  # audit A-32: tenant FK validation
+            if values.get(key) is not None:
+                await self._require_person(values[key])
         if "client_id" in values or "client_name" in values:
             # A new client_id refreshes the name from the master unless a name
             # is given too; unlinking (client_id=null) keeps the name on record.
@@ -338,6 +344,8 @@ class MatterService:
             contact=data.contact,
             side=data.side,
             position=data.position,
+            lawful_basis=data.lawful_basis,
+            basis_note=data.basis_note,
         )
         self.repo.add(party)
         await self.session.flush()
@@ -346,6 +354,8 @@ class MatterService:
     # ─── Advocates on record ────────────────────────────────────────
     async def add_advocate(self, matter_id: uuid.UUID, data: AdvocateCreate) -> MatterAdvocate:
         await self._require_matter(matter_id)
+        if data.user_id is not None:  # audit A-32: an in-house advocate must be one of ours
+            await self._require_person(data.user_id)
         advocate = MatterAdvocate(
             tenant_id=self.tenant_id,
             matter_id=matter_id,
@@ -361,6 +371,8 @@ class MatterService:
         advocate = await self.repo.get_advocate(self.tenant_id, matter_id, advocate_id)
         if advocate is None:
             raise NotFoundError("Advocate not found on this matter.")
+        if data.model_dump(exclude_unset=True).get("user_id") is not None:
+            await self._require_person(data.user_id)  # audit A-32
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(advocate, field, value)
         await self.session.flush()

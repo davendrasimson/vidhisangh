@@ -4,6 +4,21 @@ import { Observable } from 'rxjs';
 import { environment } from '@env/environment';
 import { DocFile, DocFolder, DocVersion } from '@core/models/documents.models';
 
+/** Mirrors the API's VS_MAX_UPLOAD_BYTES / nginx client_max_body_size (25 MiB). */
+export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+
+export class UploadTooLargeError extends Error {
+  constructor(public readonly size: number, public readonly limit: number = MAX_UPLOAD_BYTES) {
+    super(`This file is ${(size / 1024 / 1024).toFixed(1)} MB; the limit is ${limit / 1024 / 1024} MB.`);
+    this.name = 'UploadTooLargeError';
+  }
+}
+
+/** Refuse oversize files before any bytes leave the browser (the server enforces the same cap with 413). */
+function assertUploadSize(file: File): void {
+  if (file.size > MAX_UPLOAD_BYTES) throw new UploadTooLargeError(file.size);
+}
+
 @Injectable({ providedIn: 'root' })
 export class DocumentsService {
   private readonly http = inject(HttpClient);
@@ -35,6 +50,7 @@ export class DocumentsService {
   }
 
   upload(file: File, name?: string, folderId?: string | null, matterId?: string, clientId?: string | null): Observable<DocFile> {
+    assertUploadSize(file);
     const form = new FormData();
     form.append('file', file);
     if (name) form.append('name', name);
@@ -50,6 +66,7 @@ export class DocumentsService {
   }
 
   addVersion(id: string, file: File, comment?: string): Observable<DocFile> {
+    assertUploadSize(file);
     const form = new FormData();
     form.append('file', file);
     if (comment) form.append('comment', comment);

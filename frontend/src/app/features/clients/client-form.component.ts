@@ -10,6 +10,7 @@ import {
   ValidationIssue,
 } from '@core/models/clients.models';
 import { VsDateInputComponent } from '@shared/date-input/vs-date-input.component';
+import { ClientFormFields } from './client-privacy.models';
 
 /**
  * The client fields, for staff (create/edit) and for the client's own KYC
@@ -25,14 +26,16 @@ import { VsDateInputComponent } from '@shared/date-input/vs-date-input.component
 })
 export class ClientFormComponent {
   readonly kind = input.required<ClientKind>();
-  readonly value = input<ClientFields>({});
+  readonly value = input<ClientFormFields>({});
   readonly reference = input<ReferenceData | null>(null);
   readonly issues = input<ValidationIssue[]>([]);
   /** 'kyc': the client fills it in — no code/status/notes/tags, consent is explicit. */
   readonly mode = input<'staff' | 'kyc'>('staff');
-  readonly changed = output<ClientFields>();
+  readonly changed = output<ClientFormFields>();
 
-  protected readonly form = signal<ClientFields>({});
+  protected readonly form = signal<ClientFormFields>({});
+  /** "Additional identity details" — collected only where a matter needs them (DPDP minimisation). */
+  protected readonly showMore = signal(false);
   protected readonly gstTreatments = GST_TREATMENTS;
   protected readonly businessTypeLabels = BUSINESS_TYPE_LABELS;
 
@@ -47,11 +50,19 @@ export class ClientFormComponent {
 
   constructor() {
     // Reset the working copy whenever the parent hands in a new value.
-    effect(() => this.form.set({ country: 'India', ...this.value() }));
+    effect(() => {
+      const v = this.value();
+      this.form.set({ country: 'India', ...v });
+      if (v.date_of_birth || v.father_or_spouse_name || v.occupation) this.showMore.set(true);
+    });
   }
 
-  protected set<K extends keyof ClientFields>(key: K, val: ClientFields[K]): void {
-    const next: ClientFields = { ...this.form(), [key]: val };
+  protected set<K extends keyof ClientFormFields>(key: K, val: ClientFormFields[K]): void {
+    const next: ClientFormFields = { ...this.form(), [key]: val };
+    if (key === 'is_minor' && !val) {
+      next.guardian_name = null;
+      next.guardian_relation = null;
+    }
     // Derivations the user expects to see immediately.
     if (key === 'state') {
       const s = this.states().find((x) => x.name.toLowerCase() === String(val ?? '').toLowerCase());

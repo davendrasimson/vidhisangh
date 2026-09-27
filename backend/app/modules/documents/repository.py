@@ -8,6 +8,7 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.db_utils import LIKE_ESCAPE, contains
 from app.modules.documents.models import (
     Document,
     DocumentFolder,
@@ -88,7 +89,7 @@ class DocumentRepository:
         if client_id is not None:
             stmt = stmt.where(Document.client_id == client_id)
         if query:
-            stmt = stmt.where(Document.name.ilike(f"%{query}%"))
+            stmt = stmt.where(Document.name.ilike(contains(query), escape=LIKE_ESCAPE))
         res = await self.session.execute(
             stmt.order_by(Document.updated_at.desc()).limit(limit).offset(offset)
         )

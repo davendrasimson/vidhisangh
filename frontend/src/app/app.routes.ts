@@ -15,6 +15,17 @@ export const routes: Routes = [
   },
 
   {
+    // Public legal documents (DPDP s.5 notice; Terms with the DPA schedule).
+    path: 'privacy',
+    loadComponent: () =>
+      import('@features/legal/privacy-notice.component').then((m) => m.PrivacyNoticeComponent),
+  },
+  {
+    path: 'terms',
+    loadComponent: () => import('@features/legal/terms.component').then((m) => m.TermsComponent),
+  },
+
+  {
     // Public, login-free KYC form a client reaches from the tokenised link.
     path: 'kyc/:token',
     loadComponent: () =>
@@ -212,6 +223,14 @@ export const routes: Routes = [
         loadComponent: () =>
           import('@features/settings/security-settings.component').then(
             (m) => m.SecuritySettingsComponent,
+          ),
+      },
+      {
+        // Privacy & data: export / delete my account, directory opt-out, org offboarding.
+        path: 'settings/privacy',
+        loadComponent: () =>
+          import('@features/settings/privacy-settings.component').then(
+            (m) => m.PrivacySettingsComponent,
           ),
       },
       {

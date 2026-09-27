@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,3 +42,21 @@ class ApiKeyRepository:
             select(ApiKey).where(ApiKey.key_hash == key_hash, ApiKey.deleted_at.is_(None))
         )
         return res.scalar_one_or_none()
+
+    async def revoke_all_for_user(self, tenant_id: uuid.UUID, user_id: uuid.UUID) -> int:
+        """Revoke every live key a user created (on deactivation)."""
+        res = await self.session.execute(
+            select(ApiKey).where(
+                ApiKey.tenant_id == tenant_id,
+                ApiKey.created_by == user_id,
+                ApiKey.revoked.is_(False),
+                ApiKey.deleted_at.is_(None),
+            )
+        )
+        now = datetime.now(UTC)
+        count = 0
+        for key in res.scalars().all():
+            key.revoked = True
+            key.deleted_at = now
+            count += 1
+        return count

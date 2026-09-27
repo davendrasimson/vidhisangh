@@ -1,7 +1,7 @@
 """Subscription plan HTTP endpoints.
 
-The plan catalog and current subscription are readable by any authenticated
-tenant user; changing the plan requires ``tenant:manage``.
+The plan catalog and current subscription are readable with ``tenant:read``
+(every internal role); changing the plan requires ``tenant:manage``.
 """
 
 from __future__ import annotations
@@ -23,12 +23,22 @@ def _svc(current: CurrentUserDep, session: TenantSessionDep) -> PlansService:
     return PlansService(session, current.tenant_id)
 
 
-@router.get("/admin/plans", response_model=list[PlanRead], summary="Available subscription plans")
+@router.get(
+    "/admin/plans",
+    response_model=list[PlanRead],
+    summary="Available subscription plans",
+    dependencies=[require_permission("tenant:read")],
+)
 async def list_plans(current: CurrentUserDep, session: TenantSessionDep) -> list[PlanRead]:
     return [PlanRead(**p) for p in await _svc(current, session).list_plans()]
 
 
-@router.get("/admin/subscription", response_model=SubscriptionRead, summary="Current subscription + usage")
+@router.get(
+    "/admin/subscription",
+    response_model=SubscriptionRead,
+    summary="Current subscription + usage",
+    dependencies=[require_permission("tenant:read")],
+)
 async def get_subscription(current: CurrentUserDep, session: TenantSessionDep) -> SubscriptionRead:
     return SubscriptionRead(**await _svc(current, session).get_subscription())
 

@@ -18,4 +18,10 @@ class AuditEventRead(BaseModel):
     entity_id: str | None
     summary: str
     meta: dict | None
+    entry_hash: str | None = None
     created_at: datetime
+
+
+class ChainStatus(BaseModel):
+    ok: bool
+    first_broken_id: uuid.UUID | None = None

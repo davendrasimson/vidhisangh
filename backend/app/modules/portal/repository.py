@@ -54,11 +54,11 @@ class PortalRepository:
         )
         return list(res.scalars().all())
 
-    async def by_token(self, token: str) -> PortalAccess | None:
-        """Resolve a portal token (client path — runs on a bypass session)."""
+    async def by_token_hash(self, token_hash: str) -> PortalAccess | None:
+        """Resolve a portal token by its hash (client path — runs on a bypass session)."""
         res = await self.session.execute(
             select(PortalAccess).where(
-                PortalAccess.token == token, PortalAccess.deleted_at.is_(None)
+                PortalAccess.token_hash == token_hash, PortalAccess.deleted_at.is_(None)
             )
         )
         return res.scalar_one_or_none()

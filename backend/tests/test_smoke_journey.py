@@ -54,7 +54,9 @@ async def test_full_cross_module_journey(client: AsyncClient, strong_password: s
     notifs = (await client.get(f"{API}/notifications", headers=b_h)).json()
     assert any(n["type"] == "mention" for n in notifs)
 
-    # 3. B views A's public profile cross-tenant.
+    # 3. A opts in to the directory (new identities are hidden — P-10); B views A's
+    #    public profile cross-tenant.
+    assert (await client.patch(f"{API}/network/me/visibility", headers=a_h, json={"discoverable": True})).status_code == 200
     prof = await client.get(f"{API}/network/people/{a['id']}", headers=b_h)
     assert prof.status_code == 200 and prof.json()["is_self"] is False
 

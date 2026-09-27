@@ -1,0 +1,40 @@
+# Nightly encrypted backup of the database, document store and secrets (I-1).
+# Runs as root (needs `sudo -u postgres` for a complete dump under FORCE RLS and
+# read access to /opt/vidhisangh/.secrets); everything else is sandboxed.
+# Install: /etc/systemd/system/backup-db.service  +  backup-db.timer
+[Unit]
+Description=VidhiSangh nightly backup (pg_dump + documents + secrets, encrypted)
+After=network-online.target postgresql.service
+Wants=network-online.target
+OnFailure=vidhisangh-job-failed@%n.service
+
+[Service]
+Type=oneshot
+User=root
+# Optional overrides: BACKUP_S3_URI, RETENTION_DAYS, STORAGE_DIR …
+EnvironmentFile=-/opt/vidhisangh/.secrets/backup.env
+ExecStart=/opt/vidhisangh/infra/jobs/backup-db.sh
+TimeoutStartSec=4h
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+# ── Sandbox ─────────────────────────────────────────────────────────
+NoNewPrivileges=false          # sudo -u postgres needs setuid
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+RestrictRealtime=true
+RestrictSUIDSGID=false         # sudo
+LockPersonality=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+ReadWritePaths=/opt/vidhisangh/backups /var/lib/postgresql /run/postgresql
+ReadOnlyPaths=/opt/vidhisangh/.secrets /opt/vidhisangh/backend/.env
+MemoryMax=2G
+TasksMax=128

@@ -1,0 +1,46 @@
+# Weekly dependency updates for every ecosystem in the repo (audit A-12 / A-30).
+# Security updates are opened immediately regardless of the schedule.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /backend
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: Asia/Kolkata }
+    open-pull-requests-limit: 10
+    groups:
+      python-minor-patch:
+        update-types: [minor, patch]
+    labels: [dependencies, backend]
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: Asia/Kolkata }
+    open-pull-requests-limit: 10
+    groups:
+      angular:
+        patterns: ["@angular/*"]
+      tiptap:
+        patterns: ["@tiptap/*"]
+      npm-minor-patch:
+        update-types: [minor, patch]
+        exclude-patterns: ["@angular/*", "@tiptap/*"]
+    labels: [dependencies, frontend]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: Asia/Kolkata }
+    labels: [dependencies, ci]
+
+  - package-ecosystem: docker
+    directory: /backend
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: Asia/Kolkata }
+    labels: [dependencies, docker]
+
+  - package-ecosystem: docker
+    directory: /frontend
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: Asia/Kolkata }
+    labels: [dependencies, docker]
+
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: Asia/Kolkata }
+    labels: [dependencies, docker]

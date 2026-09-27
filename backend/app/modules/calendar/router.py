@@ -8,7 +8,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Query, Response, status
 
-from app.core.deps import CurrentUserDep, TenantSessionDep
+from app.core.deps import CurrentUserDep, TenantSessionDep, require_permission
 from app.core.exceptions import TenantError
 from app.modules.calendar.schemas import (
     AgendaItem,
@@ -29,6 +29,7 @@ def _svc(current: CurrentUserDep, session: TenantSessionDep) -> CalendarService:
 
 @router.post(
     "/events",
+    dependencies=[require_permission("calendar:manage")],
     response_model=EventRead,
     status_code=status.HTTP_201_CREATED,
     summary="Create a calendar event",
@@ -40,7 +41,7 @@ async def create_event(
     return EventRead.model_validate(event)
 
 
-@router.get("/events", response_model=list[EventRead], summary="Events in a date range")
+@router.get("/events", dependencies=[require_permission("calendar:read")], response_model=list[EventRead], summary="Events in a date range")
 async def list_events(
     current: CurrentUserDep,
     session: TenantSessionDep,
@@ -53,6 +54,7 @@ async def list_events(
 
 @router.get(
     "/agenda",
+    dependencies=[require_permission("calendar:read")],
     response_model=list[AgendaItem],
     summary="Unified agenda: events + hearings + task deadlines",
 )
@@ -65,7 +67,7 @@ async def agenda(
     return await _svc(current, session).agenda(start, end)
 
 
-@router.patch("/events/{event_id}", response_model=EventRead, summary="Update an event")
+@router.patch("/events/{event_id}", dependencies=[require_permission("calendar:manage")], response_model=EventRead, summary="Update an event")
 async def update_event(
     event_id: uuid.UUID,
     data: EventUpdate,
@@ -78,6 +80,7 @@ async def update_event(
 
 @router.delete(
     "/events/{event_id}",
+    dependencies=[require_permission("calendar:manage")],
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete an event",
 )

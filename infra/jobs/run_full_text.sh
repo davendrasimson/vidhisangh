@@ -7,8 +7,17 @@
 # Resumable: the extractor skips rows already done, so re-running after a stop
 # just continues. Order of courts = order of value: Delhi (best-structured),
 # P&H, Allahabad. Set COURTS / YEAR_FROM / MIN_FREE_GB to override.
-set -u
-cd /opt/vidhisangh/backend && set -a && . ./.env.admin && set +a
+set -euo pipefail
+# Maintenance-role access for VACUUM/ANALYZE — never the postgres superuser (A-28).
+# PGPASSFILE holds one line: localhost:5432:vidhisangh:vidhisangh_maint:<password>
+# and the role has `GRANT MAINTAIN ON judgments` (PG17) — see DEPLOYMENT.md
+# → "Maintenance role".
+export PGPASSFILE="${PGPASSFILE:-/opt/vidhisangh/.secrets/pgpass_maint}"
+PSQL=(psql -X -v ON_ERROR_STOP=1 -h "${PGHOST:-localhost}" -U "${PGMAINT_USER:-vidhisangh_maint}" -d "${PGDATABASE:-vidhisangh}")
+cd /opt/vidhisangh/backend
+# The bulk loaders need the owner role (they create partitions/indexes);
+# only the VS_POSTGRES_* variables are exported, not the whole admin file.
+while IFS="=" read -r k v; do case "$k" in VS_POSTGRES_*|VS_DATABASE_URL) export "$k=$v";; esac; done < <(grep -E "^VS_(POSTGRES_|DATABASE_URL)" ./.env.admin)
 
 COURTS="${COURTS:-delhi phhc allahabad}"
 YEAR_TO="${YEAR_TO:-$(date +%Y)}"
@@ -31,9 +40,9 @@ for court in $COURTS; do
     echo "--- $court $year · free $(free_gb) GB · $(date -u +%FT%TZ)"
     PYTHONPATH=$PWD nice -n 10 ionice -c2 -n7 .venv/bin/python -m app.scripts.extract_order_text \
       --courts "$court" --year-from "$year" --year-to "$year" --workers "$WORKERS" 2>&1 \
-      | grep -E "bundle_start|bundle_done|finished|Error|Traceback" | cut -c1-220
+      | { grep -E "bundle_start|bundle_done|finished|Error|Traceback" || true; } | cut -c1-220
   done
   echo "=== $court complete $(date -u +%FT%TZ) — vacuum"
-  sudo -u postgres psql -d vidhisangh -qc "VACUUM (ANALYZE) judgments"
+  "${PSQL[@]}" -qc "VACUUM (ANALYZE) judgments"
 done
 echo "=== all courts complete $(date -u +%FT%TZ) · free $(free_gb) GB ==="

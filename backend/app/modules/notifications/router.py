@@ -7,7 +7,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Response, status
 
-from app.core.deps import CurrentUserDep, TenantSessionDep
+from app.core.deps import CurrentUserDep, TenantSessionDep, require_permission
 from app.core.pagination import PageParams, page_params
 from app.modules.notifications.models import NotificationChannel
 from app.modules.notifications.schemas import (
@@ -19,7 +19,13 @@ from app.modules.notifications.schemas import (
 )
 from app.modules.notifications.service import NotificationService, PreferenceService
 
-router = APIRouter(prefix="/notifications", tags=["Notifications"])
+# Every route acts on the caller's *own* notifications/preferences; the single
+# ``notification:read`` code (held by every role incl. externals) gates them all.
+router = APIRouter(
+    prefix="/notifications",
+    tags=["Notifications"],
+    dependencies=[require_permission("notification:read")],
+)
 
 Pagination = Annotated[PageParams, Depends(page_params)]
 
