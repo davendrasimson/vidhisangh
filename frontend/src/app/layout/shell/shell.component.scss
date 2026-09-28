@@ -23,31 +23,82 @@
 }
 
 .vs-brand {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  height: 60px;
-  padding: 0 1.25rem;
-  font-weight: 700;
-  font-size: 1.2rem;
+  gap: 0.72rem;
+  height: 70px;
+  padding: 0 1.15rem;
   border-bottom: 1px solid rgb(var(--vs-border));
+  text-decoration: none;
+  transition: background-color 0.18s ease;
+
+  &::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    background:
+      radial-gradient(circle at 18% 12%, color-mix(in srgb, rgb(var(--vs-brand)) 11%, transparent), transparent 46%),
+      linear-gradient(90deg, transparent 70%, color-mix(in srgb, rgb(var(--vs-brand)) 4%, transparent));
+    pointer-events: none;
+  }
+
+  &:hover { background: color-mix(in srgb, rgb(var(--vs-brand)) 3%, transparent); }
+  &:focus-visible {
+    outline: 2px solid rgb(var(--vs-brand));
+    outline-offset: -3px;
+  }
 
   &__mark {
-    width: 2.125rem;
-    height: 2.125rem;
+    width: 2.375rem;
+    height: 2.375rem;
     flex: none;
-    filter: drop-shadow(0 5px 9px rgb(37 99 235 / 0.2));
+    filter: drop-shadow(0 6px 10px color-mix(in srgb, rgb(var(--vs-brand)) 24%, transparent));
+    transition: transform 0.18s ease, filter 0.18s ease;
   }
+  &:hover &__mark { transform: translateY(-1px); }
+
+  &__copy {
+    min-width: 0;
+    display: grid;
+    gap: 0.22rem;
+  }
+
   &__name {
     font-family: var(--vs-font-display);
-    font-size: 1.3rem;
-    font-weight: 650;
-    letter-spacing: -0.015em;
-    background: linear-gradient(90deg, rgb(var(--vs-brand)), color-mix(in srgb, rgb(var(--vs-brand)) 60%, #7c3aed));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    font-size: 1.34rem;
+    font-weight: 620;
+    line-height: 0.95;
+    letter-spacing: -0.028em;
+    color: rgb(var(--vs-text));
+
+    strong {
+      font-weight: 720;
+      background: linear-gradient(115deg, rgb(var(--vs-brand)), color-mix(in srgb, rgb(var(--vs-brand)) 55%, #7c3aed));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
   }
+
+  &__tagline {
+    overflow: hidden;
+    color: rgb(var(--vs-text-muted));
+    font-size: 0.56rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.105em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vs-brand,
+  .vs-brand__mark { transition: none; }
 }
 
 // Give the scrollable nav list breathing room + its own scroll.

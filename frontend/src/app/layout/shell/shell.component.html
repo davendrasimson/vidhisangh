@@ -8,10 +8,13 @@
     role="navigation"
     aria-label="Primary"
   >
-    <div class="vs-brand">
-      <img class="vs-brand__mark" src="brand-mark.svg" alt="" width="34" height="34" />
-      <span class="vs-brand__name">VidhiSangh</span>
-    </div>
+    <a class="vs-brand" routerLink="/app/dashboard" aria-label="VidhiSangh dashboard">
+      <img class="vs-brand__mark" src="brand-mark.svg" alt="" width="38" height="38" />
+      <span class="vs-brand__copy">
+        <span class="vs-brand__name"><span>Vidhi</span><strong>Sangh</strong></span>
+        <span class="vs-brand__tagline">Legal practice platform</span>
+      </span>
+    </a>
 
     <mat-nav-list>
       @for (group of visibleGroups(); track group.title || 'home') {
