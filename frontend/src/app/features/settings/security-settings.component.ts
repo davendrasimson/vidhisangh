@@ -11,13 +11,19 @@ import { NotificationService } from '@core/services/notification.service';
 import { AuthService } from '@core/auth/auth.service';
 import { AuthSession } from '@core/models/auth.models';
 import { ApiProblem } from '@core/models/auth.models';
-import { STRONG_PASSWORD, passwordsMatch } from '../auth/reset/reset-password.component';
+import {
+  PasswordStrengthComponent,
+  STRONG_PASSWORD,
+  passwordsMatch,
+} from '@shared/password-strength/password-strength.component';
 
 @Component({
   selector: 'app-security-settings',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, ReactiveFormsModule, MatIconModule, MatButtonModule],
+  imports: [
+    DatePipe, ReactiveFormsModule, MatIconModule, MatButtonModule, PasswordStrengthComponent,
+  ],
   templateUrl: './security-settings.component.html',
 })
 export class SecuritySettingsComponent implements OnInit {

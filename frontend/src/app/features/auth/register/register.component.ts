@@ -11,9 +11,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { AuthService } from '@core/auth/auth.service';
 import { ApiProblem } from '@core/models/auth.models';
-
-// Mirror of the backend password policy (>=8 chars, mixed case, digit, symbol).
-const STRONG_PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}$/;
+import {
+  PasswordStrengthComponent,
+  STRONG_PASSWORD,
+} from '@shared/password-strength/password-strength.component';
 
 @Component({
   selector: 'app-register',
@@ -22,7 +23,7 @@ const STRONG_PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}$/;
   imports: [
     ReactiveFormsModule, RouterLink,
     MatFormFieldModule, MatInputModule, MatButtonModule, MatCheckboxModule,
-    MatIconModule, MatProgressBarModule,
+    MatIconModule, MatProgressBarModule, PasswordStrengthComponent,
   ],
   templateUrl: './register.component.html',
 })

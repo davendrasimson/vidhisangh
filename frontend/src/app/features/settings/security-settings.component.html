@@ -30,6 +30,9 @@
         <span class="text-sm text-content-muted">Confirm new password</span>
         <input class="vs-input" type="password" formControlName="confirm" autocomplete="new-password" />
       </label>
+      <div class="md:col-span-3">
+        <vs-password-strength [password]="passwordForm.controls.new_password.value" />
+      </div>
       <div class="md:col-span-3 flex flex-wrap items-center justify-between gap-3">
         <p class="text-xs text-content-muted">
           Use at least 8 characters with upper and lower case, a number and a symbol.

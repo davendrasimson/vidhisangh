@@ -47,6 +47,7 @@
         <mat-error>At least 8 chars with upper &amp; lower case, a number, and a symbol.</mat-error>
       }
     </mat-form-field>
+    <vs-password-strength [password]="form.controls.password.value" />
 
     <mat-checkbox formControlName="accept_terms" class="text-sm mb-2">
       I agree to the
@@ -55,7 +56,7 @@
       <a routerLink="/privacy" target="_blank" rel="noopener" class="text-brand underline" (click)="$event.stopPropagation()">Privacy Notice</a>.
     </mat-checkbox>
 
-    <button mat-flat-button color="primary" type="submit" [disabled]="submitting()" class="h-11">
+    <button mat-flat-button color="primary" type="submit" [disabled]="submitting() || form.invalid" class="h-11">
       Create account
     </button>
   </form>

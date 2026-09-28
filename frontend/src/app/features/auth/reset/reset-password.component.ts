@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
@@ -10,15 +10,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { AuthService } from '@core/auth/auth.service';
 import { ApiProblem } from '@core/models/auth.models';
-
-// Mirror of the backend password policy (>=8 chars, mixed case, digit, symbol).
-export const STRONG_PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}$/;
-
-export function passwordsMatch(group: AbstractControl): ValidationErrors | null {
-  const a = group.get('new_password')?.value;
-  const b = group.get('confirm')?.value;
-  return a && b && a !== b ? { mismatch: true } : null;
-}
+import {
+  PasswordStrengthComponent,
+  STRONG_PASSWORD,
+  passwordsMatch,
+} from '@shared/password-strength/password-strength.component';
 
 /** `/auth/reset/:token` — set a new password from an emailed reset link, or
  *  choose the first password from an admin invitation (`?invite=1`). */
@@ -29,6 +25,7 @@ export function passwordsMatch(group: AbstractControl): ValidationErrors | null 
   imports: [
     ReactiveFormsModule, RouterLink,
     MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule, MatProgressBarModule,
+    PasswordStrengthComponent,
   ],
   template: `
     <div class="w-full">
@@ -69,6 +66,7 @@ export function passwordsMatch(group: AbstractControl): ValidationErrors | null 
               <mat-error>At least 8 chars with upper &amp; lower case, a number, and a symbol.</mat-error>
             }
           </mat-form-field>
+          <vs-password-strength [password]="form.controls.new_password.value" />
           <mat-form-field appearance="outline">
             <mat-label>Confirm password</mat-label>
             <input matInput [type]="hide() ? 'password' : 'text'" formControlName="confirm"

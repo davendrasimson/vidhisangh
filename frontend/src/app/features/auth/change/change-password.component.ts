@@ -10,7 +10,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { AuthService } from '@core/auth/auth.service';
 import { ApiProblem } from '@core/models/auth.models';
-import { STRONG_PASSWORD, passwordsMatch } from '../reset/reset-password.component';
+import {
+  PasswordStrengthComponent,
+  STRONG_PASSWORD,
+  passwordsMatch,
+} from '@shared/password-strength/password-strength.component';
 
 /** `/auth/change-password` — replace a temporary (admin-issued) password.
  *  A `password_must_change` session can reach nothing else until this is done;
@@ -23,6 +27,7 @@ import { STRONG_PASSWORD, passwordsMatch } from '../reset/reset-password.compone
   imports: [
     ReactiveFormsModule, RouterLink,
     MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule, MatProgressBarModule,
+    PasswordStrengthComponent,
   ],
   template: `
     <div class="w-full">
@@ -44,8 +49,9 @@ import { STRONG_PASSWORD, passwordsMatch } from '../reset/reset-password.compone
         <mat-form-field appearance="outline">
           <mat-label>Temporary password</mat-label>
           <input matInput type="password" formControlName="current_password" autocomplete="current-password" required />
-        </mat-form-field>
-        <mat-form-field appearance="outline">
+          </mat-form-field>
+          <vs-password-strength [password]="form.controls.new_password.value" />
+          <mat-form-field appearance="outline">
           <mat-label>New password</mat-label>
           <input matInput [type]="hide() ? 'password' : 'text'" formControlName="new_password"
                  autocomplete="new-password" required />
