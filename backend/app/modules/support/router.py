@@ -21,6 +21,7 @@ from app.modules.support.schemas import (
     PlatformTenantRead,
     PlatformUserDetail,
     PlatformUserRead,
+    PostingRestrictionRequest,
     TenantStatusRequest,
     TicketAdminUpdate,
     TicketCreate,
@@ -127,6 +128,34 @@ async def platform_user_status(
     session: AuthSessionDep,
 ) -> PlatformUserDetail:
     return await _admin(current, session).set_user_status(user_id, data)
+
+
+@router.patch(
+    "/platform-admin/users/{user_id}/posting-restriction",
+    response_model=PlatformUserDetail,
+)
+async def platform_user_posting_restriction(
+    user_id: uuid.UUID,
+    data: PostingRestrictionRequest,
+    current: CurrentUserDep,
+    session: AuthSessionDep,
+) -> PlatformUserDetail:
+    return await _admin(current, session).restrict_posting(
+        user_id, days=data.days, reason=data.reason
+    )
+
+
+@router.post(
+    "/platform-admin/users/{user_id}/remove-network-profile",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def remove_platform_network_profile(
+    user_id: uuid.UUID,
+    data: ModerationRequest,
+    current: CurrentUserDep,
+    session: AuthSessionDep,
+) -> None:
+    await _admin(current, session).remove_network_profile(user_id, reason=data.reason)
 
 
 @router.get("/platform-admin/tenants", response_model=list[PlatformTenantRead])

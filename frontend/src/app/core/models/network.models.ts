@@ -1,6 +1,8 @@
 /** Professional network API contracts (mirrors the backend network module). */
 
 export type ReactionType = 'like' | 'insightful' | 'celebrate' | 'support' | 'curious';
+export type PostReportCategory = 'spam' | 'harassment' | 'hate_or_abuse' | 'misinformation' | 'privacy' | 'impersonation' | 'other';
+export interface PostReportResult { ticket_number: string; status: string; }
 export type PostVisibility = 'public' | 'connections';
 export type PostType = 'text' | 'article' | 'announcement';
 export type ConnectionStatus = 'pending' | 'accepted' | 'declined';

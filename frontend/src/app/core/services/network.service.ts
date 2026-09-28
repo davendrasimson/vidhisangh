@@ -11,6 +11,8 @@ import {
   LinkPreview,
   PostCreate,
   PublicProfile,
+  PostReportCategory,
+  PostReportResult,
   ReactionType,
   TrendingTag,
 } from '@core/models/network.models';
@@ -49,6 +51,10 @@ export class NetworkService {
 
   unreact(postId: string): Observable<void> {
     return this.http.delete<void>(`${this.api}/posts/${postId}/reaction`);
+  }
+
+  reportPost(postId: string, category: PostReportCategory, reason: string): Observable<PostReportResult> {
+    return this.http.post<PostReportResult>(`${this.api}/posts/${postId}/report`, { category, reason });
   }
 
   // ── Bookmarks ─────────────────────────────────────────────────

@@ -135,6 +135,11 @@
             {{ post.author_headline || 'Legal professional' }} · {{ post.created_at | date: 'dd/MM/yyyy, h:mm a' }}
           </p>
         </div>
+        @if (post.author_id !== auth.user()?.id) {
+          <button mat-icon-button class="ml-auto" (click)="openReport(post)" aria-label="Report this post" title="Report post">
+            <mat-icon class="material-icons-outlined">flag</mat-icon>
+          </button>
+        }
       </header>
 
       @if (post.title) { <h3 class="font-semibold mt-3">{{ post.title }}</h3> }
@@ -192,10 +197,22 @@
       </div>
 
       <div class="flex items-center gap-1 border-t border-line mt-2 pt-1">
-        <button mat-button (click)="toggleLike(post)" [class.vs-liked]="post.my_reaction">
-          <mat-icon class="material-icons-outlined">thumb_up</mat-icon>
-          {{ post.my_reaction ? 'Liked' : 'Like' }}
-        </button>
+        <div class="vs-reaction-control">
+          <button mat-button (click)="reactionPickerPost.set(reactionPickerPost() === post.id ? null : post.id)" [class.vs-liked]="post.my_reaction">
+            <span class="text-lg leading-none">{{ reactionFor(post.my_reaction).emoji }}</span>
+            {{ reactionFor(post.my_reaction).label }}
+          </button>
+          @if (reactionPickerPost() === post.id) {
+            <div class="vs-reaction-picker" role="menu" aria-label="Choose a reaction">
+              @for (reaction of reactions; track reaction.type) {
+                <button type="button" role="menuitem" [class.is-selected]="post.my_reaction === reaction.type"
+                        (click)="selectReaction(post, reaction.type)" [attr.aria-label]="reaction.label" [title]="reaction.label">
+                  {{ reaction.emoji }}
+                </button>
+              }
+            </div>
+          }
+        </div>
         <button mat-button (click)="toggleComments(post)">
           <mat-icon class="material-icons-outlined">chat_bubble_outline</mat-icon> Comment
         </button>
@@ -207,6 +224,24 @@
           {{ post.bookmarked ? 'Saved' : 'Save' }}
         </button>
       </div>
+
+      @if (reportedPosts().has(post.id)) {
+        <p class="mt-2 text-sm text-success flex items-center gap-1"><mat-icon class="material-icons-outlined text-base">check_circle</mat-icon> Report submitted for review.</p>
+      } @else if (reportingPost() === post.id) {
+        <section class="vs-report-panel" aria-label="Report post">
+          <div class="flex items-center gap-2"><mat-icon class="material-icons-outlined text-danger">flag</mat-icon><strong>Report this post</strong></div>
+          <p class="text-xs text-content-muted mt-1">This creates a confidential case for the VidhiSangh Grievance Cell.</p>
+          <div class="grid md:grid-cols-[12rem_1fr] gap-2 mt-3">
+            <select class="vs-input" [(ngModel)]="reportCategory" aria-label="Report category">
+              <option value="spam">Spam</option><option value="harassment">Harassment</option>
+              <option value="hate_or_abuse">Hate or abuse</option><option value="misinformation">Misinformation</option>
+              <option value="privacy">Privacy concern</option><option value="impersonation">Impersonation</option><option value="other">Other</option>
+            </select>
+            <textarea class="vs-input min-h-20" [(ngModel)]="reportReason" maxlength="2000" placeholder="Explain what is wrong (at least 10 characters)"></textarea>
+          </div>
+          <div class="flex justify-end gap-2 mt-2"><button mat-button (click)="cancelReport()">Cancel</button><button mat-flat-button color="primary" [disabled]="reportReason.trim().length < 10 || submittingReport()" (click)="submitReport(post)">Submit report</button></div>
+        </section>
+      }
 
       @if (openComments()[post.id] !== undefined) {
         <div class="mt-3 border-t border-line pt-3">

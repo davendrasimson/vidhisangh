@@ -30,6 +30,35 @@
   font-weight: 600;
 }
 
+.vs-reaction-control { position: relative; }
+.vs-reaction-picker {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 6px);
+  z-index: 20;
+  display: flex;
+  gap: 0.2rem;
+  padding: 0.35rem;
+  border: 1px solid rgb(var(--vs-border));
+  border-radius: 999px;
+  background: rgb(var(--vs-surface-raised));
+  box-shadow: 0 8px 24px rgb(15 23 42 / 0.18);
+
+  button {
+    width: 2.25rem; height: 2.25rem; border: 0; border-radius: 50%; background: transparent;
+    font-size: 1.35rem; cursor: pointer; transition: transform 120ms ease, background 120ms ease;
+    &:hover, &:focus-visible { transform: scale(1.2); background: rgb(var(--vs-surface-sunken)); outline: none; }
+    &.is-selected { background: color-mix(in srgb, rgb(var(--vs-brand)) 15%, transparent); }
+  }
+}
+.vs-report-panel {
+  margin-top: 0.75rem;
+  border: 1px solid color-mix(in srgb, rgb(var(--vs-danger)) 35%, rgb(var(--vs-border)));
+  border-radius: 12px;
+  padding: 0.85rem;
+  background: rgb(var(--vs-surface-sunken));
+}
+
 .vs-comment {
   background: rgb(var(--vs-surface-sunken));
   border-radius: 10px;

@@ -20,7 +20,7 @@ from app.modules.billing.models import Invoice
 from app.modules.identity.models import User
 from app.modules.identity.repository import RefreshTokenRepository
 from app.modules.matters.models import Matter
-from app.modules.network.models import Comment, Connection, Post
+from app.modules.network.models import Comment, Connection, NetworkIdentity, Post
 from app.modules.notifications.models import NotificationChannel, NotificationType
 from app.modules.notifications.service import create_notification
 from app.modules.support.models import (
@@ -89,6 +89,47 @@ class SupportService:
                 )
             except Exception as exc:
                 logger.warning("support ticket alert failed: %s", type(exc).__name__)
+        return await self._get(ticket.id)
+
+    async def report_post(
+        self, post: Post, *, name: str, email: str, category: str, reason: str
+    ) -> SupportTicket:
+        duplicate = await self.session.scalar(
+            select(SupportTicket).where(
+                SupportTicket.requester_id == self.user_id,
+                SupportTicket.reported_post_id == post.id,
+                SupportTicket.status != TicketStatus.CLOSED,
+                SupportTicket.deleted_at.is_(None),
+            )
+        )
+        if duplicate is not None:
+            raise ValidationError(
+                f"This post is already under review in grievance {duplicate.ticket_number}."
+            )
+        ticket = SupportTicket(
+            tenant_id=self.tenant_id,
+            ticket_number=f"VS-{datetime.now(UTC):%Y%m}-{secrets.token_hex(3).upper()}",
+            requester_id=self.user_id,
+            requester_name=name,
+            requester_email=email,
+            subject=f"Reported network post by {post.author_name}",
+            description=f"Reason: {category.replace('_', ' ').title()}\n\n{reason}",
+            category="post_report",
+            priority="high",
+            page_url=f"https://vidhisangh.com/app/network?post={post.id}",
+            reported_post_id=post.id,
+            reported_user_id=post.author_id,
+            report_context={
+                "author_name": post.author_name,
+                "title": post.title,
+                "content": post.content,
+                "visibility": str(post.visibility),
+                "created_at": post.created_at.isoformat(),
+                "report_category": category,
+            },
+        )
+        self.session.add(ticket)
+        await self.session.flush()
         return await self._get(ticket.id)
 
     async def _get(self, ticket_id: uuid.UUID) -> SupportTicket:
@@ -323,6 +364,8 @@ class PlatformAdminService:
                 is_email_verified=user.is_email_verified,
                 mfa_enabled=user.mfa_enabled,
                 last_login_at=user.last_login_at,
+                posting_restricted_until=user.posting_restricted_until,
+                network_profile_removed_at=user.network_profile_removed_at,
                 created_at=user.created_at,
                 post_count=int(posts or 0),
                 ticket_count=int(tickets or 0),
@@ -390,6 +433,48 @@ class PlatformAdminService:
         )
         await self.session.flush()
         return await self.user_detail(user.id)
+
+    async def restrict_posting(
+        self, user_id: uuid.UUID, *, days: int | None, reason: str
+    ) -> PlatformUserDetail:
+        user = await self.session.scalar(
+            select(User).where(User.id == user_id, User.deleted_at.is_(None))
+        )
+        if user is None:
+            raise NotFoundError("Member not found.")
+        if user.id == self.actor_id and days is not None:
+            raise ValidationError("You cannot restrict your own administrator account.")
+        user.posting_restricted_until = (
+            datetime.now(UTC) + timedelta(days=days) if days is not None else None
+        )
+        self._audit(
+            "member.posting_restricted" if days is not None else "member.posting_restored",
+            "user",
+            user.id,
+            reason,
+            {"days": days, "until": user.posting_restricted_until.isoformat() if days else None},
+        )
+        await self.session.flush()
+        return await self.user_detail(user.id)
+
+    async def remove_network_profile(self, user_id: uuid.UUID, *, reason: str) -> None:
+        user = await self.session.scalar(
+            select(User).where(User.id == user_id, User.deleted_at.is_(None))
+        )
+        if user is None:
+            raise NotFoundError("Member not found.")
+        if user.id == self.actor_id or user.is_superuser:
+            raise ValidationError("A platform administrator profile cannot be removed here.")
+        now = datetime.now(UTC)
+        user.network_profile_removed_at = now
+        identity = await self.session.scalar(
+            select(NetworkIdentity).where(NetworkIdentity.user_id == user_id)
+        )
+        if identity is not None:
+            identity.discoverable = False
+            identity.deleted_at = now
+        self._audit("member.network_profile_removed", "user", user.id, reason)
+        await self.session.flush()
 
     async def tenants(self, q: str | None, limit: int, offset: int) -> list[PlatformTenantRead]:
         stmt = select(Tenant).where(Tenant.deleted_at.is_(None))

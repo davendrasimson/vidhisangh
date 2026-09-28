@@ -106,9 +106,53 @@ async def test_ticket_and_platform_moderation(
         },
     )
     assert restored.json()["is_active"] is True
+    member_headers = await _login(client, "member@client.test", strong_password)
+
+    post = await client.post(
+        f"{API}/network/posts",
+        headers=member_headers,
+        json={"content": "A network post that needs moderator review."},
+    )
+    assert post.status_code == 201, post.text
+    post_id = post.json()["id"]
+    report = await client.post(
+        f"{API}/network/posts/{post_id}/report",
+        headers=admin_headers,
+        json={"category": "misinformation", "reason": "The legal claim needs verification."},
+    )
+    assert report.status_code == 201, report.text
+    reported_ticket = next(
+        row
+        for row in (await client.get(f"{API}/platform-admin/tickets", headers=admin_headers)).json()
+        if row["reported_post_id"] == post_id
+    )
+    assert reported_ticket["reported_user_id"] == member["id"]
+    assert reported_ticket["report_context"]["content"] == post.json()["content"]
+
+    restricted = await client.patch(
+        f"{API}/platform-admin/users/{member['id']}/posting-restriction",
+        headers=admin_headers,
+        json={"days": 7, "reason": f"Review under {reported_ticket['ticket_number']}"},
+    )
+    assert restricted.status_code == 200, restricted.text
+    assert restricted.json()["posting_restricted_until"] is not None
+    rejected_post = await client.post(
+        f"{API}/network/posts", headers=member_headers, json={"content": "Blocked post"}
+    )
+    assert rejected_post.status_code == 403, rejected_post.text
+    removed = await client.post(
+        f"{API}/platform-admin/posts/{post_id}/remove",
+        headers=admin_headers,
+        json={"reason": f"Confirmed under {reported_ticket['ticket_number']}"},
+    )
+    assert removed.status_code == 200, removed.text
+    assert removed.json()["deleted_at"] is not None
+
     actions = (await client.get(f"{API}/platform-admin/actions", headers=admin_headers)).json()
     assert {row["action"] for row in actions} >= {
         "member.blocked",
         "member.restored",
+        "member.posting_restricted",
+        "post.removed",
         "ticket.updated",
     }

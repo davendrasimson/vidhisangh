@@ -48,6 +48,13 @@ class SupportTicket(TenantScopedBase):
     )
     page_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     browser_context: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    reported_post_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), nullable=True, index=True
+    )
+    reported_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), nullable=True, index=True
+    )
+    report_context: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     assigned_to_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
     assigned_to_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
     first_response_at: Mapped[datetime | None] = mapped_column(

@@ -164,6 +164,12 @@ class User(TenantScopedBase):
     last_login_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    posting_restricted_until: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
+    network_profile_removed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # ── DPDP s.5/s.6 (privacy agent): which Terms/Privacy Notice version the
     # user accepted at sign-up, and when. Compared with CURRENT_TERMS_VERSION

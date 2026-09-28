@@ -14,7 +14,7 @@ class TicketCreate(BaseModel):
     subject: str = Field(min_length=3, max_length=200)
     description: str = Field(min_length=5, max_length=20000)
     category: str = Field(
-        pattern="^(bug|feature_request|ui_issue|performance|data_issue|access|billing|privacy|other)$"
+        pattern="^(bug|feature_request|ui_issue|performance|data_issue|access|billing|privacy|post_report|other)$"
     )
     priority: TicketPriority = TicketPriority.MEDIUM
     page_url: str | None = Field(default=None, max_length=1000)
@@ -49,6 +49,9 @@ class TicketRead(BaseModel):
     priority: TicketPriority
     status: TicketStatus
     page_url: str | None
+    reported_post_id: uuid.UUID | None = None
+    reported_user_id: uuid.UUID | None = None
+    report_context: dict | None = None
     assigned_to_id: uuid.UUID | None
     assigned_to_name: str | None
     first_response_at: datetime | None
@@ -71,6 +74,10 @@ class ModerationRequest(BaseModel):
 
 class AccountStatusRequest(ModerationRequest):
     active: bool
+
+
+class PostingRestrictionRequest(ModerationRequest):
+    days: int | None = Field(default=None, ge=1, le=365)
 
 
 class TenantStatusRequest(ModerationRequest):
@@ -104,6 +111,8 @@ class PlatformUserRead(BaseModel):
     is_email_verified: bool
     mfa_enabled: bool
     last_login_at: datetime | None
+    posting_restricted_until: datetime | None
+    network_profile_removed_at: datetime | None
     created_at: datetime
     post_count: int
     ticket_count: int

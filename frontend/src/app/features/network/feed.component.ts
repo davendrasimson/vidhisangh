@@ -13,6 +13,8 @@ import {
   DirectoryPerson,
   FeedItem,
   LinkPreview,
+  PostReportCategory,
+  ReactionType,
   TrendingTag,
 } from '@core/models/network.models';
 
@@ -54,6 +56,19 @@ export class FeedComponent implements OnInit {
   // Per-post UI state.
   protected readonly openComments = signal<Record<string, Comment[] | undefined>>({});
   protected readonly commentDraft = signal<Record<string, string>>({});
+  protected readonly reactionPickerPost = signal<string | null>(null);
+  protected readonly reportingPost = signal<string | null>(null);
+  protected readonly submittingReport = signal(false);
+  protected reportCategory: PostReportCategory = 'spam';
+  protected reportReason = '';
+  protected readonly reportedPosts = signal<Set<string>>(new Set());
+  protected readonly reactions: ReadonlyArray<{ type: ReactionType; emoji: string; label: string }> = [
+    { type: 'like', emoji: '👍', label: 'Like' },
+    { type: 'insightful', emoji: '💡', label: 'Insightful' },
+    { type: 'celebrate', emoji: '🎉', label: 'Celebrate' },
+    { type: 'support', emoji: '🙏', label: 'Support' },
+    { type: 'curious', emoji: '🤔', label: 'Curious' },
+  ];
 
   protected readonly myInitials = computed(() => {
     const n = this.auth.user()?.full_name ?? '';
@@ -222,17 +237,50 @@ export class FeedComponent implements OnInit {
     }
   }
 
-  protected async toggleLike(post: FeedItem): Promise<void> {
-    const liked = post.my_reaction != null;
+  protected reactionFor(type: ReactionType | null): { emoji: string; label: string } {
+    return this.reactions.find((item) => item.type === type) ?? { emoji: '👍', label: 'React' };
+  }
+
+  protected async selectReaction(post: FeedItem, reaction: ReactionType): Promise<void> {
+    const previous = post.my_reaction;
+    const remove = previous === reaction;
+    this.reactionPickerPost.set(null);
     // Optimistic update.
     this.patch(post.id, {
-      my_reaction: liked ? null : 'like',
-      like_count: post.like_count + (liked ? -1 : 1),
+      my_reaction: remove ? null : reaction,
+      like_count: post.like_count + (remove ? -1 : previous ? 0 : 1),
     });
     try {
-      await firstValueFrom(liked ? this.net.unreact(post.id) : this.net.react(post.id, 'like'));
+      await firstValueFrom(remove ? this.net.unreact(post.id) : this.net.react(post.id, reaction));
     } catch {
       this.patch(post.id, { my_reaction: post.my_reaction, like_count: post.like_count });
+    }
+  }
+
+  protected openReport(post: FeedItem): void {
+    this.reportingPost.set(post.id);
+    this.reportCategory = 'spam';
+    this.reportReason = '';
+  }
+
+  protected cancelReport(): void {
+    this.reportingPost.set(null);
+    this.reportReason = '';
+  }
+
+  protected async submitReport(post: FeedItem): Promise<void> {
+    const reason = this.reportReason.trim();
+    if (reason.length < 10 || this.submittingReport()) return;
+    this.submittingReport.set(true);
+    try {
+      const result = await firstValueFrom(this.net.reportPost(post.id, this.reportCategory, reason));
+      this.reportedPosts.update((current) => new Set(current).add(post.id));
+      this.reportingPost.set(null);
+      this.notify.success(`Report ${result.ticket_number} sent to the Grievance Cell.`);
+    } catch {
+      /* handled */
+    } finally {
+      this.submittingReport.set(false);
     }
   }
 

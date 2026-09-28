@@ -85,6 +85,10 @@ class NetworkService:
         user = await UserRepository(self.session).get_by_id(self.user_id)
         if user is None:
             raise NotFoundError("User not found.")
+        if user.network_profile_removed_at is not None:
+            raise PermissionDeniedError(
+                "Your network profile has been removed. Contact the Grievance Cell for review."
+            )
         profile = await ProfileRepository(self.session).get_by_user(self.user_id)
 
         identity = await self.identities.get(self.user_id)
@@ -153,7 +157,21 @@ class NetworkService:
         return ids
 
     # ── Posts & feed ────────────────────────────────────────────────
+    async def _ensure_posting_allowed(self) -> None:
+        user = await UserRepository(self.session).get_by_id(self.user_id)
+        if user is None:
+            raise NotFoundError("User not found.")
+        until = user.posting_restricted_until
+        until_utc = until if until is None or until.tzinfo else until.replace(tzinfo=UTC)
+        if until_utc is not None and until_utc > datetime.now(UTC):
+            raise PermissionDeniedError(
+                f"Posting is restricted until {until_utc:%d %b %Y, %I:%M %p UTC}."
+            )
+        if until is not None:
+            user.posting_restricted_until = None
+
     async def create_post(self, data: PostCreate) -> Post:
+        await self._ensure_posting_allowed()
         me = await self.ensure_my_identity()
         post = Post(
             author_id=self.user_id,
@@ -213,6 +231,7 @@ class NetworkService:
         return await self._require_post_visible(post)
 
     async def share(self, post_id: uuid.UUID, data: ShareCreate) -> Post:
+        await self._ensure_posting_allowed()
         target = await self.get_post(post_id)
         # A repost is always public, so only public content may be quoted —
         # otherwise a connection could launder a connections-only post.

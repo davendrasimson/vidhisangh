@@ -7,11 +7,13 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from sqlalchemy import select
 
 from app.core.deps import CurrentUserDep, TenantSessionDep, require_permission
 from app.core.exceptions import TenantError
 from app.core.link_preview import fetch_link_preview
 from app.core.pagination import PageParams, page_params
+from app.modules.identity.models import User
 from app.modules.network.models import ConnectionStatus, ReactionType
 from app.modules.network.schemas import (
     CommentCreate,
@@ -20,12 +22,13 @@ from app.modules.network.schemas import (
     ConnectionRequestCreate,
     DirectoryPerson,
     FeedItem,
-    IdentityRead,
     LinkPreviewRead,
     MentionRead,
     MyIdentityRead,
     PostCreate,
     PostRead,
+    PostReportCreate,
+    PostReportRead,
     PublicProfile,
     ReactionCreate,
     ShareCreate,
@@ -33,6 +36,7 @@ from app.modules.network.schemas import (
     VisibilityUpdate,
 )
 from app.modules.network.service import NetworkService
+from app.modules.support.service import SupportService
 
 router = APIRouter(prefix="/network", tags=["Professional Network"])
 
@@ -194,6 +198,36 @@ async def delete_post(
 ) -> Response:
     await _svc(current, session).delete_post(post_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    "/posts/{post_id}/report",
+    dependencies=[require_permission("post:read")],
+    response_model=PostReportRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Report a post to the Grievance Cell",
+)
+async def report_post(
+    post_id: uuid.UUID,
+    data: PostReportCreate,
+    current: CurrentUserDep,
+    session: TenantSessionDep,
+) -> PostReportRead:
+    svc = _svc(current, session)
+    post = await svc.get_post(post_id)
+    if post.author_id == current.id:
+        raise HTTPException(status_code=400, detail="You cannot report your own post.")
+    user = await session.scalar(select(User).where(User.id == current.id))
+    if user is None or current.tenant_id is None:
+        raise HTTPException(status_code=404, detail="Account not found.")
+    ticket = await SupportService(session, current.id, current.tenant_id).report_post(
+        post,
+        name=user.full_name,
+        email=user.email,
+        category=data.category,
+        reason=data.reason,
+    )
+    return PostReportRead(ticket_number=ticket.ticket_number, status=str(ticket.status))
 
 
 @router.get(

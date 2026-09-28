@@ -160,6 +160,18 @@ class ReactionCreate(BaseModel):
     reaction: ReactionType = ReactionType.LIKE
 
 
+class PostReportCreate(BaseModel):
+    category: str = Field(
+        pattern="^(spam|harassment|hate_or_abuse|misinformation|privacy|impersonation|other)$"
+    )
+    reason: str = Field(min_length=10, max_length=2000)
+
+
+class PostReportRead(BaseModel):
+    ticket_number: str
+    status: str
+
+
 # ─── Comments ───────────────────────────────────────────────────────
 class CommentCreate(BaseModel):
     body: str = Field(min_length=1, max_length=3000)

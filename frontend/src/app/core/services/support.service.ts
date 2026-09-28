@@ -15,6 +15,8 @@ export class SupportService {
   users(q = '', status = ''): Observable<PlatformUser[]> { const params: Record<string, string> = {}; if (q) params['q'] = q; if (status) params['status'] = status; return this.http.get<PlatformUser[]>(`${this.api}/platform-admin/users`, { params }); }
   user(id: string): Observable<PlatformUser> { return this.http.get<PlatformUser>(`${this.api}/platform-admin/users/${id}`); }
   setUserStatus(id: string, active: boolean, reason: string): Observable<PlatformUser> { return this.http.patch<PlatformUser>(`${this.api}/platform-admin/users/${id}/status`, { active, reason }); }
+  restrictPosting(id: string, days: number | null, reason: string): Observable<PlatformUser> { return this.http.patch<PlatformUser>(`${this.api}/platform-admin/users/${id}/posting-restriction`, { days, reason }); }
+  removeNetworkProfile(id: string, reason: string): Observable<void> { return this.http.post<void>(`${this.api}/platform-admin/users/${id}/remove-network-profile`, { reason }); }
   tenants(q = ''): Observable<PlatformTenant[]> { return this.http.get<PlatformTenant[]>(`${this.api}/platform-admin/tenants`, { params: q ? { q } : {} }); }
   setTenantStatus(id: string, status: string, reason: string): Observable<PlatformTenant> { return this.http.patch<PlatformTenant>(`${this.api}/platform-admin/tenants/${id}/status`, { status, reason }); }
   posts(q = '', includeRemoved = true): Observable<PlatformPost[]> { return this.http.get<PlatformPost[]>(`${this.api}/platform-admin/posts`, { params: { ...(q ? { q } : {}), include_removed: String(includeRemoved) } }); }
