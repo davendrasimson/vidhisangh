@@ -37,20 +37,7 @@ import { RouterLink, RouterOutlet } from '@angular/router';
 
         <div class="auth__brand-inner">
           <div class="auth__logo">
-            <svg class="auth__mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <g
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M12 6.4V21M7.5 21h9M4.5 8h15" />
-                <circle cx="12" cy="4.9" r="1.5" />
-                <path d="M4.5 8 1.9 14.4a3.1 3.1 0 0 0 5.2 0Z" />
-                <path d="M19.5 8l-2.6 6.4a3.1 3.1 0 0 0 5.2 0Z" />
-              </g>
-            </svg>
+            <img class="auth__mark" src="brand-mark.svg" alt="" width="42" height="42" />
             <span class="auth__wordmark">VidhiSangh</span>
           </div>
 
@@ -87,20 +74,7 @@ import { RouterLink, RouterOutlet } from '@angular/router';
       <section class="auth__panel">
         <div class="auth__panel-inner">
           <div class="auth__mobile-brand" aria-hidden="true">
-            <svg class="auth__mark" viewBox="0 0 24 24" focusable="false">
-              <g
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M12 6.4V21M7.5 21h9M4.5 8h15" />
-                <circle cx="12" cy="4.9" r="1.5" />
-                <path d="M4.5 8 1.9 14.4a3.1 3.1 0 0 0 5.2 0Z" />
-                <path d="M19.5 8l-2.6 6.4a3.1 3.1 0 0 0 5.2 0Z" />
-              </g>
-            </svg>
+            <img class="auth__mark" src="brand-mark.svg" alt="" width="34" height="34" />
             <span class="auth__wordmark">VidhiSangh</span>
           </div>
           <router-outlet />
@@ -171,9 +145,10 @@ import { RouterLink, RouterOutlet } from '@angular/router';
       }
 
       .auth__mark {
-        width: 2rem;
-        height: 2rem;
+        width: 2.625rem;
+        height: 2.625rem;
         flex: none;
+        filter: drop-shadow(0 8px 16px rgb(0 0 0 / 0.2));
       }
 
       .auth__wordmark {

@@ -32,9 +32,17 @@
   font-size: 1.2rem;
   border-bottom: 1px solid rgb(var(--vs-border));
 
-  &__mark { font-size: 1.45rem; line-height: 1; }
+  &__mark {
+    width: 2.125rem;
+    height: 2.125rem;
+    flex: none;
+    filter: drop-shadow(0 5px 9px rgb(37 99 235 / 0.2));
+  }
   &__name {
-    letter-spacing: -0.02em;
+    font-family: var(--vs-font-display);
+    font-size: 1.3rem;
+    font-weight: 650;
+    letter-spacing: -0.015em;
     background: linear-gradient(90deg, rgb(var(--vs-brand)), color-mix(in srgb, rgb(var(--vs-brand)) 60%, #7c3aed));
     -webkit-background-clip: text;
     background-clip: text;

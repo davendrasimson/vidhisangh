@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="VidhiSangh">
-  <rect width="64" height="64" rx="14" fill="#2563eb"/>
-  <g fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
-    <line x1="32" y1="14" x2="32" y2="46"/>
-    <line x1="20" y1="20" x2="44" y2="20"/>
-    <path d="M20 20 L14 34 a6 6 0 0 0 12 0 Z"/>
-    <path d="M44 20 L38 34 a6 6 0 0 0 12 0 Z"/>
-    <line x1="24" y1="48" x2="40" y2="48"/>
+  <defs><linearGradient id="b" x1="8" y1="5" x2="56" y2="60" gradientUnits="userSpaceOnUse"><stop stop-color="#173b7a"/><stop offset=".55" stop-color="#215dcc"/><stop offset="1" stop-color="#4934b8"/></linearGradient></defs>
+  <rect x="3" y="3" width="58" height="58" rx="15" fill="url(#b)"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M32 13v31" stroke="#f4c86a" stroke-width="3"/><circle cx="32" cy="12.5" r="2.5" fill="#f4c86a"/>
+    <path d="M17 20.5h30M18.5 21 13 33.5h11L18.5 21Zm27 0L40 33.5h11L45.5 21ZM12.5 33.5c.7 4 3 6 6 6s5.3-2 6-6m15 0c.7 4 3 6 6 6s5.3-2 6-6" stroke="#fff" stroke-width="2.4"/>
+    <path d="M14 45.5c7.3-2.3 13.3-.9 18 3.9 4.7-4.8 10.7-6.2 18-3.9v8.2c-7.2-2.2-13.2-.9-18 3.8-4.8-4.7-10.8-6-18-3.8v-8.2Z" fill="#fff" stroke="#fff" stroke-width="1.4"/>
+    <path d="M32 49.5v8" stroke="#f4c86a" stroke-width="2"/>
   </g>
 </svg>
