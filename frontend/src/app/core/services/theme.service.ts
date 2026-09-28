@@ -2,13 +2,19 @@ import { Injectable, effect, signal } from '@angular/core';
 
 type ThemeMode = 'light' | 'dark' | 'system';
 export type Accent =
+  | 'amber'
+  | 'navy'
+  | 'burgundy'
+  | 'forest'
+  | 'ocean'
+  | 'terracotta'
+  | 'plum'
   | 'blue'
   | 'indigo'
   | 'violet'
   | 'teal'
   | 'emerald'
   | 'rose'
-  | 'amber'
   | 'slate';
 
 const STORAGE_KEY = 'vs.theme';
@@ -19,19 +25,26 @@ const ACCENT_KEY = 'vs.accent';
 interface AccentDef {
   label: string;
   swatch: string;
-  light: [string, string];
-  dark: [string, string];
+  description: string;
+  light: [brand: string, foreground: string, companion: string];
+  dark: [brand: string, foreground: string, companion: string];
 }
 
 export const ACCENTS: Record<Accent, AccentDef> = {
-  blue: { label: 'Blue', swatch: '#2563eb', light: ['37 99 235', '255 255 255'], dark: ['96 165 250', '15 23 42'] },
-  indigo: { label: 'Indigo', swatch: '#4f46e5', light: ['79 70 229', '255 255 255'], dark: ['129 140 248', '15 23 42'] },
-  violet: { label: 'Violet', swatch: '#7c3aed', light: ['124 58 237', '255 255 255'], dark: ['167 139 250', '15 23 42'] },
-  teal: { label: 'Teal', swatch: '#0d9488', light: ['13 148 136', '255 255 255'], dark: ['45 212 191', '15 23 42'] },
-  emerald: { label: 'Emerald', swatch: '#059669', light: ['5 150 105', '255 255 255'], dark: ['52 211 153', '15 23 42'] },
-  rose: { label: 'Rose', swatch: '#e11d48', light: ['225 29 72', '255 255 255'], dark: ['251 113 133', '15 23 42'] },
-  amber: { label: 'Amber', swatch: '#d97706', light: ['217 119 6', '255 255 255'], dark: ['251 191 36', '15 23 42'] },
-  slate: { label: 'Slate', swatch: '#334155', light: ['51 65 85', '255 255 255'], dark: ['148 163 184', '15 23 42'] },
+  amber: { label: 'Court Amber', swatch: '#b45309', description: 'Warm and authoritative', light: ['180 83 9', '255 255 255', '120 53 15'], dark: ['251 191 36', '15 23 42', '217 119 6'] },
+  navy: { label: 'Advocate Navy', swatch: '#1e3a8a', description: 'Traditional and formal', light: ['30 58 138', '255 255 255', '30 64 175'], dark: ['147 197 253', '15 23 42', '96 165 250'] },
+  burgundy: { label: 'Burgundy', swatch: '#9f1239', description: 'Distinguished and confident', light: ['159 18 57', '255 255 255', '127 29 29'], dark: ['253 164 175', '15 23 42', '251 113 133'] },
+  forest: { label: 'Forest', swatch: '#166534', description: 'Calm and established', light: ['22 101 52', '255 255 255', '20 83 45'], dark: ['134 239 172', '15 23 42', '74 222 128'] },
+  ocean: { label: 'Ocean', swatch: '#0369a1', description: 'Clear and dependable', light: ['3 105 161', '255 255 255', '14 116 144'], dark: ['125 211 252', '15 23 42', '103 232 249'] },
+  terracotta: { label: 'Terracotta', swatch: '#c2410c', description: 'Earthy and assured', light: ['194 65 12', '255 255 255', '154 52 18'], dark: ['253 186 116', '15 23 42', '251 146 60'] },
+  plum: { label: 'Plum', swatch: '#7e22ce', description: 'Modern and refined', light: ['126 34 206', '255 255 255', '157 23 77'], dark: ['216 180 254', '15 23 42', '249 168 212'] },
+  blue: { label: 'Cobalt', swatch: '#2563eb', description: 'Bright and familiar', light: ['37 99 235', '255 255 255', '29 78 216'], dark: ['147 197 253', '15 23 42', '129 140 248'] },
+  indigo: { label: 'Indigo', swatch: '#4f46e5', description: 'Focused and contemporary', light: ['79 70 229', '255 255 255', '109 40 217'], dark: ['165 180 252', '15 23 42', '196 181 253'] },
+  violet: { label: 'Violet', swatch: '#7c3aed', description: 'Expressive and premium', light: ['124 58 237', '255 255 255', '147 51 234'], dark: ['196 181 253', '15 23 42', '216 180 254'] },
+  teal: { label: 'Teal', swatch: '#0f766e', description: 'Balanced and composed', light: ['15 118 110', '255 255 255', '17 94 89'], dark: ['94 234 212', '15 23 42', '45 212 191'] },
+  emerald: { label: 'Emerald', swatch: '#047857', description: 'Fresh and decisive', light: ['4 120 87', '255 255 255', '21 128 61'], dark: ['110 231 183', '15 23 42', '74 222 128'] },
+  rose: { label: 'Rose', swatch: '#be123c', description: 'Bold and distinctive', light: ['190 18 60', '255 255 255', '159 18 57'], dark: ['253 164 175', '15 23 42', '251 113 133'] },
+  slate: { label: 'Charcoal', swatch: '#334155', description: 'Neutral and understated', light: ['51 65 85', '255 255 255', '71 85 105'], dark: ['203 213 225', '15 23 42', '148 163 184'] },
 };
 
 /**
@@ -83,11 +96,12 @@ export class ThemeService {
   private apply(): void {
     const dark = this.isDark();
     document.documentElement.classList.toggle('dark', dark);
-    const def = ACCENTS[this.accent()] ?? ACCENTS.blue;
-    const [brand, brandFg] = dark ? def.dark : def.light;
+    const def = ACCENTS[this.accent()] ?? ACCENTS.amber;
+    const [brand, brandFg, companion] = dark ? def.dark : def.light;
     const root = document.documentElement.style;
     root.setProperty('--vs-brand', brand);
     root.setProperty('--vs-brand-fg', brandFg);
+    root.setProperty('--vs-accent2', companion);
   }
 
   private initialMode(): ThemeMode {
@@ -96,6 +110,6 @@ export class ThemeService {
 
   private initialAccent(): Accent {
     const saved = localStorage.getItem(ACCENT_KEY) as Accent | null;
-    return saved && saved in ACCENTS ? saved : 'blue';
+    return saved && saved in ACCENTS ? saved : 'amber';
   }
 }

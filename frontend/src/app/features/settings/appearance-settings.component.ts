@@ -35,20 +35,22 @@ import { ThemeService } from '@core/services/theme.service';
       <section class="rounded-card bg-surface-raised border border-line shadow-card p-5">
         <h2 class="font-semibold text-content mb-1">Accent colour</h2>
         <p class="text-sm text-content-muted mb-4">Recolours buttons, links, highlights and icons across the app.</p>
-        <div class="flex flex-wrap gap-3">
+        <div class="accent-grid">
           @for (a of theme.accentList; track a.key) {
             <button
               type="button"
               class="vs-accent"
               [class.vs-accent--active]="theme.accent() === a.key"
-              [style.background]="a.swatch"
               [attr.aria-label]="a.label"
               [title]="a.label"
               (click)="theme.setAccent(a.key)"
             >
-              @if (theme.accent() === a.key) {
-                <mat-icon class="material-icons-outlined">check</mat-icon>
-              }
+              <span class="vs-accent__swatch" [style.background]="a.swatch">
+                @if (theme.accent() === a.key) {
+                  <mat-icon class="material-icons-outlined">check</mat-icon>
+                }
+              </span>
+              <span><strong>{{ a.label }}</strong><small>{{ a.description }}</small></span>
             </button>
           }
         </div>
@@ -80,25 +82,45 @@ import { ThemeService } from '@core/services/theme.service';
         background: color-mix(in srgb, rgb(var(--vs-brand)) 10%, transparent);
         color: rgb(var(--vs-brand));
       }
-      .vs-accent {
-        position: relative;
-        width: 42px;
-        height: 42px;
-        border-radius: 11px;
-        border: 2px solid transparent;
-        cursor: pointer;
+      .accent-grid {
         display: grid;
-        place-items: center;
-        color: #fff;
-        box-shadow: 0 1px 2px rgb(15 23 42 / 0.25);
-        transition: transform 0.1s ease;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 0.7rem;
+      }
+      .vs-accent {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        min-height: 64px;
+        padding: 0.65rem;
+        border-radius: 12px;
+        border: 1px solid rgb(var(--vs-border));
+        background: rgb(var(--vs-surface-sunken));
+        cursor: pointer;
+        color: rgb(var(--vs-text));
+        text-align: left;
+        transition: transform 0.1s ease, border-color 0.15s ease, background 0.15s ease;
       }
       .vs-accent:hover {
         transform: translateY(-1px);
       }
       .vs-accent--active {
-        border-color: rgb(var(--vs-text));
+        border-color: rgb(var(--vs-brand));
+        background: color-mix(in srgb, rgb(var(--vs-brand)) 8%, rgb(var(--vs-surface-raised)));
       }
+      .vs-accent__swatch {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        color: #fff;
+        box-shadow: 0 2px 5px rgb(15 23 42 / 0.2);
+        flex: 0 0 auto;
+      }
+      .vs-accent strong, .vs-accent small { display: block; }
+      .vs-accent strong { font-size: 0.82rem; }
+      .vs-accent small { margin-top: 0.14rem; color: rgb(var(--vs-text-muted)); font-size: 0.68rem; }
       .vs-accent mat-icon {
         font-size: 20px;
         width: 20px;
