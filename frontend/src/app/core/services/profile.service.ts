@@ -5,6 +5,7 @@ import { environment } from '@env/environment';
 import {
   BarVerificationRequest,
   ProfileDetail,
+  ProfileMasters,
   ProfileUpdate,
 } from '@core/models/profile.models';
 
@@ -15,6 +16,10 @@ export class ProfileService {
 
   myProfile(): Observable<ProfileDetail> {
     return this.http.get<ProfileDetail>(`${this.api}/me`);
+  }
+
+  masters(): Observable<ProfileMasters> {
+    return this.http.get<ProfileMasters>(`${this.api}/masters`);
   }
 
   getProfile(userId: string): Observable<ProfileDetail> {

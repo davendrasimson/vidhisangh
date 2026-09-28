@@ -51,15 +51,43 @@ async def test_update_profile(client: AsyncClient, strong_password: str) -> None
     payload = {
         "headline": "Criminal defence advocate",
         "bio": "15 years at the trial and appellate bar.",
+        "professional_role": "judicial_officer",
+        "designation": "Additional District Judge",
         "years_of_experience": 15,
         "practice_areas": ["Criminal", "Constitutional"],
         "courts": ["Delhi High Court", "Supreme Court of India"],
         "languages": ["English", "Hindi"],
-        "education": [{"institution": "NLSIU", "degree": "B.A. LL.B.", "year": 2009}],
+        "education": [
+            {
+                "institution": "NLSIU",
+                "degree": "ba_llb",
+                "level": "undergraduate",
+                "field_of_study": "Law",
+                "year": 2009,
+            }
+        ],
+        "employment_history": [
+            {
+                "organisation": "District Judiciary",
+                "designation": "Civil Judge",
+                "from_year": 2012,
+                "current": True,
+            }
+        ],
+        "memberships": [{"organisation": "Judicial Officers Association", "year": 2012}],
         "publications": [
-            {"title": "The Evolution of Bail Jurisprudence", "publisher": "SCC Journal", "year": 2021},
+            {
+                "title": "The Evolution of Bail Jurisprudence",
+                "publisher": "SCC Journal",
+                "year": 2021,
+            },
         ],
         "city": "New Delhi",
+        "state": "Delhi",
+        "judicial_court_name": "District & Sessions Court, New Delhi",
+        "judicial_district": "New Delhi",
+        "judicial_state": "Delhi",
+        "visibility_settings": {"contact": "none", "education": "connections"},
     }
     resp = await client.put("/api/v1/profiles/me", headers=headers, json=payload)
     assert resp.status_code == 200, resp.text
@@ -71,6 +99,64 @@ async def test_update_profile(client: AsyncClient, strong_password: str) -> None
     assert got["education"][0]["institution"] == "NLSIU"
     assert got["publications"][0]["title"] == "The Evolution of Bail Jurisprudence"
     assert got["publications"][0]["publisher"] == "SCC Journal"
+    assert got["professional_role"] == "judicial_officer"
+    assert got["judicial_court_name"] == "District & Sessions Court, New Delhi"
+    assert got["employment_history"][0]["current"] is True
+
+
+async def test_profile_masters_and_dpdp_group_masking(
+    client: AsyncClient, session_factory: async_sessionmaker, strong_password: str
+) -> None:
+    headers, me = await _auth(client, "viewer@chamber.co", strong_password)
+    masters = await client.get("/api/v1/profiles/masters", headers=headers)
+    assert masters.status_code == 200, masters.text
+    assert "Civil Law" in masters.json()["practice_areas"]
+    assert "Bar Council of Delhi" in masters.json()["bar_councils"]
+    assert set(masters.json()["states"]) == set(masters.json()["cities_by_state"])
+
+    target_id = uuid.uuid4()
+    tenant_id = uuid.UUID(me["tenant_id"])
+    async with session_factory() as session:
+        session.add(
+            User(
+                id=target_id,
+                tenant_id=tenant_id,
+                email="private-profile@chamber.co",
+                full_name="Judicial Officer",
+                hashed_password=None,
+                is_active=True,
+            )
+        )
+        await session.flush()
+        session.add(
+            ProfessionalProfile(
+                tenant_id=tenant_id,
+                user_id=target_id,
+                headline="Judicial officer",
+                professional_role="judicial_officer",
+                enrollment_number="D/123456/2012",
+                education=[{"institution": "Delhi University", "degree": "llb_3"}],
+                professional_email="private@example.test",
+                visibility_settings={
+                    "about": "everyone",
+                    "professional": "everyone",
+                    "education": "connections",
+                    "location": "connections",
+                    "contact": "none",
+                    "judicial": "connections",
+                },
+            )
+        )
+        await session.commit()
+
+    viewed = await client.get(f"/api/v1/profiles/{target_id}", headers=headers)
+    assert viewed.status_code == 200, viewed.text
+    detail = viewed.json()
+    assert detail["headline"] == "Judicial officer"
+    assert detail["enrollment_number"] == "••••2012"
+    assert detail["education"] == []
+    assert detail["professional_email"] is None
+    assert {"contact", "education", "judicial"}.issubset(detail["masked_groups"])
 
 
 async def test_digital_visiting_card(client: AsyncClient, strong_password: str) -> None:

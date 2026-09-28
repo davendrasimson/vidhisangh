@@ -43,6 +43,66 @@
       </div>
     </section>
 
+    @if (professionalProfile(); as profile) {
+      <section class="grid gap-4 md:grid-cols-2 mb-6">
+        @if (profile.bio || profile.professional_role || profile.designation || profile.practice_areas.length) {
+          <article class="rounded-card bg-surface-raised border border-line shadow-card p-5">
+            <h2 class="font-semibold flex items-center gap-2"><mat-icon class="material-icons-outlined text-brand">gavel</mat-icon> Professional profile</h2>
+            @if (profile.professional_role || profile.designation) {
+              <p class="mt-3 font-medium">{{ profile.designation || profile.professional_role }}</p>
+              @if (profile.designation && profile.professional_role) { <p class="text-sm text-content-muted">{{ profile.professional_role }}</p> }
+            }
+            @if (profile.bio) { <p class="mt-3 text-sm whitespace-pre-line">{{ profile.bio }}</p> }
+            @if (profile.practice_areas.length) {
+              <div class="flex flex-wrap gap-2 mt-4">
+                @for (area of profile.practice_areas; track area) { <span class="vs-chip">{{ area }}</span> }
+              </div>
+            }
+            @if (profile.bar_council || profile.enrollment_number) {
+              <p class="text-sm text-content-muted mt-4">{{ profile.bar_council }} @if (profile.enrollment_number) { · Enrolment {{ profile.enrollment_number }} }</p>
+            }
+          </article>
+        }
+
+        @if (profile.judicial_court_name || profile.judicial_district || profile.judicial_state) {
+          <article class="rounded-card bg-surface-raised border border-line shadow-card p-5">
+            <h2 class="font-semibold flex items-center gap-2"><mat-icon class="material-icons-outlined text-brand">account_balance</mat-icon> Judicial office</h2>
+            @if (profile.judicial_court_name) { <p class="mt-3 font-medium">{{ profile.judicial_court_name }}</p> }
+            <p class="text-sm text-content-muted">{{ profile.judicial_district }} @if (profile.judicial_district && profile.judicial_state) { · } {{ profile.judicial_state }}</p>
+            @if (profile.judicial_court_address) { <p class="text-sm text-content-muted mt-2">{{ profile.judicial_court_address }}</p> }
+          </article>
+        }
+
+        @if (profile.education.length || profile.employment_history.length || profile.memberships.length) {
+          <article class="rounded-card bg-surface-raised border border-line shadow-card p-5">
+            <h2 class="font-semibold flex items-center gap-2"><mat-icon class="material-icons-outlined text-brand">school</mat-icon> Education & career</h2>
+            @for (item of profile.education; track $index) {
+              <div class="mt-3"><p class="font-medium">{{ item.degree || item.level }}</p><p class="text-sm text-content-muted">{{ item.institution }} @if (item.year) { · {{ item.year }} }</p></div>
+            }
+            @for (item of profile.employment_history; track $index) {
+              <div class="mt-3"><p class="font-medium">{{ item.designation || 'Professional experience' }}</p><p class="text-sm text-content-muted">{{ item.organisation }}</p></div>
+            }
+            @for (item of profile.memberships; track $index) {
+              <p class="text-sm mt-3">Member, {{ item.organisation }}</p>
+            }
+          </article>
+        }
+
+        @if (profile.city || profile.state || profile.professional_email || profile.professional_phone || profile.website) {
+          <article class="rounded-card bg-surface-raised border border-line shadow-card p-5">
+            <h2 class="font-semibold flex items-center gap-2"><mat-icon class="material-icons-outlined text-brand">contact_page</mat-icon> Location & contact</h2>
+            @if (profile.city || profile.state) { <p class="mt-3">{{ profile.city }} @if (profile.city && profile.state) { · } {{ profile.state }}</p> }
+            @if (profile.professional_email) { <p class="text-sm mt-2"><a class="text-brand" [href]="'mailto:' + profile.professional_email">{{ profile.professional_email }}</a></p> }
+            @if (profile.professional_phone) { <p class="text-sm mt-2"><a class="text-brand" [href]="'tel:' + profile.professional_phone">{{ profile.professional_phone }}</a></p> }
+            @if (profile.website) { <p class="text-sm mt-2"><a class="text-brand" [href]="profile.website" target="_blank" rel="noopener">Website</a></p> }
+          </article>
+        }
+      </section>
+      @if (profile.masked_groups.length) {
+        <p class="text-xs text-content-muted mb-6 flex items-center gap-1"><mat-icon class="material-icons-outlined text-sm">privacy_tip</mat-icon> Some profile details are private or shared with a limited audience.</p>
+      }
+    }
+
     <h2 class="font-semibold mb-3">Posts</h2>
     @if (posts().length === 0) {
       <p class="text-content-muted text-sm">No posts yet.</p>

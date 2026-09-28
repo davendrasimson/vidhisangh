@@ -10,10 +10,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.modules.identity.repository import UserRepository
-from app.modules.network.repository import IdentityRepository
+from app.modules.network.models import ConnectionStatus
+from app.modules.network.repository import (
+    ConnectionRepository,
+    FollowRepository,
+    IdentityRepository,
+)
 from app.modules.notifications.models import NotificationType
 from app.modules.notifications.service import create_notification
 from app.modules.profile.models import (
+    DEFAULT_PROFILE_GROUP_VISIBILITY,
     BarVerificationRequest,
     Endorsement,
     ProfessionalProfile,
@@ -31,12 +37,7 @@ from app.modules.profile.schemas import (
 
 def _vcard_escape(value: str) -> str:
     """Escape a value for a vCard text field (RFC 6350)."""
-    return (
-        value.replace("\\", "\\\\")
-        .replace(";", "\\;")
-        .replace(",", "\\,")
-        .replace("\n", "\\n")
-    )
+    return value.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n")
 
 
 class ProfileService:
@@ -65,15 +66,43 @@ class ProfileService:
         payload = data.model_dump(exclude_unset=True)
         # Education & publications are lists of pydantic models — normalise to
         # plain dicts for JSON storage.
-        for list_field in ("education", "publications"):
+        for list_field in ("education", "publications", "employment_history", "memberships"):
             if payload.get(list_field) is not None:
                 payload[list_field] = [
                     item if isinstance(item, dict) else item.model_dump()
                     for item in payload[list_field]
                 ]
         for field, value in payload.items():
+            if field == "visibility_settings" and value is not None:
+                value = {**DEFAULT_PROFILE_GROUP_VISIBILITY, **value}
             setattr(profile, field, value)
         return profile
+
+    async def visible_groups(
+        self, profile: ProfessionalProfile, viewer_id: uuid.UUID
+    ) -> tuple[set[str], bool]:
+        """Return profile groups the viewer may see and whether they are connected."""
+        all_groups = set(DEFAULT_PROFILE_GROUP_VISIBILITY)
+        if viewer_id == profile.user_id:
+            return all_groups, True
+        connection = await ConnectionRepository(self.session).between(viewer_id, profile.user_id)
+        connected = bool(connection and connection.status == ConnectionStatus.ACCEPTED)
+        following = await FollowRepository(self.session).get(viewer_id, profile.user_id) is not None
+        if profile.visibility == "private":
+            raise NotFoundError("This profile is private.")
+        if profile.visibility == "connections" and not connected:
+            raise NotFoundError("This profile is available to connections only.")
+        settings = {**DEFAULT_PROFILE_GROUP_VISIBILITY, **(profile.visibility_settings or {})}
+        visible: set[str] = set()
+        for group, level in settings.items():
+            allowed = (
+                level == "everyone"
+                or (level == "connections" and connected)
+                or (level == "followers" and following)
+            )
+            if allowed:
+                visible.add(group)
+        return visible, connected
 
     async def endorsement_summary(self, profile_id: uuid.UUID) -> dict[str, int]:
         return await self.repo.endorsement_summary(profile_id)
@@ -98,9 +127,14 @@ class ProfileService:
         ]
         if profile.headline:
             lines.append(f"TITLE:{_vcard_escape(profile.headline)}")
-        if profile.bar_council:
-            lines.append(f"ORG:{_vcard_escape(profile.bar_council)}")
-        lines.append(f"EMAIL;TYPE=INTERNET:{user.email}")
+        if profile.judicial_court_name or profile.bar_council:
+            lines.append(
+                f"ORG:{_vcard_escape(profile.judicial_court_name or profile.bar_council or '')}"
+            )
+        if profile.professional_email:
+            lines.append(f"EMAIL;TYPE=WORK:{profile.professional_email}")
+        if profile.professional_phone:
+            lines.append(f"TEL;TYPE=WORK:{_vcard_escape(profile.professional_phone)}")
         if profile.website:
             lines.append(f"URL:{_vcard_escape(profile.website)}")
         if profile.city or profile.state or profile.office_address:
@@ -128,9 +162,7 @@ class ProfileService:
         if target_user_id == endorser_user_id:
             raise ValidationError("You cannot endorse your own profile.")
         profile = await self.get_for_user(target_user_id)
-        existing = await self.repo.get_endorsement(
-            profile.id, endorser_user_id, data.skill
-        )
+        existing = await self.repo.get_endorsement(profile.id, endorser_user_id, data.skill)
         if existing is not None:
             raise ConflictError("You have already endorsed this skill.")
         endorsement = Endorsement(

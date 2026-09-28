@@ -6,14 +6,16 @@ import uuid
 
 from fastapi import APIRouter, Response, status
 
-from app.core.deps import CurrentUserDep, TenantSessionDep, require_permission
+from app.core.deps import AuthSessionDep, CurrentUserDep, TenantSessionDep, require_permission
 from app.core.exceptions import TenantError
+from app.modules.profile.masters import PROFILE_MASTERS
 from app.modules.profile.schemas import (
     BarVerificationCreate,
     BarVerificationRead,
     EndorsementCreate,
     EndorsementRead,
     ProfileDetail,
+    ProfileMasters,
     ProfileRead,
     ProfileUpdate,
     RecommendationCreate,
@@ -30,7 +32,9 @@ def _svc(current: CurrentUserDep, session: TenantSessionDep) -> ProfileService:
     return ProfileService(session, current.tenant_id)
 
 
-async def _detail(service: ProfileService, user_id: uuid.UUID) -> ProfileDetail:
+async def _detail(
+    service: ProfileService, user_id: uuid.UUID, viewer_id: uuid.UUID | None = None
+) -> ProfileDetail:
     profile = await service.get_for_user(user_id)
     summary = await service.endorsement_summary(profile.id)
     detail = ProfileDetail.model_validate(profile)
@@ -38,7 +42,58 @@ async def _detail(service: ProfileService, user_id: uuid.UUID) -> ProfileDetail:
     detail.recommendations = [
         RecommendationRead.model_validate(r) for r in profile.recommendations if r.is_visible
     ]
+    if viewer_id is not None and viewer_id != user_id:
+        visible, connected = await service.visible_groups(profile, viewer_id)
+        detail.masked_groups = sorted(
+            {"about", "professional", "education", "location", "contact", "judicial"} - visible
+        )
+        if "about" not in visible:
+            detail.headline = None
+            detail.bio = None
+        if "professional" not in visible:
+            detail.professional_role = None
+            detail.designation = None
+            detail.enrollment_number = None
+            detail.bar_council = None
+            detail.year_of_enrollment = None
+            detail.years_of_experience = None
+            detail.practice_areas = []
+            detail.courts = []
+            detail.languages = []
+            detail.endorsement_summary = {}
+            detail.recommendations = []
+        elif detail.enrollment_number and not connected:
+            detail.enrollment_number = f"••••{detail.enrollment_number[-4:]}"
+        if "education" not in visible:
+            detail.education = []
+            detail.achievements = []
+            detail.publications = []
+            detail.employment_history = []
+            detail.memberships = []
+        if "location" not in visible:
+            detail.city = None
+            detail.state = None
+            detail.postal_code = None
+        if "contact" not in visible:
+            detail.office_address = None
+            detail.website = None
+            detail.linkedin_url = None
+            detail.professional_email = None
+            detail.professional_phone = None
+            detail.consultation_enabled = False
+            detail.consultation_fee = None
+            detail.availability = {}
+        if "judicial" not in visible:
+            detail.judicial_court_name = None
+            detail.judicial_court_address = None
+            detail.judicial_district = None
+            detail.judicial_state = None
     return detail
+
+
+@router.get("/masters", response_model=ProfileMasters, summary="Profile form masters")
+async def profile_masters(current: CurrentUserDep) -> ProfileMasters:
+    return ProfileMasters.model_validate(PROFILE_MASTERS)
 
 
 @router.get("/me", response_model=ProfileDetail, summary="My professional profile")
@@ -92,9 +147,9 @@ async def my_qr(current: CurrentUserDep, session: TenantSessionDep) -> Response:
     summary="View another practitioner's profile",
 )
 async def get_profile(
-    user_id: uuid.UUID, current: CurrentUserDep, session: TenantSessionDep
+    user_id: uuid.UUID, current: CurrentUserDep, session: AuthSessionDep
 ) -> ProfileDetail:
-    return await _detail(_svc(current, session), user_id)
+    return await _detail(_svc(current, session), user_id, current.id)
 
 
 @router.post(

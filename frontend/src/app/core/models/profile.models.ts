@@ -2,11 +2,24 @@
 
 export type VerificationStatus = 'unverified' | 'pending' | 'verified' | 'rejected';
 export type ProfileVisibility = 'public' | 'connections' | 'private';
+export type GroupVisibility = 'everyone' | 'connections' | 'followers' | 'none';
 
 export interface EducationItem {
   institution: string;
   degree?: string | null;
+  level?: string | null;
+  field_of_study?: string | null;
+  start_year?: number | null;
   year?: number | null;
+}
+
+export interface EmploymentItem { organisation: string; designation?: string | null; from_year?: number | null; to_year?: number | null; current?: boolean; }
+export interface MembershipItem { organisation: string; membership_number?: string | null; year?: number | null; }
+export interface MasterOption { value: string; label: string; }
+export interface ProfileMasters {
+  professional_roles: MasterOption[]; degrees: MasterOption[]; education_levels: MasterOption[];
+  practice_areas: string[]; bar_councils: string[]; states: string[]; cities_by_state: Record<string, string[]>;
+  courts: string[]; languages: string[]; visibility_options: MasterOption[];
 }
 
 export interface PublicationItem {
@@ -21,6 +34,8 @@ export interface ProfileDetail {
   user_id: string;
   headline: string | null;
   bio: string | null;
+  professional_role: string | null;
+  designation: string | null;
   enrollment_number: string | null;
   bar_council: string | null;
   year_of_enrollment: number | null;
@@ -31,16 +46,27 @@ export interface ProfileDetail {
   education: EducationItem[];
   achievements: string[];
   publications: PublicationItem[];
+  employment_history: EmploymentItem[];
+  memberships: MembershipItem[];
   city: string | null;
   state: string | null;
   office_address: string | null;
   website: string | null;
   linkedin_url: string | null;
+  professional_email: string | null;
+  professional_phone: string | null;
+  postal_code: string | null;
+  judicial_court_name: string | null;
+  judicial_court_address: string | null;
+  judicial_district: string | null;
+  judicial_state: string | null;
   consultation_enabled: boolean;
   consultation_fee: string | number | null;
   availability: Record<string, unknown>;
   verification_status: VerificationStatus;
   visibility: ProfileVisibility;
+  visibility_settings: Record<string, GroupVisibility>;
+  masked_groups: string[];
   avg_rating: string | number | null;
   rating_count: number;
   endorsement_summary: Record<string, number>;
@@ -58,6 +84,8 @@ export interface Recommendation {
 export interface ProfileUpdate {
   headline?: string | null;
   bio?: string | null;
+  professional_role?: string | null;
+  designation?: string | null;
   enrollment_number?: string | null;
   bar_council?: string | null;
   year_of_enrollment?: number | null;
@@ -68,14 +96,24 @@ export interface ProfileUpdate {
   education?: EducationItem[];
   achievements?: string[];
   publications?: PublicationItem[];
+  employment_history?: EmploymentItem[];
+  memberships?: MembershipItem[];
   city?: string | null;
   state?: string | null;
   office_address?: string | null;
   website?: string | null;
   linkedin_url?: string | null;
+  professional_email?: string | null;
+  professional_phone?: string | null;
+  postal_code?: string | null;
+  judicial_court_name?: string | null;
+  judicial_court_address?: string | null;
+  judicial_district?: string | null;
+  judicial_state?: string | null;
   consultation_enabled?: boolean;
   consultation_fee?: number | null;
   visibility?: ProfileVisibility;
+  visibility_settings?: Record<string, GroupVisibility>;
 }
 
 export interface BarVerificationRequest {

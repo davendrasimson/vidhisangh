@@ -16,6 +16,10 @@ import { DocumentsService } from '@core/services/documents.service';
 import { NotificationService } from '@core/services/notification.service';
 import { DRAFT_TEMPLATES, DraftCategory, DraftLanguage, DraftRole, DraftTemplate, FIELD_LABELS, LocalText, renderDraft } from './legal-drafting-templates';
 import { ClientChoice, VsClientPickerComponent } from '@shared/client-picker/vs-client-picker.component';
+import { ProfileService } from '@core/services/profile.service';
+import { ProfileDetail } from '@core/models/profile.models';
+import { MattersService } from '@core/services/matters.service';
+import { ECourtsCase, MatterDetail } from '@core/models/matters.models';
 
 const todayDdMmYyyy = (): string => { const d = new Date(); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`; };
 
@@ -35,6 +39,8 @@ export class DocumentsComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly editor = viewChild(VsRichEditorComponent);
+  private readonly profiles = inject(ProfileService);
+  private readonly matters = inject(MattersService);
 
   protected readonly view = signal<'draft' | 'drafts' | 'files'>('draft');
   /** Who this work is for. Null = no client (office formats, the firm's own papers).
@@ -53,6 +59,13 @@ export class DocumentsComponent implements OnInit {
   protected readonly language = signal<DraftLanguage>('en');
   protected readonly role = signal<DraftRole>('all');
   protected readonly category = signal<DraftCategory>('all');
+  protected readonly profile = signal<ProfileDetail | null>(null);
+  protected readonly ecourtsLoading = signal(false);
+  protected readonly ecourtsCase = signal<ECourtsCase | null>(null);
+  protected cnrNumber = '';
+  protected readonly isJudicialUser = computed(() =>
+    ['judicial_officer', 'retired_judicial_officer'].includes(this.profile()?.professional_role ?? ''),
+  );
   protected readonly templateSearch = signal('');
   protected readonly templates = DRAFT_TEMPLATES;
   protected readonly selectedTemplate = signal<DraftTemplate>(DRAFT_TEMPLATES[0]);
@@ -77,6 +90,7 @@ export class DocumentsComponent implements OnInit {
     { id: 'advocate', label: { en: 'Advocate / counsel', hi: 'अधिवक्ता / काउंसल', pa: 'ਵਕੀਲ / ਕੌਂਸਲ' } },
     { id: 'associate', label: { en: 'Junior / associate', hi: 'जूनियर / सहयोगी', pa: 'ਜੂਨੀਅਰ / ਸਹਿਯੋਗੀ' } },
     { id: 'clerk', label: { en: 'Clerk / Munshi', hi: 'क्लर्क / मुंशी', pa: 'ਕਲਰਕ / ਮੁਨਸ਼ੀ' } },
+    { id: 'judicial', label: { en: 'Judicial officer', hi: 'न्यायिक अधिकारी', pa: 'ਨਿਆਂਇਕ ਅਧਿਕਾਰੀ' } },
   ];
   protected readonly categories: { id: DraftCategory; label: LocalText }[] = [
     { id: 'all', label: { en: 'All', hi: 'सभी', pa: 'ਸਾਰੇ' } },
@@ -86,10 +100,12 @@ export class DocumentsComponent implements OnInit {
     { id: 'property', label: { en: 'Property', hi: 'संपत्ति', pa: 'ਜਾਇਦਾਦ' } },
     { id: 'commercial', label: { en: 'Commercial', hi: 'वाणिज्यिक', pa: 'ਵਪਾਰਕ' } },
     { id: 'office', label: { en: 'Court office', hi: 'अदालती कार्यालय', pa: 'ਅਦਾਲਤੀ ਦਫ਼ਤਰ' } },
+    { id: 'judicial', label: { en: 'Judicial orders', hi: 'न्यायिक आदेश', pa: 'ਨਿਆਂਇਕ ਹੁਕਮ' } },
   ];
   protected readonly filteredTemplates = computed(() => {
     const query = this.templateSearch().trim().toLowerCase();
     return this.templates.filter((item) => {
+      if (item.roles.includes('judicial') && !this.isJudicialUser()) return false;
       const categoryMatch = this.category() === 'all' || item.category === this.category();
       const roleMatch = this.role() === 'all' || item.roles.includes(this.role() as Exclude<DraftRole, 'all'>);
       const text = `${item.title.en} ${item.title.hi} ${item.title.pa} ${item.description.en} ${item.tags.join(' ')}`.toLowerCase();
@@ -121,7 +137,13 @@ export class DocumentsComponent implements OnInit {
       caseTitle: q.get('matter_title') || '', case_title: q.get('matter_title') || '',
     });
     this.refreshDraft();
-    await this.loadWordTemplates();
+    await Promise.all([this.loadWordTemplates(), this.loadProfile()]);
+    if (this.isJudicialUser()) {
+      this.role.set('judicial');
+      this.category.set('judicial');
+      this.chooseTemplate(this.templates.find((item) => item.kind === 'order') ?? this.templates[0]);
+      if (this.matterId()) await this.loadMatterForOrder(this.matterId()!);
+    }
     if (q.get('manage_templates') === '1') this.showTemplateManager.set(true);
     // Deep link from the editor's back button: /app/documents?view=drafts
     if (this.route.snapshot.queryParamMap.get('view') === 'drafts') await this.showDrafts();
@@ -152,7 +174,7 @@ export class DocumentsComponent implements OnInit {
   }
   protected isLongField(key: string): boolean {
     const custom = this.selectedWordTemplate()?.fields.find((field) => field.key === key);
-    return custom?.type === 'multiline' || ['facts', 'grounds', 'relief', 'terms', 'propertyDetails', 'powers', 'marriageDetails'].includes(key);
+    return custom?.type === 'multiline' || ['facts', 'grounds', 'relief', 'terms', 'propertyDetails', 'powers', 'marriageDetails', 'orderBody', 'appearances'].includes(key);
   }
   protected activeFields(): string[] { return this.selectedWordTemplate()?.fields.map((field) => field.key) ?? this.selectedTemplate().fields; }
   protected activeTitle(): string { return this.selectedWordTemplate()?.name ?? this.local(this.selectedTemplate().title); }
@@ -161,7 +183,7 @@ export class DocumentsComponent implements OnInit {
   protected chooseTemplate(template: DraftTemplate): void {
     this.selectedWordTemplate.set(null);
     this.selectedTemplate.set(template);
-    this.draftValues.set({ date: todayDdMmYyyy() });
+    this.draftValues.set(template.kind === 'order' ? this.judicialDefaults() : { date: todayDdMmYyyy() });
     this.draftFileName = this.local(template.title);
     this.refreshDraft();
     setTimeout(() => document.querySelector('.draft-builder')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
@@ -170,7 +192,7 @@ export class DocumentsComponent implements OnInit {
     try {
       const detail = await firstValueFrom(this.drafts.template(template.id));
       this.selectedWordTemplate.set(detail);
-      this.draftValues.set({ date: todayDdMmYyyy(), client_name: this.client()?.name ?? '', matter_title: this.matterTitle() ?? '' });
+      this.draftValues.set({ ...this.judicialDefaults(), client_name: this.client()?.name ?? '', matter_title: this.matterTitle() ?? '' });
       this.draftFileName = detail.name;
       this.refreshDraft();
       setTimeout(() => document.querySelector('.draft-builder')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
@@ -178,7 +200,7 @@ export class DocumentsComponent implements OnInit {
   }
   protected updateField(key: string, value: string): void { this.draftValues.update((current) => ({ ...current, [key]: value })); this.refreshDraft(); }
   protected updateDraftText(value: string): void { this.draftText.set(value); }
-  protected resetDraft(): void { this.draftValues.set({ date: todayDdMmYyyy() }); this.refreshDraft(); }
+  protected resetDraft(): void { this.draftValues.set(this.selectedTemplate().kind === 'order' ? this.judicialDefaults() : { date: todayDdMmYyyy() }); this.ecourtsCase.set(null); this.refreshDraft(); }
   protected async copyDraft(): Promise<void> {
     try { await navigator.clipboard.writeText(this.draftText()); this.notify.success('Draft copied to clipboard.'); }
     catch { this.notify.error('Could not copy the draft.'); }
@@ -201,6 +223,17 @@ export class DocumentsComponent implements OnInit {
       this.files.update((items) => [filed, ...items.filter((f) => f.id !== filed.id)]);
       this.notify.success(`${filed.name} saved to My documents (and kept in My drafts).`);
     } catch { /* handled by interceptor */ } finally { this.savingDraft.set(false); }
+  }
+  protected async downloadWordFromBuilder(): Promise<void> {
+    if (!this.draftText().trim() || this.savingDraft()) return;
+    this.savingDraft.set(true);
+    try {
+      const created = await this.createDraftFromBuilder();
+      const blob = await firstValueFrom(this.drafts.exportDocx(created.id));
+      this.save(blob, `${this.cleanFilename(this.draftFileName)}.docx`);
+      this.notify.success('Word document prepared for signing and execution.');
+    } catch { /* handled */ }
+    finally { this.savingDraft.set(false); }
   }
   private refreshDraft(): void {
     const custom = this.selectedWordTemplate();
@@ -251,6 +284,76 @@ export class DocumentsComponent implements OnInit {
       client_id: this.client()?.id ?? null,
       ...this.currentDocument(),
     }));
+  }
+
+  private async loadProfile(): Promise<void> {
+    try { this.profile.set(await firstValueFrom(this.profiles.myProfile())); }
+    catch { /* profile is optional for ordinary drafting */ }
+  }
+
+  private judicialDefaults(): Record<string, string> {
+    const p = this.profile();
+    const court = p?.judicial_court_name ?? '';
+    const place = [p?.judicial_district, p?.judicial_state].filter(Boolean).join(', ');
+    return {
+      date: todayDdMmYyyy(), orderDate: todayDdMmYyyy(),
+      court, place,
+      coram: [p?.designation, this.auth.user()?.full_name].filter(Boolean).join(' '),
+      judgeName: this.auth.user()?.full_name ?? '',
+      judgeDesignation: p?.designation ?? '',
+      matterTitle: this.matterTitle() ?? '',
+    };
+  }
+
+  protected async fetchCaseForOrder(): Promise<void> {
+    const cnr = this.cnrNumber.trim();
+    if (!cnr) { this.notify.error('Enter the 16-character CNR number.'); return; }
+    this.ecourtsLoading.set(true);
+    try {
+      const item = await firstValueFrom(this.matters.ecourtsLookup({ cnr_number: cnr }));
+      this.ecourtsCase.set(item);
+      const applicants = item.parties.filter((party) => /petitioner|appellant|applicant|complainant/i.test(party.role)).map((party) => party.name).join(', ');
+      const respondents = item.parties.filter((party) => /respondent|defendant|accused/i.test(party.role)).map((party) => party.name).join(', ');
+      const appearances = item.advocates.map((advocate) => `${advocate.name} for ${advocate.appears_for}`).join('; ');
+      const caseNumber = item.registration_number || item.case_number || [item.case_type, item.case_number, item.case_year].filter(Boolean).join(' ');
+      this.draftValues.update((current) => ({
+        ...current,
+        court: item.court_establishment || current['court'] || '',
+        place: [item.district, item.state].filter(Boolean).join(', ') || current['place'] || '',
+        caseNumber: caseNumber || item.cnr_number || '',
+        matterTitle: item.cause_title || current['matterTitle'] || '',
+        firstParty: applicants || item.parties[0]?.name || '',
+        secondParty: respondents || item.parties[1]?.name || '',
+        coram: item.coram || current['coram'] || '',
+        appearances,
+        nextDate: item.next_hearing_date || '',
+      }));
+      this.refreshDraft();
+      this.notify.success('Case header filled from the configured eCourts source. Verify it before signing.');
+    } catch { /* provider/interceptor gives the configured-provider message */ }
+    finally { this.ecourtsLoading.set(false); }
+  }
+
+  private async loadMatterForOrder(matterId: string): Promise<void> {
+    try {
+      const matter: MatterDetail = await firstValueFrom(this.matters.get(matterId));
+      const applicants = matter.parties.filter((party) => party.side === 'ours').map((party) => party.name).join(', ');
+      const respondents = matter.parties.filter((party) => party.side === 'opposing').map((party) => party.name).join(', ');
+      const appearances = matter.advocates.map((advocate) => `${advocate.name}${advocate.party_represented ? ` for ${advocate.party_represented}` : ''}`).join('; ');
+      this.draftValues.update((current) => ({
+        ...current,
+        court: matter.court_establishment || matter.court || current['court'] || '',
+        place: [matter.district, matter.state].filter(Boolean).join(', ') || current['place'] || '',
+        caseNumber: matter.registration_number || matter.case_number || matter.matter_number,
+        matterTitle: matter.cause_title || matter.title,
+        firstParty: applicants,
+        secondParty: respondents,
+        coram: matter.coram || current['coram'] || '',
+        appearances,
+        nextDate: matter.next_hearing_date || '',
+      }));
+      this.refreshDraft();
+    } catch { /* the order can still be drafted manually */ }
   }
 
   private async loadWordTemplates(): Promise<void> {

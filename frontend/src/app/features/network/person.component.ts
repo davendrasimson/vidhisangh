@@ -8,7 +8,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { NetworkService } from '@core/services/network.service';
 import { MessagingService } from '@core/services/messaging.service';
 import { NotificationService } from '@core/services/notification.service';
+import { ProfileService } from '@core/services/profile.service';
 import { FeedItem, PublicProfile } from '@core/models/network.models';
+import { ProfileDetail } from '@core/models/profile.models';
 
 @Component({
   selector: 'app-person',
@@ -23,8 +25,10 @@ export class PersonComponent {
   private readonly net = inject(NetworkService);
   private readonly messaging = inject(MessagingService);
   private readonly notify = inject(NotificationService);
+  private readonly profiles = inject(ProfileService);
 
   protected readonly person = signal<PublicProfile | null>(null);
+  protected readonly professionalProfile = signal<ProfileDetail | null>(null);
   protected readonly posts = signal<FeedItem[]>([]);
   protected readonly loading = signal(true);
 
@@ -38,14 +42,17 @@ export class PersonComponent {
   private async load(id: string): Promise<void> {
     this.loading.set(true);
     this.person.set(null);
+    this.professionalProfile.set(null);
     this.posts.set([]);
     try {
-      const [person, posts] = await Promise.all([
+      const [personResult, postsResult, profileResult] = await Promise.allSettled([
         firstValueFrom(this.net.person(id)),
         firstValueFrom(this.net.userPosts(id)),
+        firstValueFrom(this.profiles.getProfile(id)),
       ]);
-      this.person.set(person);
-      this.posts.set(posts);
+      if (personResult.status === 'fulfilled') this.person.set(personResult.value);
+      if (postsResult.status === 'fulfilled') this.posts.set(postsResult.value);
+      if (profileResult.status === 'fulfilled') this.professionalProfile.set(profileResult.value);
     } catch {
       /* handled by interceptor */
     } finally {

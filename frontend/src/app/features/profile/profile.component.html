@@ -1,264 +1,54 @@
 @if (profile(); as p) {
-  <div class="mx-auto w-full">
-    <!-- Header -->
-    <section class="rounded-card bg-surface-raised border border-line shadow-card overflow-hidden mb-6">
-      <div class="vs-cover"></div>
-      <div class="px-6 pb-6">
-        <div class="flex items-end justify-between -mt-10">
-          <div class="vs-pfp">{{ initials() }}</div>
-          @if (!editing()) {
-            <button mat-stroked-button (click)="enterEdit()">
-              <mat-icon class="material-icons-outlined">edit</mat-icon> Edit profile
-            </button>
-          }
-        </div>
+<div class="profile-page">
+  <section class="rounded-card bg-surface-raised border border-line shadow-card overflow-hidden mb-6">
+    <div class="vs-cover"></div><div class="px-6 pb-6"><div class="flex items-end justify-between -mt-10"><div class="vs-pfp">{{ initials() }}</div>@if (!editing()) { <button mat-stroked-button (click)="enterEdit()"><mat-icon>edit</mat-icon>Edit profile</button> }</div>
+    <div class="mt-3 flex items-center gap-2 flex-wrap"><h1 class="text-2xl font-bold">{{ user()?.full_name }}</h1>@if (p.verification_status === 'verified') { <span class="vs-badge vs-badge--ok"><mat-icon>verified</mat-icon>Verified</span> } @else if (p.verification_status === 'pending') { <span class="vs-badge vs-badge--pending">Verification pending</span> } @else { <span class="vs-badge vs-badge--muted">Unverified</span> }</div>
+    <p class="text-content-muted">{{ p.headline || 'Add a professional headline' }}</p><p class="text-sm text-content-muted mt-1">@if (p.professional_role && masters()) { {{ masterLabel(masters()!.professional_roles, p.professional_role) }} · }@if (p.city) { {{ p.city }} · }@if (p.years_of_experience != null) { {{ p.years_of_experience }} years’ experience }</p></div>
+  </section>
 
-        <div class="mt-3 flex items-center gap-2 flex-wrap">
-          <h1 class="text-2xl font-bold text-content">{{ user()?.full_name }}</h1>
-          @switch (p.verification_status) {
-            @case ('verified') {
-              <span class="vs-badge vs-badge--ok"><mat-icon class="material-icons-outlined">verified</mat-icon> Verified</span>
-            }
-            @case ('pending') {
-              <span class="vs-badge vs-badge--pending"><mat-icon class="material-icons-outlined">hourglass_top</mat-icon> Verification pending</span>
-            }
-            @default {
-              <span class="vs-badge vs-badge--muted">Unverified</span>
-            }
-          }
-        </div>
-        <p class="text-content-muted">{{ p.headline || 'Add a professional headline' }}</p>
-        <p class="text-sm text-content-muted mt-1">
-          @if (p.city) { {{ p.city }} · }
-          @if (p.years_of_experience != null) { {{ p.years_of_experience }} yrs experience }
-        </p>
-      </div>
+  @if (editing() && masters(); as m) {
+  <form [formGroup]="form" (ngSubmit)="save()" class="profile-editor">
+    <div class="privacy-notice"><mat-icon>privacy_tip</mat-icon><div><strong>You control who sees each group.</strong><p>Personal details are hidden unless the audience you select is allowed. Enrolment numbers are masked for viewers who are not connections.</p></div></div>
+
+    <section class="profile-section"><header><mat-icon>badge</mat-icon><div><h2>Professional identity</h2><p>Your role, introduction and experience.</p></div><select class="audience" formControlName="vis_about">@for (o of m.visibility_options; track o.value) { <option [value]="o.value">{{ o.label }}</option> }</select></header>
+      <div class="profile-grid"><label class="profile-field"><span>Professional role</span><select formControlName="professional_role">@for (o of m.professional_roles; track o.value) { <option [value]="o.value">{{ o.label }}</option> }</select></label><label class="profile-field"><span>Designation</span><input formControlName="designation" placeholder="District Judge, Partner, Counsel…" /></label><label class="profile-field full"><span>Headline</span><input formControlName="headline" maxlength="200" /></label><label class="profile-field full"><span>About</span><textarea formControlName="bio" rows="5"></textarea></label><label class="profile-field"><span>Years of experience</span><input type="number" formControlName="years_of_experience" /></label><label class="profile-field"><span>Achievements <small>(comma separated)</small></span><input formControlName="achievements" /></label></div>
     </section>
 
-    @if (editing()) {
-      <!-- Edit form -->
-      <section class="rounded-card bg-surface-raised border border-line shadow-card p-6 mb-6">
-        <h2 class="text-lg font-semibold mb-4">Edit profile</h2>
-        <form [formGroup]="form" (ngSubmit)="save()" class="grid gap-1 sm:grid-cols-2">
-          <mat-form-field appearance="outline" class="sm:col-span-2">
-            <mat-label>Headline</mat-label>
-            <input matInput formControlName="headline" maxlength="200" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="sm:col-span-2">
-            <mat-label>About</mat-label>
-            <textarea matInput formControlName="bio" rows="4"></textarea>
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Years of experience</mat-label>
-            <input matInput type="number" formControlName="years_of_experience" />
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>City</mat-label>
-            <input matInput formControlName="city" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="sm:col-span-2">
-            <mat-label>Practice areas (comma separated)</mat-label>
-            <input matInput formControlName="practice_areas" />
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Courts (comma separated)</mat-label>
-            <input matInput formControlName="courts" />
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Languages (comma separated)</mat-label>
-            <input matInput formControlName="languages" />
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Website</mat-label>
-            <input matInput formControlName="website" />
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>LinkedIn URL</mat-label>
-            <input matInput formControlName="linkedin_url" />
-          </mat-form-field>
-          <div class="flex items-center gap-4 sm:col-span-2 py-2">
-            <mat-slide-toggle formControlName="consultation_enabled">Accept consultations</mat-slide-toggle>
-            <mat-form-field appearance="outline" class="!mb-0">
-              <mat-label>Consultation fee (₹)</mat-label>
-              <input matInput type="number" formControlName="consultation_fee" />
-            </mat-form-field>
-          </div>
-          <div class="sm:col-span-2">
-            <div class="flex items-center justify-between mb-2">
-              <h3 class="font-medium">Publications</h3>
-              <button mat-button type="button" (click)="addPublication()">
-                <mat-icon class="material-icons-outlined">add</mat-icon> Add
-              </button>
-            </div>
-            @for (pub of pubDraft(); track $index) {
-              <div class="flex flex-wrap gap-2 items-center mb-2">
-                <input class="vs-input flex-1 min-w-[12rem]" placeholder="Title" [ngModel]="pub.title"
-                       [ngModelOptions]="{ standalone: true }"
-                       (ngModelChange)="updatePublication($index, 'title', $event)" maxlength="300" />
-                <input class="vs-input w-40" placeholder="Publisher" [ngModel]="pub.publisher"
-                       [ngModelOptions]="{ standalone: true }"
-                       (ngModelChange)="updatePublication($index, 'publisher', $event)" maxlength="200" />
-                <input class="vs-input w-24" type="number" placeholder="Year" [ngModel]="pub.year"
-                       [ngModelOptions]="{ standalone: true }"
-                       (ngModelChange)="updatePublication($index, 'year', $event)" />
-                <button mat-icon-button type="button" (click)="removePublication($index)" aria-label="Remove publication">
-                  <mat-icon class="material-icons-outlined text-danger">close</mat-icon>
-                </button>
-              </div>
-            }
-            @if (pubDraft().length === 0) {
-              <p class="text-sm text-content-muted">No publications added.</p>
-            }
-          </div>
+    <section class="profile-section"><header><mat-icon>workspace_premium</mat-icon><div><h2>Practice and enrolment</h2><p>Choose from consistent legal masters.</p></div><select class="audience" formControlName="vis_professional">@for (o of m.visibility_options; track o.value) { <option [value]="o.value">{{ o.label }}</option> }</select></header>
+      <div class="profile-grid"><label class="profile-field"><span>State Bar Council</span><select formControlName="bar_council"><option value="">Select</option>@for (item of m.bar_councils; track item) { <option [value]="item">{{ item }}</option> }</select></label><label class="profile-field"><span>Enrolment number</span><input formControlName="enrollment_number" /></label><label class="profile-field"><span>Year of enrolment</span><input type="number" formControlName="year_of_enrollment" /></label></div>
+      <h3 class="subheading">Areas of expertise</h3><div class="master-picker">@for (item of m.practice_areas; track item) { <button type="button" [class.selected]="selected('practice', item)" (click)="toggleMaster('practice', item)">{{ item }}</button> }</div>
+      <h3 class="subheading">Courts and forums</h3><div class="master-picker">@for (item of m.courts; track item) { <button type="button" [class.selected]="selected('courts', item)" (click)="toggleMaster('courts', item)">{{ item }}</button> }</div>
+      <h3 class="subheading">Working languages</h3><div class="master-picker compact">@for (item of m.languages; track item) { <button type="button" [class.selected]="selected('languages', item)" (click)="toggleMaster('languages', item)">{{ item }}</button> }</div>
+    </section>
 
-          <div class="sm:col-span-2 flex gap-2 justify-end">
-            <button mat-button type="button" (click)="editing.set(false)">Cancel</button>
-            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">Save changes</button>
-          </div>
-        </form>
-      </section>
-    } @else {
-      <!-- View mode -->
-      <div class="grid gap-6 md:grid-cols-3">
-        <div class="md:col-span-2 grid gap-6">
-          <section class="rounded-card bg-surface-raised border border-line shadow-card p-6">
-            <h2 class="text-lg font-semibold mb-2">About</h2>
-            <p class="text-content-muted whitespace-pre-line">{{ p.bio || 'No bio added yet.' }}</p>
-          </section>
+    @if (isJudicial()) { <section class="profile-section judicial"><header><mat-icon>account_balance</mat-icon><div><h2>Judicial office</h2><p>Used to fill order headings and signature blocks.</p></div><select class="audience" formControlName="vis_judicial">@for (o of m.visibility_options; track o.value) { <option [value]="o.value">{{ o.label }}</option> }</select></header><div class="profile-grid"><label class="profile-field full"><span>Court / tribunal name</span><input formControlName="judicial_court_name" /></label><label class="profile-field"><span>State</span><select formControlName="judicial_state"><option value="">Select</option>@for (item of m.states; track item) { <option [value]="item">{{ item }}</option> }</select></label><label class="profile-field"><span>District</span><input formControlName="judicial_district" /></label><label class="profile-field full"><span>Court address</span><textarea rows="2" formControlName="judicial_court_address"></textarea></label></div></section> }
 
-          <section class="rounded-card bg-surface-raised border border-line shadow-card p-6">
-            <h2 class="text-lg font-semibold mb-3">Practice areas</h2>
-            @if (p.practice_areas.length) {
-              <div class="flex flex-wrap gap-2">
-                @for (area of p.practice_areas; track area) {
-                  <span class="vs-chip">{{ area }}</span>
-                }
-              </div>
-            } @else { <p class="text-content-muted text-sm">None specified.</p> }
+    <section class="profile-section"><header><mat-icon>school</mat-icon><div><h2>Education and career</h2><p>School, college, law degrees and work history.</p></div><select class="audience" formControlName="vis_education">@for (o of m.visibility_options; track o.value) { <option [value]="o.value">{{ o.label }}</option> }</select></header>
+      @for (item of educationDraft(); track $index; let i = $index) { <div class="repeat-card"><div class="profile-grid"><label class="profile-field"><span>Level</span><select [ngModel]="item.level" [ngModelOptions]="{standalone:true}" (ngModelChange)="updateEducation(i,'level',$event)">@for (o of m.education_levels; track o.value) { <option [value]="o.value">{{ o.label }}</option> }</select></label><label class="profile-field"><span>Qualification</span><select [ngModel]="item.degree" [ngModelOptions]="{standalone:true}" (ngModelChange)="updateEducation(i,'degree',$event)">@for (o of m.degrees; track o.value) { <option [value]="o.value">{{ o.label }}</option> }</select></label><label class="profile-field full"><span>School / college / university</span><input [ngModel]="item.institution" [ngModelOptions]="{standalone:true}" (ngModelChange)="updateEducation(i,'institution',$event)" /></label><label class="profile-field"><span>Field / specialisation</span><input [ngModel]="item.field_of_study" [ngModelOptions]="{standalone:true}" (ngModelChange)="updateEducation(i,'field_of_study',$event)" /></label><label class="profile-field"><span>From year</span><input type="number" [ngModel]="item.start_year" [ngModelOptions]="{standalone:true}" (ngModelChange)="updateEducation(i,'start_year',$event)" /></label><label class="profile-field"><span>Completion year</span><input type="number" [ngModel]="item.year" [ngModelOptions]="{standalone:true}" (ngModelChange)="updateEducation(i,'year',$event)" /></label></div><button mat-button type="button" class="remove" (click)="removeEducation(i)"><mat-icon>delete</mat-icon>Remove</button></div> } @empty { <p class="empty-copy">No education added.</p> }<button mat-stroked-button type="button" (click)="addEducation()"><mat-icon>add</mat-icon>Add education</button>
+      <h3 class="subheading">Employment history</h3>@for (item of employmentDraft(); track $index; let i = $index) { <div class="repeat-card"><div class="profile-grid"><label class="profile-field"><span>Organisation</span><input [ngModel]="item.organisation" [ngModelOptions]="{standalone:true}" (ngModelChange)="updateEmployment(i,'organisation',$event)" /></label><label class="profile-field"><span>Designation</span><input [ngModel]="item.designation" [ngModelOptions]="{standalone:true}" (ngModelChange)="updateEmployment(i,'designation',$event)" /></label><label class="profile-field"><span>From year</span><input type="number" [ngModel]="item.from_year" [ngModelOptions]="{standalone:true}" (ngModelChange)="updateEmployment(i,'from_year',$event)" /></label><label class="profile-field"><span>To year</span><input type="number" [disabled]="!!item.current" [ngModel]="item.to_year" [ngModelOptions]="{standalone:true}" (ngModelChange)="updateEmployment(i,'to_year',$event)" /></label></div><label class="check"><input type="checkbox" [ngModel]="item.current" [ngModelOptions]="{standalone:true}" (ngModelChange)="updateEmployment(i,'current',$event)" />Current position</label><button mat-button type="button" class="remove" (click)="removeEmployment(i)"><mat-icon>delete</mat-icon>Remove</button></div> }<button mat-stroked-button type="button" (click)="addEmployment()"><mat-icon>add</mat-icon>Add employment</button>
+      <h3 class="subheading">Professional memberships</h3>@for (item of membershipDraft(); track $index; let i = $index) { <div class="repeat-card inline"><input class="vs-input" placeholder="Organisation" [ngModel]="item.organisation" [ngModelOptions]="{standalone:true}" (ngModelChange)="updateMembership(i,'organisation',$event)" /><input class="vs-input" placeholder="Membership number" [ngModel]="item.membership_number" [ngModelOptions]="{standalone:true}" (ngModelChange)="updateMembership(i,'membership_number',$event)" /><input class="vs-input year" type="number" placeholder="Year" [ngModel]="item.year" [ngModelOptions]="{standalone:true}" (ngModelChange)="updateMembership(i,'year',$event)" /><button mat-icon-button type="button" (click)="removeMembership(i)"><mat-icon>delete</mat-icon></button></div> }<button mat-stroked-button type="button" (click)="addMembership()"><mat-icon>add</mat-icon>Add membership</button>
+    </section>
 
-            @if (p.courts.length) {
-              <h3 class="font-medium mt-5 mb-2">Courts practised</h3>
-              <div class="flex flex-wrap gap-2">
-                @for (c of p.courts; track c) { <span class="vs-chip vs-chip--alt">{{ c }}</span> }
-              </div>
-            }
-            @if (p.languages.length) {
-              <h3 class="font-medium mt-5 mb-2">Languages</h3>
-              <div class="flex flex-wrap gap-2">
-                @for (l of p.languages; track l) { <span class="vs-chip vs-chip--alt">{{ l }}</span> }
-              </div>
-            }
-          </section>
+    <section class="profile-section"><header><mat-icon>location_on</mat-icon><div><h2>Location</h2><p>State and city directory.</p></div><select class="audience" formControlName="vis_location">@for (o of m.visibility_options; track o.value) { <option [value]="o.value">{{ o.label }}</option> }</select></header><div class="profile-grid"><label class="profile-field"><span>State / Union Territory</span><select formControlName="state"><option value="">Select</option>@for (item of m.states; track item) { <option [value]="item">{{ item }}</option> }</select></label><label class="profile-field"><span>City</span><select formControlName="city"><option value="">Select</option>@for (item of cities(); track item) { <option [value]="item">{{ item }}</option> }</select></label><label class="profile-field"><span>PIN code</span><input formControlName="postal_code" /></label></div></section>
 
-          @if (p.education.length) {
-            <section class="rounded-card bg-surface-raised border border-line shadow-card p-6">
-              <h2 class="text-lg font-semibold mb-3">Education</h2>
-              @for (e of p.education; track $index) {
-                <div class="flex items-start gap-3 py-1">
-                  <mat-icon class="material-icons-outlined text-brand">school</mat-icon>
-                  <div>
-                    <p class="font-medium">{{ e.institution }}</p>
-                    <p class="text-sm text-content-muted">{{ e.degree }}@if (e.year) { · {{ e.year }} }</p>
-                  </div>
-                </div>
-              }
-            </section>
-          }
+    <section class="profile-section"><header><mat-icon>contact_mail</mat-icon><div><h2>Professional contact</h2><p>Hidden by default; publish only work contact details.</p></div><select class="audience" formControlName="vis_contact">@for (o of m.visibility_options; track o.value) { <option [value]="o.value">{{ o.label }}</option> }</select></header><div class="profile-grid"><label class="profile-field"><span>Professional email</span><input type="email" formControlName="professional_email" /></label><label class="profile-field"><span>Professional phone</span><input formControlName="professional_phone" /></label><label class="profile-field full"><span>Office address</span><textarea rows="2" formControlName="office_address"></textarea></label><label class="profile-field"><span>Website</span><input formControlName="website" /></label><label class="profile-field"><span>LinkedIn</span><input formControlName="linkedin_url" /></label></div><div class="consultation"><mat-slide-toggle formControlName="consultation_enabled">Accept consultations</mat-slide-toggle><label class="profile-field"><span>Fee (₹)</span><input type="number" formControlName="consultation_fee" /></label></div></section>
 
-          @if (p.publications.length) {
-            <section class="rounded-card bg-surface-raised border border-line shadow-card p-6">
-              <h2 class="text-lg font-semibold mb-3">Publications</h2>
-              @for (pub of p.publications; track $index) {
-                <div class="flex items-start gap-3 py-1">
-                  <mat-icon class="material-icons-outlined text-brand">menu_book</mat-icon>
-                  <div class="min-w-0">
-                    @if (pub.url) {
-                      <a [href]="pub.url" target="_blank" rel="noopener" class="font-medium text-brand hover:underline">{{ pub.title }}</a>
-                    } @else {
-                      <p class="font-medium">{{ pub.title }}</p>
-                    }
-                    <p class="text-sm text-content-muted">
-                      {{ pub.publisher }}@if (pub.publisher && pub.year) { · }@if (pub.year) { {{ pub.year }} }
-                    </p>
-                  </div>
-                </div>
-              }
-            </section>
-          }
-
-          @if (p.recommendations.length) {
-            <section class="rounded-card bg-surface-raised border border-line shadow-card p-6">
-              <h2 class="text-lg font-semibold mb-3">Recommendations</h2>
-              @for (r of p.recommendations; track r.id) {
-                <blockquote class="border-l-2 border-brand/50 pl-3 py-1 mb-3">
-                  <p class="text-content">“{{ r.body }}”</p>
-                  <p class="text-xs text-content-muted mt-1">{{ r.relationship_context }}</p>
-                </blockquote>
-              }
-            </section>
-          }
-        </div>
-
-        <!-- Sidebar -->
-        <div class="grid gap-6">
-          <section class="rounded-card bg-surface-raised border border-line shadow-card p-6">
-            <h2 class="text-lg font-semibold mb-2">Digital visiting card</h2>
-            <p class="text-sm text-content-muted mb-3">Share your contact by QR or download a vCard.</p>
-            @if (showCard() && qr()) {
-              <div class="vs-qr bg-white rounded-lg p-3 mb-3" [innerHTML]="qr()"></div>
-            }
-            <div class="flex gap-2">
-              <button mat-stroked-button (click)="toggleCard()">
-                <mat-icon class="material-icons-outlined">qr_code_2</mat-icon>
-                {{ showCard() ? 'Hide QR' : 'Show QR' }}
-              </button>
-              <button mat-stroked-button (click)="downloadVcard()">
-                <mat-icon class="material-icons-outlined">download</mat-icon> vCard
-              </button>
-            </div>
-          </section>
-
-          <section class="rounded-card bg-surface-raised border border-line shadow-card p-6">
-            <h2 class="text-lg font-semibold mb-3">Top skills</h2>
-            @if (endorsements().length) {
-              @for (e of endorsements(); track e[0]) {
-                <div class="flex items-center justify-between py-1">
-                  <span>{{ e[0] }}</span>
-                  <span class="vs-count">{{ e[1] }}</span>
-                </div>
-              }
-            } @else { <p class="text-sm text-content-muted">No endorsements yet.</p> }
-          </section>
-
-          @if (p.consultation_enabled) {
-            <section class="rounded-card bg-surface-raised border border-line shadow-card p-6">
-              <h2 class="text-lg font-semibold mb-1">Consultation</h2>
-              <p class="text-2xl font-bold text-brand">₹{{ p.consultation_fee }}</p>
-              <p class="text-sm text-content-muted">per session</p>
-            </section>
-          }
-
-          @if (p.verification_status === 'unverified') {
-            <section class="rounded-card bg-surface-raised border border-line shadow-card p-6">
-              <h2 class="text-lg font-semibold mb-2">Get verified</h2>
-              <p class="text-sm text-content-muted mb-3">Add your bar-council enrolment to earn a verification badge.</p>
-              <form [formGroup]="verifyForm" (ngSubmit)="requestVerification()" class="grid gap-1">
-                <mat-form-field appearance="outline">
-                  <mat-label>Enrolment number</mat-label>
-                  <input matInput formControlName="enrollment_number" />
-                </mat-form-field>
-                <mat-form-field appearance="outline">
-                  <mat-label>Bar council</mat-label>
-                  <input matInput formControlName="bar_council" />
-                </mat-form-field>
-                <button mat-flat-button color="primary" type="submit">Request verification</button>
-              </form>
-            </section>
-          }
-        </div>
-      </div>
-    }
-  </div>
-} @else {
-  <p class="text-content-muted">Loading profile…</p>
-}
+    <section class="profile-section"><header><mat-icon>menu_book</mat-icon><div><h2>Publications</h2></div></header>@for (pub of pubDraft(); track $index; let i = $index) { <div class="repeat-card inline"><input class="vs-input" placeholder="Title" [ngModel]="pub.title" [ngModelOptions]="{standalone:true}" (ngModelChange)="updatePublication(i,'title',$event)" /><input class="vs-input" placeholder="Publisher" [ngModel]="pub.publisher" [ngModelOptions]="{standalone:true}" (ngModelChange)="updatePublication(i,'publisher',$event)" /><input class="vs-input year" type="number" placeholder="Year" [ngModel]="pub.year" [ngModelOptions]="{standalone:true}" (ngModelChange)="updatePublication(i,'year',$event)" /><button mat-icon-button type="button" (click)="removePublication(i)"><mat-icon>delete</mat-icon></button></div> }<button mat-stroked-button type="button" (click)="addPublication()"><mat-icon>add</mat-icon>Add publication</button></section>
+    <div class="editor-actions"><button mat-button type="button" (click)="editing.set(false)">Cancel</button><button mat-flat-button color="primary" type="submit" [disabled]="saving()"><mat-icon>save</mat-icon>{{ saving() ? 'Saving…' : 'Save profile' }}</button></div>
+  </form>
+  } @else {
+  <div class="grid gap-6 lg:grid-cols-[2fr_1fr]"><div class="grid gap-6 content-start">
+    <section class="profile-card"><h2>About</h2><p class="whitespace-pre-line text-content-muted">{{ p.bio || 'No biography added yet.' }}</p></section>
+    <section class="profile-card"><h2>Professional practice</h2><div class="facts">@if (p.designation) { <div><span>Designation</span><strong>{{ p.designation }}</strong></div> }@if (p.bar_council) { <div><span>Bar Council</span><strong>{{ p.bar_council }}</strong></div> }@if (p.enrollment_number) { <div><span>Enrolment</span><strong>{{ p.enrollment_number }}</strong></div> }</div><div class="flex flex-wrap gap-2 mt-4">@for (area of p.practice_areas; track area) { <span class="vs-chip">{{ area }}</span> } @empty { <span class="text-content-muted text-sm">No expertise selected.</span> }</div></section>
+    @if (p.judicial_court_name) { <section class="profile-card judicial"><h2>Judicial office</h2><strong>{{ p.designation }}</strong><p>{{ p.judicial_court_name }}</p><p class="text-sm text-content-muted">{{ p.judicial_district }}@if (p.judicial_state) { · {{ p.judicial_state }} }</p></section> }
+    @if (p.education.length || p.employment_history.length) { <section class="profile-card"><h2>Education and career</h2>@for (e of p.education; track $index) { <div class="timeline-row"><mat-icon>school</mat-icon><div><strong>{{ masters() ? masterLabel(masters()!.degrees, e.degree) : e.degree }}</strong><p>{{ e.institution }}@if (e.year) { · {{ e.year }} }</p></div></div> }@for (e of p.employment_history; track $index) { <div class="timeline-row"><mat-icon>work</mat-icon><div><strong>{{ e.designation }}</strong><p>{{ e.organisation }} · {{ e.from_year }}–{{ e.current ? 'Present' : e.to_year }}</p></div></div> }</section> }
+    @if (p.publications.length) { <section class="profile-card"><h2>Publications</h2>@for (pub of p.publications; track $index) { <div class="timeline-row"><mat-icon>menu_book</mat-icon><div><strong>{{ pub.title }}</strong><p>{{ pub.publisher }}@if (pub.year) { · {{ pub.year }} }</p></div></div> }</section> }
+  </div><aside class="grid gap-6 content-start">
+    <section class="profile-card"><h2>Location and contact</h2>@if (p.city || p.state) { <p><mat-icon>location_on</mat-icon>{{ p.city }}@if (p.state) {, {{ p.state }} }</p> }@if (p.professional_email) { <p><mat-icon>mail</mat-icon>{{ p.professional_email }}</p> }@if (p.professional_phone) { <p><mat-icon>call</mat-icon>{{ p.professional_phone }}</p> }@if (!p.city && !p.professional_email && !p.professional_phone) { <p class="text-content-muted text-sm">Private or not added.</p> }</section>
+    <section class="profile-card"><h2>Digital visiting card</h2><p class="text-sm text-content-muted mb-3">Generated only for you from your professional details.</p>@if (showCard() && qr()) { <div class="vs-qr bg-white rounded-lg p-3 mb-3" [innerHTML]="qr()"></div> }<div class="flex gap-2"><button mat-stroked-button (click)="toggleCard()"><mat-icon>qr_code_2</mat-icon>{{ showCard() ? 'Hide' : 'Show QR' }}</button><button mat-stroked-button (click)="downloadVcard()"><mat-icon>download</mat-icon>vCard</button></div></section>
+    <section class="profile-card"><h2>Top skills</h2>@for (e of endorsements(); track e[0]) { <div class="flex justify-between py-1"><span>{{ e[0] }}</span><span class="vs-count">{{ e[1] }}</span></div> } @empty { <p class="text-content-muted text-sm">No endorsements yet.</p> }</section>
+    @if (p.verification_status === 'unverified') { <section class="profile-card"><h2>Bar enrolment verification</h2><form [formGroup]="verifyForm" (ngSubmit)="requestVerification()" class="grid gap-2"><input class="vs-input" formControlName="enrollment_number" placeholder="Enrolment number" /><select class="vs-input" formControlName="bar_council"><option value="">Select Bar Council</option>@for (item of masters()?.bar_councils ?? []; track item) { <option [value]="item">{{ item }}</option> }</select><button mat-flat-button color="primary">Request verification</button></form></section> }
+  </aside></div>
+  }
+</div>
+} @else { <p class="text-content-muted">Loading profile…</p> }
