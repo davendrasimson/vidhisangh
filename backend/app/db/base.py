@@ -88,6 +88,7 @@ from app.modules.portal.models import (
     PortalUpdate,
 )
 from app.modules.research.models import CaseCitation, Judgment
+from app.modules.support.models import PlatformAdminAction, SupportTicket, SupportTicketMessage
 from app.modules.profile.models import (
     BarVerificationRequest,
     Endorsement,
@@ -177,6 +178,9 @@ __all__ = [
     "WebhookEndpoint",
     "WebhookDelivery",
     "ApiKey",
+    "SupportTicket",
+    "SupportTicketMessage",
+    "PlatformAdminAction",
     "role_permissions",
     "user_roles",
 ]

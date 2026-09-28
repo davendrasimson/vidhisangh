@@ -379,6 +379,11 @@ class AuthService:
         device_id: str | None = None,
         replaces: RefreshToken | None = None,
     ) -> TokenPair:
+        tenant = await self.tenants.get_by_id(user.tenant_id)
+        if tenant is None or tenant.status in (TenantStatus.SUSPENDED, TenantStatus.CANCELLED):
+            raise PermissionDeniedError(
+                "This organisation is suspended. Contact VidhiSangh support."
+            )
         raw_refresh = security.generate_refresh_token()
         refresh_row = RefreshToken(
             tenant_id=user.tenant_id,

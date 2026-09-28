@@ -14,6 +14,7 @@ import { ThemeService } from '@core/services/theme.service';
 import { RealtimeService } from '@core/services/realtime.service';
 import { NotificationsBellComponent } from './notifications-bell.component';
 import { TermsUpdatePromptComponent } from './terms-update-prompt.component';
+import { SupportDialogComponent } from './support-dialog.component';
 
 interface NavItem {
   label: string;
@@ -42,7 +43,7 @@ interface NavGroup {
     RouterOutlet, RouterLink, RouterLinkActive,
     MatSidenavModule, MatToolbarModule, MatListModule, MatIconModule,
     MatButtonModule, MatMenuModule, MatTooltipModule, NotificationsBellComponent,
-    TermsUpdatePromptComponent,
+    TermsUpdatePromptComponent, SupportDialogComponent,
   ],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss',

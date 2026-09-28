@@ -53,6 +53,12 @@ export const routes: Routes = [
     loadComponent: () =>
       import('@features/billing/invoice-verification.component').then((m) => m.InvoiceVerificationComponent),
   },
+  {
+    path: 'platform-admin',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('@features/platform-admin/platform-admin.component').then((m) => m.PlatformAdminComponent),
+  },
 
   {
     path: 'app',

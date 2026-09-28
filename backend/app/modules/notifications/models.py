@@ -26,6 +26,7 @@ class NotificationType(StrEnum):
     # A client completed the KYC form the user sent them.
     KYC_SUBMITTED = "kyc_submitted"
     MATTER_ASSIGNED = "matter_assigned"
+    SUPPORT_UPDATE = "support_update"
 
 
 class NotificationChannel(StrEnum):

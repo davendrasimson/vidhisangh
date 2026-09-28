@@ -1,4 +1,5 @@
 <vs-terms-update-prompt />
+<app-support-dialog #supportDesk />
 <mat-sidenav-container class="vs-shell">
   <mat-sidenav
     [opened]="opened()"
@@ -85,6 +86,10 @@
       </div>
 
       <span class="flex-1"></span>
+
+      <button mat-icon-button (click)="supportDesk.open()" matTooltip="Support & grievance" aria-label="Open support and grievance desk">
+        <mat-icon class="material-icons-outlined">help_outline</mat-icon>
+      </button>
 
       <button
         mat-icon-button

@@ -14,16 +14,15 @@ from app.modules.analytics.router import router as analytics_router
 from app.modules.apikeys.router import router as apikeys_router
 from app.modules.audit.router import router as audit_router
 from app.modules.billing.router import router as billing_router
-from app.modules.featureflags.router import router as featureflags_router
-from app.modules.health.router import admin_router as system_router
-from app.modules.plans.router import router as plans_router
 from app.modules.calendar.router import router as calendar_router
+from app.modules.clients.router import public_router as kyc_public_router
+from app.modules.clients.router import router as clients_router
 from app.modules.crm.router import router as crm_router
 from app.modules.documents.router import router as documents_router
 from app.modules.drafting.router import router as drafting_router
-from app.modules.clients.router import public_router as kyc_public_router
-from app.modules.clients.router import router as clients_router
+from app.modules.featureflags.router import router as featureflags_router
 from app.modules.groups.router import router as groups_router
+from app.modules.health.router import admin_router as system_router
 from app.modules.identity.router import router as identity_router
 from app.modules.knowledge.router import router as knowledge_router
 from app.modules.marketplace.router import router as marketplace_router
@@ -34,11 +33,13 @@ from app.modules.network.router import router as network_router
 from app.modules.news.router import router as news_router
 from app.modules.notifications.router import router as notifications_router
 from app.modules.payments.router import router as payments_router
+from app.modules.plans.router import router as plans_router
 from app.modules.portal.router import router as portal_router
-from app.modules.research.router import router as research_router
 from app.modules.privacy.router import router as privacy_router
 from app.modules.profile.router import router as profile_router
 from app.modules.rates.router import router as rates_router
+from app.modules.research.router import router as research_router
+from app.modules.support.router import router as support_router
 from app.modules.tenancy.router import router as tenancy_router
 from app.modules.webhooks.router import router as webhooks_router
 
@@ -75,6 +76,7 @@ api_router.include_router(audit_router)
 api_router.include_router(system_router)
 api_router.include_router(webhooks_router)
 api_router.include_router(apikeys_router)
+api_router.include_router(support_router)
 api_router.include_router(ws_router)  # WebSocket: /api/v1/ws
 
 # ── Roadmap: register additional module routers here ────────────────
