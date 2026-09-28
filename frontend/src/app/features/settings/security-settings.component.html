@@ -1,6 +1,48 @@
 <div class="mx-auto w-full">
   <h1 class="text-2xl font-bold text-content mb-1">Security</h1>
-  <p class="text-content-muted mb-6">Passkeys let you sign in with your device biometrics instead of a password.</p>
+  <p class="text-content-muted mb-6">Manage your password, passkeys and signed-in browsers.</p>
+
+  <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-8">
+    <div class="flex items-start gap-3">
+      <mat-icon class="material-icons-outlined text-brand">password</mat-icon>
+      <div>
+        <h2 class="font-semibold text-content">Change password</h2>
+        <p class="text-sm text-content-muted mt-1">Changing it signs out every browser and device, including this one.</p>
+      </div>
+    </div>
+
+    @if (passwordError()) {
+      <div class="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 mt-4 text-sm text-danger" role="alert">
+        {{ passwordError() }}
+      </div>
+    }
+
+    <form class="grid md:grid-cols-3 gap-3 mt-4" [formGroup]="passwordForm" (ngSubmit)="changePassword()">
+      <label class="grid gap-1">
+        <span class="text-sm text-content-muted">Current password</span>
+        <input class="vs-input" type="password" formControlName="current_password" autocomplete="current-password" />
+      </label>
+      <label class="grid gap-1">
+        <span class="text-sm text-content-muted">New password</span>
+        <input class="vs-input" type="password" formControlName="new_password" autocomplete="new-password" />
+      </label>
+      <label class="grid gap-1">
+        <span class="text-sm text-content-muted">Confirm new password</span>
+        <input class="vs-input" type="password" formControlName="confirm" autocomplete="new-password" />
+      </label>
+      <div class="md:col-span-3 flex flex-wrap items-center justify-between gap-3">
+        <p class="text-xs text-content-muted">
+          Use at least 8 characters with upper and lower case, a number and a symbol.
+          @if (passwordForm.hasError('mismatch') && passwordForm.controls.confirm.touched) {
+            <span class="text-danger">The new passwords do not match.</span>
+          }
+        </p>
+        <button mat-flat-button color="primary" type="submit" [disabled]="passwordBusy() || passwordForm.invalid">
+          {{ passwordBusy() ? 'Changing…' : 'Change password' }}
+        </button>
+      </div>
+    </form>
+  </section>
 
   <div class="flex items-center justify-between mb-3">
     <h2 class="font-semibold text-content">Passkeys</h2>
@@ -40,9 +82,12 @@
 
   <!-- Active sessions / devices -->
   <div class="flex items-center justify-between mt-10 mb-3">
-    <h2 class="font-semibold text-content">Active sessions</h2>
+    <div>
+      <h2 class="font-semibold text-content">Signed-in browsers and devices</h2>
+      <p class="text-sm text-content-muted mt-1">Each row is a sign-in. Signing in again from the same browser now replaces its older session.</p>
+    </div>
     @if (sessions().length > 1) {
-      <button mat-button [disabled]="sessionsBusy()" (click)="revokeOthers()">Sign out other devices</button>
+      <button mat-button [disabled]="sessionsBusy()" (click)="revokeOthers()">Sign out all other sessions</button>
     }
   </div>
 
@@ -59,7 +104,7 @@
               @if (s.is_current) { <span class="vs-chip text-xs ml-1">This device</span> }
             </p>
             <p class="text-xs text-content-muted">
-              @if (s.ip_address) { {{ s.ip_address }} · } Signed in {{ s.created_at | date: 'dd/MM/yyyy, h:mm a' }}
+              @if (s.ip_address) { {{ s.ip_address }} · } Last active {{ s.created_at | date: 'dd/MM/yyyy, h:mm a' }}
             </p>
           </div>
           @if (!s.is_current) {

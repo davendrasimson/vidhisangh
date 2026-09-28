@@ -233,6 +233,50 @@ class RefreshTokenRepository:
             count += 1
         return count
 
+    async def revoke_for_device(self, user_id: uuid.UUID, device_id: str) -> int:
+        """Retire older token families for one app/browser installation."""
+        result = await self.session.execute(
+            select(RefreshToken).where(
+                RefreshToken.user_id == user_id,
+                RefreshToken.device_id == device_id,
+                RefreshToken.revoked_at.is_(None),
+            )
+        )
+        now = datetime.now(UTC)
+        count = 0
+        for token in result.scalars().all():
+            token.revoked_at = now
+            token.ip_address = None
+            token.user_agent = None
+            count += 1
+        return count
+
+    async def revoke_legacy_for_agent(
+        self,
+        user_id: uuid.UUID,
+        user_agent: str,
+        *,
+        keep_id: uuid.UUID,
+    ) -> int:
+        """One-time cleanup for sessions created before browser IDs existed."""
+        result = await self.session.execute(
+            select(RefreshToken).where(
+                RefreshToken.user_id == user_id,
+                RefreshToken.id != keep_id,
+                RefreshToken.device_id.is_(None),
+                RefreshToken.user_agent == user_agent,
+                RefreshToken.revoked_at.is_(None),
+            )
+        )
+        now = datetime.now(UTC)
+        count = 0
+        for token in result.scalars().all():
+            token.revoked_at = now
+            token.ip_address = None
+            token.user_agent = None
+            count += 1
+        return count
+
 
 class MfaBackupCodeRepository:
     def __init__(self, session: AsyncSession) -> None:

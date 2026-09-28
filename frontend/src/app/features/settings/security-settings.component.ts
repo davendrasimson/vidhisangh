@@ -1,5 +1,8 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -7,18 +10,22 @@ import { Passkey, PasskeyService } from '@core/services/passkey.service';
 import { NotificationService } from '@core/services/notification.service';
 import { AuthService } from '@core/auth/auth.service';
 import { AuthSession } from '@core/models/auth.models';
+import { ApiProblem } from '@core/models/auth.models';
+import { STRONG_PASSWORD, passwordsMatch } from '../auth/reset/reset-password.component';
 
 @Component({
   selector: 'app-security-settings',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, MatIconModule, MatButtonModule],
+  imports: [DatePipe, ReactiveFormsModule, MatIconModule, MatButtonModule],
   templateUrl: './security-settings.component.html',
 })
 export class SecuritySettingsComponent implements OnInit {
   private readonly passkeys = inject(PasskeyService);
   private readonly auth = inject(AuthService);
   private readonly notify = inject(NotificationService);
+  private readonly fb = inject(FormBuilder);
+  private readonly router = inject(Router);
 
   protected readonly items = signal<Passkey[]>([]);
   protected readonly loading = signal(true);
@@ -27,6 +34,16 @@ export class SecuritySettingsComponent implements OnInit {
 
   protected readonly sessions = signal<AuthSession[]>([]);
   protected readonly sessionsBusy = signal(false);
+  protected readonly passwordBusy = signal(false);
+  protected readonly passwordError = signal<string | null>(null);
+  protected readonly passwordForm = this.fb.nonNullable.group(
+    {
+      current_password: ['', Validators.required],
+      new_password: ['', [Validators.required, Validators.pattern(STRONG_PASSWORD)]],
+      confirm: ['', Validators.required],
+    },
+    { validators: passwordsMatch },
+  );
 
   async ngOnInit(): Promise<void> {
     try {
@@ -54,12 +71,37 @@ export class SecuritySettingsComponent implements OnInit {
     return browser ? `${browser} on ${os}` : os;
   }
 
+  protected async changePassword(): Promise<void> {
+    if (this.passwordForm.invalid || this.passwordBusy()) {
+      this.passwordForm.markAllAsTouched();
+      return;
+    }
+    this.passwordBusy.set(true);
+    this.passwordError.set(null);
+    const { current_password, new_password } = this.passwordForm.getRawValue();
+    try {
+      await firstValueFrom(this.auth.changePassword(current_password, new_password));
+      await this.auth.logout();
+      await this.router.navigate(['/auth/login'], { queryParams: { changed: 1 } });
+    } catch (err) {
+      const problem = (err as HttpErrorResponse).error as ApiProblem | undefined;
+      const validation = Array.isArray(problem?.errors)
+        ? (problem.errors as { msg?: string }[]).map((item) => item.msg).filter(Boolean).join(' ')
+        : '';
+      this.passwordError.set(
+        validation || problem?.detail || 'Could not change the password. Please try again.',
+      );
+    } finally {
+      this.passwordBusy.set(false);
+    }
+  }
+
   protected async revoke(s: AuthSession): Promise<void> {
     this.sessionsBusy.set(true);
     try {
       await firstValueFrom(this.auth.revokeSession(s.id));
       this.sessions.update((list) => list.filter((x) => x.id !== s.id));
-      this.notify.success('Signed out of that device.');
+      this.notify.success('Signed out of that session.');
     } catch {
       /* handled */
     } finally {
@@ -72,7 +114,7 @@ export class SecuritySettingsComponent implements OnInit {
     try {
       const { revoked } = await firstValueFrom(this.auth.revokeOtherSessions());
       this.sessions.update((list) => list.filter((x) => x.is_current));
-      this.notify.success(revoked ? `Signed out of ${revoked} other device(s).` : 'No other sessions.');
+      this.notify.success(revoked ? `Signed out of ${revoked} other session(s).` : 'No other sessions.');
     } catch {
       /* handled */
     } finally {

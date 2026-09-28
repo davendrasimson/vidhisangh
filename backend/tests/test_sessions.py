@@ -66,3 +66,67 @@ async def test_revoke_other_sessions(client: AsyncClient, strong_password: str) 
     assert (await client.post(f"{API}/auth/refresh", json={"refresh_token": r3})).status_code == 401
     left = (await client.get(f"{API}/auth/sessions", headers=h)).json()
     assert len(left) == 1 and left[0]["is_current"] is True
+
+
+async def test_repeat_login_replaces_same_browser_session(
+    client: AsyncClient, strong_password: str
+) -> None:
+    device_id = "browser-installation-1234567890"
+    registered = await client.post(
+        f"{API}/auth/register",
+        json={
+            "organisation_name": "One Browser LLP",
+            "full_name": "Adv. One Browser",
+            "email": "browser@firm.co",
+            "password": strong_password,
+            "accept_terms": True,
+            "device_id": device_id,
+        },
+    )
+    assert registered.status_code == 201, registered.text
+    old_refresh = registered.json()["refresh_token"]
+
+    signed_in_again = await client.post(
+        f"{API}/auth/login",
+        json={
+            "email": "browser@firm.co",
+            "password": strong_password,
+            "device_id": device_id,
+            "device_label": "Firefox on Linux",
+        },
+    )
+    assert signed_in_again.status_code == 200, signed_in_again.text
+    h = {"Authorization": f"Bearer {signed_in_again.json()['access_token']}"}
+
+    sessions = (await client.get(f"{API}/auth/sessions", headers=h)).json()
+    assert len(sessions) == 1
+    assert sessions[0]["is_current"] is True
+    assert sessions[0]["device_label"] == "Firefox on Linux"
+    assert (await client.post(
+        f"{API}/auth/refresh", json={"refresh_token": old_refresh}
+    )).status_code == 401
+
+
+async def test_refresh_consolidates_pre_device_id_browser_sessions(
+    client: AsyncClient, strong_password: str
+) -> None:
+    access = await _register(client, "Legacy Browser LLP", "legacy-browser@firm.co", strong_password)
+    first = await _login_refresh(client, "legacy-browser@firm.co", strong_password)
+    latest = await _login_refresh(client, "legacy-browser@firm.co", strong_password)
+    h = {"Authorization": f"Bearer {access}"}
+    assert len((await client.get(f"{API}/auth/sessions", headers=h)).json()) == 3
+
+    refreshed = await client.post(
+        f"{API}/auth/refresh",
+        json={
+            "refresh_token": latest,
+            "device_id": "migrated-browser-1234567890",
+        },
+    )
+    assert refreshed.status_code == 200, refreshed.text
+    current = {"Authorization": f"Bearer {refreshed.json()['access_token']}"}
+    sessions = (await client.get(f"{API}/auth/sessions", headers=current)).json()
+    assert len(sessions) == 1 and sessions[0]["is_current"] is True
+    assert (await client.post(
+        f"{API}/auth/refresh", json={"refresh_token": first}
+    )).status_code == 401

@@ -16,6 +16,8 @@ interface AccessClaims {
 
 /** Non-secret marker: "this browser has a session cookie worth trying". */
 const SESSION_KEY = 'vs.session';
+/** Stable, non-secret ID used only to replace stale sessions from this browser. */
+const DEVICE_KEY = 'vs.device-id';
 
 /** Prefixes of everything this app keeps in localStorage. */
 export const APP_STORAGE_PREFIXES = ['vs.', 'vidhisangh-'];
@@ -42,6 +44,30 @@ export class TokenService {
     }
   }
 
+  get deviceId(): string {
+    try {
+      const existing = localStorage.getItem(DEVICE_KEY);
+      if (existing) return existing;
+      const created = typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `${Date.now()}-${crypto.getRandomValues(new Uint32Array(4)).join('-')}`;
+      localStorage.setItem(DEVICE_KEY, created);
+      return created;
+    } catch {
+      return typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-browser-session`;
+    }
+  }
+
+  get deviceLabel(): string {
+    const ua = navigator.userAgent;
+    const os = /Windows/.test(ua) ? 'Windows' : /Macintosh|Mac OS X/.test(ua) ? 'macOS'
+      : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS'
+      : /Linux/.test(ua) ? 'Linux' : 'this device';
+    const browser = /Edg\//.test(ua) ? 'Edge' : /Firefox\//.test(ua) ? 'Firefox'
+      : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'Browser';
+    return `${browser} on ${os}`;
+  }
+
   setSession(pair: TokenPair): void {
     this.accessToken.set(pair.access_token);
     try {
@@ -58,7 +84,7 @@ export class TokenService {
       const doomed: string[] = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && APP_STORAGE_PREFIXES.some((p) => key.startsWith(p))) doomed.push(key);
+        if (key && key !== DEVICE_KEY && APP_STORAGE_PREFIXES.some((p) => key.startsWith(p))) doomed.push(key);
       }
       doomed.forEach((k) => localStorage.removeItem(k));
     } catch {

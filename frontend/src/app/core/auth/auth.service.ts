@@ -70,14 +70,21 @@ export class AuthService {
   register(payload: RegisterRequest): Observable<TokenPair> {
     this._status.set('authenticating');
     return this.http
-      .post<TokenPair>(`${this.api}/auth/register`, payload, { withCredentials: true })
+      .post<TokenPair>(`${this.api}/auth/register`, {
+        ...payload,
+        device_id: this.tokens.deviceId,
+      }, { withCredentials: true })
       .pipe(tap((pair) => this.tokens.setSession(pair)));
   }
 
   login(payload: LoginRequest): Observable<TokenPair> {
     this._status.set('authenticating');
     return this.http
-      .post<TokenPair>(`${this.api}/auth/login`, payload, { withCredentials: true })
+      .post<TokenPair>(`${this.api}/auth/login`, {
+        ...payload,
+        device_id: this.tokens.deviceId,
+        device_label: payload.device_label ?? this.tokens.deviceLabel,
+      }, { withCredentials: true })
       .pipe(tap((pair) => this.tokens.setSession(pair)));
   }
 
@@ -145,7 +152,7 @@ export class AuthService {
     return this.http
       .post<TokenPair>(
         `${this.api}/auth/refresh`,
-        {},
+        { device_id: this.tokens.deviceId },
         { withCredentials: true, headers: CSRF_HEADER },
       )
       .pipe(tap((pair) => this.tokens.setSession(pair)));

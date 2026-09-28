@@ -186,7 +186,12 @@ async def refresh(
     raw = _refresh_from_request(request, data.refresh_token if data else None)
     if not raw:
         raise AuthenticationError("No refresh token was presented.")
-    pair = await AuthService(session).refresh(raw, ip=client_ip(request), user_agent=_ua(request))
+    pair = await AuthService(session).refresh(
+        raw,
+        ip=client_ip(request),
+        user_agent=_ua(request),
+        device_id=data.device_id if data else None,
+    )
     return deliver_tokens(pair, response)
 
 

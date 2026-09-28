@@ -195,7 +195,9 @@ class AuthService:
         log.info("tenant_registered", tenant_id=str(tenant.id), user_id=str(user.id))
         self._audit(user, "auth.registered", f"Registered organisation {tenant.name}", meta={"ip": ip})
         await self.send_email_verification(user)
-        pair = await self._issue_token_pair(user, ip=ip, user_agent=user_agent, label="signup")
+        pair = await self._issue_token_pair(
+            user, ip=ip, user_agent=user_agent, label="signup", device_id=data.device_id
+        )
         return user, pair
 
     async def accept_current_terms(self, user: User) -> User:
@@ -289,19 +291,40 @@ class AuthService:
         if user.hashed_password and security.password_needs_rehash(user.hashed_password):
             user.hashed_password = security.hash_password(data.password)
 
+        replaced_sessions = 0
+        if data.device_id:
+            replaced_sessions = await self.tokens.revoke_for_device(user.id, data.device_id)
+
         self._audit(
             user, "auth.login", "Signed in",
-            meta={"ip": ip, "mfa": user.mfa_enabled, "device": data.device_label},
+            meta={
+                "ip": ip,
+                "mfa": user.mfa_enabled,
+                "device": data.device_label,
+                "replaced_same_browser_sessions": replaced_sessions,
+            },
         )
         return await self._issue_token_pair(
-            user, ip=ip, user_agent=user_agent, label=data.device_label or "login"
+            user,
+            ip=ip,
+            user_agent=user_agent,
+            label=data.device_label or "login",
+            device_id=data.device_id,
         )
 
     async def issue_tokens_for_user(
-        self, user: User, *, ip: str | None = None, user_agent: str | None = None, label: str | None = None
+        self,
+        user: User,
+        *,
+        ip: str | None = None,
+        user_agent: str | None = None,
+        label: str | None = None,
+        device_id: str | None = None,
     ) -> TokenPair:
         """Issue a token pair for an already-authenticated user (e.g. via SSO)."""
-        return await self._issue_token_pair(user, ip=ip, user_agent=user_agent, label=label)
+        return await self._issue_token_pair(
+            user, ip=ip, user_agent=user_agent, label=label, device_id=device_id
+        )
 
     async def _resolve_login_user(self, data: LoginRequest) -> User:
         if data.tenant_slug:
@@ -353,6 +376,7 @@ class AuthService:
         ip: str | None,
         user_agent: str | None,
         label: str | None,
+        device_id: str | None = None,
         replaces: RefreshToken | None = None,
     ) -> TokenPair:
         raw_refresh = security.generate_refresh_token()
@@ -363,6 +387,7 @@ class AuthService:
             expires_at=datetime.now(UTC)
             + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
             device_label=label,
+            device_id=device_id,
             ip_address=ip,
             user_agent=(user_agent or "")[:400] or None,
         )
@@ -393,7 +418,12 @@ class AuthService:
         )
 
     async def refresh(
-        self, raw_refresh: str, *, ip: str | None = None, user_agent: str | None = None
+        self,
+        raw_refresh: str,
+        *,
+        ip: str | None = None,
+        user_agent: str | None = None,
+        device_id: str | None = None,
     ) -> TokenPair:
         token_hash = security.hash_refresh_token(raw_refresh)
         stored = await self.tokens.get_active_by_hash(token_hash)
@@ -442,11 +472,29 @@ class AuthService:
         if user is None or not user.is_active:
             raise AuthenticationError("Account is no longer active.")
 
+        effective_device_id = stored.device_id or device_id
+        if stored.device_id is None and device_id and stored.user_agent:
+            retired = await self.tokens.revoke_legacy_for_agent(
+                stored.user_id, stored.user_agent, keep_id=stored.id
+            )
+            if retired:
+                self._audit(
+                    user,
+                    "auth.sessions_consolidated",
+                    "Consolidated legacy sessions for this browser",
+                    meta={"sessions": retired},
+                )
+
         stored.revoked_at = datetime.now(UTC)
         # The rotated token keeps ip/user_agent: the reuse-grace check compares
         # them (A-23). The nightly retention purge clears them after 30 days.
         return await self._issue_token_pair(
-            user, ip=ip, user_agent=user_agent, label=stored.device_label, replaces=stored
+            user,
+            ip=ip,
+            user_agent=user_agent,
+            label=stored.device_label,
+            device_id=effective_device_id,
+            replaces=stored,
         )
 
     async def logout(

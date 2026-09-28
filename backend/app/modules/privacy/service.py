@@ -144,7 +144,16 @@ class UserPrivacyService:
             "profile": row_dict(profile) if profile else None,
             "endorsements_given": [row_dict(e) for e in endorsements],
             "recommendations_written": [row_dict(r) for r in recommendations],
-            "sessions": [row_dict(s, only=("id", "device_label", "ip_address", "user_agent", "created_at", "expires_at", "revoked_at")) for s in sessions],
+            "sessions": [
+                row_dict(
+                    s,
+                    only=(
+                        "id", "device_label", "device_id", "ip_address", "user_agent",
+                        "created_at", "expires_at", "revoked_at",
+                    ),
+                )
+                for s in sessions
+            ],
             "passkeys": [row_dict(p, only=("id", "name", "created_at", "last_used_at")) for p in passkeys],
             "trusted_devices": [row_dict(d, only=("id", "label", "last_seen_at", "trusted_until")) for d in devices],
             "notifications": [row_dict(n) for n in notifications],
@@ -197,6 +206,7 @@ class UserPrivacyService:
             t.ip_address = None
             t.user_agent = None
             t.device_label = None
+            t.device_id = None
         keys = await self._all(select(ApiKey).where(ApiKey.created_by == uid, ApiKey.revoked.is_(False)))
         for k in keys:
             k.revoked = True

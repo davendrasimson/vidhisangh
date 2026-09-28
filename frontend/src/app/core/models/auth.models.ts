@@ -16,6 +16,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   accept_terms: boolean;
+  device_id?: string | null;
 }
 
 export interface LoginRequest {
@@ -24,6 +25,7 @@ export interface LoginRequest {
   tenant_slug?: string | null;
   mfa_code?: string | null;
   device_label?: string | null;
+  device_id?: string | null;
 }
 
 export interface Role {

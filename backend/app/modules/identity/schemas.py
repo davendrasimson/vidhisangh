@@ -25,6 +25,7 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=settings.PASSWORD_MIN_LENGTH, max_length=128)
     accept_terms: bool = Field(description="Must be true to register.")
+    device_id: str | None = Field(default=None, min_length=16, max_length=64)
 
     @field_validator("password")
     @classmethod
@@ -62,12 +63,14 @@ class LoginRequest(BaseModel):
         default=None, max_length=16, description="6-digit TOTP or backup code."
     )
     device_label: str | None = Field(default=None, max_length=200)
+    device_id: str | None = Field(default=None, min_length=16, max_length=64)
 
 
 class RefreshRequest(BaseModel):
     # Optional: the token normally arrives in the HttpOnly cookie. The body is
     # still accepted for clients that stored it themselves (transition period).
     refresh_token: str | None = Field(default=None, max_length=256)
+    device_id: str | None = Field(default=None, min_length=16, max_length=64)
 
 
 class LogoutRequest(BaseModel):
