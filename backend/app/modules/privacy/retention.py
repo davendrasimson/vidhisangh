@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.storage import get_storage
 from app.db.base_class import Base
 from app.modules.documents.models import Document, DocumentVersion
-from app.modules.drafting.models import Draft, DraftVersion
+from app.modules.drafting.models import Draft, DraftTemplate, DraftVersion
 from app.modules.identity.models import MfaBackupCode, OAuthState, RefreshToken, User, WebAuthnChallenge
 from app.modules.messaging.models import ConversationParticipant, Message
 from app.modules.network.models import Comment, Post, PostMention
@@ -129,9 +129,27 @@ async def erase_tenant(session: AsyncSession, tenant_id: uuid.UUID) -> dict[str,
     belong to the tenant's users → the tenant row.
     """
     counts: dict[str, int] = {}
-    keys = list((await session.execute(
-        select(DocumentVersion.storage_key).where(DocumentVersion.tenant_id == tenant_id)
-    )).scalars().all())
+    document_keys = list(
+        (
+            await session.execute(
+                select(DocumentVersion.storage_key).where(DocumentVersion.tenant_id == tenant_id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    template_keys = list(
+        (
+            await session.execute(
+                select(DraftTemplate.source_storage_key).where(
+                    DraftTemplate.tenant_id == tenant_id
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    keys = document_keys + template_keys
     counts["storage_objects"] = await _delete_storage_keys(keys)
     user_ids = list((await session.execute(select(User.id).where(User.tenant_id == tenant_id))).scalars().all())
     if user_ids:

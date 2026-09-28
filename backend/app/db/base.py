@@ -17,7 +17,7 @@ from app.modules.documents.models import (
     DocumentFolder,
     DocumentVersion,
 )
-from app.modules.drafting.models import Draft, DraftVersion
+from app.modules.drafting.models import Draft, DraftTemplate, DraftVersion
 from app.modules.clients.models import Client, ClientKycRequest
 from app.modules.featureflags.models import FeatureFlag
 from app.modules.groups.models import (
@@ -150,6 +150,7 @@ __all__ = [
     "Document",
     "DocumentVersion",
     "Draft",
+    "DraftTemplate",
     "DraftVersion",
     "Client",
     "ClientKycRequest",

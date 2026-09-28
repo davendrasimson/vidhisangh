@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import builtins
 import uuid
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db_utils import LIKE_ESCAPE, contains
-from app.modules.drafting.models import Draft, DraftVersion
+from app.modules.drafting.models import Draft, DraftTemplate, DraftVersion
 
 
 class DraftRepository:
@@ -76,3 +77,23 @@ class DraftRepository:
             )
         )
         return int(res.scalar_one()) + 1
+
+    async def get_template(
+        self, tenant_id: uuid.UUID, template_id: uuid.UUID
+    ) -> DraftTemplate | None:
+        result = await self.session.execute(
+            select(DraftTemplate).where(
+                DraftTemplate.id == template_id,
+                DraftTemplate.tenant_id == tenant_id,
+                DraftTemplate.deleted_at.is_(None),
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def list_templates(self, tenant_id: uuid.UUID) -> builtins.list[DraftTemplate]:
+        result = await self.session.execute(
+            select(DraftTemplate)
+            .where(DraftTemplate.tenant_id == tenant_id, DraftTemplate.deleted_at.is_(None))
+            .order_by(DraftTemplate.updated_at.desc())
+        )
+        return list(result.scalars().all())

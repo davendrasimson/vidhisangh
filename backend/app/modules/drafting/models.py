@@ -4,14 +4,15 @@ from __future__ import annotations
 
 import uuid
 from enum import StrEnum
+from typing import Any
 
-from sqlalchemy import JSON, ForeignKey, Integer, String, Text, Uuid
+from sqlalchemy import JSON, BigInteger, ForeignKey, Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import TenantScopedBase
 
 # Default page: A4 portrait with 1-inch margins, what Indian courts expect.
-DEFAULT_PAGE: dict = {
+DEFAULT_PAGE: dict[str, Any] = {
     "size": "A4",
     "orientation": "portrait",
     "margins": {"top": 25.4, "right": 25.4, "bottom": 25.4, "left": 25.4},
@@ -21,6 +22,27 @@ DEFAULT_PAGE: dict = {
 class DraftStatus(StrEnum):
     DRAFT = "draft"
     FINAL = "final"
+
+
+class DraftTemplate(TenantScopedBase):
+    """A firm's reusable Word template, converted into the editor structure."""
+
+    __tablename__ = "draft_templates"
+
+    name: Mapped[str] = mapped_column(String(300), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    category: Mapped[str] = mapped_column(String(80), nullable=False, default="Firm templates")
+    language: Mapped[str] = mapped_column(String(5), nullable=False, default="en")
+    source_filename: Mapped[str] = mapped_column(String(300), nullable=False)
+    source_storage_key: Mapped[str] = mapped_column(String(500), nullable=False)
+    source_size: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    fields: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False, default=list)
+    content_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    page: Mapped[dict[str, Any]] = mapped_column(
+        JSON, nullable=False, default=lambda: dict(DEFAULT_PAGE)
+    )
+    created_by: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    updated_by: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
 
 
 class Draft(TenantScopedBase):
@@ -43,7 +65,9 @@ class Draft(TenantScopedBase):
     client_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("clients.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    status: Mapped[DraftStatus] = mapped_column(String(10), default=DraftStatus.DRAFT, nullable=False)
+    status: Mapped[DraftStatus] = mapped_column(
+        String(10), default=DraftStatus.DRAFT, nullable=False
+    )
     content_json: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     content_html: Mapped[str] = mapped_column(Text, nullable=False, default="")
     page: Mapped[dict] = mapped_column(JSON, nullable=False, default=lambda: dict(DEFAULT_PAGE))
@@ -57,7 +81,7 @@ class Draft(TenantScopedBase):
     created_by: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     updated_by: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
 
-    versions: Mapped[list["DraftVersion"]] = relationship(
+    versions: Mapped[list[DraftVersion]] = relationship(
         back_populates="draft", cascade="all, delete-orphan", order_by="DraftVersion.version_no"
     )
 

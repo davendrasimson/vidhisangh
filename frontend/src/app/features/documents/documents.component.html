@@ -100,10 +100,44 @@
         }
       </div>
 
-      <div class="template-count">{{ filteredTemplates().length }} drafting formats</div>
+      <div class="word-template-head">
+        <div>
+          <strong>Your firm’s Word templates</strong>
+          <span>Use <code>{{ '{{client_name}}' }}</code> or <code>[[case number]]</code> in a DOCX to create fillable fields.</span>
+        </div>
+        <div>
+          <button mat-stroked-button (click)="showTemplateManager.set(!showTemplateManager())"><mat-icon class="material-icons-outlined">settings</mat-icon>Manage</button>
+          <input #templateUploader type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden (change)="onTemplateUpload($event)" />
+          <button mat-flat-button color="primary" [disabled]="uploadingTemplate()" (click)="templateUploader.click()"><mat-icon class="material-icons-outlined">upload_file</mat-icon>{{ uploadingTemplate() ? 'Importing…' : 'Upload Word template' }}</button>
+        </div>
+      </div>
+      @if (templatesLoading()) {
+        <div class="template-loading">Loading firm templates…</div>
+      } @else if (wordTemplates().length) {
+        <div class="word-template-grid">
+          @for (template of wordTemplates(); track template.id) {
+            <article class="word-template-card" [class.selected]="selectedWordTemplate()?.id === template.id">
+              <button class="word-template-main" (click)="chooseWordTemplate(template)">
+                <span class="template-icon"><mat-icon class="material-icons-outlined">docs</mat-icon></span>
+                <span><strong>{{ template.name }}</strong><small>{{ template.category }} · {{ template.fields.length }} field{{ template.fields.length === 1 ? '' : 's' }}</small></span>
+              </button>
+              <button mat-icon-button [matMenuTriggerFor]="templateMenu" aria-label="Template actions"><mat-icon>more_vert</mat-icon></button>
+              <mat-menu #templateMenu="matMenu">
+                <button mat-menu-item (click)="editWordTemplate(template)"><mat-icon class="material-icons-outlined">tune</mat-icon>Edit fields and details</button>
+                <button mat-menu-item (click)="downloadWordTemplate(template)"><mat-icon class="material-icons-outlined">download</mat-icon>Download original</button>
+                <button mat-menu-item (click)="deleteWordTemplate(template)"><mat-icon class="material-icons-outlined text-danger">delete</mat-icon>Delete template</button>
+              </mat-menu>
+            </article>
+          }
+        </div>
+      } @else {
+        <div class="word-template-empty"><mat-icon class="material-icons-outlined">upload_file</mat-icon><span>Upload an existing office format to reuse its wording, tables and page setup.</span></div>
+      }
+
+      <div class="template-count">Built-in drafting formats · {{ filteredTemplates().length }}</div>
       <div class="template-grid">
         @for (template of filteredTemplates(); track template.id) {
-          <button class="template-card" [class.selected]="selectedTemplate().id === template.id" (click)="chooseTemplate(template)">
+          <button class="template-card" [class.selected]="!selectedWordTemplate() && selectedTemplate().id === template.id" (click)="chooseTemplate(template)">
             <span class="template-icon"><mat-icon class="material-icons-outlined">{{ template.icon }}</mat-icon></span>
             <span class="template-card-copy"><strong>{{ local(template.title) }}</strong><small>{{ local(template.description) }}</small></span>
             <mat-icon class="material-icons-outlined arrow">arrow_forward</mat-icon>
@@ -114,17 +148,54 @@
       </div>
     </section>
 
+    @if (showTemplateManager()) {
+      <section class="template-manager panel">
+        <div class="manager-head">
+          <div><h3>Word template manager</h3><p>Rename templates and control the fields shown before a document is created.</p></div>
+          <button mat-icon-button (click)="showTemplateManager.set(false)" aria-label="Close"><mat-icon>close</mat-icon></button>
+        </div>
+        @if (!editingTemplate) {
+          <div class="manager-list">
+            @for (template of wordTemplates(); track template.id) {
+              <button (click)="editWordTemplate(template)"><mat-icon class="material-icons-outlined">description</mat-icon><span><strong>{{ template.name }}</strong><small>{{ template.source_filename }}</small></span><mat-icon>chevron_right</mat-icon></button>
+            } @empty { <p>No Word templates uploaded yet.</p> }
+          </div>
+        } @else {
+          <div class="manager-form">
+            <label><span>Template name</span><input class="vs-input" [(ngModel)]="editingTemplate.name" /></label>
+            <label><span>Category</span><input class="vs-input" [(ngModel)]="editingTemplate.category" /></label>
+            <label class="full"><span>Description</span><textarea class="vs-input" rows="2" [(ngModel)]="editingTemplate.description"></textarea></label>
+            <label><span>Language</span><select class="vs-input" [(ngModel)]="editingTemplate.language"><option value="en">English</option><option value="hi">Hindi</option><option value="pa">Punjabi</option></select></label>
+          </div>
+          <div class="field-manager-head"><div><strong>Associated form fields</strong><p>Tokens must exactly match the placeholders in the Word file.</p></div><button mat-stroked-button (click)="addTemplateField()"><mat-icon>add</mat-icon>Add field</button></div>
+          <div class="field-manager">
+            @for (field of editingTemplate.fields; track $index; let i = $index) {
+              <div class="field-manager-row">
+                <label><span>Label</span><input class="vs-input" [(ngModel)]="field.label" /></label>
+                <label><span>Key</span><input class="vs-input" [(ngModel)]="field.key" /></label>
+                <label><span>Token in Word</span><input class="vs-input" [(ngModel)]="field.token" /></label>
+                <label><span>Input</span><select class="vs-input" [(ngModel)]="field.type"><option value="text">Text</option><option value="multiline">Long text</option><option value="date">Date</option><option value="number">Number</option></select></label>
+                <label class="required-field"><input type="checkbox" [(ngModel)]="field.required" /> Required</label>
+                <button mat-icon-button title="Remove field" (click)="removeTemplateField(i)"><mat-icon>delete</mat-icon></button>
+              </div>
+            } @empty { <p class="manager-muted">No placeholders were detected. Add fields after inserting matching tokens in the source Word file, or use the template as an unfilled starting document.</p> }
+          </div>
+          <div class="manager-actions"><button mat-button (click)="editingTemplate = null">Back</button><button mat-flat-button color="primary" (click)="saveTemplateSettings()">Save template</button></div>
+        }
+      </section>
+    }
+
     <section class="draft-builder">
       <div class="builder-heading">
-        <div class="intro-copy"><span class="step">2</span><div><h2>Build your {{ local(selectedTemplate().title) }}</h2><p>Enter the known details. Every blank remains clearly marked in the draft.</p></div></div>
+        <div class="intro-copy"><span class="step">2</span><div><h2>Build your {{ activeTitle() }}</h2><p>Enter the known details. Every blank remains clearly marked in the draft.</p></div></div>
         <button class="text-action" (click)="resetDraft()"><mat-icon class="material-icons-outlined">restart_alt</mat-icon> Reset</button>
       </div>
 
       <div class="builder-grid">
         <div class="details-panel panel">
-          <div class="panel-title"><mat-icon class="material-icons-outlined">fact_check</mat-icon><div><h3>Case and document details</h3><p>{{ local(selectedTemplate().description) }}</p></div></div>
+          <div class="panel-title"><mat-icon class="material-icons-outlined">fact_check</mat-icon><div><h3>Case and document details</h3><p>{{ activeDescription() }}</p></div></div>
           <div class="field-grid">
-            @for (field of selectedTemplate().fields; track field) {
+            @for (field of activeFields(); track field) {
               <label [class.full]="isLongField(field)">
                 <span>{{ fieldLabel(field) }}</span>
                 @if (isLongField(field)) {

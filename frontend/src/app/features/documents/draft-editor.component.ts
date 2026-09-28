@@ -239,6 +239,23 @@ export class DraftEditorComponent implements OnDestroy {
     } catch { /* handled */ } finally { this.busy.set(null); }
   }
 
+  protected async saveAsTemplate(): Promise<void> {
+    const d = this.draft();
+    if (!d) return;
+    const name = window.prompt('Template name', this.title.trim() || 'Firm template');
+    if (name === null || !name.trim()) return;
+    this.busy.set('template');
+    try {
+      await this.flush();
+      const template = await firstValueFrom(this.drafts.saveAsTemplate(d.id, { name: name.trim() }));
+      this.notify.success(`${template.name} saved in your firm’s Word templates.`);
+    } catch { /* handled */ } finally { this.busy.set(null); }
+  }
+
+  protected manageTemplates(): void {
+    void this.flush().then(() => this.router.navigate(['/app/documents'], { queryParams: { manage_templates: '1' } }));
+  }
+
   protected print(): void {
     const p = this.page;
     const style = document.createElement('style');

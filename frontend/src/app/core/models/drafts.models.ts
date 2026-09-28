@@ -92,3 +92,33 @@ export interface DraftVersionDetail extends DraftVersion {
   content_json: EditorDoc;
   content_html: string;
 }
+
+export type TemplateFieldType = 'text' | 'multiline' | 'date' | 'number';
+
+export interface DraftTemplateField {
+  key: string;
+  label: string;
+  token: string;
+  type: TemplateFieldType;
+  required: boolean;
+}
+
+export interface DraftTemplateSummary {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  language: string;
+  source_filename: string;
+  source_size: number;
+  fields: DraftTemplateField[];
+  created_by: string;
+  updated_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DraftTemplate extends DraftTemplateSummary {
+  content_json: EditorDoc;
+  page: PageSettings;
+}

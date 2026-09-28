@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.modules.drafting.models import DEFAULT_PAGE, DraftStatus
 
@@ -60,7 +60,9 @@ class DraftCreate(BaseModel):
     template_id: str | None = Field(default=None, max_length=80)
     matter_id: uuid.UUID | None = None
     client_id: uuid.UUID | None = None
-    content_json: dict = Field(default_factory=lambda: {"type": "doc", "content": [{"type": "paragraph"}]})
+    content_json: dict = Field(
+        default_factory=lambda: {"type": "doc", "content": [{"type": "paragraph"}]}
+    )
     content_html: str = ""
     page: PageSettings = Field(default_factory=PageSettings)
 
@@ -131,3 +133,72 @@ class DraftVersionDetail(DraftVersionRead):
 class FileToLibrary(BaseModel):
     folder_id: uuid.UUID | None = None
     comment: str | None = Field(default=None, max_length=500)
+
+
+class TemplateField(BaseModel):
+    key: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9_]+$")
+    label: str = Field(min_length=1, max_length=100)
+    token: str = Field(min_length=3, max_length=100)
+    type: str = Field(default="text", pattern=r"^(text|multiline|date|number)$")
+    required: bool = False
+
+
+class DraftTemplateSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    name: str
+    description: str
+    category: str
+    language: str
+    source_filename: str
+    source_size: int
+    fields: list[TemplateField]
+    created_by: uuid.UUID
+    updated_by: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+
+class DraftTemplateRead(DraftTemplateSummary):
+    content_json: dict[str, Any]
+    page: dict[str, Any] = Field(default_factory=lambda: dict(DEFAULT_PAGE))
+
+
+class DraftTemplateUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=300)
+    description: str | None = Field(default=None, max_length=2_000)
+    category: str | None = Field(default=None, min_length=1, max_length=80)
+    language: str | None = Field(default=None, min_length=2, max_length=5)
+    fields: list[TemplateField] | None = Field(default=None, max_length=100)
+
+    @model_validator(mode="after")
+    def _unique_fields(self) -> DraftTemplateUpdate:
+        if self.fields is not None:
+            keys = [field.key for field in self.fields]
+            tokens = [field.token for field in self.fields]
+            if len(keys) != len(set(keys)) or len(tokens) != len(set(tokens)):
+                raise ValueError("Template field keys and tokens must be unique.")
+        return self
+
+
+class DraftFromTemplate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=300)
+    matter_id: uuid.UUID | None = None
+    client_id: uuid.UUID | None = None
+    values: dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("values")
+    @classmethod
+    def _values(cls, value: dict[str, str]) -> dict[str, str]:
+        if len(value) > 100:
+            raise ValueError("A template can have at most 100 values.")
+        for key, item in value.items():
+            if len(key) > 64 or len(item) > 50_000:
+                raise ValueError("A template value is too large.")
+        return value
+
+
+class DraftToTemplate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=300)
+    description: str = Field(default="", max_length=2_000)
+    category: str = Field(default="Firm templates", min_length=1, max_length=80)

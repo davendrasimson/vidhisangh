@@ -8,15 +8,26 @@ from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import NotFoundError
+from app.core.exceptions import NotFoundError, ValidationError
+from app.core.malware import scan_upload
 from app.core.storage import Storage
 from app.modules.clients.lookup import client_names, require_client
 from app.modules.documents.models import Document
 from app.modules.documents.service import DocumentService
 from app.modules.drafting.docx_export import export_docx, word_count
-from app.modules.drafting.models import Draft, DraftVersion
+from app.modules.drafting.docx_import import fill_template, import_docx_template, template_fields
+from app.modules.drafting.models import Draft, DraftTemplate, DraftVersion
 from app.modules.drafting.repository import DraftRepository
-from app.modules.drafting.schemas import DraftCreate, DraftSummary, DraftUpdate, FileToLibrary
+from app.modules.drafting.schemas import (
+    DraftCreate,
+    DraftFromTemplate,
+    DraftSummary,
+    DraftTemplateUpdate,
+    DraftToTemplate,
+    DraftUpdate,
+    FileToLibrary,
+    PageSettings,
+)
 
 _DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
@@ -41,6 +52,141 @@ class DraftingService:
         if draft is None:
             raise NotFoundError("Draft not found.")
         return draft
+
+    async def _require_template(self, template_id: uuid.UUID) -> DraftTemplate:
+        template = await self.repo.get_template(self.tenant_id, template_id)
+        if template is None:
+            raise NotFoundError("Word template not found.")
+        return template
+
+    # ── Firm Word templates ──────────────────────────────────────
+    async def create_template(
+        self,
+        *,
+        data: bytes,
+        source_filename: str,
+        name: str,
+        description: str,
+        category: str,
+        language: str,
+    ) -> DraftTemplate:
+        await scan_upload(data)
+        content_json, fields, page = import_docx_template(data)
+        template_id = uuid.uuid4()
+        storage_key = f"{self.tenant_id}/draft-templates/{template_id}/source.docx"
+        await self.storage.put(storage_key, data, _DOCX)
+        template = DraftTemplate(
+            id=template_id,
+            tenant_id=self.tenant_id,
+            name=name,
+            description=description,
+            category=category,
+            language=language,
+            source_filename=source_filename,
+            source_storage_key=storage_key,
+            source_size=len(data),
+            fields=fields,
+            content_json=content_json,
+            page=page,
+            created_by=self.user_id,
+            updated_by=self.user_id,
+        )
+        self.repo.add(template)
+        try:
+            await self.session.flush()
+        except Exception:
+            await self.storage.delete(storage_key)
+            raise
+        await self.session.refresh(template)
+        return template
+
+    async def templates(self) -> list[DraftTemplate]:
+        return await self.repo.list_templates(self.tenant_id)
+
+    async def get_template(self, template_id: uuid.UUID) -> DraftTemplate:
+        return await self._require_template(template_id)
+
+    async def update_template(
+        self, template_id: uuid.UUID, data: DraftTemplateUpdate
+    ) -> DraftTemplate:
+        template = await self._require_template(template_id)
+        for field, value in data.model_dump(exclude_unset=True).items():
+            if value is not None:
+                setattr(template, field, value)
+        template.updated_by = self.user_id
+        await self.session.flush()
+        await self.session.refresh(template)
+        return template
+
+    async def delete_template(self, template_id: uuid.UUID) -> None:
+        template = await self._require_template(template_id)
+        template.deleted_at = datetime.now(UTC)
+        await self.session.flush()
+        await self.storage.delete(template.source_storage_key)
+
+    async def template_source(self, template_id: uuid.UUID) -> tuple[str, bytes]:
+        template = await self._require_template(template_id)
+        try:
+            return template.source_filename, await self.storage.get(template.source_storage_key)
+        except FileNotFoundError as exc:
+            raise NotFoundError("The original Word template file is unavailable.") from exc
+
+    async def create_from_template(self, template_id: uuid.UUID, data: DraftFromTemplate) -> Draft:
+        template = await self._require_template(template_id)
+        missing = [
+            str(field.get("label") or field.get("key"))
+            for field in template.fields
+            if field.get("required") and not data.values.get(str(field.get("key")), "").strip()
+        ]
+        if missing:
+            raise ValidationError(f"Complete the required template fields: {', '.join(missing)}.")
+        content = fill_template(template.content_json, template.fields, data.values)
+        return await self.create(
+            DraftCreate(
+                title=data.title or template.name,
+                language=template.language,
+                template_id=str(template.id),
+                matter_id=data.matter_id,
+                client_id=data.client_id,
+                content_json=content,
+                page=PageSettings.model_validate(template.page),
+            )
+        )
+
+    async def save_draft_as_template(
+        self, draft_id: uuid.UUID, data: DraftToTemplate
+    ) -> DraftTemplate:
+        draft = await self._require(draft_id)
+        blob = export_docx(draft.content_json, draft.page, title=draft.title)
+        name = data.name or draft.title
+        await scan_upload(blob)
+        template_id = uuid.uuid4()
+        storage_key = f"{self.tenant_id}/draft-templates/{template_id}/source.docx"
+        await self.storage.put(storage_key, blob, _DOCX)
+        template = DraftTemplate(
+            id=template_id,
+            tenant_id=self.tenant_id,
+            name=name,
+            description=data.description,
+            category=data.category,
+            language=draft.language,
+            source_filename=_filename(name),
+            source_storage_key=storage_key,
+            source_size=len(blob),
+            fields=template_fields(draft.content_json),
+            content_json=draft.content_json,
+            page=draft.page,
+            created_by=self.user_id,
+            updated_by=self.user_id,
+        )
+        self.repo.add(template)
+        try:
+            await self.session.flush()
+        except Exception:
+            await self.storage.delete(storage_key)
+            raise
+        await self.session.refresh(template)
+        return template
 
     # ── Drafts ────────────────────────────────────────────────────
     async def create(self, data: DraftCreate) -> Draft:
@@ -150,13 +296,18 @@ class DraftingService:
     # ── Export / filing ───────────────────────────────────────────
     async def docx(self, draft_id: uuid.UUID) -> tuple[str, bytes]:
         draft = await self._require(draft_id)
-        return _filename(draft.title), export_docx(draft.content_json, draft.page, title=draft.title)
+        return _filename(draft.title), export_docx(
+            draft.content_json, draft.page, title=draft.title
+        )
 
     async def file_to_library(self, draft_id: uuid.UUID, data: FileToLibrary) -> Document:
         """Put the DOCX into the document library — a new Document the first
         time, a new version of the same Document after that."""
         draft = await self._require(draft_id)
-        filename, blob = _filename(draft.title), export_docx(draft.content_json, draft.page, title=draft.title)
+        filename, blob = (
+            _filename(draft.title),
+            export_docx(draft.content_json, draft.page, title=draft.title),
+        )
         docs = DocumentService(self.session, self.user_id, self.tenant_id, self.storage)
         if draft.library_document_id is not None:
             try:
@@ -171,8 +322,13 @@ class DraftingService:
             except NotFoundError:
                 pass  # the library copy was deleted; file a fresh one
         document = await docs.upload(
-            name=filename, content_type=_DOCX, data=blob,
-            folder_id=data.folder_id, matter_id=draft.matter_id, tags=["draft"], client_id=draft.client_id,
+            name=filename,
+            content_type=_DOCX,
+            data=blob,
+            folder_id=data.folder_id,
+            matter_id=draft.matter_id,
+            tags=["draft"],
+            client_id=draft.client_id,
         )
         draft.library_document_id = document.id
         await self.session.flush()

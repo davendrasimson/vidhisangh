@@ -8,6 +8,9 @@ import {
   Draft,
   DraftCreate,
   DraftSummary,
+  DraftTemplate,
+  DraftTemplateField,
+  DraftTemplateSummary,
   DraftUpdate,
   DraftVersion,
   DraftVersionDetail,
@@ -70,5 +73,43 @@ export class DraftsService {
   /** File the .docx into the document library (a new version if already filed). */
   fileToLibrary(id: string, folderId: string | null, comment?: string): Observable<DocFile> {
     return this.http.post<DocFile>(`${this.api}/${id}/file`, { folder_id: folderId, comment: comment ?? null });
+  }
+
+  templates(): Observable<DraftTemplateSummary[]> {
+    return this.http.get<DraftTemplateSummary[]>(`${this.api}/templates`);
+  }
+
+  template(id: string): Observable<DraftTemplate> {
+    return this.http.get<DraftTemplate>(`${this.api}/templates/${id}`);
+  }
+
+  uploadTemplate(file: File, details: { name?: string; description?: string; category?: string; language?: string }): Observable<DraftTemplate> {
+    const body = new FormData();
+    body.append('file', file);
+    if (details.name) body.append('name', details.name);
+    if (details.description) body.append('description', details.description);
+    if (details.category) body.append('category', details.category);
+    if (details.language) body.append('language', details.language);
+    return this.http.post<DraftTemplate>(`${this.api}/templates`, body);
+  }
+
+  updateTemplate(id: string, payload: { name?: string; description?: string; category?: string; language?: string; fields?: DraftTemplateField[] }): Observable<DraftTemplate> {
+    return this.http.patch<DraftTemplate>(`${this.api}/templates/${id}`, payload);
+  }
+
+  removeTemplate(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.api}/templates/${id}`);
+  }
+
+  downloadTemplate(id: string): Observable<Blob> {
+    return this.http.get(`${this.api}/templates/${id}/source.docx`, { responseType: 'blob' });
+  }
+
+  createFromTemplate(id: string, payload: { title?: string; matter_id?: string | null; client_id?: string | null; values: Record<string, string> }): Observable<Draft> {
+    return this.http.post<Draft>(`${this.api}/templates/${id}/drafts`, payload);
+  }
+
+  saveAsTemplate(id: string, payload: { name?: string; description?: string; category?: string }): Observable<DraftTemplate> {
+    return this.http.post<DraftTemplate>(`${this.api}/${id}/template`, payload);
   }
 }

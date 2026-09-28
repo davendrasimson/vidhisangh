@@ -26,7 +26,7 @@ files it points to.
   [governance/README.md](governance/README.md).
 - **Code state**: git `master`, commit after `c5531eb` on
   `git@git.simsononline.com:saas/vidhisangh.git`. Alembic head is
-  `0052_audit_purge_guard`, applied on production. Backend suite: 305 tests
+  `0053_draft_templates`, applied on production. Backend suite: 300+ tests
   passing. Frontend: clean `ng build`.
 
 ## 2. Getting a working environment
@@ -126,6 +126,11 @@ document version before storage and fails closed; systemd service/job failures
 write a local incident record and email the operations mailbox; Nginx blocks
 sensitive paths and unknown hosts; and the production firewall no longer allows
 UDP/161.
+
+The Documents drafting workspace also supports firm-owned Word templates
+(migration 0053): upload a `.docx`, infer form fields from `{{field}}` or
+`[[field]]` placeholders, manage field labels/types/required status, generate an
+editable draft, and save any editor document back as a reusable template.
 
 ## 5. Things that will surprise you
 

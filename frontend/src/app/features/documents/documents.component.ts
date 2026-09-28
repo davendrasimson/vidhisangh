@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { DraftsService } from '@core/services/drafts.service';
-import { DraftSummary } from '@core/models/drafts.models';
+import { DraftTemplate as FirmDraftTemplate, DraftTemplateField, DraftTemplateSummary, DraftSummary, EditorDoc } from '@core/models/drafts.models';
 import { EditorChange, VsRichEditorComponent } from '@shared/rich-editor/vs-rich-editor.component';
 import { draftTextToHtml } from './draft-html';
 import { MatButtonModule } from '@angular/material/button';
@@ -46,7 +46,7 @@ export class DocumentsComponent implements OnInit {
   protected readonly onlyClient = signal(true);
   protected readonly showClientPicker = signal(false);
   /** The generated draft as editor HTML; the editor's own state after edits. */
-  protected readonly draftHtml = signal('');
+  protected readonly draftHtml = signal<string | EditorDoc>('');
   private editorChange: EditorChange | null = null;
   protected readonly myDrafts = signal<DraftSummary[]>([]);
   protected readonly draftsLoading = signal(false);
@@ -56,6 +56,12 @@ export class DocumentsComponent implements OnInit {
   protected readonly templateSearch = signal('');
   protected readonly templates = DRAFT_TEMPLATES;
   protected readonly selectedTemplate = signal<DraftTemplate>(DRAFT_TEMPLATES[0]);
+  protected readonly selectedWordTemplate = signal<FirmDraftTemplate | null>(null);
+  protected readonly wordTemplates = signal<DraftTemplateSummary[]>([]);
+  protected readonly templatesLoading = signal(false);
+  protected readonly uploadingTemplate = signal(false);
+  protected readonly showTemplateManager = signal(false);
+  protected editingTemplate: FirmDraftTemplate | null = null;
   protected readonly draftValues = signal<Record<string, string>>({ date: todayDdMmYyyy() });
   protected readonly draftText = signal('');
   protected readonly savingDraft = signal(false);
@@ -115,6 +121,8 @@ export class DocumentsComponent implements OnInit {
       caseTitle: q.get('matter_title') || '', case_title: q.get('matter_title') || '',
     });
     this.refreshDraft();
+    await this.loadWordTemplates();
+    if (q.get('manage_templates') === '1') this.showTemplateManager.set(true);
     // Deep link from the editor's back button: /app/documents?view=drafts
     if (this.route.snapshot.queryParamMap.get('view') === 'drafts') await this.showDrafts();
     await this.load();
@@ -138,15 +146,35 @@ export class DocumentsComponent implements OnInit {
     return this.onlyClient() && c?.id ? c.id : undefined;
   }
   protected local(value: LocalText): string { return value[this.language()]; }
-  protected fieldLabel(key: string): string { return FIELD_LABELS[key]?.[this.language()] ?? key; }
-  protected isLongField(key: string): boolean { return ['facts', 'grounds', 'relief', 'terms', 'propertyDetails', 'powers', 'marriageDetails'].includes(key); }
-  protected setLanguage(language: DraftLanguage): void { this.language.set(language); this.draftFileName = this.local(this.selectedTemplate().title); this.refreshDraft(); }
+  protected fieldLabel(key: string): string {
+    const custom = this.selectedWordTemplate()?.fields.find((field) => field.key === key);
+    return custom?.label ?? FIELD_LABELS[key]?.[this.language()] ?? key;
+  }
+  protected isLongField(key: string): boolean {
+    const custom = this.selectedWordTemplate()?.fields.find((field) => field.key === key);
+    return custom?.type === 'multiline' || ['facts', 'grounds', 'relief', 'terms', 'propertyDetails', 'powers', 'marriageDetails'].includes(key);
+  }
+  protected activeFields(): string[] { return this.selectedWordTemplate()?.fields.map((field) => field.key) ?? this.selectedTemplate().fields; }
+  protected activeTitle(): string { return this.selectedWordTemplate()?.name ?? this.local(this.selectedTemplate().title); }
+  protected activeDescription(): string { return this.selectedWordTemplate()?.description || (this.selectedWordTemplate() ? 'Uploaded Word template' : this.local(this.selectedTemplate().description)); }
+  protected setLanguage(language: DraftLanguage): void { this.language.set(language); this.draftFileName = this.selectedWordTemplate()?.name ?? this.local(this.selectedTemplate().title); this.refreshDraft(); }
   protected chooseTemplate(template: DraftTemplate): void {
+    this.selectedWordTemplate.set(null);
     this.selectedTemplate.set(template);
     this.draftValues.set({ date: todayDdMmYyyy() });
     this.draftFileName = this.local(template.title);
     this.refreshDraft();
     setTimeout(() => document.querySelector('.draft-builder')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  }
+  protected async chooseWordTemplate(template: DraftTemplateSummary): Promise<void> {
+    try {
+      const detail = await firstValueFrom(this.drafts.template(template.id));
+      this.selectedWordTemplate.set(detail);
+      this.draftValues.set({ date: todayDdMmYyyy(), client_name: this.client()?.name ?? '', matter_title: this.matterTitle() ?? '' });
+      this.draftFileName = detail.name;
+      this.refreshDraft();
+      setTimeout(() => document.querySelector('.draft-builder')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    } catch { /* handled */ }
   }
   protected updateField(key: string, value: string): void { this.draftValues.update((current) => ({ ...current, [key]: value })); this.refreshDraft(); }
   protected updateDraftText(value: string): void { this.draftText.set(value); }
@@ -175,6 +203,15 @@ export class DocumentsComponent implements OnInit {
     } catch { /* handled by interceptor */ } finally { this.savingDraft.set(false); }
   }
   private refreshDraft(): void {
+    const custom = this.selectedWordTemplate();
+    if (custom) {
+      const content = this.fillWordTemplate(custom.content_json, custom.fields, this.draftValues());
+      this.draftHtml.set(content);
+      this.draftText.set(this.editorText(content));
+      this.editorChange = null;
+      this.editor()?.setContent(content);
+      return;
+    }
     const text = renderDraft(this.selectedTemplate(), this.language(), this.draftValues());
     this.draftText.set(text);
     const html = draftTextToHtml(text);
@@ -190,9 +227,22 @@ export class DocumentsComponent implements OnInit {
   private currentDocument(): { content_json?: Parameters<DraftsService['create']>[0]['content_json']; content_html: string } {
     if (this.editorChange) return { content_json: this.editorChange.json, content_html: this.editorChange.html };
     const json = this.editor()?.getJSON();
-    return { content_json: json ?? undefined, content_html: this.editor()?.getHTML() || this.draftHtml() };
+    const fallback = this.draftHtml();
+    return { content_json: json ?? undefined, content_html: this.editor()?.getHTML() || (typeof fallback === 'string' ? fallback : '') };
   }
   private async createDraftFromBuilder(): Promise<{ id: string }> {
+    const custom = this.selectedWordTemplate();
+    if (custom) {
+      let created = await firstValueFrom(this.drafts.createFromTemplate(custom.id, {
+        title: this.cleanFilename(this.draftFileName),
+        matter_id: this.matterId(),
+        client_id: this.client()?.id ?? null,
+        values: this.draftValues(),
+      }));
+      const current = this.currentDocument();
+      if (current.content_json) created = await firstValueFrom(this.drafts.update(created.id, current));
+      return created;
+    }
     return firstValueFrom(this.drafts.create({
       title: this.cleanFilename(this.draftFileName),
       language: this.language(),
@@ -201,6 +251,95 @@ export class DocumentsComponent implements OnInit {
       client_id: this.client()?.id ?? null,
       ...this.currentDocument(),
     }));
+  }
+
+  private async loadWordTemplates(): Promise<void> {
+    this.templatesLoading.set(true);
+    try { this.wordTemplates.set(await firstValueFrom(this.drafts.templates())); }
+    catch { /* handled */ } finally { this.templatesLoading.set(false); }
+  }
+  protected async onTemplateUpload(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0]; input.value = '';
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.docx')) { this.notify.error('Choose a .docx Microsoft Word file.'); return; }
+    this.uploadingTemplate.set(true);
+    try {
+      const created = await firstValueFrom(this.drafts.uploadTemplate(file, { language: this.language(), category: 'Firm templates' }));
+      this.wordTemplates.update((items) => [created, ...items]);
+      this.editingTemplate = created;
+      this.showTemplateManager.set(true);
+      this.notify.success(`${created.name} is ready as a drafting template. ${created.fields.length} form field${created.fields.length === 1 ? '' : 's'} found.`);
+      await this.chooseWordTemplate(created);
+    } catch { /* handled */ } finally { this.uploadingTemplate.set(false); }
+  }
+  protected async editWordTemplate(template: DraftTemplateSummary): Promise<void> {
+    try { this.editingTemplate = await firstValueFrom(this.drafts.template(template.id)); this.showTemplateManager.set(true); }
+    catch { /* handled */ }
+  }
+  protected addTemplateField(): void {
+    if (!this.editingTemplate) return;
+    const index = this.editingTemplate.fields.length + 1;
+    this.editingTemplate.fields = [...this.editingTemplate.fields, { key: `field_${index}`, label: `Field ${index}`, token: `{{field_${index}}}`, type: 'text', required: false }];
+  }
+  protected removeTemplateField(index: number): void {
+    if (this.editingTemplate) this.editingTemplate.fields = this.editingTemplate.fields.filter((_, i) => i !== index);
+  }
+  protected async saveTemplateSettings(): Promise<void> {
+    const template = this.editingTemplate;
+    if (!template) return;
+    try {
+      const updated = await firstValueFrom(this.drafts.updateTemplate(template.id, {
+        name: template.name, description: template.description, category: template.category,
+        language: template.language, fields: template.fields,
+      }));
+      this.editingTemplate = updated;
+      this.wordTemplates.update((items) => items.map((item) => item.id === updated.id ? updated : item));
+      if (this.selectedWordTemplate()?.id === updated.id) { this.selectedWordTemplate.set(updated); this.refreshDraft(); }
+      this.notify.success('Template settings saved.');
+    } catch { /* handled */ }
+  }
+  protected async deleteWordTemplate(template: DraftTemplateSummary): Promise<void> {
+    if (!window.confirm(`Delete the template “${template.name}”? Existing drafts will remain.`)) return;
+    try {
+      await firstValueFrom(this.drafts.removeTemplate(template.id));
+      this.wordTemplates.update((items) => items.filter((item) => item.id !== template.id));
+      if (this.selectedWordTemplate()?.id === template.id) this.chooseTemplate(this.templates[0]);
+      if (this.editingTemplate?.id === template.id) this.editingTemplate = null;
+      this.notify.success('Template deleted.');
+    } catch { /* handled */ }
+  }
+  protected async downloadWordTemplate(template: DraftTemplateSummary): Promise<void> {
+    try { this.save(await firstValueFrom(this.drafts.downloadTemplate(template.id)), template.source_filename); }
+    catch { /* handled */ }
+  }
+  private fillWordTemplate(content: EditorDoc, fields: DraftTemplateField[], values: Record<string, string>): EditorDoc {
+    const output = structuredClone(content) as EditorDoc;
+    const visit = (value: unknown): void => {
+      if (Array.isArray(value)) { value.forEach(visit); return; }
+      if (!value || typeof value !== 'object') return;
+      const record = value as Record<string, unknown>;
+      if (record['type'] === 'text' && typeof record['text'] === 'string') {
+        let text = record['text'];
+        for (const field of fields) text = text.split(field.token).join(values[field.key]?.trim() || field.token);
+        record['text'] = text;
+      }
+      Object.values(record).forEach(visit);
+    };
+    visit(output);
+    return output;
+  }
+  private editorText(content: EditorDoc): string {
+    const lines: string[] = [];
+    const visit = (value: unknown): void => {
+      if (Array.isArray(value)) { value.forEach(visit); return; }
+      if (!value || typeof value !== 'object') return;
+      const record = value as Record<string, unknown>;
+      if (record['type'] === 'text' && typeof record['text'] === 'string') lines.push(record['text']);
+      else Object.values(record).forEach(visit);
+    };
+    visit(content);
+    return lines.join(' ');
   }
   protected async openInEditor(): Promise<void> {
     this.savingDraft.set(true);
