@@ -219,7 +219,6 @@ class BillingService:
 
     async def summary(self) -> BillingSummary:
         pending = await self.pending_invoices()
-        follow_ups = await self.repo.list_follow_ups(self.tenant_id, 1000, 0)
         receipts = await self.repo.list_receipts(self.tenant_id, 1000, 0)
         today = date.today()
         return BillingSummary(
@@ -227,7 +226,7 @@ class BillingService:
             pending_total=sum((row.total - row.amount_paid for row in pending), Decimal(0)),
             overdue_count=sum(1 for row in pending if row.due_date and row.due_date < today),
             follow_ups_due=sum(
-                1 for row in follow_ups if row.next_follow_up_on and row.next_follow_up_on <= today
+                1 for row in pending if row.next_follow_up_on and row.next_follow_up_on <= today
             ),
             receipts_total=sum((row.amount for row in receipts), Decimal(0)),
         )
