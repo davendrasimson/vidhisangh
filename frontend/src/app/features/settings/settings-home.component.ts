@@ -108,6 +108,7 @@ export class SettingsHomeComponent {
       tiles: [
         { label: 'Users', icon: 'manage_accounts', description: 'Invite users, assign roles, activate or deactivate.', route: '/app/admin/users', permission: 'user:read' },
         { label: 'Counsel Rates', icon: 'request_quote', description: 'Standard charges per person: hourly, per hearing, per day, per matter, retainer.', route: '/app/settings/counsel-rates', permission: 'matter:read' },
+        { label: 'Billing documents', icon: 'receipt_long', description: 'Brand proformas, tax invoices, credit notes and receipts.', route: '/app/settings/billing-branding', permission: 'tenant:manage' },
         { label: 'Feature Flags', icon: 'toggle_on', description: 'Turn platform capabilities on or off per tenant.', route: '/app/admin/feature-flags', permission: 'tenant:manage' },
         { label: 'Subscription', icon: 'workspace_premium', description: 'Your plan, live usage and limits.', route: '/app/admin/subscription', permission: 'tenant:manage' },
         { label: 'Audit Log', icon: 'history', description: 'Immutable log of security and config changes.', route: '/app/admin/audit', permission: 'audit:read' },

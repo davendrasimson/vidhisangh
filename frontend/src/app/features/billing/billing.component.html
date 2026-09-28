@@ -1,73 +1,46 @@
 <div class="mx-auto w-full">
-  <div class="flex items-center justify-between mb-4">
-    <h1 class="text-2xl font-bold text-content">Billing</h1>
-    <button mat-flat-button color="primary" (click)="showForm.set(!showForm())">
-      <mat-icon class="material-icons-outlined">{{ showForm() ? 'close' : 'receipt_long' }}</mat-icon>
-      {{ showForm() ? 'Cancel' : 'New invoice' }}
-    </button>
-  </div>
+  <header class="flex flex-wrap items-start justify-between gap-3 mb-5">
+    <div><h1 class="text-2xl font-bold text-content">Billing &amp; collections</h1><p class="text-content-muted mt-1">Issue documents, collect fees and keep every chase action on record.</p></div>
+    <button mat-flat-button color="primary" (click)="showForm.set(!showForm())"><mat-icon class="material-icons-outlined">{{ showForm() ? 'close' : 'add' }}</mat-icon>{{ showForm() ? 'Cancel' : 'New billing document' }}</button>
+  </header>
+
+  @if (summary(); as s) {
+    <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-5">
+      <button class="rounded-card border border-line bg-surface-raised p-4 text-left" (click)="view.set('invoices'); setFilter('pending')"><span class="text-xs text-content-muted">Pending collection</span><strong class="block text-xl mt-1">{{ money(s.pending_total) }}</strong><small>{{ s.pending_count }} documents</small></button>
+      <button class="rounded-card border border-line bg-surface-raised p-4 text-left" (click)="view.set('invoices'); setFilter('overdue')"><span class="text-xs text-content-muted">Overdue</span><strong class="block text-xl mt-1 text-danger">{{ s.overdue_count }}</strong><small>need attention</small></button>
+      <button class="rounded-card border border-line bg-surface-raised p-4 text-left" (click)="selectView('followups')"><span class="text-xs text-content-muted">Follow-ups due</span><strong class="block text-xl mt-1">{{ s.follow_ups_due }}</strong><small>scheduled chases</small></button>
+      <button class="rounded-card border border-line bg-surface-raised p-4 text-left" (click)="selectView('receipts')"><span class="text-xs text-content-muted">Receipts recorded</span><strong class="block text-xl mt-1">{{ money(s.receipts_total) }}</strong><small>all time</small></button>
+    </div>
+  }
 
   @if (showForm()) {
-    <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-6">
-      @if (form.matter_id) { <p class="rounded-lg bg-brand/5 border border-brand/20 p-3 mb-3 text-sm"><strong>Matter invoice</strong> · Leave line items empty to use every unbilled fee event from this matter.</p> }
-      <div class="grid gap-3 sm:grid-cols-2 mb-3">
-        <input class="vs-input sm:col-span-2" placeholder="Client name" [(ngModel)]="form.client_name" />
-        <label class="flex flex-col gap-1">
-          <span class="text-sm text-content-muted">GST / tax rate (%)</span>
-          <input class="vs-input" type="number" min="0" max="100" [(ngModel)]="form.tax_rate" />
-        </label>
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-6">
+      <h2 class="font-semibold text-content mb-1">Create billing document</h2><p class="text-sm text-content-muted mb-4">A paid proforma automatically produces the tax invoice and receipt.</p>
+      <div class="grid gap-3 md:grid-cols-2 mb-4">
+        <label class="grid gap-1"><span class="text-sm text-content-muted">Document type</span><select class="vs-input" [(ngModel)]="form.document_type"><option value="proforma">Proforma invoice</option><option value="tax_invoice">Tax invoice</option><option value="credit_note">Credit note</option></select></label>
+        <label class="grid gap-1"><span class="text-sm text-content-muted">Client name</span><input class="vs-input" [(ngModel)]="form.client_name" /></label>
+        <label class="grid gap-1"><span class="text-sm text-content-muted">Due date</span><input class="vs-input" type="date" [(ngModel)]="form.due_date" /></label>
+        <label class="grid gap-1"><span class="text-sm text-content-muted">GST / tax rate (%)</span><input class="vs-input" type="number" min="0" max="100" [(ngModel)]="form.tax_rate" /></label>
+        <label class="grid gap-1 md:col-span-2"><span class="text-sm text-content-muted">Notes / payment terms for this document</span><textarea class="vs-input min-h-16" [(ngModel)]="form.notes"></textarea></label>
       </div>
-
       <h3 class="font-medium mb-2">Line items</h3>
-      @for (row of rows(); track $index) {
-        <div class="flex flex-wrap gap-2 items-center mb-2">
-          <input class="vs-input flex-1 min-w-[10rem]" placeholder="Description" [ngModel]="row.description"
-                 (ngModelChange)="updateRow($index, 'description', $event)" />
-          <input class="vs-input w-20" type="number" min="0" placeholder="Qty" [ngModel]="row.quantity"
-                 (ngModelChange)="updateRow($index, 'quantity', $event)" />
-          <input class="vs-input w-28" type="number" min="0" placeholder="Unit ₹" [ngModel]="row.unit_price"
-                 (ngModelChange)="updateRow($index, 'unit_price', $event)" />
-          <button mat-icon-button (click)="removeRow($index)" aria-label="Remove line">
-            <mat-icon class="material-icons-outlined text-danger">close</mat-icon>
-          </button>
-        </div>
-      }
-      <button mat-button (click)="addRow()"><mat-icon class="material-icons-outlined">add</mat-icon> Add line</button>
-
-      <div class="mt-4 flex justify-end">
-        <button mat-flat-button color="primary" [disabled]="!form.client_name.trim() || saving()" (click)="submit()">
-          {{ saving() ? 'Creating…' : 'Create invoice' }}
-        </button>
-      </div>
+      @for (row of rows(); track $index) { <div class="flex flex-wrap gap-2 items-center mb-2"><input class="vs-input flex-1 min-w-40" placeholder="Professional service or expense" [ngModel]="row.description" (ngModelChange)="updateRow($index, 'description', $event)" /><input class="vs-input w-20" type="number" min="0" placeholder="Qty" [ngModel]="row.quantity" (ngModelChange)="updateRow($index, 'quantity', $event)" /><input class="vs-input w-32" type="number" min="0" placeholder="Rate ₹" [ngModel]="row.unit_price" (ngModelChange)="updateRow($index, 'unit_price', $event)" /><button mat-icon-button (click)="removeRow($index)" aria-label="Remove"><mat-icon class="material-icons-outlined text-danger">close</mat-icon></button></div> }
+      <div class="flex justify-between mt-4"><button mat-button (click)="addRow()"><mat-icon class="material-icons-outlined">add</mat-icon>Add line</button><button mat-flat-button color="primary" [disabled]="!form.client_name.trim() || saving()" (click)="submit()">{{ saving() ? 'Creating…' : 'Create document' }}</button></div>
     </section>
   }
 
-  <div class="flex gap-2 border-b border-line mb-4 flex-wrap">
-    @for (f of filters; track f) {
-      <button class="vs-tab capitalize" [class.vs-tab-active]="filter() === f" (click)="setFilter(f)">{{ f }}</button>
-    }
-  </div>
+  <nav class="flex gap-1 border-b border-line mb-4" aria-label="Billing sections"><button class="vs-tab" [class.vs-tab-active]="view() === 'invoices'" (click)="selectView('invoices')">Invoices</button><button class="vs-tab" [class.vs-tab-active]="view() === 'followups'" (click)="selectView('followups')">Follow-ups</button><button class="vs-tab" [class.vs-tab-active]="view() === 'receipts'" (click)="selectView('receipts')">Receipts</button></nav>
 
-  @if (loading()) {
-    <p class="text-content-muted">Loading…</p>
-  } @else if (invoices().length === 0) {
-    <p class="text-content-muted">No invoices here yet.</p>
-  } @else {
+  @if (loading()) { <p class="text-content-muted">Loading billing records…</p> }
+  @else if (view() === 'invoices') {
+    <div class="flex gap-2 mb-4 flex-wrap">@for (f of filters; track f) { <button class="vs-chip capitalize" [class.vs-chip--active]="filter() === f" (click)="setFilter(f)">{{ f }}</button> }</div>
     <div class="rounded-card bg-surface-raised border border-line shadow-card divide-y divide-line">
-      @for (inv of invoices(); track inv.id) {
-        <a [routerLink]="['/app/billing', inv.id]" class="flex items-center gap-3 p-3 hover:bg-surface-sunken">
-          <div class="flex-1 min-w-0">
-            <p class="font-medium text-content">
-              <span class="font-mono text-content-muted">{{ inv.invoice_number }}</span> · {{ inv.client_name }}
-            </p>
-            <p class="text-xs text-content-muted">
-              {{ money(inv.total) }} · paid {{ money(inv.amount_paid) }}@if (inv.due_date) { · due {{ inv.due_date | date: 'dd/MM/yyyy' }} }
-            </p>
-          </div>
-          <span class="vs-chip capitalize"
-                [class.vs-chip--danger]="inv.status === 'overdue'">{{ inv.status }}</span>
-        </a>
-      }
+      @for (inv of invoices(); track inv.id) { <a [routerLink]="['/app/billing', inv.id]" class="grid sm:grid-cols-[1fr_auto_auto] gap-3 p-4 hover:bg-surface-sunken items-center"><div class="min-w-0"><p class="font-medium text-content">{{ inv.client_name }}</p><p class="text-xs text-content-muted"><span class="font-mono">{{ inv.invoice_number }}</span> · {{ documentLabel(inv.document_type) }}@if (inv.due_date) { · due {{ inv.due_date | date:'dd MMM yyyy' }} }</p></div><div class="sm:text-right"><strong>{{ money(inv.total) }}</strong><small class="block text-content-muted">Balance {{ money(+inv.total - +inv.amount_paid) }}</small></div><span class="vs-chip capitalize" [class.vs-chip--danger]="inv.status === 'overdue'">{{ inv.status }}</span></a> }
+      @empty { <p class="p-5 text-content-muted">No billing documents in this view.</p> }
     </div>
+  } @else if (view() === 'followups') {
+    <div class="rounded-card bg-surface-raised border border-line shadow-card divide-y divide-line">@for (item of followUps(); track item.id) { <a [routerLink]="['/app/billing', item.invoice_id]" class="block p-4 hover:bg-surface-sunken"><div class="flex justify-between gap-3"><strong>{{ invoiceFor(item.invoice_id)?.client_name || 'Invoice' }}</strong><span class="vs-chip capitalize">{{ item.channel }}</span></div><p class="mt-1">{{ item.remark }}</p><p class="text-xs text-content-muted mt-1">{{ item.created_at | date:'dd MMM yyyy, h:mm a' }}@if (item.outcome) { · {{ item.outcome }} }@if (item.next_follow_up_on) { · Next: {{ item.next_follow_up_on | date:'dd MMM yyyy' }} }</p></a> } @empty { <p class="p-5 text-content-muted">No follow-up activity recorded.</p> }</div>
+  } @else {
+    <div class="rounded-card bg-surface-raised border border-line shadow-card divide-y divide-line">@for (item of receipts(); track item.id) { <a [routerLink]="['/app/billing', item.invoice_id]" class="grid sm:grid-cols-[1fr_auto] gap-2 p-4 hover:bg-surface-sunken"><div><strong>{{ item.receipt_number }}</strong><p class="text-sm text-content-muted">{{ invoiceFor(item.invoice_id)?.client_name }} · {{ item.payment_method }}@if (item.reference) { · {{ item.reference }} }</p></div><div class="sm:text-right"><strong>{{ money(item.amount) }}</strong><small class="block text-content-muted">{{ item.received_on | date:'dd MMM yyyy' }}</small></div></a> } @empty { <p class="p-5 text-content-muted">No receipts recorded.</p> }</div>
   }
 </div>

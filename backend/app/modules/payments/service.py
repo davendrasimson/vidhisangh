@@ -108,4 +108,14 @@ async def handle_webhook(
         payment.status = PaymentStatus.PAID
         payment.provider_payment_id = entity.get("id")
         payment.paid_at = datetime.now(UTC)
+    if payment.invoice_id is not None:
+        # Webhooks may arrive even when the payer closes the browser before the
+        # return request. Reconcile here so the receipt and, for a proforma,
+        # the final tax invoice are still issued exactly once.
+        await session.flush()
+        from app.modules.billing.service import BillingService
+
+        await BillingService(session, payment.created_by, payment.tenant_id).reconcile(
+            payment.invoice_id
+        )
     return {"status": "ok"}

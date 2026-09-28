@@ -1,83 +1,31 @@
 <div class="mx-auto w-full">
-  <a routerLink="/app/billing" class="text-sm text-content-muted inline-flex items-center gap-1 mb-3">
-    <mat-icon class="material-icons-outlined text-base">arrow_back</mat-icon> Invoices
-  </a>
+  <div class="no-print flex flex-wrap items-center justify-between gap-3 mb-4"><a routerLink="/app/billing" class="text-sm text-content-muted inline-flex items-center gap-1"><mat-icon class="material-icons-outlined text-base">arrow_back</mat-icon>Billing &amp; collections</a><div class="flex gap-2"><button mat-stroked-button (click)="copyPaymentLink()"><mat-icon class="material-icons-outlined">link</mat-icon>Copy payment link</button><button mat-stroked-button (click)="print()"><mat-icon class="material-icons-outlined">print</mat-icon>Print / PDF</button></div></div>
+  @if (loading()) { <p class="text-content-muted">Loading document…</p> }
+  @else if (invoice(); as inv) {
+    @if (branding(); as brand) {
+      <article class="document rounded-card bg-surface-raised shadow-card p-5 md:p-8 mb-5" [class]="'document rounded-card bg-surface-raised shadow-card p-5 md:p-8 mb-5 ' + brand.template_id" [style.--document-accent]="brand.accent_color">
+        <header class="flex justify-between gap-5 border-b border-line pb-5">
+          <div>@if (brand.logo_url) { <img [src]="brand.logo_url" alt="Firm logo" class="max-h-14 max-w-48 object-contain mb-3" /> }<h2 class="text-xl font-bold">{{ brand.legal_name || 'Law firm' }}</h2><p class="text-sm text-content-muted whitespace-pre-line max-w-lg">{{ brand.address }}</p><p class="text-sm text-content-muted">{{ brand.email }}@if (brand.phone) { · {{ brand.phone }} }</p></div>
+          <div class="text-right"><p class="tracking-wider font-bold" [style.color]="brand.accent_color">{{ title() }}</p><p class="font-mono text-lg mt-1">{{ inv.invoice_number }}</p><span class="vs-chip capitalize mt-2">{{ inv.status }}</span></div>
+        </header>
+        <div class="grid sm:grid-cols-2 gap-5 py-5"><div><small class="text-content-muted uppercase tracking-wide">Bill to</small><p class="font-semibold mt-1">{{ inv.client_name }}</p></div><div class="sm:text-right text-sm"><p>Issue date: <strong>{{ inv.issue_date | date:'dd MMM yyyy' }}</strong></p>@if (inv.due_date) { <p>Due date: <strong>{{ inv.due_date | date:'dd MMM yyyy' }}</strong></p> }@if (brand.gstin) { <p>GSTIN: {{ brand.gstin }}</p> }@if (brand.pan) { <p>PAN: {{ brand.pan }}</p> }</div></div>
+        <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-left border-b-2 border-line"><th class="py-2">Description</th><th class="py-2 text-right">Qty</th><th class="py-2 text-right">Rate</th><th class="py-2 text-right">Amount</th><th class="no-print"></th></tr></thead><tbody>@for (li of inv.line_items; track li.id) { <tr class="border-b border-line"><td class="py-3">{{ li.description }}</td><td class="py-3 text-right">{{ li.quantity }}</td><td class="py-3 text-right">{{ money(li.unit_price) }}</td><td class="py-3 text-right">{{ money(li.amount) }}</td><td class="no-print text-right">@if (editable()) { <button (click)="removeLine(li.id)" aria-label="Remove"><mat-icon class="material-icons-outlined text-base">close</mat-icon></button> }</td></tr> } @empty { <tr><td colspan="5" class="py-3 text-content-muted">No line items.</td></tr> }</tbody></table></div>
+        @if (editable()) { <div class="no-print flex flex-wrap gap-2 mt-3"><input class="vs-input flex-1 min-w-40" placeholder="Description" [(ngModel)]="newItem.description" /><input class="vs-input w-20" type="number" min="0" placeholder="Qty" [(ngModel)]="newItem.quantity" /><input class="vs-input w-28" type="number" min="0" placeholder="Rate ₹" [(ngModel)]="newItem.unit_price" /><button mat-stroked-button (click)="addLine()"><mat-icon class="material-icons-outlined">add</mat-icon></button></div> }
+        <div class="grid md:grid-cols-[1fr_20rem] gap-6 mt-6"><div class="text-sm"><p class="whitespace-pre-line">{{ inv.notes }}</p>@if (brand.bank_details) { <h3 class="font-semibold mt-4">Payment details</h3><p class="whitespace-pre-line text-content-muted">{{ brand.bank_details }}</p> }<p class="whitespace-pre-line text-content-muted mt-3">{{ brand.payment_terms }}</p></div><div class="text-sm"><div class="flex justify-between py-1"><span>Subtotal</span><span>{{ money(inv.subtotal) }}</span></div><div class="flex justify-between py-1"><span>GST ({{ inv.tax_rate }}%)</span><span>{{ money(inv.tax_amount) }}</span></div><div class="flex justify-between py-2 border-y border-line text-lg font-bold"><span>Total</span><span>{{ money(inv.total) }}</span></div><div class="flex justify-between py-1"><span>Paid</span><span>{{ money(inv.amount_paid) }}</span></div><div class="flex justify-between py-1 font-semibold"><span>Balance</span><span>{{ money(balance()) }}</span></div></div></div>
+        <footer class="flex flex-wrap justify-between items-end gap-5 border-t border-line mt-7 pt-5"><div class="text-xs text-content-muted"><p>{{ brand.footer }}</p><p class="font-mono mt-2">Verification code: {{ inv.verification_code }}</p><p>Scan to validate this document at vidhisangh.com.</p></div><img [src]="billing.qrUrl(inv.verification_code)" alt="Invoice verification QR code" class="w-24 h-24" /></footer>
+      </article>
+    }
 
-  @if (loading()) {
-    <p class="text-content-muted">Loading…</p>
-  } @else if (invoice(); as inv) {
-    <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
-      <div class="flex items-start justify-between gap-3">
-        <div>
-          <h1 class="text-xl font-bold text-content">{{ inv.invoice_number }}</h1>
-          <p class="text-sm text-content-muted">{{ inv.client_name }}@if (inv.due_date) { · due {{ inv.due_date | date: 'dd/MM/yyyy' }} }</p>
-        </div>
-        <label class="flex flex-col gap-1">
-          <span class="text-xs text-content-muted">Status</span>
-          <select class="vs-input capitalize" [ngModel]="inv.status" (ngModelChange)="setStatus($event)">
-            @for (s of statuses; track s) { <option [value]="s">{{ s }}</option> }
-          </select>
-        </label>
-      </div>
+    <div class="no-print grid xl:grid-cols-2 gap-5">
+      <section class="rounded-card border border-line bg-surface-raised p-5"><div class="flex justify-between gap-3"><div><h2 class="font-semibold">Payment &amp; receipt</h2><p class="text-sm text-content-muted">Record bank, cash, cheque or online receipts.</p></div><label><span class="text-xs text-content-muted">Status</span><select class="vs-input block capitalize" [ngModel]="inv.status" (ngModelChange)="setStatus($event)">@for (s of statuses; track s) { <option [value]="s">{{ s }}</option> }</select></label></div>
+        @if (balance() > 0 && inv.status !== 'cancelled') { <div class="grid sm:grid-cols-2 gap-3 mt-4"><label class="grid gap-1"><span class="text-xs text-content-muted">Amount received</span><input class="vs-input" type="number" min="0.01" [max]="balance()" [(ngModel)]="receipt.amount" /></label><label class="grid gap-1"><span class="text-xs text-content-muted">Date received</span><input class="vs-input" type="date" [(ngModel)]="receipt.received_on" /></label><label class="grid gap-1"><span class="text-xs text-content-muted">Method</span><select class="vs-input" [(ngModel)]="receipt.payment_method"><option value="bank_transfer">Bank transfer</option><option value="upi">UPI</option><option value="cheque">Cheque</option><option value="cash">Cash</option><option value="card">Card</option></select></label><label class="grid gap-1"><span class="text-xs text-content-muted">Reference / UTR</span><input class="vs-input" [(ngModel)]="receipt.reference" /></label><label class="grid gap-1 sm:col-span-2"><span class="text-xs text-content-muted">Receipt remarks</span><textarea class="vs-input" [(ngModel)]="receipt.remarks"></textarea></label></div><div class="flex flex-wrap justify-end gap-2 mt-3"><button mat-stroked-button [disabled]="paying()" (click)="pay()"><mat-icon class="material-icons-outlined">credit_card</mat-icon>Online payment</button><button mat-flat-button color="primary" [disabled]="savingReceipt() || receipt.amount <= 0" (click)="saveReceipt()">Record receipt</button></div> }
+        @if (inv.converted_invoice_id) { <a [routerLink]="['/app/billing', inv.converted_invoice_id]" class="mt-4 flex items-center gap-2 rounded-lg bg-success/10 p-3 text-success"><mat-icon class="material-icons-outlined">task_alt</mat-icon>Tax invoice created automatically — open it</a> }
+        <div class="mt-5 divide-y divide-line">@for (item of inv.receipts; track item.id) { <div class="py-3 flex justify-between gap-3"><div><strong>{{ item.receipt_number }}</strong><p class="text-xs text-content-muted">{{ item.payment_method }}@if (item.reference) { · {{ item.reference }} } · {{ item.received_on | date:'dd MMM yyyy' }}</p></div><strong>{{ money(item.amount) }}</strong></div> } @empty { <p class="text-sm text-content-muted py-3">No receipts recorded.</p> }</div>
+      </section>
 
-      <!-- Line items -->
-      <table class="w-full mt-4 text-sm">
-        <thead>
-          <tr class="text-content-muted text-left border-b border-line">
-            <th class="py-1 font-medium">Description</th>
-            <th class="py-1 font-medium text-right">Qty</th>
-            <th class="py-1 font-medium text-right">Unit</th>
-            <th class="py-1 font-medium text-right">Amount</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (li of inv.line_items; track li.id) {
-            <tr class="border-b border-line">
-              <td class="py-2">{{ li.description }}</td>
-              <td class="py-2 text-right">{{ li.quantity }}</td>
-              <td class="py-2 text-right">{{ money(li.unit_price) }}</td>
-              <td class="py-2 text-right">{{ money(li.amount) }}</td>
-              <td class="py-2 text-right">
-                @if (editable()) {
-                  <button class="text-content-muted" (click)="removeLine(li.id)" aria-label="Remove line">
-                    <mat-icon class="material-icons-outlined text-base">close</mat-icon>
-                  </button>
-                }
-              </td>
-            </tr>
-          } @empty { <tr><td colspan="5" class="py-2 text-content-muted">No line items.</td></tr> }
-        </tbody>
-      </table>
-
-      @if (editable()) {
-        <div class="flex flex-wrap gap-2 mt-3">
-          <input class="vs-input flex-1 min-w-[8rem]" placeholder="Description" [(ngModel)]="newItem.description" />
-          <input class="vs-input w-16" type="number" min="0" placeholder="Qty" [(ngModel)]="newItem.quantity" />
-          <input class="vs-input w-24" type="number" min="0" placeholder="Unit ₹" [(ngModel)]="newItem.unit_price" />
-          <button mat-stroked-button (click)="addLine()"><mat-icon class="material-icons-outlined">add</mat-icon></button>
-        </div>
-      }
-
-      <!-- Totals -->
-      <div class="mt-4 ml-auto max-w-xs text-sm">
-        <div class="flex justify-between py-0.5"><span class="text-content-muted">Subtotal</span><span>{{ money(inv.subtotal) }}</span></div>
-        <div class="flex justify-between py-0.5"><span class="text-content-muted">GST ({{ inv.tax_rate }}%)</span><span>{{ money(inv.tax_amount) }}</span></div>
-        <div class="flex justify-between py-1 border-t border-line font-semibold"><span>Total</span><span>{{ money(inv.total) }}</span></div>
-        <div class="flex justify-between py-0.5"><span class="text-content-muted">Paid</span><span>{{ money(inv.amount_paid) }}</span></div>
-        <div class="flex justify-between py-0.5 font-medium"><span>Balance</span><span>{{ money(balance()) }}</span></div>
-      </div>
-
-      @if (balance() > 0 && inv.status !== 'cancelled') {
-        <div class="mt-4 flex justify-end">
-          <button mat-flat-button color="primary" [disabled]="paying()" (click)="pay()">
-            <mat-icon class="material-icons-outlined">payments</mat-icon>
-            {{ paying() ? 'Processing…' : 'Collect ' + money(balance()) }}
-          </button>
-        </div>
-      }
-    </section>
-  } @else {
-    <p class="text-content-muted">Invoice not found.</p>
-  }
+      <section class="rounded-card border border-line bg-surface-raised p-5"><h2 class="font-semibold">Follow-up &amp; chase log</h2><p class="text-sm text-content-muted">Keep the next action and every client conversation together.</p><div class="grid sm:grid-cols-2 gap-3 mt-4"><label class="grid gap-1"><span class="text-xs text-content-muted">Channel</span><select class="vs-input" [(ngModel)]="followUp.channel"><option value="phone">Phone</option><option value="email">Email</option><option value="whatsapp">WhatsApp</option><option value="meeting">Meeting</option><option value="letter">Letter</option></select></label><label class="grid gap-1"><span class="text-xs text-content-muted">Next follow-up</span><input class="vs-input" type="date" [(ngModel)]="followUp.next_follow_up_on" /></label><label class="grid gap-1 sm:col-span-2"><span class="text-xs text-content-muted">Chase remark</span><textarea class="vs-input min-h-20" [(ngModel)]="followUp.remark" placeholder="What was discussed or requested?"></textarea></label><label class="grid gap-1 sm:col-span-2"><span class="text-xs text-content-muted">Outcome / commitment</span><input class="vs-input" [(ngModel)]="followUp.outcome" placeholder="e.g. Client promised payment by Friday" /></label></div><div class="flex justify-end mt-3"><button mat-flat-button color="primary" [disabled]="!followUp.remark.trim() || savingFollowUp()" (click)="saveFollowUp()">Save follow-up</button></div>
+        <div class="mt-5 divide-y divide-line">@for (item of inv.follow_ups; track item.id) { <div class="py-3"><div class="flex justify-between"><span class="vs-chip capitalize">{{ item.channel }}</span><small class="text-content-muted">{{ item.created_at | date:'dd MMM yyyy, h:mm a' }}</small></div><p class="mt-2">{{ item.remark }}</p>@if (item.outcome) { <p class="text-sm text-content-muted mt-1">Outcome: {{ item.outcome }}</p> }@if (item.next_follow_up_on) { <p class="text-sm font-medium mt-1">Next follow-up: {{ item.next_follow_up_on | date:'dd MMM yyyy' }}</p> }</div> } @empty { <p class="text-sm text-content-muted py-3">No follow-up recorded.</p> }</div>
+      </section>
+    </div>
+  } @else { <p class="text-content-muted">Billing document not found.</p> }
 </div>

@@ -43,6 +43,16 @@ export const routes: Routes = [
     loadComponent: () =>
       import('@features/portal/client-portal.component').then((m) => m.ClientPortalComponent),
   },
+  {
+    path: 'pay/:token',
+    loadComponent: () =>
+      import('@features/billing/public-invoice.component').then((m) => m.PublicInvoiceComponent),
+  },
+  {
+    path: 'verify/invoice/:code',
+    loadComponent: () =>
+      import('@features/billing/invoice-verification.component').then((m) => m.InvoiceVerificationComponent),
+  },
 
   {
     path: 'app',
@@ -222,6 +232,11 @@ export const routes: Routes = [
         path: 'settings/counsel-rates',
         loadComponent: () =>
           import('@features/settings/counsel-rates.component').then((m) => m.CounselRatesComponent),
+      },
+      {
+        path: 'settings/billing-branding',
+        loadComponent: () =>
+          import('@features/settings/billing-branding.component').then((m) => m.BillingBrandingComponent),
       },
       {
         path: 'settings/security',
