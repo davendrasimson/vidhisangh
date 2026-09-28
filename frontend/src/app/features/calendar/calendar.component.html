@@ -1,86 +1,86 @@
-<div class="mx-auto w-full">
-  <div class="flex items-center justify-between mb-4">
-    <div>
-      <h1 class="text-2xl font-bold text-content">Calendar</h1>
-      <p class="text-sm text-content-muted">Next 30 days — events, hearings &amp; deadlines</p>
-    </div>
-    <button mat-flat-button color="primary" (click)="showForm.set(!showForm())">
-      <mat-icon class="material-icons-outlined">{{ showForm() ? 'close' : 'add' }}</mat-icon>
-      {{ showForm() ? 'Cancel' : 'New event' }}
-    </button>
-  </div>
+<div class="mx-auto w-full calendar-page">
+  <header class="calendar-heading">
+    <div><p class="eyebrow">Practice schedule</p><h1 class="text-2xl font-bold text-content">Calendar</h1><p class="text-sm text-content-muted">Hearings, deadlines, limitation dates and firm events in one place.</p></div>
+    <button mat-flat-button color="primary" (click)="showForm.set(!showForm())"><mat-icon class="material-icons-outlined">{{ showForm() ? 'close' : 'add' }}</mat-icon>{{ showForm() ? 'Cancel' : 'New event' }}</button>
+  </header>
 
   @if (showForm()) {
-    <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-6">
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-5">
       <div class="grid gap-3 sm:grid-cols-2">
-        <label class="flex flex-col gap-1 sm:col-span-2">
-          <span class="text-sm text-content-muted">Title</span>
-          <input class="vs-input" [(ngModel)]="form.title" maxlength="300" />
-        </label>
-        <label class="flex flex-col gap-1">
-          <span class="text-sm text-content-muted">Type</span>
-          <select class="vs-input" [(ngModel)]="form.event_type">
-            <option value="meeting">Meeting</option>
-            <option value="appointment">Appointment</option>
-            <option value="court">Court</option>
-            <option value="reminder">Reminder</option>
-            <option value="other">Other</option>
-          </select>
-        </label>
-        <label class="flex flex-col gap-1">
-          <span class="text-sm text-content-muted">When</span>
-          <vs-date-input withTime [(ngModel)]="form.start_at" />
-        </label>
-        <label class="flex flex-col gap-1 sm:col-span-2">
-          <span class="text-sm text-content-muted">Location (optional)</span>
-          <input class="vs-input" [(ngModel)]="form.location" maxlength="300" />
-        </label>
+        <label class="flex flex-col gap-1 sm:col-span-2"><span class="text-sm text-content-muted">Title</span><input class="vs-input" [(ngModel)]="form.title" maxlength="300" /></label>
+        <label class="flex flex-col gap-1"><span class="text-sm text-content-muted">Type</span><select class="vs-input" [(ngModel)]="form.event_type"><option value="meeting">Meeting</option><option value="appointment">Appointment</option><option value="court">Court</option><option value="reminder">Reminder</option><option value="other">Other</option></select></label>
+        <label class="flex flex-col gap-1"><span class="text-sm text-content-muted">When</span><vs-date-input withTime [(ngModel)]="form.start_at" /></label>
+        <label class="flex flex-col gap-1 sm:col-span-2"><span class="text-sm text-content-muted">Location (optional)</span><input class="vs-input" [(ngModel)]="form.location" maxlength="300" /></label>
       </div>
-      <div class="mt-4 flex justify-end">
-        <button mat-flat-button color="primary" [disabled]="!form.title.trim() || !form.start_at || saving()" (click)="submit()">
-          {{ saving() ? 'Adding…' : 'Add event' }}
-        </button>
-      </div>
+      <div class="mt-4 flex justify-end"><button mat-flat-button color="primary" [disabled]="!form.title.trim() || !form.start_at || saving()" (click)="submit()">{{ saving() ? 'Adding…' : 'Add event' }}</button></div>
     </section>
   }
 
-  @if (loading()) {
-    <p class="text-content-muted">Loading…</p>
-  } @else if (grouped().length === 0) {
-    <div class="text-center py-10 text-content-muted">
-      <mat-icon class="material-icons-outlined" style="font-size:40px;height:40px;width:40px">event</mat-icon>
-      <p class="mt-2">Nothing scheduled in the next 30 days.</p>
+  <section class="calendar-toolbar" aria-label="Calendar controls">
+    <div class="date-navigation">
+      <button mat-icon-button (click)="move(-1)" aria-label="Previous period"><mat-icon class="material-icons-outlined">chevron_left</mat-icon></button>
+      <button mat-stroked-button (click)="goToday()">Today</button>
+      <button mat-icon-button (click)="move(1)" aria-label="Next period"><mat-icon class="material-icons-outlined">chevron_right</mat-icon></button>
+      <h2>{{ title() }}</h2>
     </div>
-  } @else {
-    @for (day of grouped(); track day.dateIso) {
-      <div class="mb-5">
-        <h2 class="text-sm font-semibold text-content-muted mb-2">{{ day.dateIso | date: 'EEEE, dd MMMM' }}</h2>
-        <div class="rounded-card bg-surface-raised border border-line shadow-card divide-y divide-line">
-          @for (item of day.items; track item.kind + item.id) {
-            <div class="flex items-center gap-3 p-3">
-              <mat-icon class="material-icons-outlined"
-                        [class.text-brand]="item.kind === 'hearing'"
-                        [class.text-warning]="item.kind === 'deadline'"
-                        [class.text-danger]="item.kind === 'limitation'">{{ icon(item) }}</mat-icon>
-              <div class="flex-1 min-w-0">
-                <p class="font-medium text-content truncate">{{ item.title }}</p>
-                <p class="text-xs text-content-muted">
-                  @if (item.all_day) { All day } @else { {{ item.start_at | date: 'h:mm a' }} }
-                  @if (item.location) { · {{ item.location }} }
-                  @if (item.matter_number) {
-                    · <a [routerLink]="['/app/matters', item.matter_id]" class="text-brand hover:underline">{{ item.matter_number }}</a>
-                  }
-                </p>
+    <div class="view-switcher" role="group" aria-label="Calendar view">
+      <button type="button" [class.active]="view() === 'week'" (click)="setView('week')"><mat-icon class="material-icons-outlined">view_week</mat-icon>Week</button>
+      <button type="button" [class.active]="view() === 'month'" (click)="setView('month')"><mat-icon class="material-icons-outlined">calendar_month</mat-icon>Month</button>
+      <button type="button" [class.active]="view() === 'detailed'" (click)="setView('detailed')"><mat-icon class="material-icons-outlined">view_agenda</mat-icon>Detailed</button>
+    </div>
+  </section>
+
+  @if (loading()) {
+    <div class="calendar-loading"><mat-icon class="material-icons-outlined">event</mat-icon><span>Loading schedule…</span></div>
+  } @else if (view() === 'month') {
+    <section class="calendar-grid month-grid" aria-label="Month view">
+      @for (name of ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']; track name) { <div class="weekday">{{ name }}</div> }
+      @for (day of monthDays(); track day.dateIso) {
+        <button type="button" class="calendar-day" [class.outside]="!day.inMonth" [class.today]="day.isToday" (click)="openDay(day)" [attr.aria-label]="day.date | date: 'fullDate'">
+          <span class="day-number">{{ day.date | date: 'd' }}</span>
+          <span class="day-items">
+            @for (item of day.items.slice(0, 3); track item.kind + item.id) { <span class="mini-event" [attr.data-kind]="item.kind"><b>{{ itemTime(item) }}</b> {{ item.title }}</span> }
+            @if (day.items.length > 3) { <span class="more">+{{ day.items.length - 3 }} more</span> }
+          </span>
+        </button>
+      }
+    </section>
+  } @else if (view() === 'week') {
+    <section class="calendar-grid week-grid" aria-label="Week view">
+      @for (day of weekDays(); track day.dateIso) {
+        <article class="week-day" [class.today]="day.isToday">
+          <button type="button" class="week-date" (click)="openDay(day)"><span>{{ day.date | date: 'EEE' }}</span><strong>{{ day.date | date: 'd' }}</strong></button>
+          <div class="week-events">
+            @for (item of day.items; track item.kind + item.id) {
+              <div class="week-event" [attr.data-kind]="item.kind">
+                <div><span>{{ itemTime(item) }}</span><strong>{{ item.title }}</strong></div>
+                @if (item.matter_number) { <a [routerLink]="['/app/matters', item.matter_id]">{{ item.matter_number }}</a> }
+                @if (item.location) { <small><mat-icon class="material-icons-outlined">location_on</mat-icon>{{ item.location }}</small> }
               </div>
-              <span class="vs-chip capitalize">{{ item.kind }}</span>
-              @if (item.kind === 'event') {
-                <button mat-icon-button (click)="deleteEvent(item)" aria-label="Delete event">
-                  <mat-icon class="material-icons-outlined text-content-muted">close</mat-icon>
-                </button>
+            } @empty { <span class="empty-day">No entries</span> }
+          </div>
+        </article>
+      }
+    </section>
+  } @else {
+    @if (grouped().length === 0) {
+      <div class="empty-calendar"><mat-icon class="material-icons-outlined">event_available</mat-icon><h3>Nothing scheduled</h3><p>No hearings, deadlines or events in this 30-day period.</p></div>
+    } @else {
+      <div class="detailed-view">
+        @for (day of grouped(); track day.dateIso) {
+          <section class="agenda-day">
+            <div class="agenda-date"><strong>{{ day.dateIso | date: 'dd' }}</strong><span>{{ day.dateIso | date: 'EEE' }}</span><small>{{ day.dateIso | date: 'MMM' }}</small></div>
+            <div class="agenda-items">
+              @for (item of day.items; track item.kind + item.id) {
+                <article class="agenda-item" [attr.data-kind]="item.kind">
+                  <span class="icon"><mat-icon class="material-icons-outlined">{{ icon(item) }}</mat-icon></span>
+                  <div class="item-copy"><div class="item-title"><strong>{{ item.title }}</strong><span class="vs-chip capitalize">{{ kindLabel(item) }}</span></div><p>{{ itemTime(item) }}@if (item.location) { · {{ item.location }} }@if (item.matter_number) { · <a [routerLink]="['/app/matters', item.matter_id]">{{ item.matter_number }}</a> }</p></div>
+                  @if (item.kind === 'event') { <button mat-icon-button (click)="deleteEvent(item)" aria-label="Delete event"><mat-icon class="material-icons-outlined">close</mat-icon></button> }
+                </article>
               }
             </div>
-          }
-        </div>
+          </section>
+        }
       </div>
     }
   }
