@@ -15,6 +15,9 @@ import { RealtimeService } from '@core/services/realtime.service';
 import { NotificationsBellComponent } from './notifications-bell.component';
 import { TermsUpdatePromptComponent } from './terms-update-prompt.component';
 import { SupportDialogComponent } from './support-dialog.component';
+import { SampleDataService } from '@core/services/sample-data.service';
+import { NotificationService } from '@core/services/notification.service';
+import { firstValueFrom } from 'rxjs';
 
 interface NavItem {
   label: string;
@@ -52,8 +55,12 @@ export class ShellComponent implements OnInit {
   protected readonly auth = inject(AuthService);
   protected readonly theme = inject(ThemeService);
   private readonly realtime = inject(RealtimeService);
+  private readonly samples = inject(SampleDataService);
+  private readonly notify = inject(NotificationService);
   protected readonly opened = signal(true);
   protected readonly compact = signal(false);
+  protected readonly sampleDataAvailable = signal(false);
+  protected readonly deletingSamples = signal(false);
 
   constructor() {
     inject(BreakpointObserver).observe('(max-width: 767px)').pipe(takeUntilDestroyed()).subscribe(({ matches }) => {
@@ -69,6 +76,32 @@ export class ShellComponent implements OnInit {
   ngOnInit(): void {
     // Live messaging socket is app-wide so delivery/presence work everywhere.
     this.realtime.connect();
+    void this.loadSampleStatus();
+  }
+
+  private async loadSampleStatus(): Promise<void> {
+    try {
+      this.sampleDataAvailable.set((await firstValueFrom(this.samples.status())).available);
+    } catch { /* The workspace remains usable if this optional status call fails. */ }
+  }
+
+  protected async deleteSampleData(): Promise<void> {
+    if (this.deletingSamples()) return;
+    const accepted = window.confirm(
+      'Delete all VidhiSangh sample data from this organisation?\n\n' +
+      'This removes the sample matters, hearings, documents and stored files, clients, CRM, calendar, billing, payments, knowledge and marketplace entries. Your own data will not be touched. This cannot be undone.',
+    );
+    if (!accepted) return;
+    this.deletingSamples.set(true);
+    try {
+      await firstValueFrom(this.samples.clear());
+      this.sampleDataAvailable.set(false);
+      this.notify.success('Sample data deleted. The workspace is ready for your own work.');
+    } catch {
+      this.notify.error('Sample data could not be deleted. Please try again.');
+    } finally {
+      this.deletingSamples.set(false);
+    }
   }
 
   protected readonly user = this.auth.user;

@@ -17,7 +17,10 @@ files it points to.
   (203.193.166.109). Wiring, deploy steps and ops runbook:
   [DEPLOYMENT.md](DEPLOYMENT.md). Security posture and go-live checklist:
   [SECURITY.md](SECURITY.md).
-- **Last big change**: the security/privacy remediation is now backed by
+- **Last big change**: registration now offers a removable guided sample workspace, and matter
+  detail supports direct document upload/list/download through the local/S3 storage abstraction.
+  Sample cleanup uses an exact UUID/object-key manifest in tenant settings, so it cannot remove
+  user-created records. The security/privacy remediation is backed by
   production malware scanning, SMTP failure alerts, a hardened edge, a tested
   encrypted off-host restore, a 13/13 public DAST baseline, and an ISMS/PIMS
   governance pack. Report + per-finding status:

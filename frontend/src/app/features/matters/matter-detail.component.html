@@ -94,6 +94,33 @@
       <a mat-stroked-button routerLink="/app/marketplace" [queryParams]="{ matter_id: m.id, matter_title: m.cause_title || m.title, practice_area: m.practice_area }"><mat-icon class="material-icons-outlined">hub</mat-icon>Find counsel / expert</a>
     </nav>
 
+    @if (auth.hasPermission('document:read')) {
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <div><h2 class="font-semibold">Matter documents</h2><p class="text-xs text-content-muted">Files uploaded here are linked to this matter and kept in its server-side document folder.</p></div>
+          @if (auth.hasPermission('document:create')) {
+            <input #matterUpload type="file" class="hidden" [disabled]="uploadingDocument()" (change)="uploadMatterDocument($event)" />
+            <button mat-flat-button color="primary" type="button" [disabled]="uploadingDocument()" (click)="matterUpload.click()">
+              <mat-icon class="material-icons-outlined">upload_file</mat-icon>{{ uploadingDocument() ? 'Uploading…' : 'Upload document' }}
+            </button>
+          }
+        </div>
+        @if (matterDocuments().length) {
+          <div class="divide-y divide-line">
+            @for (document of matterDocuments(); track document.id) {
+              <button type="button" class="w-full flex items-center gap-3 py-2.5 text-left hover:text-brand" (click)="downloadMatterDocument(document)">
+                <mat-icon class="material-icons-outlined text-content-muted">description</mat-icon>
+                <span class="flex-1 min-w-0"><strong class="block text-sm truncate">{{ document.name }}</strong><small class="text-content-muted">{{ document.size }} bytes · {{ document.version_count }} version(s)</small></span>
+                <mat-icon class="material-icons-outlined">download</mat-icon>
+              </button>
+            }
+          </div>
+        } @else {
+          <p class="text-sm text-content-muted py-2">No documents uploaded to this matter yet.</p>
+        }
+      </section>
+    }
+
     <!-- ── Court record ─────────────────────────────────────────── -->
     <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
       <div class="flex items-center justify-between gap-3 mb-3">

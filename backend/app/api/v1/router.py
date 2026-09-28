@@ -39,6 +39,7 @@ from app.modules.privacy.router import router as privacy_router
 from app.modules.profile.router import router as profile_router
 from app.modules.rates.router import router as rates_router
 from app.modules.research.router import router as research_router
+from app.modules.sampledata.router import router as sampledata_router
 from app.modules.support.router import router as support_router
 from app.modules.tenancy.router import router as tenancy_router
 from app.modules.webhooks.router import router as webhooks_router
@@ -77,6 +78,7 @@ api_router.include_router(system_router)
 api_router.include_router(webhooks_router)
 api_router.include_router(apikeys_router)
 api_router.include_router(support_router)
+api_router.include_router(sampledata_router)
 api_router.include_router(ws_router)  # WebSocket: /api/v1/ws
 
 # ── Roadmap: register additional module routers here ────────────────

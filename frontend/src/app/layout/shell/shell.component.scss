@@ -256,6 +256,27 @@
   min-height: calc(100vh - 60px);
 }
 
+.vs-sample-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin: 1rem 1.5rem 0;
+  padding: 0.8rem 1rem;
+  border: 1px solid color-mix(in srgb, rgb(var(--vs-brand)) 35%, rgb(var(--vs-border)));
+  border-radius: 12px;
+  background: color-mix(in srgb, rgb(var(--vs-brand)) 8%, rgb(var(--vs-surface-raised)));
+  box-shadow: var(--vs-shadow-sm);
+  > mat-icon { color: rgb(var(--vs-brand)); }
+  > div { display: grid; gap: 0.12rem; flex: 1; }
+  strong { font-size: 0.86rem; }
+  span { color: rgb(var(--vs-text-muted)); font-size: 0.73rem; }
+}
+
+@media (max-width: 640px) {
+  .vs-sample-banner { align-items: flex-start; flex-wrap: wrap; margin: 0.75rem 0.75rem 0; }
+  .vs-sample-banner button { width: 100%; }
+}
+
 @media (max-width: 768px) {
   .vs-search { display: none; }
 }

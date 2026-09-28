@@ -133,6 +133,18 @@ Deployed 2026-09-23 on `203.193.166.109` (Ubuntu 24.04). **Full detail in [DEPLO
 - Refresh tokens are cookie-only by default; legacy WebSocket token authentication and legacy webhook signatures are removed.
 - Changed legal terms trigger explicit in-app re-acceptance, and `docs/INCIDENT_RESPONSE.md` provides the breach-response runbook.
 
+## Guided sample workspace and matter files (28 September 2026)
+
+- Registration offers an opt-in guided workspace containing connected sample clients, matters,
+  hearings, tasks, calendar events, documents, CRM follow-up, billing, payment, knowledge and
+  marketplace records.
+- The sample manifest stores exact generated UUIDs and object-storage keys in tenant settings.
+  Organisation administrators see a prominent warning-based removal action only while that
+  manifest is active; removal cannot select ordinary user records by name or tag.
+- Matter detail pages support direct document upload, listing and download. Bytes continue through
+  the existing storage abstraction: local tenant/document/version directories now, S3 later without
+  changing the matter or document APIs.
+
 ## Test suite (backend, `backend/tests/`)
 123 tests, all green on SQLite. Per-feature files include: `test_identity`, `test_network`, `test_groups`, `test_matters`, `test_documents`, `test_portal`, `test_calendar`, `test_research`, `test_crm`, `test_billing`, `test_payments`, `test_knowledge`, `test_marketplace`, `test_analytics`, `test_notification_channels`, `test_feature_flags`, `test_plans`, `test_admin`, `test_system`, `test_user_roles`, `test_user_activation`, `test_webhooks`, `test_oauth`, `test_api_keys`, `test_passkeys`, `test_sessions`, plus `test_rls_postgres` + `test_rls_app_role` (both skip if no Postgres) and `test_smoke_journey`. Mocks/seams injected in `tests/conftest.py`.
 

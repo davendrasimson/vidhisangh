@@ -43,6 +43,9 @@ import {
 } from '@core/models/matters.models';
 import { VsDateInputComponent } from '@shared/date-input/vs-date-input.component';
 import { ClientChoice, VsClientPickerComponent } from '@shared/client-picker/vs-client-picker.component';
+import { DocumentsService } from '@core/services/documents.service';
+import { DocFile } from '@core/models/documents.models';
+import { AuthService } from '@core/auth/auth.service';
 
 interface MilestoneDraft {
   label: string;
@@ -65,12 +68,16 @@ export class MatterDetailComponent {
   private readonly router = inject(Router);
   private readonly matters = inject(MattersService);
   private readonly notify = inject(NotificationService);
+  protected readonly auth = inject(AuthService);
+  private readonly documents = inject(DocumentsService);
 
   private id = '';
   protected readonly matter = signal<MatterDetail | null>(null);
   protected readonly timeline = signal<TimelineEntry[]>([]);
   protected readonly loading = signal(true);
   protected readonly people = signal<Person[]>([]);
+  protected readonly matterDocuments = signal<DocFile[]>([]);
+  protected readonly uploadingDocument = signal(false);
 
   protected readonly statuses: MatterStatus[] = ['open', 'on_hold', 'closed'];
   protected readonly stages: MatterStage[] = [
@@ -174,11 +181,49 @@ export class MatterDetailComponent {
       ]);
       this.matter.set(matter);
       this.timeline.set(timeline);
+      await this.loadMatterDocuments();
     } catch {
       /* handled */
     } finally {
       this.loading.set(false);
     }
+  }
+
+  private async loadMatterDocuments(): Promise<void> {
+    if (!this.auth.hasPermission('document:read')) return;
+    try {
+      this.matterDocuments.set(await firstValueFrom(this.documents.list({ matterId: this.id })));
+    } catch { /* Documents are supplementary to the matter detail. */ }
+  }
+
+  protected async uploadMatterDocument(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file || this.uploadingDocument()) return;
+    this.uploadingDocument.set(true);
+    try {
+      const matter = this.matter();
+      const uploaded = await firstValueFrom(this.documents.upload(file, file.name, null, this.id, matter?.client_id));
+      this.matterDocuments.update((items) => [uploaded, ...items]);
+      this.notify.success(`${file.name} uploaded to this matter.`);
+    } catch (error) {
+      this.notify.error(error instanceof Error ? error.message : 'Document upload failed.');
+    } finally {
+      this.uploadingDocument.set(false);
+    }
+  }
+
+  protected async downloadMatterDocument(document: DocFile): Promise<void> {
+    try {
+      const blob = await firstValueFrom(this.documents.download(document.id));
+      const url = URL.createObjectURL(blob);
+      const anchor = window.document.createElement('a');
+      anchor.href = url;
+      anchor.download = document.name;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch { this.notify.error('Document download failed.'); }
   }
 
   /** Re-fetch the matter (team / fees / events are derived server-side). */

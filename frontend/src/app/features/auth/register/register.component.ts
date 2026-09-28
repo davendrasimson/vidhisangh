@@ -41,6 +41,7 @@ export class RegisterComponent {
     full_name: ['', [Validators.required, Validators.minLength(2)]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.pattern(STRONG_PASSWORD)]],
+    add_sample_data: [true],
     accept_terms: [false, [Validators.requiredTrue]],
   });
 

@@ -13,6 +13,7 @@ store it themselves.
 from __future__ import annotations
 
 import uuid
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request, Response, status
 
@@ -31,6 +32,7 @@ from app.core.ratelimit import (
     refresh_rate_limit,
     register_rate_limit,
 )
+from app.core.storage import Storage, get_storage
 from app.core.ws_tickets import issue_ws_ticket
 from app.modules.identity.models import User
 from app.modules.identity.oauth_service import OAuthService
@@ -149,10 +151,11 @@ async def _current_user_row(current: CurrentUserDep, session: TenantSessionDep) 
     dependencies=[Depends(register_rate_limit), Depends(auth_rate_limit)],
 )
 async def register(
-    data: RegisterRequest, request: Request, response: Response, session: AuthSessionDep
+    data: RegisterRequest, request: Request, response: Response, session: AuthSessionDep,
+    storage: Annotated[Storage, Depends(get_storage)],
 ) -> TokenPair:
     _user, pair = await AuthService(session).register(
-        data, ip=client_ip(request), user_agent=_ua(request)
+        data, ip=client_ip(request), user_agent=_ua(request), sample_storage=storage
     )
     return deliver_tokens(pair, response)
 

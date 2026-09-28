@@ -25,6 +25,7 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=settings.PASSWORD_MIN_LENGTH, max_length=128)
     accept_terms: bool = Field(description="Must be true to register.")
+    add_sample_data: bool = False
     device_id: str | None = Field(default=None, min_length=16, max_length=64)
 
     @field_validator("password")

@@ -165,6 +165,18 @@
       </mat-menu>
     </mat-toolbar>
 
+    @if (sampleDataAvailable()) {
+      <aside class="vs-sample-banner" role="status">
+        <mat-icon class="material-icons-outlined">science</mat-icon>
+        <div><strong>You are viewing guided sample data</strong><span>Explore connected matters, calendar events, documents, CRM and billing, then remove it when you are ready.</span></div>
+        @if (auth.hasPermission('tenant:update')) {
+          <button mat-flat-button color="primary" [disabled]="deletingSamples()" (click)="deleteSampleData()">
+            <mat-icon class="material-icons-outlined">delete_sweep</mat-icon>{{ deletingSamples() ? 'Deleting…' : 'Delete sample data' }}
+          </button>
+        }
+      </aside>
+    }
+
     <main class="vs-main">
       <router-outlet />
     </main>

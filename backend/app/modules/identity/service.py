@@ -35,6 +35,7 @@ from app.core.exceptions import (
     status,
 )
 from app.core.revocation import mark_user_revoked
+from app.core.storage import Storage
 from app.modules.audit.service import record_audit
 from app.modules.identity.models import (
     MfaBackupCode,
@@ -138,7 +139,8 @@ class AuthService:
 
     # ─── Registration ───────────────────────────────────────────────
     async def register(
-        self, data: RegisterRequest, *, ip: str | None = None, user_agent: str | None = None
+        self, data: RegisterRequest, *, ip: str | None = None, user_agent: str | None = None,
+        sample_storage: Storage | None = None,
     ) -> tuple[User, TokenPair]:
         # Emails are unique platform-wide, so check before creating the tenant —
         # otherwise a rejected signup would leave an empty organisation behind.
@@ -191,6 +193,13 @@ class AuthService:
             )
         )
         await self.session.flush()
+
+        if data.add_sample_data:
+            from app.modules.sampledata.service import SampleDataService
+
+            if sample_storage is None:
+                raise RuntimeError("Storage is required when sample data is requested.")
+            await SampleDataService(self.session, tenant.id, user.id, sample_storage).create()
 
         log.info("tenant_registered", tenant_id=str(tenant.id), user_id=str(user.id))
         self._audit(user, "auth.registered", f"Registered organisation {tenant.name}", meta={"ip": ip})

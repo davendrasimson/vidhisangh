@@ -16,6 +16,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   accept_terms: boolean;
+  add_sample_data?: boolean;
   device_id?: string | null;
 }
 

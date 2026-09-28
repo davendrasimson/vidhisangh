@@ -49,6 +49,10 @@
     </mat-form-field>
     <vs-password-strength [password]="form.controls.password.value" />
 
+    <mat-checkbox formControlName="add_sample_data" class="text-sm mb-2">
+      Add a guided sample workspace with matters, hearings, documents, clients, CRM, billing and calendar entries.
+    </mat-checkbox>
+
     <mat-checkbox formControlName="accept_terms" class="text-sm mb-2">
       I agree to the
       <a routerLink="/terms" target="_blank" rel="noopener" class="text-brand underline" (click)="$event.stopPropagation()">Terms of Service</a>
