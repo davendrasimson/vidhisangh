@@ -139,6 +139,12 @@ class SigningService:
         return envelope
 
     async def to_read(self, envelope: SignatureEnvelope) -> EnvelopeRead:
+        # Mutations append audit events with database-generated IDs/timestamps.
+        # Populate those defaults before validating the response (autoflush is off).
+        await self.session.flush()
+        # Step lookups load the envelope without its event collection. Load it
+        # explicitly so response construction never performs implicit async I/O.
+        await self.session.refresh(envelope, ["events"])
         document = await self.documents.get_document(self.tenant_id, envelope.document_id)
         return EnvelopeRead(
             id=envelope.id,

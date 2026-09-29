@@ -280,3 +280,24 @@
 @media (max-width: 768px) {
   .vs-search { display: none; }
 }
+
+@media (max-width: 640px) {
+  .vs-topbar { padding-inline: 4px; }
+  .vs-topbar > .vs-support-button,
+  .vs-topbar > button[aria-label="Choose accent colour"],
+  .vs-topbar > button[aria-label="Toggle theme"],
+  .vs-topbar > button[aria-label="Settings"] { display: none; }
+  .vs-userbtn { min-width: 44px; padding-inline: 4px; }
+}
+
+@media (max-width: 1200px) {
+  .vs-search { display: none; }
+}
+
+@media (min-width: 641px) and (max-width: 960px) {
+  .vs-topbar > .vs-support-button,
+  .vs-topbar > button[aria-label="Choose accent colour"],
+  .vs-topbar > button[aria-label="Toggle theme"],
+  .vs-topbar > button[aria-label="Settings"] { display: none; }
+  .vs-userbtn .hidden { display: none; }
+}

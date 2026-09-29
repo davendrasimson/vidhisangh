@@ -55,6 +55,8 @@ async def test_internal_signature_freezes_and_seals_document(
     )
     assert prepared.status_code == 201, prepared.text
     envelope = prepared.json()
+    assert envelope["events"]
+    assert all(event["id"] and event["created_at"] for event in envelope["events"])
     assert envelope["source_checksum"]
     assert envelope["steps"][0]["status"] == "pending"
 
@@ -69,6 +71,7 @@ async def test_internal_signature_freezes_and_seals_document(
     )
     assert signed.status_code == 200, signed.text
     assert signed.json()["status"] == "completed"
+    assert all(event["id"] and event["created_at"] for event in signed.json()["events"])
     assert signed.json()["final_checksum"]
     final = await client.get(f"{API}/signing/envelopes/{envelope['id']}/download", headers=headers)
     assert final.content == b"Agreed final wording"
@@ -118,3 +121,49 @@ async def test_signature_requires_assigned_signer_and_consent(
         },
     )
     assert response.status_code == 422
+
+
+@pytest.mark.parametrize("action", ["cancel", "reject"])
+async def test_signature_closure_returns_persisted_audit_events(
+    client: AsyncClient, strong_password: str, action: str
+) -> None:
+    headers, me = await _account(client, strong_password)
+    uploaded = await client.post(
+        f"{API}/documents",
+        headers=headers,
+        files={"file": ("agreement.txt", b"Draft agreement", "text/plain")},
+    )
+    assert uploaded.status_code == 201, uploaded.text
+    prepared = await client.post(
+        f"{API}/signing/documents/{uploaded.json()['id']}",
+        headers=headers,
+        json={
+            "title": "Agreement",
+            "signers": [
+                {
+                    "kind": "internal",
+                    "user_id": me["id"],
+                    "name": me["full_name"],
+                    "email": me["email"],
+                }
+            ],
+        },
+    )
+    assert prepared.status_code == 201, prepared.text
+    envelope = prepared.json()
+    if action == "cancel":
+        response = await client.post(
+            f"{API}/signing/envelopes/{envelope['id']}/cancel", headers=headers
+        )
+    else:
+        response = await client.post(
+            f"{API}/signing/steps/{envelope['steps'][0]['id']}/reject",
+            headers=headers,
+            json={"remarks": "Please correct the agreement"},
+        )
+    assert response.status_code == 200, response.text
+    result = response.json()
+    expected_status = "cancelled" if action == "cancel" else "rejected"
+    assert result["status"] == expected_status
+    assert any(event["event_type"] == expected_status for event in result["events"])
+    assert all(event["id"] and event["created_at"] for event in result["events"])

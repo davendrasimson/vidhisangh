@@ -82,3 +82,7 @@ See [`backend/README.md`](backend/README.md) and [`docs/ROADMAP.md`](docs/ROADMA
 ## License
 
 Proprietary — © VidhiSangh. All rights reserved.
+
+## Product help
+
+Open **Help & feature tour** in the app, or read the [user guide](docs/help/user-guide.md). The top-bar **Help** and light-bulb controls explain the current page. See [help maintenance and testing](docs/help/README.md) and [rollout validation](docs/ROLLOUT_VALIDATION.md).

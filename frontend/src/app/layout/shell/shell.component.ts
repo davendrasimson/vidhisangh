@@ -1,3 +1,4 @@
+import { HelpControlsComponent } from '@features/help/help-controls.component';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -46,7 +47,7 @@ interface NavGroup {
     RouterOutlet, RouterLink, RouterLinkActive,
     MatSidenavModule, MatToolbarModule, MatListModule, MatIconModule,
     MatButtonModule, MatMenuModule, MatTooltipModule, NotificationsBellComponent,
-    TermsUpdatePromptComponent, SupportDialogComponent,
+    TermsUpdatePromptComponent, SupportDialogComponent, HelpControlsComponent,
   ],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss',
@@ -153,7 +154,8 @@ export class ShellComponent implements OnInit {
     },
     {
       // Single link to the Settings hub page — the sub-areas live there as tiles.
-      items: [{ label: 'Settings', icon: 'settings', route: '/app/settings' }],
+      items: [{ label: 'Settings', icon: 'settings', route: '/app/settings' },
+        { label: 'Help & feature tour', icon: 'help_outline', route: '/app/help' }],
     },
   ];
 

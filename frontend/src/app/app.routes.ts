@@ -8,6 +8,7 @@ import { authGuard } from '@core/guards/auth.guard';
  */
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'app/dashboard' },
+  { path: 'help', loadComponent: () => import('@features/help/help-center.component').then(m => m.HelpCenterComponent) },
 
   {
     path: 'auth',
@@ -71,6 +72,7 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./layout/shell/shell.component').then((m) => m.ShellComponent),
     children: [
+      { path: 'help', loadComponent: () => import('@features/help/help-center.component').then(m => m.HelpCenterComponent) },
       {
         path: 'dashboard',
         loadComponent: () =>

@@ -6,8 +6,10 @@
     "start": "ng serve --port 4200",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test",
-    "lint": "ng lint"
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
+    "lint": "ng lint",
+    "test:e2e": "npm run build && playwright test",
+    "docs:help": "node --experimental-strip-types scripts/generate-help.mjs"
   },
   "private": true,
   "dependencies": {
@@ -45,6 +47,7 @@
     "@angular/build": "21.2.24",
     "@angular/cli": "21.2.24",
     "@angular/compiler-cli": "21.2.24",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/forms": "^0.5.9",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
