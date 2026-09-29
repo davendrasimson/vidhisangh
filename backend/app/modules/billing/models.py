@@ -7,7 +7,18 @@ from datetime import date, datetime
 from decimal import Decimal
 from enum import StrEnum
 
-from sqlalchemy import Date, DateTime, ForeignKey, Numeric, String, Text, UniqueConstraint, Uuid
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+    Uuid,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import TenantScopedBase
@@ -25,6 +36,19 @@ class InvoiceDocumentType(StrEnum):
     PROFORMA = "proforma"
     TAX_INVOICE = "tax_invoice"
     CREDIT_NOTE = "credit_note"
+
+
+class TimeEntryStatus(StrEnum):
+    DRAFT = "draft"
+    SUBMITTED = "submitted"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    BILLED = "billed"
+
+
+class TimeEntrySource(StrEnum):
+    MANUAL = "manual"
+    IMPORT = "import"
 
 
 class Invoice(TenantScopedBase):
@@ -99,6 +123,49 @@ class InvoiceLineItem(TenantScopedBase):
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
 
     invoice: Mapped[Invoice] = relationship(back_populates="line_items")
+
+
+class TimeEntry(TenantScopedBase):
+    """Counsel work recorded against a matter/client and later billed once."""
+
+    __tablename__ = "time_entries"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    matter_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("matters.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    client_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("clients.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    invoice_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("invoices.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    work_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    duration_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    activity_type: Mapped[str] = mapped_column(
+        String(80), nullable=False, default="Professional work"
+    )
+    billable: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    hourly_rate: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=0)
+    amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=0)
+    status: Mapped[TimeEntryStatus] = mapped_column(
+        String(20), nullable=False, default=TimeEntryStatus.DRAFT, index=True
+    )
+    source: Mapped[TimeEntrySource] = mapped_column(
+        String(20), nullable=False, default=TimeEntrySource.MANUAL
+    )
+    import_batch: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
+    rejection_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    approved_by: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    created_by: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
 
 
 class InvoiceFollowUp(TenantScopedBase):

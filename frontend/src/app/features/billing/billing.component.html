@@ -29,7 +29,7 @@
     </section>
   }
 
-  <nav class="flex gap-1 border-b border-line mb-4" aria-label="Billing sections"><button class="vs-tab" [class.vs-tab-active]="view() === 'invoices'" (click)="selectView('invoices')">Invoices</button><button class="vs-tab" [class.vs-tab-active]="view() === 'followups'" (click)="selectView('followups')">Follow-ups</button><button class="vs-tab" [class.vs-tab-active]="view() === 'receipts'" (click)="selectView('receipts')">Receipts</button></nav>
+  <nav class="flex gap-1 border-b border-line mb-4 overflow-x-auto" aria-label="Billing sections"><button class="vs-tab" [class.vs-tab-active]="view() === 'invoices'" (click)="selectView('invoices')">Invoices</button><button class="vs-tab" [class.vs-tab-active]="view() === 'timesheets'" (click)="selectView('timesheets')">Timesheets</button><button class="vs-tab" [class.vs-tab-active]="view() === 'followups'" (click)="selectView('followups')">Follow-ups</button><button class="vs-tab" [class.vs-tab-active]="view() === 'receipts'" (click)="selectView('receipts')">Receipts</button></nav>
 
   @if (loading()) { <p class="text-content-muted">Loading billing records…</p> }
   @else if (view() === 'invoices') {
@@ -38,9 +38,75 @@
       @for (inv of invoices(); track inv.id) { <a [routerLink]="['/app/billing', inv.id]" class="grid sm:grid-cols-[1fr_auto_auto] gap-3 p-4 hover:bg-surface-sunken items-center"><div class="min-w-0"><p class="font-medium text-content">{{ inv.client_name }}</p><p class="text-xs text-content-muted"><span class="font-mono">{{ inv.invoice_number }}</span> · {{ documentLabel(inv.document_type) }}@if (inv.due_date) { · due {{ inv.due_date | date:'dd MMM yyyy' }} }</p></div><div class="sm:text-right"><strong>{{ money(inv.total) }}</strong><small class="block text-content-muted">Balance {{ money(+inv.total - +inv.amount_paid) }}</small></div><span class="vs-chip capitalize" [class.vs-chip--danger]="inv.status === 'overdue'">{{ inv.status }}</span></a> }
       @empty { <p class="p-5 text-content-muted">No billing documents in this view.</p> }
     </div>
+  } @else if (view() === 'timesheets') {
+    <div class="grid xl:grid-cols-[minmax(0,1fr)_22rem] gap-5 items-start">
+      <section class="min-w-0">
+        <div class="flex flex-wrap items-start justify-between gap-3 mb-3">
+          <div><h2 class="font-semibold text-lg">Counsel time</h2><p class="text-sm text-content-muted">Record work, send it for review and turn approved billable time into an invoice.</p></div>
+          @if (canImportTime) {
+            <div class="flex gap-2">
+              <button mat-stroked-button (click)="downloadTemplate()"><mat-icon class="material-icons-outlined">download</mat-icon>Template</button>
+              <label class="inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-medium cursor-pointer hover:bg-surface-sunken"><input class="sr-only" type="file" accept=".xlsx,.csv" (change)="chooseTimesheet($event)" /><mat-icon class="material-icons-outlined">upload_file</mat-icon>{{ importing() ? 'Reading…' : 'Import Excel' }}</label>
+            </div>
+          }
+        </div>
+
+        @if (importPreview(); as preview) {
+          <div class="rounded-card border p-4 mb-4" [class.border-danger]="preview.error_count" [class.border-success]="!preview.error_count">
+            <div class="flex flex-wrap justify-between gap-3"><div><strong>{{ preview.filename }}</strong><p class="text-sm text-content-muted">{{ preview.valid_count }} valid · {{ preview.error_count }} need correction</p></div><div class="flex gap-2"><button mat-button (click)="importPreview.set(null)">Cancel</button><button mat-flat-button color="primary" [disabled]="preview.error_count || importing()" (click)="commitImport()">Import valid timesheet</button></div></div>
+            @if (preview.error_count) { <div class="mt-3 max-h-44 overflow-auto text-sm">@for (row of preview.rows; track row.row_number) { @if (row.errors.length) { <p class="text-danger py-1"><strong>Row {{ row.row_number }}:</strong> {{ row.errors.join(' ') }}</p> } }</div> }
+          </div>
+        }
+
+        @if (canManageTime && selectedTime().size) {
+          <div class="rounded-card bg-surface-sunken border border-line p-3 mb-3 flex flex-wrap items-end gap-3">
+            <strong class="mr-auto">{{ selectedTime().size }} selected</strong>
+            @if (hasSelectedStatus('submitted')) { <button mat-stroked-button (click)="approveSelected()">Approve submitted</button> }
+            @if (hasSelectedStatus('approved')) {
+              <label class="grid gap-1 text-xs">Invoice type<select class="vs-input py-1" [(ngModel)]="timeInvoice.document_type"><option value="proforma">Proforma</option><option value="tax_invoice">Tax invoice</option></select></label>
+              <label class="grid gap-1 text-xs">GST %<input class="vs-input py-1 w-24" type="number" [(ngModel)]="timeInvoice.tax_rate" /></label>
+              <button mat-flat-button color="primary" (click)="billSelected()">Create invoice</button>
+            }
+          </div>
+        }
+
+        <div class="rounded-card bg-surface-raised border border-line shadow-card overflow-x-auto">
+          <table class="w-full text-sm min-w-[760px]">
+            <thead class="bg-surface-sunken text-content-muted"><tr><th class="p-3 w-10"></th><th class="p-3 text-left">Date &amp; counsel</th><th class="p-3 text-left">Matter / client</th><th class="p-3 text-left">Work</th><th class="p-3 text-right">Time</th><th class="p-3 text-right">Value</th><th class="p-3 text-left">Status</th><th class="p-3"></th></tr></thead>
+            <tbody class="divide-y divide-line">
+              @for (entry of timeEntries(); track entry.id) {
+                <tr class="align-top hover:bg-surface-sunken">
+                  <td class="p-3">@if (canManageTime && (entry.status === 'submitted' || entry.status === 'approved')) { <input type="checkbox" [checked]="selectedTime().has(entry.id)" (change)="toggleTime(entry.id)" [attr.aria-label]="'Select time entry ' + entry.description" /> }</td>
+                  <td class="p-3 whitespace-nowrap"><strong>{{ entry.work_date | date:'dd MMM yyyy' }}</strong><small class="block text-content-muted">{{ entry.counsel_name || 'My time' }} · {{ entry.source }}</small></td>
+                  <td class="p-3"><span>{{ entry.matter_number || entry.client_name }}</span>@if (entry.matter_number && entry.client_name) { <small class="block text-content-muted">{{ entry.client_name }}</small> }</td>
+                  <td class="p-3 max-w-sm"><span>{{ entry.description }}</span><small class="block text-content-muted">{{ entry.activity_type }} · {{ entry.billable ? 'Billable' : 'Non-billable' }}</small>@if (entry.rejection_reason) { <small class="block text-danger">{{ entry.rejection_reason }}</small> }</td>
+                  <td class="p-3 text-right whitespace-nowrap">{{ hours(entry.duration_minutes) }}</td>
+                  <td class="p-3 text-right whitespace-nowrap"><strong>{{ money(entry.amount) }}</strong>@if (entry.billable && +entry.hourly_rate === 0) { <a class="block text-xs text-warning hover:underline" routerLink="/app/settings/counsel-rates">Rate needed</a> } @else { <small class="block text-content-muted">{{ money(entry.hourly_rate) }}/h</small> }</td>
+                  <td class="p-3"><span class="vs-chip capitalize" [class.vs-chip--danger]="entry.status === 'rejected'">{{ entry.status }}</span></td>
+                  <td class="p-3 whitespace-nowrap">@if ((entry.status === 'draft' || entry.status === 'rejected') && entry.user_id === auth.user()?.id) { <button mat-button (click)="editTime(entry)">Edit</button><button mat-button class="text-danger" (click)="deleteTime(entry)">Delete</button><button mat-button (click)="submitTime(entry)">Submit</button> } @if (entry.invoice_id) { <a mat-button [routerLink]="['/app/billing', entry.invoice_id]">Invoice</a> }</td>
+                </tr>
+              } @empty { <tr><td colspan="8" class="p-6 text-center text-content-muted">No time has been recorded yet.</td></tr> }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <aside class="rounded-card bg-surface-raised border border-line shadow-card p-4 xl:sticky xl:top-20">
+        <div class="flex justify-between gap-2"><h2 class="font-semibold">{{ editingTimeId() ? 'Edit draft time' : 'Add my time' }}</h2>@if (editingTimeId()) { <button mat-button (click)="cancelTimeEdit()">Cancel</button> }</div><p class="text-sm text-content-muted mt-1 mb-4">Rates are filled from the matter or your counsel rate card.</p>
+        <div class="grid gap-3">
+          <label class="grid gap-1"><span class="text-sm text-content-muted">Work date</span><vs-date-input [(ngModel)]="timeForm.work_date" /></label>
+          <label class="grid gap-1"><span class="text-sm text-content-muted">Matter</span><select class="vs-input" [ngModel]="timeForm.matter_id" (ngModelChange)="selectTimeMatter($event)"><option value="">No matter</option>@for (matter of matters(); track matter.id) { <option [value]="matter.id">{{ matter.matter_number }} · {{ matter.title }}</option> }</select></label>
+          <label class="grid gap-1"><span class="text-sm text-content-muted">Client (when no matter)</span><select class="vs-input" [(ngModel)]="timeForm.client_id" [disabled]="!!timeForm.matter_id"><option value="">Select client</option>@for (client of clients(); track client.id) { <option [value]="client.id">{{ client.display_name }}</option> }</select></label>
+          <div class="grid grid-cols-2 gap-2"><label class="grid gap-1"><span class="text-sm text-content-muted">Hours</span><input class="vs-input" type="number" min="0.1" max="24" step="0.1" [(ngModel)]="timeForm.hours" /></label><label class="grid gap-1"><span class="text-sm text-content-muted">Activity</span><select class="vs-input" [(ngModel)]="timeForm.activity_type"><option>Professional work</option><option>Research</option><option>Drafting</option><option>Conference</option><option>Court appearance</option><option>Travel</option><option>Correspondence</option></select></label></div>
+          <label class="grid gap-1"><span class="text-sm text-content-muted">Work description</span><textarea class="vs-input min-h-24" maxlength="5000" placeholder="Describe the work performed…" [(ngModel)]="timeForm.description"></textarea></label>
+          <label class="flex items-center gap-2"><input type="checkbox" [(ngModel)]="timeForm.billable" /><span>Billable to client</span></label>
+          <button mat-flat-button color="primary" [disabled]="saving() || !timeForm.description.trim() || timeForm.hours <= 0 || timeForm.hours > 24 || (!timeForm.matter_id && !timeForm.client_id)" (click)="addTime()">{{ saving() ? 'Saving…' : (editingTimeId() ? 'Update draft time' : 'Save draft time') }}</button>
+        </div>
+      </aside>
+    </div>
   } @else if (view() === 'followups') {
     <div class="rounded-card bg-surface-raised border border-line shadow-card divide-y divide-line">@for (item of followUps(); track item.id) { <a [routerLink]="['/app/billing', item.invoice_id]" class="block p-4 hover:bg-surface-sunken"><div class="flex justify-between gap-3"><strong>{{ invoiceFor(item.invoice_id)?.client_name || 'Invoice' }}</strong><span class="vs-chip capitalize">{{ item.channel }}</span></div><p class="mt-1">{{ item.remark }}</p><p class="text-xs text-content-muted mt-1">{{ item.created_at | date:'dd MMM yyyy, h:mm a' }}@if (item.outcome) { · {{ item.outcome }} }@if (item.next_follow_up_on) { · Next: {{ item.next_follow_up_on | date:'dd MMM yyyy' }} }</p></a> } @empty { <p class="p-5 text-content-muted">No follow-up activity recorded.</p> }</div>
-  } @else {
+  } @else if (view() === 'receipts') {
     <div class="rounded-card bg-surface-raised border border-line shadow-card divide-y divide-line">@for (item of receipts(); track item.id) { <a [routerLink]="['/app/billing', item.invoice_id]" class="grid sm:grid-cols-[1fr_auto] gap-2 p-4 hover:bg-surface-sunken"><div><strong>{{ item.receipt_number }}</strong><p class="text-sm text-content-muted">{{ invoiceFor(item.invoice_id)?.client_name }} · {{ item.payment_method }}@if (item.reference) { · {{ item.reference }} }</p></div><div class="sm:text-right"><strong>{{ money(item.amount) }}</strong><small class="block text-content-muted">{{ item.received_on | date:'dd MMM yyyy' }}</small></div></a> } @empty { <p class="p-5 text-content-muted">No receipts recorded.</p> }</div>
   }
 </div>

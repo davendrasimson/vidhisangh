@@ -11,11 +11,16 @@ import {
   Invoice,
   InvoiceCreate,
   InvoiceDetail,
+  InvoiceDocumentType,
   InvoiceStatus,
   InvoiceFollowUp,
   LineItemCreate,
   PublicInvoice,
   ReceiptCreate,
+  TimeEntry,
+  TimeEntryCreate,
+  TimeEntryStatus,
+  TimeImportPreview,
 } from '@core/models/billing.models';
 import type { CheckoutResult } from './payment.service';
 import { OrderResponse } from '@core/models/payment.models';
@@ -117,5 +122,48 @@ export class BillingService {
 
   qrUrl(code: string): string {
     return `${this.api}/verify/${encodeURIComponent(code)}/qr`;
+  }
+
+  timeEntries(allUsers = false, status?: TimeEntryStatus): Observable<TimeEntry[]> {
+    const params: Record<string, string> = {};
+    if (status) params['status'] = status;
+    return this.http.get<TimeEntry[]>(`${this.api}/time-entries${allUsers ? '/all' : ''}`, { params });
+  }
+
+  createTime(payload: TimeEntryCreate): Observable<TimeEntry> {
+    return this.http.post<TimeEntry>(`${this.api}/time-entries`, payload);
+  }
+
+  updateTime(id: string, payload: Partial<TimeEntryCreate>): Observable<TimeEntry> {
+    return this.http.patch<TimeEntry>(`${this.api}/time-entries/${id}`, payload);
+  }
+
+  deleteTime(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.api}/time-entries/${id}`);
+  }
+
+  submitTime(id: string): Observable<TimeEntry> {
+    return this.http.post<TimeEntry>(`${this.api}/time-entries/${id}/submit`, {});
+  }
+
+  approveTime(entryIds: string[]): Observable<void> {
+    return this.http.post<void>(`${this.api}/time-entries/approve`, { entry_ids: entryIds });
+  }
+
+  invoiceTime(payload: { entry_ids: string[]; document_type: InvoiceDocumentType; tax_rate: number; due_date?: string | null; notes?: string | null }): Observable<InvoiceDetail> {
+    return this.http.post<InvoiceDetail>(`${this.api}/time-entries/invoice`, payload);
+  }
+
+  previewTimeImport(file: File): Observable<TimeImportPreview> {
+    const body = new FormData(); body.append('file', file);
+    return this.http.post<TimeImportPreview>(`${this.api}/time-import/preview`, body);
+  }
+
+  commitTimeImport(rows: TimeImportPreview['rows']): Observable<TimeEntry[]> {
+    return this.http.post<TimeEntry[]>(`${this.api}/time-import/commit`, { rows });
+  }
+
+  timeImportTemplate(): Observable<Blob> {
+    return this.http.get(`${this.api}/time-import/template`, { responseType: 'blob' });
   }
 }

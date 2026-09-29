@@ -158,3 +158,57 @@ export interface BillingVerification {
   currency: string;
   status: string;
 }
+
+export type TimeEntryStatus = 'draft' | 'submitted' | 'approved' | 'rejected' | 'billed';
+
+export interface TimeEntry {
+  id: string;
+  user_id: string;
+  counsel_name: string;
+  matter_id: string | null;
+  matter_number: string | null;
+  client_id: string | null;
+  client_name: string | null;
+  invoice_id: string | null;
+  work_date: string;
+  duration_minutes: number;
+  description: string;
+  activity_type: string;
+  billable: boolean;
+  hourly_rate: string | number;
+  amount: string | number;
+  status: TimeEntryStatus;
+  source: 'manual' | 'import';
+  rejection_reason: string | null;
+  created_at: string;
+}
+
+export interface TimeEntryCreate {
+  matter_id?: string | null;
+  client_id?: string | null;
+  work_date: string;
+  duration_minutes: number;
+  description: string;
+  activity_type?: string;
+  billable?: boolean;
+}
+
+export interface TimeImportRow {
+  row_number: number;
+  work_date: string | null;
+  counsel_email: string;
+  matter_number: string;
+  client_name: string;
+  duration_minutes: number;
+  description: string;
+  activity_type: string;
+  billable: boolean;
+  errors: string[];
+}
+
+export interface TimeImportPreview {
+  filename: string;
+  rows: TimeImportRow[];
+  valid_count: number;
+  error_count: number;
+}

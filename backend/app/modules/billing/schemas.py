@@ -8,7 +8,12 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.modules.billing.models import InvoiceDocumentType, InvoiceStatus
+from app.modules.billing.models import (
+    InvoiceDocumentType,
+    InvoiceStatus,
+    TimeEntrySource,
+    TimeEntryStatus,
+)
 
 
 class LineItemCreate(BaseModel):
@@ -186,3 +191,89 @@ class BillingVerification(BaseModel):
     total: Decimal
     currency: str
     status: str
+
+
+class TimeEntryCreate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+    matter_id: uuid.UUID | None = None
+    client_id: uuid.UUID | None = None
+    work_date: date
+    duration_minutes: int = Field(ge=1, le=1440)
+    description: str = Field(min_length=2, max_length=5000)
+    activity_type: str = Field(default="Professional work", min_length=2, max_length=80)
+    billable: bool = True
+
+
+class TimeEntryUpdate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+    matter_id: uuid.UUID | None = None
+    client_id: uuid.UUID | None = None
+    work_date: date | None = None
+    duration_minutes: int | None = Field(default=None, ge=1, le=1440)
+    description: str | None = Field(default=None, min_length=2, max_length=5000)
+    activity_type: str | None = Field(default=None, min_length=2, max_length=80)
+    billable: bool | None = None
+
+
+class TimeEntryRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    user_id: uuid.UUID
+    counsel_name: str = ""
+    matter_id: uuid.UUID | None
+    matter_number: str | None = None
+    client_id: uuid.UUID | None
+    client_name: str | None = None
+    invoice_id: uuid.UUID | None
+    work_date: date
+    duration_minutes: int
+    description: str
+    activity_type: str
+    billable: bool
+    hourly_rate: Decimal
+    amount: Decimal
+    status: TimeEntryStatus
+    source: TimeEntrySource
+    rejection_reason: str | None
+    created_at: datetime
+
+
+class TimeEntryReject(BaseModel):
+    entry_ids: list[uuid.UUID] = Field(min_length=1, max_length=500)
+    reason: str = Field(min_length=2, max_length=500)
+
+
+class TimeEntryIds(BaseModel):
+    entry_ids: list[uuid.UUID] = Field(min_length=1, max_length=500)
+
+
+class TimeInvoiceCreate(BaseModel):
+    entry_ids: list[uuid.UUID] = Field(min_length=1, max_length=500)
+    document_type: InvoiceDocumentType = InvoiceDocumentType.PROFORMA
+    tax_rate: Decimal = Field(default=Decimal(18), ge=0, le=100)
+    due_date: date | None = None
+    notes: str | None = Field(default=None, max_length=5000)
+
+
+class TimeImportRow(BaseModel):
+    row_number: int
+    work_date: date | None = None
+    counsel_email: str = ""
+    matter_number: str = ""
+    client_name: str = ""
+    duration_minutes: int = 0
+    description: str = ""
+    activity_type: str = "Professional work"
+    billable: bool = True
+    errors: list[str] = Field(default_factory=list)
+
+
+class TimeImportPreview(BaseModel):
+    filename: str
+    rows: list[TimeImportRow]
+    valid_count: int
+    error_count: int
+
+
+class TimeImportCommit(BaseModel):
+    rows: list[TimeImportRow] = Field(min_length=1, max_length=1000)

@@ -37,7 +37,7 @@ Tests run on **SQLite** and need no Postgres/Redis. Running the real app needs P
 
 ## Conventions you MUST follow (match the existing code)
 - **Module shape** (one bounded context per folder under `backend/app/modules/<name>/`): `models.py → schemas.py → repository.py → service.py → router.py`. Register the model in `app/db/base.py` (import + `__all__`) and the router in `app/api/v1/router.py`.
-- **Every schema change = a new Alembic migration** in `backend/alembic/versions/` (sequential id `00NN_...`, `down_revision` chained). Latest is **0059**.
+- **Every schema change = a new Alembic migration** in `backend/alembic/versions/` (sequential id `00NN_...`, `down_revision` chained). Latest is **0060**.
 - **Tenant-scoped tables** extend `TenantScopedBase` and get an RLS policy in their migration (copy the `tenant_isolation` USING/WITH CHECK block from any recent migration, e.g. `0029_api_keys.py`). **Global/cross-tenant tables** (network, marketplace, notifications, oauth_states, webauthn_challenges) extend `AuditedBase` — no RLS. Repos still filter by `tenant_id` explicitly so isolation holds under the SQLite tests (no RLS there).
 - **RBAC**: `require_permission("code")`; codes are catalogued in `app/modules/identity/rbac.py`. `has_permission` needs the EXACT code (no hierarchy). `org_admin` (the default signup role) holds every code via `ALL_PERMISSION_CODES`.
 - **Pluggable seams** (real impl + mock/log fallback + `set_*` test hook, chosen by env): `app/core/storage.py`, `payments.py`, `channels.py` (notifications), `webhook_transport.py`, `oauth.py`, `webauthn.py`. Follow this pattern for any new external integration; tests inject the mock via `conftest.py`.

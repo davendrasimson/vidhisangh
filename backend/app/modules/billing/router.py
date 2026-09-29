@@ -3,20 +3,22 @@
 from __future__ import annotations
 
 import uuid
+from datetime import date
 from io import BytesIO
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, File, Query, Response, UploadFile, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
 from app.core.deps import AuthSessionDep, CurrentUserDep, TenantSessionDep, require_permission
-from app.core.exceptions import NotFoundError, TenantError
+from app.core.exceptions import NotFoundError, TenantError, ValidationError
 from app.core.pagination import PageParams, page_params
 from app.core.payments import PaymentProvider, get_payment_provider
-from app.modules.billing.models import BillingReceipt, Invoice, InvoiceStatus
+from app.core.uploads import read_limited, validate_upload
+from app.modules.billing.models import BillingReceipt, Invoice, InvoiceStatus, TimeEntryStatus
 from app.modules.billing.schemas import (
     BillingBranding,
     BillingSummary,
@@ -32,8 +34,17 @@ from app.modules.billing.schemas import (
     PublicInvoiceRead,
     ReceiptCreate,
     ReceiptRead,
+    TimeEntryCreate,
+    TimeEntryIds,
+    TimeEntryRead,
+    TimeEntryReject,
+    TimeEntryUpdate,
+    TimeImportCommit,
+    TimeImportPreview,
+    TimeInvoiceCreate,
 )
 from app.modules.billing.service import BillingService
+from app.modules.billing.timesheets import TimesheetService, normalise_rows
 from app.modules.payments.repository import PaymentRepository
 from app.modules.payments.schemas import OrderResponse, PaymentVerify
 from app.modules.payments.service import PaymentService
@@ -49,6 +60,12 @@ def _svc(current: CurrentUserDep, session: TenantSessionDep) -> BillingService:
     if current.tenant_id is None:
         raise TenantError("No tenant is associated with this session.")
     return BillingService(session, current.id, current.tenant_id)
+
+
+def _time_svc(current: CurrentUserDep, session: TenantSessionDep) -> TimesheetService:
+    if current.tenant_id is None:
+        raise TenantError("No tenant is associated with this session.")
+    return TimesheetService(session, current.id, current.tenant_id)
 
 
 async def _public_invoice(session: AuthSessionDep, token: str) -> tuple[Invoice, BillingBranding]:
@@ -265,6 +282,149 @@ async def update_billing_branding(
     data: BillingBranding, current: CurrentUserDep, session: TenantSessionDep
 ) -> BillingBranding:
     return await _svc(current, session).set_branding(data)
+
+
+# ─── Counsel time and spreadsheet billing ─────────────────────────
+@router.get("/time-entries", response_model=list[TimeEntryRead])
+async def list_my_time(
+    current: CurrentUserDep,
+    session: TenantSessionDep,
+    status_filter: Annotated[TimeEntryStatus | None, Query(alias="status")] = None,
+) -> list[TimeEntryRead]:
+    return await _time_svc(current, session).list(all_users=False, status=status_filter)
+
+
+@router.get(
+    "/time-entries/all",
+    response_model=list[TimeEntryRead],
+    dependencies=[require_permission("invoice:read")],
+)
+async def list_firm_time(
+    current: CurrentUserDep,
+    session: TenantSessionDep,
+    status_filter: Annotated[TimeEntryStatus | None, Query(alias="status")] = None,
+) -> list[TimeEntryRead]:
+    return await _time_svc(current, session).list(all_users=True, status=status_filter)
+
+
+@router.post("/time-entries", response_model=TimeEntryRead, status_code=status.HTTP_201_CREATED)
+async def create_time_entry(
+    data: TimeEntryCreate, current: CurrentUserDep, session: TenantSessionDep
+) -> TimeEntryRead:
+    return TimeEntryRead.model_validate(await _time_svc(current, session).create(data))
+
+
+@router.patch("/time-entries/{entry_id}", response_model=TimeEntryRead)
+async def update_time_entry(
+    entry_id: uuid.UUID,
+    data: TimeEntryUpdate,
+    current: CurrentUserDep,
+    session: TenantSessionDep,
+) -> TimeEntryRead:
+    return TimeEntryRead.model_validate(await _time_svc(current, session).update(entry_id, data))
+
+
+@router.delete("/time-entries/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_time_entry(
+    entry_id: uuid.UUID, current: CurrentUserDep, session: TenantSessionDep
+) -> Response:
+    await _time_svc(current, session).delete(entry_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/time-entries/{entry_id}/submit", response_model=TimeEntryRead)
+async def submit_time_entry(
+    entry_id: uuid.UUID, current: CurrentUserDep, session: TenantSessionDep
+) -> TimeEntryRead:
+    return TimeEntryRead.model_validate(await _time_svc(current, session).submit(entry_id))
+
+
+@router.post(
+    "/time-entries/approve",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[require_permission("invoice:update")],
+)
+async def approve_time_entries(
+    data: TimeEntryIds, current: CurrentUserDep, session: TenantSessionDep
+) -> Response:
+    await _time_svc(current, session).approve(data.entry_ids)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    "/time-entries/reject",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[require_permission("invoice:update")],
+)
+async def reject_time_entries(
+    review: TimeEntryReject,
+    current: CurrentUserDep,
+    session: TenantSessionDep,
+) -> Response:
+    await _time_svc(current, session).approve(review.entry_ids, reject_reason=review.reason)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    "/time-entries/invoice",
+    response_model=InvoiceDetail,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[require_permission("invoice:create")],
+)
+async def invoice_time_entries(
+    data: TimeInvoiceCreate, current: CurrentUserDep, session: TenantSessionDep
+) -> InvoiceDetail:
+    return InvoiceDetail.model_validate(await _time_svc(current, session).invoice(data))
+
+
+@router.get("/time-import/template")
+async def download_time_template(current: CurrentUserDep) -> Response:
+    content = (
+        "Date,Counsel Email,Matter Number,Client Name,Hours,Description,Activity Type,Billable\r\n"
+        f"{date.today().strftime('%d/%m/%Y')},{current.email},M-0001,,1.5,"
+        "Conference and case research,Research,Yes\r\n"
+    )
+    return Response(
+        content=content,
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="vidhisangh-timesheet-template.csv"'},
+    )
+
+
+@router.post(
+    "/time-import/preview",
+    response_model=TimeImportPreview,
+    dependencies=[require_permission("invoice:create")],
+)
+async def preview_time_import(
+    current: CurrentUserDep,
+    session: TenantSessionDep,
+    file: Annotated[UploadFile, File(description="Excel .xlsx or CSV timesheet")],
+) -> TimeImportPreview:
+    payload = await read_limited(file)
+    validate_upload(payload, file.content_type, file.filename)
+    rows = normalise_rows(payload, file.filename or "timesheet.xlsx")
+    rows, _ = await _time_svc(current, session).resolve_import(rows, create=False)
+    return TimeImportPreview(
+        filename=file.filename or "timesheet.xlsx",
+        rows=rows,
+        valid_count=sum(not row.errors for row in rows),
+        error_count=sum(bool(row.errors) for row in rows),
+    )
+
+
+@router.post(
+    "/time-import/commit",
+    response_model=list[TimeEntryRead],
+    dependencies=[require_permission("invoice:create")],
+)
+async def commit_time_import(
+    data: TimeImportCommit, current: CurrentUserDep, session: TenantSessionDep
+) -> list[TimeEntryRead]:
+    rows, made = await _time_svc(current, session).resolve_import(data.rows, create=True)
+    if any(row.errors for row in rows):
+        raise ValidationError("Resolve all spreadsheet errors before importing.")
+    return [TimeEntryRead.model_validate(entry) for entry in made]
 
 
 @router.post(

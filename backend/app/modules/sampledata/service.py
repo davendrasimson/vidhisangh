@@ -17,7 +17,7 @@ from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.storage import Storage
-from app.modules.billing.models import Invoice, InvoiceFollowUp, InvoiceLineItem
+from app.modules.billing.models import Invoice, InvoiceFollowUp, InvoiceLineItem, TimeEntry
 from app.modules.calendar.models import CalendarEvent
 from app.modules.clients.models import Client, ClientKind
 from app.modules.crm.models import Lead, LeadActivity
@@ -307,6 +307,29 @@ class SampleDataService:
         )
         remember("invoices", invoice)
 
+        sample_time = TimeEntry(
+            tenant_id=self.tenant_id,
+            user_id=self.user_id,
+            matter_id=matters[0].id,
+            client_id=client.id,
+            work_date=today - timedelta(days=1),
+            duration_minutes=120,
+            description="Reviewed pleadings and prepared hearing note (sample).",
+            activity_type="Drafting",
+            billable=True,
+            hourly_rate=Decimal("5000"),
+            amount=Decimal("10000"),
+            status="approved",
+            source="manual",
+            submitted_at=now - timedelta(days=1),
+            approved_at=now,
+            approved_by=self.user_id,
+            created_by=self.user_id,
+        )
+        self.session.add(sample_time)
+        await self.session.flush()
+        remember("time_entries", sample_time)
+
         payment = Payment(
             tenant_id=self.tenant_id,
             amount=1500000,
@@ -428,6 +451,7 @@ class SampleDataService:
 
         for model, name in [
             (Payment, "payments"),
+            (TimeEntry, "time_entries"),
             (CalendarEvent, "calendar"),
             (Listing, "marketplace"),
             (Document, "documents"),

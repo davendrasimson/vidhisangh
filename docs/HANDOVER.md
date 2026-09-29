@@ -17,8 +17,9 @@ files it points to.
   (203.193.166.109). Wiring, deploy steps and ops runbook:
   [DEPLOYMENT.md](DEPLOYMENT.md). Security posture and go-live checklist:
   [SECURITY.md](SECURITY.md).
-- **Last big change**: registration now offers a removable guided sample workspace, and matter
-  detail supports direct document upload/list/download through the local/S3 storage abstraction.
+- **Last big change**: Billing now includes counsel timesheets, validated Excel/CSV import,
+  approval and invoice creation. Registration's removable guided workspace includes a sample
+  approved time entry. Matter detail supports direct document upload/list/download through the local/S3 storage abstraction.
   Sample cleanup uses an exact UUID/object-key manifest in tenant settings, so it cannot remove
   user-created records. The security/privacy remediation is backed by
   production malware scanning, SMTP failure alerts, a hardened edge, a tested
@@ -29,7 +30,7 @@ files it points to.
   [governance/README.md](governance/README.md).
 - **Code state**: git `master`, commit after `c5531eb` on
   `git@git.simsononline.com:saas/vidhisangh.git`. Alembic head is
-  `0053_draft_templates`, applied on production. Backend suite: 300+ tests
+  `0060_timesheets` (apply during this release). Backend suite: 300+ tests
   passing. Frontend: clean `ng build`.
 
 ## 2. Getting a working environment
@@ -141,6 +142,11 @@ external OTP verification, drawn signature and explicit consent, rejection and
 cancellation, encrypted signing evidence, source/final SHA-256 checksums, a
 sealed final copy and downloadable PDF audit certificate. The authenticated
 inbox is under Documents → E-signatures and the external route is `/esign/:token`.
+
+Counsel time billing is included from migration 0060. Manual entries and imported `.xlsx`/CSV
+rows use the same rate precedence (matter-team override, hourly rate card, matter hourly rate),
+approval workflow and duplicate-billing guard. Approved entries for a single client create a
+proforma or tax invoice from Billing → Timesheets.
 
 ## 5. Things that will surprise you
 
