@@ -643,7 +643,9 @@ class PlatformAdminService:
             ticket.assigned_to_id = self.actor_id
             ticket.assigned_to_name = actor_name
         if data.response:
-            self.session.add(
+            # Keep the loaded response collection in sync with the pending row;
+            # returning the ticket from the identity map must include the reply.
+            ticket.messages.append(
                 SupportTicketMessage(
                     tenant_id=ticket.tenant_id,
                     ticket_id=ticket.id,

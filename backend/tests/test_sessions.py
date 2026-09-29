@@ -5,6 +5,15 @@ from __future__ import annotations
 import pytest
 from httpx import AsyncClient
 
+
+@pytest.fixture(autouse=True)
+def legacy_body_token_mode(monkeypatch):
+    # Device rotation scenarios explicitly exercise the supported body-token
+    # client mode; cookie-only browser behavior has separate security tests.
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "REFRESH_TOKEN_IN_BODY", True)
+
 pytestmark = pytest.mark.asyncio
 
 API = "/api/v1"

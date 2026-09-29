@@ -37,8 +37,8 @@ async def _login(client: AsyncClient, email: str, password: str) -> dict[str, st
 async def test_ticket_and_platform_moderation(
     client: AsyncClient, strong_password: str, session_factory: async_sessionmaker
 ) -> None:
-    admin_headers = await _register(client, "Operator", "owner@platform.test", strong_password)
-    member_headers = await _register(client, "Client Firm", "member@client.test", strong_password)
+    admin_headers = await _register(client, "Operator", "owner@platform.co", strong_password)
+    member_headers = await _register(client, "Client Firm", "member@client.co", strong_password)
 
     created = await client.post(
         f"{API}/support/tickets",
@@ -58,11 +58,11 @@ async def test_ticket_and_platform_moderation(
     ).status_code == 403
 
     async with session_factory() as session:
-        owner = await session.scalar(select(User).where(User.email == "owner@platform.test"))
+        owner = await session.scalar(select(User).where(User.email == "owner@platform.co"))
         assert owner is not None
         owner.is_superuser = True
         await session.commit()
-    admin_headers = await _login(client, "owner@platform.test", strong_password)
+    admin_headers = await _login(client, "owner@platform.co", strong_password)
 
     overview = await client.get(f"{API}/platform-admin/overview", headers=admin_headers)
     assert overview.status_code == 200, overview.text
@@ -83,7 +83,7 @@ async def test_ticket_and_platform_moderation(
 
     users = (
         await client.get(
-            f"{API}/platform-admin/users", headers=admin_headers, params={"q": "member@client.test"}
+            f"{API}/platform-admin/users", headers=admin_headers, params={"q": "member@client.co"}
         )
     ).json()
     member = users[0]
@@ -106,7 +106,7 @@ async def test_ticket_and_platform_moderation(
         },
     )
     assert restored.json()["is_active"] is True
-    member_headers = await _login(client, "member@client.test", strong_password)
+    member_headers = await _login(client, "member@client.co", strong_password)
 
     post = await client.post(
         f"{API}/network/posts",

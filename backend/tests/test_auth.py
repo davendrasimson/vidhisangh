@@ -5,6 +5,15 @@ from __future__ import annotations
 import pytest
 from httpx import AsyncClient
 
+
+@pytest.fixture(autouse=True)
+def legacy_body_token_mode(monkeypatch):
+    # These tests exercise the supported body-token mode; cookie-only defaults
+    # are covered separately in test_auth_hardening.py.
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "REFRESH_TOKEN_IN_BODY", True)
+
 pytestmark = pytest.mark.asyncio
 
 

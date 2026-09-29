@@ -27,7 +27,12 @@ async def _owner(client: AsyncClient, org: str, email: str, pw: str) -> tuple[di
     return headers, me
 
 
-async def test_deactivate_and_reactivate(client: AsyncClient, strong_password: str) -> None:
+async def test_deactivate_and_reactivate(
+    client: AsyncClient, strong_password: str, monkeypatch
+) -> None:
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "REFRESH_TOKEN_IN_BODY", True)
     owner_h, _ = await _owner(client, "Active LLP", "owner@active.co", strong_password)
 
     created = await client.post(

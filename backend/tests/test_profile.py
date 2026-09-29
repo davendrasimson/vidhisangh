@@ -136,7 +136,7 @@ async def test_profile_masters_and_dpdp_group_masking(
                 professional_role="judicial_officer",
                 enrollment_number="D/123456/2012",
                 education=[{"institution": "Delhi University", "degree": "llb_3"}],
-                professional_email="private@example.test",
+                professional_email="private@chamber.co",
                 visibility_settings={
                     "about": "everyone",
                     "professional": "everyone",

@@ -91,7 +91,7 @@ async def test_malware_is_rejected_before_storage(
     upload = await client.post(
         f"{API}/documents",
         headers=h,
-        files={"file": ("infected.pdf", b"not stored", "application/pdf")},
+        files={"file": ("infected.pdf", b"%PDF-1.4\nmalware payload", "application/pdf")},
     )
     assert upload.status_code == 422
     assert upload.json()["title"] == "malware_detected"

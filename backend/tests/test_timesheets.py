@@ -16,7 +16,7 @@ async def _user(client: AsyncClient, password: str) -> tuple[dict[str, str], dic
         json={
             "organisation_name": "Time Chambers",
             "full_name": "Adv. Time Keeper",
-            "email": "time@chambers.test",
+            "email": "time@chambers.co",
             "password": password,
             "accept_terms": True,
         },
@@ -30,8 +30,8 @@ async def _user(client: AsyncClient, password: str) -> tuple[dict[str, str], dic
 def test_csv_timesheet_rows_are_normalised() -> None:
     rows = normalise_rows(
         b"Date,Counsel Email,Matter Number,Client Name,Hours,Description,Activity Type,Billable\n"
-        b"29/09/2026,lawyer@example.test,M-0042,,1.5,Drafted written submissions,Drafting,Yes\n"
-        b"bad-date,lawyer@example.test,M-0042,,0,,Research,No\n",
+        b"29/09/2026,lawyer@example.co,M-0042,,1.5,Drafted written submissions,Drafting,Yes\n"
+        b"bad-date,lawyer@example.co,M-0042,,0,,Research,No\n",
         "time.csv",
     )
     assert rows[0].duration_minutes == 90

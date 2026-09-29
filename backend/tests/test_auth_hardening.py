@@ -347,7 +347,10 @@ async def test_logout_uses_cookie_or_rtid_and_reports_nothing_to_revoke(client: 
 
 
 # ═══ A-23: grace window bound to the user agent ══════════════════════
-async def test_refresh_reuse_from_another_user_agent_is_theft(client: AsyncClient, strong_password: str) -> None:
+async def test_refresh_reuse_from_another_user_agent_is_theft(
+    client: AsyncClient, strong_password: str, monkeypatch
+) -> None:
+    monkeypatch.setattr(settings, "REFRESH_TOKEN_IN_BODY", True)
     signup = await client.post(f"{API}/auth/register", headers={"User-Agent": "Tab/1"}, json={
         "organisation_name": "UA LLP", "full_name": "Adv. U", "email": "ua@firm.co",
         "password": strong_password, "accept_terms": True})
@@ -447,7 +450,10 @@ async def test_temp_password_session_is_scoped_to_change_password(client: AsyncC
 
 
 # ═══ A-24c: immediate revocation via the denylist ════════════════════
-async def test_role_change_and_deactivation_revoke_access_tokens_immediately(client: AsyncClient, strong_password: str) -> None:
+async def test_role_change_and_deactivation_revoke_access_tokens_immediately(
+    client: AsyncClient, strong_password: str, monkeypatch
+) -> None:
+    monkeypatch.setattr(settings, "REFRESH_TOKEN_IN_BODY", True)
     owner_h = _bearer(await _register(client, "owner3@firm.co", strong_password))
     created = (await client.post(f"{API}/tenants/users", headers=owner_h,
                                  json={"email": "m3@firm.co", "full_name": "Member", "role_codes": ["org_admin"]})).json()
