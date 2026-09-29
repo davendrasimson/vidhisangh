@@ -1,6 +1,6 @@
 # Rollout validation — 29 September 2026
 
-Release recommendation: **hold rollout until the existing backend gates are green and staging integrations have been exercised**. Adding product help does not establish release readiness for the whole application.
+Deployment: **live at https://vidhisangh.com**, 29 September 2026. The backend synced, Alembic upgrade completed, API restarted, and the frontend bundle was then published.
 
 ## Delivered
 
@@ -14,7 +14,7 @@ Release recommendation: **hold rollout until the existing backend gates are gree
 
 Local environment: Node 24.18.0, Python 3.12.3, Chrome; most backend tests use isolated SQLite, in-memory storage and the repository's mocked dependencies. Both PostgreSQL RLS tests also ran successfully against the configured database using their rolled-back test transactions. The backend project and CI require Python 3.13, so CI must also pass on that supported runtime.
 
-Browser tests intercept API requests. They validate the production frontend's behavior, including form preservation and role-specific tour content. They do not validate a live backend or external providers. Backend regression data was isolated to test databases and rolled back by the test fixtures. The production host is `vidhisangh` (`203.193.166.109`); its API, nginx, PostgreSQL and Redis were active and database/Redis readiness passed before deployment.
+Browser tests intercept API requests. They validate the production frontend's behavior, including form preservation and role-specific tour content. They do not validate a live backend or external providers. Backend regression data was isolated to test databases and rolled back by the test fixtures. The production host is `vidhisangh` (`203.193.166.109`); its API, nginx, PostgreSQL and Redis remained active after deployment; direct liveness/readiness checks passed with database and Redis both healthy. The live HTTPS `/help` Playwright smoke test passed search and article deep-link navigation.
 
 ## Results
 
@@ -58,7 +58,7 @@ The tests exercise supported application behavior without weakening production c
 5. Verify configured eCourts/research providers, email delivery, payment gateway callbacks, document storage and WebSocket reconnects. Test denied access, expired links and provider failures as well as success paths.
 6. Confirm migrations, backup restoration and deployment rollback against the intended release environment; complete the repository's remaining CI security scans.
 
-These are rollout quality gates; do not treat the 71.30% coverage result as meeting the project threshold.
+The requested deployment proceeded after the complete backend test run passed, even though repository-wide coverage, lint, formatting and type gates remain below policy. Track those quality gates as post-deployment work; coverage remains 71.30% against the 85% requirement.
 
 ## Reproduction
 
