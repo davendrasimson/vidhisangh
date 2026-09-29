@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '@env/environment';
-import { DocFile, DocFolder, DocVersion } from '@core/models/documents.models';
+import { DocFile, DocFolder, DocVersion, PublicSignatureStep, SignatureEnvelope, SignatureSignerInput } from '@core/models/documents.models';
 
 /** Mirrors the API's VS_MAX_UPLOAD_BYTES / nginx client_max_body_size (25 MiB). */
 export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
@@ -96,4 +96,41 @@ export class DocumentsService {
   remove(id: string): Observable<void> {
     return this.http.delete<void>(`${this.api}/${id}`);
   }
+
+  prepareSignature(id: string, payload: { title: string; message: string; sequential: boolean; signers: SignatureSignerInput[] }): Observable<SignatureEnvelope> {
+    return this.http.post<SignatureEnvelope>(`${environment.apiBaseUrl}/signing/documents/${id}`, payload);
+  }
+
+  signatureEnvelopes(): Observable<SignatureEnvelope[]> {
+    return this.http.get<SignatureEnvelope[]>(`${environment.apiBaseUrl}/signing/envelopes`);
+  }
+
+  signStep(stepId: string, payload: { signed_name: string; designation?: string; signature_data: string; remarks?: string; consent: boolean }): Observable<SignatureEnvelope> {
+    return this.http.post<SignatureEnvelope>(`${environment.apiBaseUrl}/signing/steps/${stepId}/sign`, payload);
+  }
+
+  rejectStep(stepId: string, remarks: string): Observable<SignatureEnvelope> {
+    return this.http.post<SignatureEnvelope>(`${environment.apiBaseUrl}/signing/steps/${stepId}/reject`, { remarks });
+  }
+
+  cancelSignature(envelopeId: string): Observable<SignatureEnvelope> {
+    return this.http.post<SignatureEnvelope>(`${environment.apiBaseUrl}/signing/envelopes/${envelopeId}/cancel`, {});
+  }
+
+  signedDownload(envelopeId: string, certificate = false): Observable<Blob> {
+    return this.http.get(`${environment.apiBaseUrl}/signing/envelopes/${envelopeId}/download`, { params: { certificate }, responseType: 'blob' });
+  }
+
+  signatureSource(envelopeId: string): Observable<Blob> {
+    return this.http.get(`${environment.apiBaseUrl}/signing/envelopes/${envelopeId}/source`, { responseType: 'blob' });
+  }
+
+  publicSignature(token: string): Observable<PublicSignatureStep> {
+    return this.http.get<PublicSignatureStep>(`${environment.apiBaseUrl}/esign/${token}`);
+  }
+  sendSigningOtp(token: string): Observable<void> { return this.http.post<void>(`${environment.apiBaseUrl}/esign/${token}/send-otp`, {}); }
+  verifySigningOtp(token: string, otp: string): Observable<{ session_token: string; expires_at: string }> { return this.http.post<{ session_token: string; expires_at: string }>(`${environment.apiBaseUrl}/esign/${token}/verify-otp`, { otp }); }
+  publicSigningDocument(token: string, session: string): Observable<Blob> { return this.http.get(`${environment.apiBaseUrl}/esign/${token}/document`, { params: { session_token: session }, responseType: 'blob' }); }
+  publicSign(token: string, session: string, payload: { signed_name: string; designation?: string; signature_data: string; remarks?: string; consent: boolean }): Observable<PublicSignatureStep> { return this.http.post<PublicSignatureStep>(`${environment.apiBaseUrl}/esign/${token}/sign`, payload, { params: { session_token: session } }); }
+  publicReject(token: string, session: string, remarks: string): Observable<PublicSignatureStep> { return this.http.post<PublicSignatureStep>(`${environment.apiBaseUrl}/esign/${token}/reject`, { remarks }, { params: { session_token: session } }); }
 }

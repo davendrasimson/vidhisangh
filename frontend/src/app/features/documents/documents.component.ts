@@ -11,7 +11,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { AuthService } from '@core/auth/auth.service';
-import { DocFile, DocFolder, DocVersion } from '@core/models/documents.models';
+import { DocFile, DocFolder, DocVersion, SignatureEnvelope, SignatureSignerInput, SignatureStep } from '@core/models/documents.models';
 import { DocumentsService } from '@core/services/documents.service';
 import { NotificationService } from '@core/services/notification.service';
 import { DRAFT_TEMPLATES, DraftCategory, DraftLanguage, DraftRole, DraftTemplate, FIELD_LABELS, LocalText, renderDraft } from './legal-drafting-templates';
@@ -19,7 +19,8 @@ import { ClientChoice, VsClientPickerComponent } from '@shared/client-picker/vs-
 import { ProfileService } from '@core/services/profile.service';
 import { ProfileDetail } from '@core/models/profile.models';
 import { MattersService } from '@core/services/matters.service';
-import { ECourtsCase, MatterDetail } from '@core/models/matters.models';
+import { ECourtsCase, MatterDetail, Person } from '@core/models/matters.models';
+import { SignaturePadComponent } from '@shared/signature-pad/signature-pad.component';
 
 const todayDdMmYyyy = (): string => { const d = new Date(); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`; };
 
@@ -27,7 +28,7 @@ const todayDdMmYyyy = (): string => { const d = new Date(); return `${String(d.g
   selector: 'app-documents',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, DatePipe, MatIconModule, MatButtonModule, MatMenuModule, VsRichEditorComponent, VsClientPickerComponent],
+  imports: [FormsModule, DatePipe, MatIconModule, MatButtonModule, MatMenuModule, VsRichEditorComponent, VsClientPickerComponent, SignaturePadComponent],
   templateUrl: './documents.component.html',
   styleUrl: './documents.component.scss',
 })
@@ -42,7 +43,7 @@ export class DocumentsComponent implements OnInit {
   private readonly profiles = inject(ProfileService);
   private readonly matters = inject(MattersService);
 
-  protected readonly view = signal<'draft' | 'drafts' | 'files'>('draft');
+  protected readonly view = signal<'draft' | 'drafts' | 'files' | 'signatures'>('draft');
   /** Who this work is for. Null = no client (office formats, the firm's own papers).
    *  New drafts and uploads carry it; lists narrow to it while `onlyClient` is on. */
   protected readonly client = signal<ClientChoice | null>(null);
@@ -123,6 +124,20 @@ export class DocumentsComponent implements OnInit {
   protected readonly openVersions = signal<Record<string, DocVersion[] | undefined>>({});
   private versioning: DocFile | null = null;
   protected readonly myId = computed(() => this.auth.user()?.id ?? '');
+  protected readonly signatureEnvelopes = signal<SignatureEnvelope[]>([]);
+  protected readonly teamPeople = signal<Person[]>([]);
+  protected readonly signingLoading = signal(false);
+  protected readonly preparingDocument = signal<DocFile | null>(null);
+  protected signatureTitle = '';
+  protected signatureMessage = 'Please review and electronically sign this document.';
+  protected sequentialSigning = true;
+  protected signerRows: SignatureSignerInput[] = [];
+  protected readonly signingStep = signal<SignatureStep | null>(null);
+  protected signingName = '';
+  protected signingDesignation = '';
+  protected signingRemarks = '';
+  protected signingConsent = false;
+  protected readonly signingImage = signal('');
 
   async ngOnInit(): Promise<void> {
     // Arriving from a client record: /app/documents?client_id=…&client_name=…
@@ -148,6 +163,7 @@ export class DocumentsComponent implements OnInit {
     // Deep link from the editor's back button: /app/documents?view=drafts
     if (this.route.snapshot.queryParamMap.get('view') === 'drafts') await this.showDrafts();
     await this.load();
+    if (q.get('view') === 'signatures') await this.showSignatures();
   }
 
   /** Picked, added or cleared the client — the lists follow it. */
@@ -515,6 +531,36 @@ export class DocumentsComponent implements OnInit {
   protected lockedByMe(doc: DocFile): boolean { return doc.locked_by === this.myId(); }
   protected async toggleLock(doc: DocFile): Promise<void> { try { this.patch(doc.locked_by ? await firstValueFrom(this.docs.checkin(doc.id)) : await firstValueFrom(this.docs.checkout(doc.id))); } catch { /* handled */ } }
   protected async remove(doc: DocFile): Promise<void> { try { await firstValueFrom(this.docs.remove(doc.id)); this.files.update((items) => items.filter((item) => item.id !== doc.id)); } catch { /* handled */ } }
+  protected async showSignatures(): Promise<void> {
+    this.view.set('signatures'); this.signingLoading.set(true);
+    try { this.signatureEnvelopes.set(await firstValueFrom(this.docs.signatureEnvelopes())); }
+    catch { /* handled */ } finally { this.signingLoading.set(false); }
+  }
+  protected startSignature(doc: DocFile): void {
+    this.preparingDocument.set(doc); this.signatureTitle = doc.name; this.signerRows = [];
+    this.signatureMessage = 'Please review and electronically sign this document.'; this.sequentialSigning = true;
+    if (!this.teamPeople().length) void this.loadSigningPeople();
+    this.addSigner('internal');
+  }
+  private async loadSigningPeople(): Promise<void> { try { this.teamPeople.set(await firstValueFrom(this.matters.people())); } catch { /* handled */ } }
+  protected addSigner(kind: 'internal' | 'external'): void { this.signerRows = [...this.signerRows, { kind, user_id: null, name: '', email: '', designation: '' }]; }
+  protected removeSigner(index: number): void { this.signerRows = this.signerRows.filter((_, i) => i !== index); }
+  protected signerKind(index: number, kind: 'internal' | 'external'): void { this.signerRows[index] = { kind, user_id: null, name: '', email: '', designation: '' }; this.signerRows = [...this.signerRows]; }
+  protected selectInternal(index: number, userId: string): void { const p = this.teamPeople().find((item) => item.id === userId); if (!p) return; this.signerRows[index] = { ...this.signerRows[index], user_id: p.id, name: p.full_name, email: p.email }; this.signerRows = [...this.signerRows]; }
+  protected canSendSignature(): boolean { return !!this.preparingDocument() && this.signatureTitle.trim().length > 1 && this.signerRows.length > 0 && this.signerRows.every((s) => s.name.trim().length > 1 && /@/.test(s.email) && (s.kind === 'external' || !!s.user_id)); }
+  protected async sendForSignature(): Promise<void> {
+    const doc = this.preparingDocument(); if (!doc || !this.canSendSignature()) return;
+    try { const created = await firstValueFrom(this.docs.prepareSignature(doc.id, { title: this.signatureTitle.trim(), message: this.signatureMessage.trim(), sequential: this.sequentialSigning, signers: this.signerRows })); this.signatureEnvelopes.update((items) => [created, ...items]); this.preparingDocument.set(null); this.notify.success('Document sent for electronic signature.'); await this.showSignatures(); } catch { /* handled */ }
+  }
+  protected myPendingStep(envelope: SignatureEnvelope): SignatureStep | undefined { return envelope.steps.find((s) => s.signer_user_id === this.myId() && s.status === 'pending'); }
+  protected openSign(step: SignatureStep): void { this.signingStep.set(step); this.signingName = step.signer_name; this.signingDesignation = step.designation ?? ''; this.signingRemarks = ''; this.signingConsent = false; this.signingImage.set(''); }
+  protected canApplySignature(): boolean { return !!this.signingStep() && this.signingName.trim().length > 1 && !!this.signingImage() && this.signingConsent; }
+  protected async applySignature(): Promise<void> { const step = this.signingStep(); if (!step || !this.canApplySignature()) return; try { const updated = await firstValueFrom(this.docs.signStep(step.id, { signed_name: this.signingName, designation: this.signingDesignation, signature_data: this.signingImage(), remarks: this.signingRemarks, consent: this.signingConsent })); this.replaceEnvelope(updated); this.signingStep.set(null); this.notify.success('Electronic signature applied.'); } catch { /* handled */ } }
+  protected async rejectSignature(step: SignatureStep): Promise<void> { const reason = window.prompt('Reason for rejecting this document:')?.trim(); if (!reason) return; try { this.replaceEnvelope(await firstValueFrom(this.docs.rejectStep(step.id, reason))); } catch { /* handled */ } }
+  protected async cancelSignature(envelope: SignatureEnvelope): Promise<void> { if (!window.confirm(`Cancel the signature request for "${envelope.document_name}"?`)) return; try { this.replaceEnvelope(await firstValueFrom(this.docs.cancelSignature(envelope.id))); } catch { /* handled */ } }
+  protected async downloadSigned(envelope: SignatureEnvelope, certificate = false): Promise<void> { try { const blob = await firstValueFrom(this.docs.signedDownload(envelope.id, certificate)); this.save(blob, certificate ? `${envelope.document_name}-signature-certificate.pdf` : `Signed-${envelope.document_name}`); } catch { /* handled */ } }
+  protected async downloadSignatureSource(envelope: SignatureEnvelope): Promise<void> { try { this.save(await firstValueFrom(this.docs.signatureSource(envelope.id)), envelope.document_name); } catch { /* handled */ } }
+  private replaceEnvelope(updated: SignatureEnvelope): void { this.signatureEnvelopes.update((items) => items.map((item) => item.id === updated.id ? updated : item)); }
   protected fileSize(bytes: number): string { if (bytes < 1024) return `${bytes} B`; if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`; return `${(bytes / (1024 * 1024)).toFixed(1)} MB`; }
   private patch(updated: DocFile): void { this.files.update((items) => items.map((item) => item.id === updated.id ? updated : item)); }
   private save(blob: Blob, filename: string): void { const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = filename; anchor.click(); URL.revokeObjectURL(url); }

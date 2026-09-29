@@ -27,6 +27,7 @@ class NotificationType(StrEnum):
     KYC_SUBMITTED = "kyc_submitted"
     MATTER_ASSIGNED = "matter_assigned"
     SUPPORT_UPDATE = "support_update"
+    DOCUMENT_SIGNATURE = "document_signature"
 
 
 class NotificationChannel(StrEnum):

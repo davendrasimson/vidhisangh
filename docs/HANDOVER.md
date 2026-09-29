@@ -135,6 +135,13 @@ The Documents drafting workspace also supports firm-owned Word templates
 `[[field]]` placeholders, manage field labels/types/required status, generate an
 editable draft, and save any editor document back as a reusable template.
 
+Document e-signing is included from migration 0059: freeze a stored version,
+send an ordered workflow to internal accounts or external email recipients,
+external OTP verification, drawn signature and explicit consent, rejection and
+cancellation, encrypted signing evidence, source/final SHA-256 checksums, a
+sealed final copy and downloadable PDF audit certificate. The authenticated
+inbox is under Documents → E-signatures and the external route is `/esign/:token`.
+
 ## 5. Things that will surprise you
 
 - Users see: 5 failed logins lock the account for 15 minutes; sessions are

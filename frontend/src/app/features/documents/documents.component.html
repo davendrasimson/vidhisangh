@@ -69,6 +69,11 @@
       My documents
       <span>{{ files().length }}</span>
     </button>
+    <button [class.active]="view() === 'signatures'" (click)="showSignatures()">
+      <mat-icon class="material-icons-outlined">draw</mat-icon>
+      E-signatures
+      @if (signatureEnvelopes().length) { <span>{{ signatureEnvelopes().length }}</span> }
+    </button>
   </nav>
 
   @if (view() === 'draft') {
@@ -316,6 +321,7 @@
                   @if (doc.client_id) {
                     <button mat-menu-item (click)="assignClient(doc, null)"><mat-icon class="material-icons-outlined">person_off</mat-icon><span>Remove client ({{ doc.client_name }})</span></button>
                   }
+                  <button mat-menu-item (click)="startSignature(doc)"><mat-icon class="material-icons-outlined">draw</mat-icon><span>Prepare for e-signature</span></button>
                   <button mat-menu-item (click)="toggleLock(doc)" [disabled]="doc.locked_by && !lockedByMe(doc)"><mat-icon class="material-icons-outlined">{{ doc.locked_by ? 'lock_open' : 'lock' }}</mat-icon><span>{{ doc.locked_by ? 'Check in' : 'Check out' }}</span></button>
                   <button mat-menu-item (click)="remove(doc)"><mat-icon class="material-icons-outlined text-danger">delete</mat-icon><span>Delete</span></button>
                 </mat-menu>
@@ -326,5 +332,50 @@
         }
       }
     </section>
+  }
+
+  @if (view() === 'signatures') {
+    <section class="signature-workspace">
+      <div class="file-header"><div><h2>Electronic signatures</h2><p>Track documents sent by you and documents awaiting your signature.</p></div><button mat-stroked-button (click)="view.set('files')"><mat-icon>add</mat-icon>Select a document</button></div>
+      <div class="signature-assurance panel"><mat-icon class="material-icons-outlined">verified_user</mat-icon><div><strong>Evidence-backed signing</strong><p>The selected version is frozen by checksum. External signers verify their email with an OTP; consent, timestamps and signing evidence are retained in the audit certificate.</p></div></div>
+      @if (signingLoading()) { <div class="loading-state">Loading signature requests…</div> }
+      @else if (!signatureEnvelopes().length) { <div class="files-empty panel"><span><mat-icon>draw</mat-icon></span><h3>No signature requests yet</h3><p>Open My documents and choose “Prepare for e-signature”.</p></div> }
+      @else {
+        <div class="envelope-list">
+          @for (envelope of signatureEnvelopes(); track envelope.id) {
+            <article class="envelope-card panel">
+              <div class="envelope-head"><div><span class="status" [attr.data-status]="envelope.status">{{ envelope.status }}</span><h3>{{ envelope.document_name }}</h3><p>{{ envelope.title }} · Sent {{ envelope.sent_at | date: 'dd/MM/yyyy, h:mm a' }}</p></div><div class="envelope-actions"><button mat-stroked-button (click)="downloadSignatureSource(envelope)"><mat-icon>visibility</mat-icon>Review document</button>
+                @if (myPendingStep(envelope); as step) { <button mat-flat-button color="primary" (click)="openSign(step)"><mat-icon>draw</mat-icon>Review & sign</button><button mat-button (click)="rejectSignature(step)">Reject</button> }
+                @if (envelope.status === 'completed') { <button mat-stroked-button (click)="downloadSigned(envelope)"><mat-icon>download</mat-icon>Signed copy</button><button mat-button (click)="downloadSigned(envelope, true)">Certificate</button> }
+                @if (envelope.status === 'pending' && envelope.created_by === myId()) { <button mat-button (click)="cancelSignature(envelope)">Cancel</button> }
+              </div></div>
+              <div class="signer-track">@for (step of envelope.steps; track step.id) { <div [class.done]="step.status === 'signed'" [class.current]="step.status === 'pending'"><span>{{ step.step_order }}</span><p><strong>{{ step.signer_name }}</strong><small>{{ step.signer_kind }} · {{ step.status }} @if (step.signed_at) { · {{ step.signed_at | date: 'dd/MM/yyyy, h:mm a' }} }</small></p></div> }</div>
+              <details><summary>Audit trail and checksum</summary><code>Source SHA-256: {{ envelope.source_checksum }}</code>@if (envelope.final_checksum) { <code>Final SHA-256: {{ envelope.final_checksum }}</code> }@for (event of envelope.events; track event.id) { <p><b>{{ event.created_at | date: 'dd/MM/yyyy, h:mm a' }}</b> · {{ event.detail['description'] }}</p> }</details>
+            </article>
+          }
+        </div>
+      }
+    </section>
+  }
+
+  @if (preparingDocument(); as doc) {
+    <div class="modal-backdrop"><section class="signature-modal panel"><div class="modal-head"><div><span class="eyebrow">PREPARE FOR SIGNATURE</span><h2>{{ doc.name }}</h2><p>The current version will be frozen when you send this request.</p></div><button mat-icon-button (click)="preparingDocument.set(null)"><mat-icon>close</mat-icon></button></div>
+      <div class="signature-form"><label>Request title<input class="vs-input" [(ngModel)]="signatureTitle" /></label><label>Message to signers<textarea class="vs-input" rows="2" [(ngModel)]="signatureMessage"></textarea></label><label class="sequence"><input type="checkbox" [(ngModel)]="sequentialSigning" /> Sign in the order shown below</label></div>
+      <div class="signer-builder"><div class="builder-title"><strong>Signers</strong><span>Internal signers use their VidhiSangh account. External signers receive a secure email link and OTP.</span></div>
+        @for (signer of signerRows; track $index; let index = $index) { <div class="signer-row"><b>{{ index + 1 }}</b><select class="vs-input" [ngModel]="signer.kind" (ngModelChange)="signerKind(index, $event)"><option value="internal">Internal user</option><option value="external">External signer</option></select>
+          @if (signer.kind === 'internal') { <select class="vs-input" [ngModel]="signer.user_id" (ngModelChange)="selectInternal(index, $event)"><option [ngValue]="null">Select colleague</option>@for (person of teamPeople(); track person.id) { <option [value]="person.id">{{ person.full_name }} · {{ person.email }}</option> }</select> }
+          @else { <input class="vs-input" placeholder="Signer name" [(ngModel)]="signer.name" /><input class="vs-input" type="email" placeholder="Email address" [(ngModel)]="signer.email" /> }
+          <input class="vs-input" placeholder="Designation (optional)" [(ngModel)]="signer.designation" /><button mat-icon-button [disabled]="signerRows.length === 1" (click)="removeSigner(index)"><mat-icon>delete</mat-icon></button></div> }
+        <div class="add-signers"><button mat-button (click)="addSigner('internal')"><mat-icon>person_add</mat-icon>Internal</button><button mat-button (click)="addSigner('external')"><mat-icon>mail</mat-icon>External</button></div>
+      </div>
+      <div class="modal-actions"><button mat-button (click)="preparingDocument.set(null)">Cancel</button><button mat-flat-button color="primary" [disabled]="!canSendSignature()" (click)="sendForSignature()"><mat-icon>send</mat-icon>Send for signature</button></div>
+    </section></div>
+  }
+
+  @if (signingStep(); as step) {
+    <div class="modal-backdrop"><section class="signature-modal sign-now panel"><div class="modal-head"><div><span class="eyebrow">YOUR SIGNATURE</span><h2>Review and sign</h2><p>Signing as {{ step.signer_email }}</p></div><button mat-icon-button (click)="signingStep.set(null)"><mat-icon>close</mat-icon></button></div>
+      <div class="signature-form two"><label>Full legal name<input class="vs-input" [(ngModel)]="signingName" /></label><label>Designation<input class="vs-input" [(ngModel)]="signingDesignation" /></label><label class="full">Draw signature<app-signature-pad (signatureChange)="signingImage.set($event)" /></label><label class="full">Remarks<textarea class="vs-input" rows="2" [(ngModel)]="signingRemarks"></textarea></label><label class="sequence full"><input type="checkbox" [(ngModel)]="signingConsent" /> I have reviewed the document and consent to apply my electronic signature.</label></div>
+      <div class="modal-actions"><button mat-button (click)="signingStep.set(null)">Cancel</button><button mat-flat-button color="primary" [disabled]="!canApplySignature()" (click)="applySignature()"><mat-icon>verified</mat-icon>Apply signature</button></div>
+    </section></div>
   }
 </div>

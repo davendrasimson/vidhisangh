@@ -40,6 +40,8 @@ from app.modules.profile.router import router as profile_router
 from app.modules.rates.router import router as rates_router
 from app.modules.research.router import router as research_router
 from app.modules.sampledata.router import router as sampledata_router
+from app.modules.signing.router import public_router as esign_public_router
+from app.modules.signing.router import router as signing_router
 from app.modules.support.router import router as support_router
 from app.modules.tenancy.router import router as tenancy_router
 from app.modules.webhooks.router import router as webhooks_router
@@ -56,6 +58,8 @@ api_router.include_router(messaging_router)
 api_router.include_router(notifications_router)
 api_router.include_router(matters_router)
 api_router.include_router(documents_router)
+api_router.include_router(signing_router)
+api_router.include_router(esign_public_router)
 api_router.include_router(drafting_router)
 api_router.include_router(clients_router)
 api_router.include_router(kyc_public_router)

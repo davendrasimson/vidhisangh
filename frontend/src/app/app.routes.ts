@@ -54,6 +54,11 @@ export const routes: Routes = [
       import('@features/billing/invoice-verification.component').then((m) => m.InvoiceVerificationComponent),
   },
   {
+    path: 'esign/:token',
+    loadComponent: () =>
+      import('@features/documents/public-sign.component').then((m) => m.PublicSignComponent),
+  },
+  {
     path: 'platform-admin',
     canActivate: [authGuard],
     loadComponent: () =>
