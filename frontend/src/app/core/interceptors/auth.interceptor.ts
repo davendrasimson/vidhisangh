@@ -51,7 +51,13 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
       return from(refreshInFlight).pipe(
         switchMap((token): Observable<never> | ReturnType<typeof next> => {
-          if (!token) return throwError(() => err);
+          if (!token) {
+            // restoreSession keeps the marker on network/server errors so the
+            // page can retain its current data and try again. A missing marker
+            // means the refresh cookie was rejected and re-login is required.
+            if (!tokens.hasSession) void auth.redirectToLoginAfterExpiry();
+            return throwError(() => err);
+          }
           return next(withAuth(token));
         }),
       );

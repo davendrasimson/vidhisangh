@@ -42,7 +42,9 @@ export class LoginComponent implements OnInit {
   protected readonly infoMsg = signal<string | null>(
     this.route.snapshot.queryParamMap.get('changed') === '1'
       ? 'Your password was changed. Sign in again with the new one.'
-      : null,
+      : this.route.snapshot.queryParamMap.get('reason') === 'session_expired'
+        ? 'Your session has expired. Sign in again to continue where you left off.'
+        : null,
   );
   protected hidePassword = signal(true);
   protected readonly ssoProviders = signal<SsoProvider[]>([]);

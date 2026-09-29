@@ -218,8 +218,12 @@ export class AuthService {
    * cookie. Returns true if authenticated.
    */
   async restoreSession(): Promise<boolean> {
-    if (this.isAuthenticated()) return true;
+    // A tab can remain open longer than the 15-minute access-token lifetime.
+    // Being marked authenticated is not enough: an expired in-memory token
+    // must be renewed before the next protected request is replayed.
+    if (this.isAuthenticated() && !this.tokens.isAccessExpired()) return true;
     if (!this.tokens.hasSession) {
+      this._user.set(null);
       this._status.set('anonymous');
       return false;
     }
@@ -235,7 +239,7 @@ export class AuthService {
   }
 
   private async restoreSessionUnlocked(): Promise<boolean> {
-    if (this.isAuthenticated()) return true;
+    if (this.isAuthenticated() && !this.tokens.isAccessExpired()) return true;
     for (let attempt = 0; ; attempt++) {
       try {
         if (this.tokens.isAccessExpired()) {
@@ -255,10 +259,27 @@ export class AuthService {
         // Only a rejected token means the session is gone. Anything else
         // (rate limit, network, server error) keeps the marker so the next
         // navigation can try again instead of forcing a new sign-in.
-        if (status === 401 || status === 403) this.tokens.dropAccessToken();
-        this._status.set('anonymous');
+        if (status === 401 || status === 403) {
+          this.tokens.dropAccessToken();
+          this._user.set(null);
+          this._status.set('anonymous');
+        }
         return false;
       }
+    }
+  }
+
+  /** A refresh token was definitively rejected: clear local state and sign in again. */
+  async redirectToLoginAfterExpiry(): Promise<void> {
+    const returnUrl = this.router.url.startsWith('/auth') ? '/app/dashboard' : this.router.url;
+    this.tokens.clear();
+    this._user.set(null);
+    this._status.set('anonymous');
+    this.channel?.postMessage({ type: 'logout' });
+    if (!this.router.url.startsWith('/auth')) {
+      await this.router.navigate(['/auth/login'], {
+        queryParams: { returnUrl, reason: 'session_expired' },
+      });
     }
   }
 }

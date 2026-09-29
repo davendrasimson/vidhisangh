@@ -153,7 +153,11 @@ export class MattersComponent implements OnInit {
       }
       this.list.set(all);
     } catch {
-      this.loadError.set(true);
+      if (this.list().length) {
+        this.notify.error('Could not refresh matters. Showing the last loaded information.');
+      } else {
+        this.loadError.set(true);
+      }
     } finally {
       this.loading.set(false);
     }
