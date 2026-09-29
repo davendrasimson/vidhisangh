@@ -189,6 +189,11 @@ async def test_mentions(client: AsyncClient, strong_password: str) -> None:
 
 
 async def test_share_repost(client: AsyncClient, strong_password: str) -> None:
+    # The original post's created_at is UTC-aware. The repost snapshot must use
+    # timestamptz as well (SQLite accepts either; this guards the PostgreSQL bind).
+    from app.modules.network.models import Post
+
+    assert Post.__table__.c.shared_created_at.type.timezone is True
     h1, _ = await _user(client, "Firm A", "orig@firma.co", strong_password)
     h2, _ = await _user(client, "Firm B", "resharer@firmb.co", strong_password)
 

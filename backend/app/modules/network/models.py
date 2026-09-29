@@ -17,6 +17,7 @@ from enum import StrEnum
 from sqlalchemy import (
     JSON,
     Boolean,
+    DateTime,
     ForeignKey,
     Integer,
     String,
@@ -144,7 +145,12 @@ class Post(AuditedBase):
     shared_author_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
     shared_author_avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     shared_content: Mapped[str | None] = mapped_column(Text, nullable=True)
-    shared_created_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    # Original posts use the audited base's UTC timestamptz. Keep the frozen
+    # snapshot timezone-aware too; asyncpg rejects an aware source datetime
+    # when the ORM bind is incorrectly declared as TIMESTAMP WITHOUT TIME ZONE.
+    shared_created_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     reactions: Mapped[list["PostReaction"]] = relationship(
         back_populates="post", cascade="all, delete-orphan"
