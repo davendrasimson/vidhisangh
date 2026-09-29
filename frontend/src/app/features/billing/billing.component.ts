@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, of } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { BillingService } from '@core/services/billing.service';
@@ -54,6 +54,8 @@ export class BillingComponent implements OnInit {
   protected readonly saving = signal(false);
   protected readonly canManageTime = this.auth.hasPermission('invoice:update');
   protected readonly canImportTime = this.auth.hasPermission('invoice:create');
+  protected readonly canReadInvoices = this.auth.hasPermission('invoice:read');
+  protected readonly canCreateInvoices = this.auth.hasPermission('invoice:create');
   protected timeForm = {
     work_date: new Date().toISOString().slice(0, 10), matter_id: '', client_id: '',
     hours: 1, description: '', activity_type: 'Professional work', billable: true,
@@ -70,6 +72,7 @@ export class BillingComponent implements OnInit {
     const q = this.route.snapshot.queryParamMap;
     if (q.get('client_name')) this.form.client_name = q.get('client_name')!;
     this.form.client_id = q.get('client_id'); this.form.matter_id = q.get('matter_id');
+    if (q.get('section') === 'timesheets' || !this.canReadInvoices) this.view.set('timesheets');
     if (q.get('prepare') === '1') this.showForm.set(true);
     await this.reloadAll();
   }
@@ -78,6 +81,7 @@ export class BillingComponent implements OnInit {
   protected async setFilter(next: Filter): Promise<void> { this.filter.set(next); await this.loadInvoices(); }
 
   private async loadInvoices(): Promise<void> {
+    if (!this.canReadInvoices) { this.invoices.set([]); return; }
     const f = this.filter();
     this.invoices.set(await firstValueFrom(
       f === 'pending' ? this.billing.pending() : this.billing.list(f === 'all' ? undefined : f),
@@ -88,8 +92,10 @@ export class BillingComponent implements OnInit {
     this.loading.set(true);
     try {
       const [all, summary, followUps, receipts, time, matters, clients] = await Promise.all([
-        firstValueFrom(this.billing.list()), firstValueFrom(this.billing.summary()),
-        firstValueFrom(this.billing.followUps()), firstValueFrom(this.billing.receipts()),
+        firstValueFrom(this.canReadInvoices ? this.billing.list() : of([] as Invoice[])),
+        firstValueFrom(this.canReadInvoices ? this.billing.summary() : of(null)),
+        firstValueFrom(this.canReadInvoices ? this.billing.followUps() : of([] as InvoiceFollowUp[])),
+        firstValueFrom(this.canReadInvoices ? this.billing.receipts() : of([] as BillingReceipt[])),
         firstValueFrom(this.billing.timeEntries(this.canManageTime)),
         firstValueFrom(this.mattersService.list(undefined, 1, 100)),
         firstValueFrom(this.clientsService.list()),

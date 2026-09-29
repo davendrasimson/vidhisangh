@@ -135,6 +135,7 @@ export class ShellComponent implements OnInit {
         { label: 'Calendar', icon: 'event', route: '/app/calendar', permission: 'hearing:read' },
         { label: 'CRM', icon: 'contacts', route: '/app/crm', permission: 'lead:read' },
         { label: 'Clients', icon: 'badge', route: '/app/clients', permission: 'client:read' },
+        { label: 'My timesheets', icon: 'schedule', route: '/app/billing', queryParams: { section: 'timesheets' }, permission: 'timeentry:read' },
         { label: 'Billing', icon: 'payments', route: '/app/billing', permission: 'invoice:read' },
         { label: 'Payments', icon: 'account_balance_wallet', route: '/app/payments', permission: 'invoice:read' },
       ],

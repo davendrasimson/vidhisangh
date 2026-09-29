@@ -285,7 +285,11 @@ async def update_billing_branding(
 
 
 # ─── Counsel time and spreadsheet billing ─────────────────────────
-@router.get("/time-entries", response_model=list[TimeEntryRead])
+@router.get(
+    "/time-entries",
+    response_model=list[TimeEntryRead],
+    dependencies=[require_permission("timeentry:read")],
+)
 async def list_my_time(
     current: CurrentUserDep,
     session: TenantSessionDep,
@@ -307,14 +311,23 @@ async def list_firm_time(
     return await _time_svc(current, session).list(all_users=True, status=status_filter)
 
 
-@router.post("/time-entries", response_model=TimeEntryRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/time-entries",
+    response_model=TimeEntryRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[require_permission("timeentry:create")],
+)
 async def create_time_entry(
     data: TimeEntryCreate, current: CurrentUserDep, session: TenantSessionDep
 ) -> TimeEntryRead:
     return TimeEntryRead.model_validate(await _time_svc(current, session).create(data))
 
 
-@router.patch("/time-entries/{entry_id}", response_model=TimeEntryRead)
+@router.patch(
+    "/time-entries/{entry_id}",
+    response_model=TimeEntryRead,
+    dependencies=[require_permission("timeentry:create")],
+)
 async def update_time_entry(
     entry_id: uuid.UUID,
     data: TimeEntryUpdate,
@@ -324,7 +337,11 @@ async def update_time_entry(
     return TimeEntryRead.model_validate(await _time_svc(current, session).update(entry_id, data))
 
 
-@router.delete("/time-entries/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/time-entries/{entry_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[require_permission("timeentry:create")],
+)
 async def delete_time_entry(
     entry_id: uuid.UUID, current: CurrentUserDep, session: TenantSessionDep
 ) -> Response:
@@ -332,7 +349,11 @@ async def delete_time_entry(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.post("/time-entries/{entry_id}/submit", response_model=TimeEntryRead)
+@router.post(
+    "/time-entries/{entry_id}/submit",
+    response_model=TimeEntryRead,
+    dependencies=[require_permission("timeentry:create")],
+)
 async def submit_time_entry(
     entry_id: uuid.UUID, current: CurrentUserDep, session: TenantSessionDep
 ) -> TimeEntryRead:
@@ -377,7 +398,7 @@ async def invoice_time_entries(
     return InvoiceDetail.model_validate(await _time_svc(current, session).invoice(data))
 
 
-@router.get("/time-import/template")
+@router.get("/time-import/template", dependencies=[require_permission("timeentry:read")])
 async def download_time_template(current: CurrentUserDep) -> Response:
     content = (
         "Date,Counsel Email,Matter Number,Client Name,Hours,Description,Activity Type,Billable\r\n"

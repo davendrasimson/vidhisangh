@@ -192,7 +192,8 @@ _SYSTEM_ROLES: list[RoleDef] = [
         [
             "matter:read", "hearing:read", "task:create", "task:read", "task:update",
             "document:create", "document:read", "research:use", "ai:draft",
-            "knowledge:read", "profile:update", "calendar:manage", *_INTERNAL_COMMON,
+            "timeentry:create", "timeentry:read", "knowledge:read", "profile:update",
+            "calendar:manage", *_INTERNAL_COMMON,
         ],
     ),
     RoleDef(
@@ -243,7 +244,8 @@ _SYSTEM_ROLES: list[RoleDef] = [
         "In-house legal for corporate tenants.",
         [
             "matter:manage", "document:manage", "task:manage", "research:use",
-            "ai:draft", "ai:assist", "knowledge:manage", "invoice:read", "profile:update",
+            "ai:draft", "ai:assist", "knowledge:manage", "invoice:read",
+            "timeentry:create", "timeentry:read", "profile:update",
             "calendar:manage", *_INTERNAL_COMMON,
         ],
     ),
