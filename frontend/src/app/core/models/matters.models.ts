@@ -8,6 +8,63 @@ export type Priority = 'low' | 'medium' | 'high';
 export type HearingStatus = 'scheduled' | 'held' | 'adjourned' | 'cancelled';
 export type TaskStatus = 'open' | 'done';
 
+export type MatterCustomFieldType =
+  | 'text' | 'multiline' | 'rich_text' | 'number' | 'amount'
+  | 'dropdown' | 'multi_select' | 'date' | 'boolean' | 'email' | 'phone' | 'url';
+
+export interface MatterCustomSection {
+  id: string;
+  name: string;
+  description: string | null;
+  position: number;
+}
+
+export interface MatterCustomField {
+  id: string;
+  section_key: string;
+  custom_section_id: string | null;
+  field_key: string;
+  label: string;
+  help_text: string | null;
+  field_type: MatterCustomFieldType;
+  options: string[];
+  is_required: boolean;
+  is_encrypted: boolean;
+  is_masked: boolean;
+  is_reportable: boolean;
+  position: number;
+}
+
+export interface MatterFieldSettings {
+  standard_sections: Record<string, string>;
+  sections: MatterCustomSection[];
+  fields: MatterCustomField[];
+}
+
+export interface MatterCustomValue {
+  field_id: string;
+  value: unknown;
+  display_value: string | null;
+  has_value: boolean;
+  masked: boolean;
+  updated_at: string | null;
+}
+
+export interface MatterFieldReport {
+  field_id: string;
+  label: string;
+  field_type: MatterCustomFieldType;
+  section: string;
+  total_matters: number;
+  populated: number;
+  missing: number;
+  completion_rate: number;
+  sum: number | null;
+  average: number | null;
+  values: Array<{ key: string; count: number }>;
+  sensitive: boolean;
+}
+
 /** Where the matter sits in the Indian court hierarchy. */
 export type CourtLevel =
   | 'supreme_court' | 'high_court' | 'district' | 'tribunal'

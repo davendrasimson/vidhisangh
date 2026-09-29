@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '@env/environment';
 import { AnalyticsOverview } from '@core/models/analytics.models';
+import { MatterFieldReport } from '@core/models/matters.models';
 
 @Injectable({ providedIn: 'root' })
 export class AnalyticsService {
@@ -11,5 +12,9 @@ export class AnalyticsService {
 
   overview(): Observable<AnalyticsOverview> {
     return this.http.get<AnalyticsOverview>(`${this.api}/overview`);
+  }
+
+  matterFields(): Observable<MatterFieldReport[]> {
+    return this.http.get<MatterFieldReport[]>(`${environment.apiBaseUrl}/matter-fields/report`);
   }
 }

@@ -113,7 +113,7 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-  private inr(n: number): string {
+  protected inr(n: number): string {
     if (n >= 1e7) return `₹${(n / 1e7).toFixed(2)}Cr`;
     if (n >= 1e5) return `₹${(n / 1e5).toFixed(1)}L`;
     if (n >= 1e3) return `₹${(n / 1e3).toFixed(0)}K`;

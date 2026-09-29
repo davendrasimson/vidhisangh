@@ -97,6 +97,39 @@
           </div>
         </div>
       </section>
+
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 lg:col-span-2">
+        <h2 class="font-semibold text-content mb-1">Work awaiting action</h2>
+        <p class="text-xs text-content-muted mb-3">Timesheets, signatures, documents and invoice follow-ups now included in practice reporting.</p>
+        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 text-center">
+          <div class="rounded-card bg-surface p-3"><p class="text-xl font-bold">{{ d.operations.submitted_time_entries }}</p><p class="text-xs text-content-muted">Timesheets to approve</p></div>
+          <div class="rounded-card bg-surface p-3"><p class="text-xl font-bold">{{ d.operations.unbilled_time_entries }}</p><p class="text-xs text-content-muted">Approved unbilled entries</p></div>
+          <div class="rounded-card bg-surface p-3"><p class="text-xl font-bold">{{ d.operations.unbilled_time_hours }}</p><p class="text-xs text-content-muted">Unbilled hours</p></div>
+          <div class="rounded-card bg-surface p-3"><p class="text-xl font-bold">{{ money(d.operations.unbilled_time_value) }}</p><p class="text-xs text-content-muted">Unbilled time value</p></div>
+          <div class="rounded-card bg-surface p-3"><p class="text-xl font-bold">{{ d.operations.pending_signatures }}</p><p class="text-xs text-content-muted">Pending signatures</p></div>
+          <div class="rounded-card bg-surface p-3"><p class="text-xl font-bold">{{ d.operations.matter_documents }}</p><p class="text-xs text-content-muted">Matter documents</p></div>
+          <div class="rounded-card bg-surface p-3"><p class="text-xl font-bold" [class.text-danger]="d.operations.follow_ups_due > 0">{{ d.operations.follow_ups_due }}</p><p class="text-xs text-content-muted">Follow-ups due</p></div>
+        </div>
+      </section>
+
+      @if (matterFields().length) {
+        <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 lg:col-span-2">
+          <h2 class="font-semibold text-content mb-1">Custom matter fields</h2>
+          <p class="text-xs text-content-muted mb-4">Completion and approved aggregates for fields configured by your organisation. Sensitive values are never exposed here.</p>
+          <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            @for (field of matterFields(); track field.field_id) {
+              <article class="rounded-card border border-line p-3">
+                <div class="flex items-start justify-between gap-2"><div><p class="font-medium text-sm">{{ field.label }}</p><p class="text-xs text-content-muted">{{ field.section }}</p></div>@if (field.sensitive) { <mat-icon class="material-icons-outlined text-content-muted" title="Sensitive values hidden">lock</mat-icon> }</div>
+                <div class="flex justify-between text-xs mt-3"><span>{{ field.populated }} of {{ field.total_matters }} complete</span><strong>{{ percent(field.completion_rate) }}</strong></div>
+                <div class="h-2 rounded-full bg-surface mt-1"><div class="h-2 rounded-full bg-brand/60" [style.width.%]="field.completion_rate * 100"></div></div>
+                @if (field.sum !== null) { <p class="text-sm mt-3"><span class="text-content-muted">Total</span> <strong>{{ field.field_type === 'amount' ? money(field.sum) : field.sum }}</strong> · <span class="text-content-muted">Average</span> <strong>{{ field.field_type === 'amount' ? money(field.average || 0) : field.average }}</strong></p> }
+                @if (field.values.length) { <div class="flex flex-wrap gap-1 mt-3">@for (v of field.values; track v.key) { <span class="vs-chip">{{ v.key }} · {{ v.count }}</span> }</div> }
+                @if (field.sensitive) { <p class="text-xs text-content-muted mt-3">Only completeness is reported.</p> }
+              </article>
+            }
+          </div>
+        </section>
+      }
     </div>
   } @else {
     <p class="text-content-muted">Analytics are unavailable right now.</p>

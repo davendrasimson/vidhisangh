@@ -22,6 +22,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.crypto import EncryptedString
 from app.db.base_class import TenantScopedBase
 
 
@@ -204,6 +205,88 @@ class FeeEventStatus(StrEnum):
     UNBILLED = "unbilled"
     INVOICED = "invoiced"
     WAIVED = "waived"
+
+
+class MatterFieldType(StrEnum):
+    TEXT = "text"
+    MULTILINE = "multiline"
+    RICH_TEXT = "rich_text"
+    NUMBER = "number"
+    AMOUNT = "amount"
+    DROPDOWN = "dropdown"
+    MULTI_SELECT = "multi_select"
+    DATE = "date"
+    BOOLEAN = "boolean"
+    EMAIL = "email"
+    PHONE = "phone"
+    URL = "url"
+
+
+class MatterCustomSection(TenantScopedBase):
+    """A tenant-owned heading used to organise additional matter data."""
+
+    __tablename__ = "matter_custom_sections"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "name", name="matter_custom_section_name_per_tenant"),
+    )
+
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    description: Mapped[str | None] = mapped_column(String(400), nullable=True)
+    position: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_by: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+
+
+class MatterCustomField(TenantScopedBase):
+    """Tenant-configured matter field definition."""
+
+    __tablename__ = "matter_custom_fields"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "field_key", name="matter_custom_field_key_per_tenant"),
+    )
+
+    section_key: Mapped[str] = mapped_column(String(40), nullable=False, default="additional")
+    custom_section_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("matter_custom_sections.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    field_key: Mapped[str] = mapped_column(String(80), nullable=False)
+    label: Mapped[str] = mapped_column(String(120), nullable=False)
+    help_text: Mapped[str | None] = mapped_column(String(400), nullable=True)
+    field_type: Mapped[MatterFieldType] = mapped_column(String(24), nullable=False)
+    options: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    is_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_encrypted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_masked: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_reportable: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    position: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_by: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+
+
+class MatterCustomValue(TenantScopedBase):
+    """A value for a tenant-defined field; sensitive values use the encrypted column."""
+
+    __tablename__ = "matter_custom_values"
+    __table_args__ = (
+        UniqueConstraint("matter_id", "field_id", name="matter_custom_value_per_field"),
+    )
+
+    matter_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("matters.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    field_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("matter_custom_fields.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    plain_value: Mapped[str | None] = mapped_column(Text, nullable=True)
+    encrypted_value: Mapped[str | None] = mapped_column(EncryptedString(16384), nullable=True)
+    updated_by: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
 
 
 class Matter(TenantScopedBase):

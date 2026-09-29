@@ -17,7 +17,12 @@ files it points to.
   (203.193.166.109). Wiring, deploy steps and ops runbook:
   [DEPLOYMENT.md](DEPLOYMENT.md). Security posture and go-live checklist:
   [SECURITY.md](SECURITY.md).
-- **Last big change**: Billing now includes counsel timesheets, validated Excel/CSV import,
+- **Last big change**: Matters now support tenant-configured sections and fields (`0061`), including
+  required/optional text, rich text, numeric, amount, list, date, boolean and contact fields.
+  Sensitive values use application encryption, may be masked on screen, and require an audited reveal;
+  sensitive values are excluded from report contents. Analytics reports field completion/approved aggregates
+  and now includes timesheet approvals, unbilled time, signatures, matter documents and collection follow-ups.
+  Billing also includes counsel timesheets, validated Excel/CSV import,
   approval and invoice creation. Registration's removable guided workspace includes a sample
   approved time entry. Matter detail supports direct document upload/list/download through the local/S3 storage abstraction.
   Sample cleanup uses an exact UUID/object-key manifest in tenant settings, so it cannot remove
@@ -30,7 +35,7 @@ files it points to.
   [governance/README.md](governance/README.md).
 - **Code state**: git `master`, commit after `c5531eb` on
   `git@git.simsononline.com:saas/vidhisangh.git`. Alembic head is
-  `0060_timesheets` (apply during this release). Backend suite: 300+ tests
+  `0061_matter_custom_fields` (apply during this release). Backend suite: 300+ tests
   passing. Frontend: clean `ng build`.
 
 ## 2. Getting a working environment

@@ -56,6 +56,9 @@ from app.modules.matters.models import (
     MatterParty,
     MatterTask,
     MatterTeamMember,
+    MatterCustomSection,
+    MatterCustomField,
+    MatterCustomValue,
 )
 from app.modules.rates.models import CounselRate
 from app.modules.messaging.models import (
@@ -147,6 +150,9 @@ __all__ = [
     "MatterFeeArrangement",
     "MatterFeeMilestone",
     "MatterFeeEvent",
+    "MatterCustomSection",
+    "MatterCustomField",
+    "MatterCustomValue",
     "CounselRate",
     "DocumentFolder",
     "Document",

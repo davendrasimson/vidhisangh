@@ -23,6 +23,9 @@ import {
   MILESTONE_TRIGGER_LABELS,
   Matter,
   MatterDetail,
+  MatterCustomField,
+  MatterCustomValue,
+  MatterFieldSettings,
   MatterStage,
   MatterStatus,
   Milestone,
@@ -46,6 +49,7 @@ import { ClientChoice, VsClientPickerComponent } from '@shared/client-picker/vs-
 import { DocumentsService } from '@core/services/documents.service';
 import { DocFile } from '@core/models/documents.models';
 import { AuthService } from '@core/auth/auth.service';
+import { EditorChange, VsRichEditorComponent } from '@shared/rich-editor/vs-rich-editor.component';
 
 interface MilestoneDraft {
   label: string;
@@ -60,7 +64,7 @@ interface MilestoneDraft {
   selector: 'app-matter-detail',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [VsDateInputComponent, VsClientPickerComponent, FormsModule, DatePipe, RouterLink, MatIconModule, MatButtonModule, MatMenuModule],
+  imports: [VsDateInputComponent, VsClientPickerComponent, VsRichEditorComponent, FormsModule, DatePipe, RouterLink, MatIconModule, MatButtonModule, MatMenuModule],
   templateUrl: './matter-detail.component.html',
 })
 export class MatterDetailComponent {
@@ -78,6 +82,27 @@ export class MatterDetailComponent {
   protected readonly people = signal<Person[]>([]);
   protected readonly matterDocuments = signal<DocFile[]>([]);
   protected readonly uploadingDocument = signal(false);
+  protected readonly customSettings = signal<MatterFieldSettings | null>(null);
+  protected readonly customValues = signal<MatterCustomValue[]>([]);
+  protected readonly editingCustom = signal(false);
+  protected readonly savingCustom = signal(false);
+  protected customDraft: Record<string, unknown> = {};
+  private readonly customDirty = new Set<string>();
+
+  protected readonly customGroups = computed(() => {
+    const settings = this.customSettings();
+    if (!settings) return [];
+    const sections = new Map(settings.sections.map((s) => [s.id, s]));
+    const groups = new Map<string, { key: string; name: string; description: string | null; fields: MatterCustomField[] }>();
+    for (const field of settings.fields) {
+      const custom = field.custom_section_id ? sections.get(field.custom_section_id) : null;
+      const key = custom ? `custom:${custom.id}` : field.section_key;
+      const name = custom?.name ?? settings.standard_sections[field.section_key] ?? 'Additional information';
+      if (!groups.has(key)) groups.set(key, { key, name, description: custom?.description ?? null, fields: [] });
+      groups.get(key)!.fields.push(field);
+    }
+    return [...groups.values()];
+  });
 
   protected readonly statuses: MatterStatus[] = ['open', 'on_hold', 'closed'];
   protected readonly stages: MatterStage[] = [
@@ -181,12 +206,81 @@ export class MatterDetailComponent {
       ]);
       this.matter.set(matter);
       this.timeline.set(timeline);
+      try {
+        const [settings, values] = await Promise.all([
+          firstValueFrom(this.matters.fieldSettings()),
+          firstValueFrom(this.matters.customValues(this.id)),
+        ]);
+        this.customSettings.set(settings);
+        this.customValues.set(values);
+      } catch { /* Additional tenant fields must not block the core matter file. */ }
       await this.loadMatterDocuments();
     } catch {
       /* handled */
     } finally {
       this.loading.set(false);
     }
+  }
+
+  protected customValue(fieldId: string): MatterCustomValue | undefined {
+    return this.customValues().find((v) => v.field_id === fieldId);
+  }
+
+  protected beginCustomEdit(): void {
+    this.customDraft = {};
+    this.customDirty.clear();
+    for (const value of this.customValues()) {
+      if (!value.masked) this.customDraft[value.field_id] = value.value;
+    }
+    this.editingCustom.set(true);
+  }
+
+  protected setCustomValue(fieldId: string, value: unknown): void {
+    this.customDraft[fieldId] = value;
+    this.customDirty.add(fieldId);
+  }
+
+  protected onRichCustomChange(fieldId: string, change: EditorChange): void {
+    this.setCustomValue(fieldId, change.html);
+  }
+
+  protected async saveCustom(): Promise<void> {
+    if (this.savingCustom()) return;
+    this.savingCustom.set(true);
+    try {
+      const fields = this.customSettings()?.fields ?? [];
+      const payload = fields
+        .filter((field) => !field.is_masked || this.customDirty.has(field.id))
+        .map((field) => ({ field_id: field.id, value: this.customDraft[field.id] ?? null }));
+      this.customValues.set(await firstValueFrom(this.matters.saveCustomValues(this.id, payload)));
+      this.editingCustom.set(false);
+      this.customDirty.clear();
+      this.notify.success('Additional matter information saved.');
+    } catch { /* surfaced */ } finally { this.savingCustom.set(false); }
+  }
+
+  protected async revealCustom(field: MatterCustomField): Promise<void> {
+    try {
+      const revealed = await firstValueFrom(this.matters.revealCustomValue(this.id, field.id));
+      this.customValues.update((items) => items.map((v) => v.field_id === field.id ? revealed : v));
+      if (this.editingCustom()) this.customDraft[field.id] = revealed.value;
+      this.notify.success(`${field.label} revealed and recorded in the audit log.`);
+    } catch { /* surfaced */ }
+  }
+
+  protected customDisplay(field: MatterCustomField): string {
+    const value = this.customValue(field.id);
+    if (!value?.has_value) return 'Not recorded';
+    if (value.masked) return value.display_value ?? '••••••••';
+    if (Array.isArray(value.value)) return value.value.join(', ');
+    if (field.field_type === 'boolean') return value.value ? 'Yes' : 'No';
+    if (field.field_type === 'amount') return `₹${Number(value.value).toLocaleString('en-IN')}`;
+    return String(value.value ?? '');
+  }
+
+  protected customText(fieldId: string): string {
+    const value = this.customDraft[fieldId];
+    return value == null ? '' : String(value);
   }
 
   private async loadMatterDocuments(): Promise<void> {

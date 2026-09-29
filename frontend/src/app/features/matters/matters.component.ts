@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, KeyValuePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -12,12 +12,15 @@ import {
   CourtLevel,
   ECourtsCase,
   Matter,
+  MatterCustomFieldType,
+  MatterFieldSettings,
   MatterStatus,
   MatterType,
   Person,
   TEAM_END_REASON_LABELS,
   TeamEndReason,
 } from '@core/models/matters.models';
+import { AuthService } from '@core/auth/auth.service';
 import { VsDateInputComponent } from '@shared/date-input/vs-date-input.component';
 import { ClientChoice, VsClientPickerComponent } from '@shared/client-picker/vs-client-picker.component';
 
@@ -27,13 +30,14 @@ type Filter = 'all' | MatterStatus | 'hearing_soon';
   selector: 'app-matters',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [VsDateInputComponent, VsClientPickerComponent, DatePipe, FormsModule, RouterLink, MatIconModule, MatButtonModule],
+  imports: [VsDateInputComponent, VsClientPickerComponent, DatePipe, KeyValuePipe, FormsModule, RouterLink, MatIconModule, MatButtonModule],
   templateUrl: './matters.component.html',
 })
 export class MattersComponent implements OnInit {
   private readonly matters = inject(MattersService);
   private readonly notify = inject(NotificationService);
   private readonly route = inject(ActivatedRoute);
+  protected readonly auth = inject(AuthService);
 
   protected readonly courtLevels = COURT_LEVEL_LABELS;
   protected readonly courtLevelKeys = Object.keys(COURT_LEVEL_LABELS) as CourtLevel[];
@@ -91,6 +95,19 @@ export class MattersComponent implements OnInit {
     return m.status !== 'closed' && days !== null && days >= 0 && days <= 30;
   }).length);
   protected readonly loadError = signal(false);
+  protected readonly showFieldSettings = signal(false);
+  protected readonly fieldSettings = signal<MatterFieldSettings | null>(null);
+  protected readonly fieldBusy = signal(false);
+  protected newSection = { name: '', description: '' };
+  protected newField = this.blankField();
+  protected readonly customFieldTypes: Array<{ value: MatterCustomFieldType; label: string }> = [
+    { value: 'text', label: 'Text' }, { value: 'multiline', label: 'Multi-line text' },
+    { value: 'rich_text', label: 'Rich formatted text' }, { value: 'number', label: 'Number' },
+    { value: 'amount', label: 'Amount' }, { value: 'dropdown', label: 'Drop-down list' },
+    { value: 'multi_select', label: 'Multi-select list' }, { value: 'date', label: 'Date' },
+    { value: 'boolean', label: 'Yes / No' }, { value: 'email', label: 'Email' },
+    { value: 'phone', label: 'Phone' }, { value: 'url', label: 'Web link' },
+  ];
 
   async ngOnInit(): Promise<void> {
     // Arriving from a client record: open the form with that client selected.
@@ -100,6 +117,61 @@ export class MattersComponent implements OnInit {
       this.showForm.set(true);
     }
     await Promise.all([this.reload(), this.loadPeople()]);
+  }
+
+  protected async openFieldSettings(): Promise<void> {
+    this.showFieldSettings.set(true);
+    if (this.fieldSettings()) return;
+    try { this.fieldSettings.set(await firstValueFrom(this.matters.fieldSettings())); }
+    catch { this.showFieldSettings.set(false); }
+  }
+
+  protected async addFieldSection(): Promise<void> {
+    if (!this.newSection.name.trim() || this.fieldBusy()) return;
+    this.fieldBusy.set(true);
+    try {
+      const created = await firstValueFrom(this.matters.createFieldSection({
+        name: this.newSection.name.trim(), description: this.newSection.description.trim() || null,
+      }));
+      this.fieldSettings.update((s) => s ? { ...s, sections: [...s.sections, created] } : s);
+      this.newSection = { name: '', description: '' };
+      this.notify.success('Matter section added.');
+    } catch { /* surfaced */ } finally { this.fieldBusy.set(false); }
+  }
+
+  protected async addCustomField(): Promise<void> {
+    if (!this.newField.label.trim() || this.fieldBusy()) return;
+    this.fieldBusy.set(true);
+    try {
+      const options = this.newField.optionsText.split('\n').map((x) => x.trim()).filter(Boolean);
+      const created = await firstValueFrom(this.matters.createCustomField({
+        label: this.newField.label.trim(), help_text: this.newField.help_text.trim() || null,
+        field_type: this.newField.field_type, section_key: this.newField.section_key,
+        custom_section_id: this.newField.section_key === 'custom' ? this.newField.custom_section_id || null : null,
+        options, is_required: this.newField.is_required, is_encrypted: this.newField.is_encrypted,
+        is_masked: this.newField.is_masked, is_reportable: this.newField.is_reportable,
+      }));
+      this.fieldSettings.update((s) => s ? { ...s, fields: [...s.fields, created] } : s);
+      this.newField = this.blankField();
+      this.notify.success('Matter field added. It is now available on every matter.');
+    } catch { /* surfaced */ } finally { this.fieldBusy.set(false); }
+  }
+
+  protected async deleteCustomField(id: string, label: string): Promise<void> {
+    if (!confirm(`Remove “${label}” from matters? Existing values stay recoverable in the audit trail.`)) return;
+    await firstValueFrom(this.matters.deleteCustomField(id));
+    this.fieldSettings.update((s) => s ? { ...s, fields: s.fields.filter((f) => f.id !== id) } : s);
+    this.notify.success('Matter field removed.');
+  }
+
+  protected fieldSectionLabel(field: { section_key: string; custom_section_id: string | null }): string {
+    const settings = this.fieldSettings();
+    if (field.section_key === 'custom') return settings?.sections.find((s) => s.id === field.custom_section_id)?.name ?? 'Custom section';
+    return settings?.standard_sections[field.section_key] ?? 'Additional information';
+  }
+
+  protected needsOptions(): boolean {
+    return this.newField.field_type === 'dropdown' || this.newField.field_type === 'multi_select';
   }
 
   private async loadPeople(): Promise<void> {
@@ -324,6 +396,14 @@ export class MattersComponent implements OnInit {
       district: '',
       lead_counsel_id: '',
       our_side_role: 'petitioner',
+    };
+  }
+
+  private blankField() {
+    return {
+      label: '', help_text: '', field_type: 'text' as MatterCustomFieldType,
+      section_key: 'additional', custom_section_id: '', optionsText: '',
+      is_required: false, is_encrypted: false, is_masked: false, is_reportable: true,
     };
   }
 }

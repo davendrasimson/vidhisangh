@@ -52,6 +52,16 @@ class ProductivitySummary(BaseModel):
     hearings_next_7d: int
 
 
+class OperationsSummary(BaseModel):
+    submitted_time_entries: int
+    unbilled_time_entries: int
+    unbilled_time_hours: float
+    unbilled_time_value: float
+    pending_signatures: int
+    matter_documents: int
+    follow_ups_due: int
+
+
 class TrendPoint(BaseModel):
     month: str  # "YYYY-MM"
     invoiced: float
@@ -63,4 +73,5 @@ class AnalyticsOverview(BaseModel):
     matters: MattersSummary
     pipeline: PipelineSummary
     productivity: ProductivitySummary
+    operations: OperationsSummary
     revenue_trend: list[TrendPoint]

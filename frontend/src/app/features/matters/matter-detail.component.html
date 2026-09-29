@@ -199,6 +199,66 @@
       }
     </section>
 
+    @if (customGroups().length) {
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
+        <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
+          <div><h2 class="font-semibold">Additional matter information</h2><p class="text-xs text-content-muted">Fields configured by your organisation for its own records.</p></div>
+          @if (auth.hasPermission('matter:update')) {
+            @if (editingCustom()) {
+              <div class="flex gap-2"><button mat-button (click)="editingCustom.set(false)">Cancel</button><button mat-flat-button color="primary" [disabled]="savingCustom()" (click)="saveCustom()">{{ savingCustom() ? 'Saving…' : 'Save fields' }}</button></div>
+            } @else {
+              <button mat-stroked-button (click)="beginCustomEdit()"><mat-icon class="material-icons-outlined">edit</mat-icon>Edit fields</button>
+            }
+          }
+        </div>
+        <div class="space-y-5">
+          @for (group of customGroups(); track group.key) {
+            <div class="rounded-lg border border-line p-4">
+              <h3 class="font-medium">{{ group.name }}</h3>
+              @if (group.description) { <p class="text-xs text-content-muted mt-0.5">{{ group.description }}</p> }
+              <div class="grid gap-4 sm:grid-cols-2 mt-3">
+                @for (field of group.fields; track field.id) {
+                  <div [class.sm:col-span-2]="field.field_type === 'multiline' || field.field_type === 'rich_text'">
+                    <div class="flex items-center gap-1 mb-1">
+                      <span class="text-xs font-medium text-content-muted">{{ field.label }}</span>
+                      @if (field.is_required) { <span class="text-danger" title="Required">*</span> }
+                      @if (field.is_encrypted) { <mat-icon class="material-icons-outlined text-xs text-content-muted" title="Encrypted at rest">lock</mat-icon> }
+                    </div>
+                    @if (editingCustom()) {
+                      @switch (field.field_type) {
+                        @case ('multiline') { <textarea class="vs-input" rows="4" [ngModel]="customDraft[field.id]" (ngModelChange)="setCustomValue(field.id, $event)" [placeholder]="field.help_text || field.label"></textarea> }
+                        @case ('rich_text') { <vs-rich-editor compact [content]="customText(field.id)" (changed)="onRichCustomChange(field.id, $event)" [placeholder]="field.help_text || field.label" /> }
+                        @case ('dropdown') { <select class="vs-input" [ngModel]="customDraft[field.id]" (ngModelChange)="setCustomValue(field.id, $event)"><option value="">Select…</option>@for (option of field.options; track option) { <option [value]="option">{{ option }}</option> }</select> }
+                        @case ('multi_select') { <select class="vs-input min-h-28" multiple [ngModel]="customDraft[field.id]" (ngModelChange)="setCustomValue(field.id, $event)">@for (option of field.options; track option) { <option [value]="option">{{ option }}</option> }</select><p class="text-xs text-content-muted mt-1">Hold Ctrl/Cmd to select more than one.</p> }
+                        @case ('boolean') { <select class="vs-input" [ngModel]="customDraft[field.id]" (ngModelChange)="setCustomValue(field.id, $event === '' ? null : $event === 'true')"><option value="">Select…</option><option value="true">Yes</option><option value="false">No</option></select> }
+                        @case ('date') { <input class="vs-input" type="date" [ngModel]="customDraft[field.id]" (ngModelChange)="setCustomValue(field.id, $event)" /> }
+                        @case ('number') { <input class="vs-input" type="number" [ngModel]="customDraft[field.id]" (ngModelChange)="setCustomValue(field.id, $event)" /> }
+                        @case ('amount') { <div class="flex"><span class="px-3 grid place-items-center rounded-l-lg border border-r-0 border-line bg-surface-sunken">₹</span><input class="vs-input rounded-l-none" type="number" min="0" step="0.01" [ngModel]="customDraft[field.id]" (ngModelChange)="setCustomValue(field.id, $event)" /></div> }
+                        @case ('email') { <input class="vs-input" type="email" [ngModel]="customDraft[field.id]" (ngModelChange)="setCustomValue(field.id, $event)" /> }
+                        @case ('phone') { <input class="vs-input" type="tel" [ngModel]="customDraft[field.id]" (ngModelChange)="setCustomValue(field.id, $event)" /> }
+                        @case ('url') { <input class="vs-input" type="url" [ngModel]="customDraft[field.id]" (ngModelChange)="setCustomValue(field.id, $event)" /> }
+                        @default { <input class="vs-input" [type]="field.is_masked ? 'password' : 'text'" [ngModel]="customDraft[field.id]" (ngModelChange)="setCustomValue(field.id, $event)" [placeholder]="field.is_masked && customValue(field.id)?.has_value ? 'Stored value unchanged unless replaced' : (field.help_text || field.label)" /> }
+                      }
+                    } @else {
+                      @if (field.field_type === 'rich_text' && customValue(field.id)?.has_value && !customValue(field.id)?.masked) {
+                        <div class="text-sm vs-prose" [innerHTML]="customText(field.id) || customDisplay(field)"></div>
+                      } @else {
+                        <p class="text-sm" [class.text-content-muted]="!customValue(field.id)?.has_value" [class.whitespace-pre-line]="field.field_type === 'multiline'">{{ customDisplay(field) }}</p>
+                      }
+                      @if (customValue(field.id)?.masked && customValue(field.id)?.has_value && auth.hasPermission('matter:update')) {
+                        <button mat-button class="mt-1" (click)="revealCustom(field)"><mat-icon class="material-icons-outlined">visibility</mat-icon>Reveal</button>
+                      }
+                    }
+                    @if (field.help_text && editingCustom()) { <p class="text-xs text-content-muted mt-1">{{ field.help_text }}</p> }
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+    }
+
     <!-- ── Team: who in the firm runs this matter ───────────────── -->
     <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
       <div class="flex flex-wrap items-center justify-between gap-2 mb-3">

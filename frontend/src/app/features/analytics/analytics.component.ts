@@ -3,6 +3,7 @@ import { firstValueFrom } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { AnalyticsService } from '@core/services/analytics.service';
 import { AnalyticsOverview, Bucket } from '@core/models/analytics.models';
+import { MatterFieldReport } from '@core/models/matters.models';
 
 interface StatCard {
   label: string;
@@ -31,6 +32,7 @@ export class AnalyticsComponent implements OnInit {
 
   protected readonly data = signal<AnalyticsOverview | null>(null);
   protected readonly loading = signal(true);
+  protected readonly matterFields = signal<MatterFieldReport[]>([]);
 
   protected readonly revenueCards = computed<StatCard[]>(() => {
     const r = this.data()?.revenue;
@@ -57,7 +59,12 @@ export class AnalyticsComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     try {
-      this.data.set(await firstValueFrom(this.analytics.overview()));
+      const [overview, fields] = await Promise.all([
+        firstValueFrom(this.analytics.overview()),
+        firstValueFrom(this.analytics.matterFields()),
+      ]);
+      this.data.set(overview);
+      this.matterFields.set(fields);
     } catch {
       /* handled */
     } finally {

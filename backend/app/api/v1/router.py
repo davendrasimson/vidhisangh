@@ -27,6 +27,7 @@ from app.modules.identity.router import router as identity_router
 from app.modules.knowledge.router import router as knowledge_router
 from app.modules.marketplace.router import router as marketplace_router
 from app.modules.matters.router import router as matters_router
+from app.modules.matters.custom_fields import router as matter_fields_router
 from app.modules.messaging.router import router as messaging_router
 from app.modules.messaging.ws import ws_router
 from app.modules.network.router import router as network_router
@@ -57,6 +58,7 @@ api_router.include_router(groups_router)
 api_router.include_router(messaging_router)
 api_router.include_router(notifications_router)
 api_router.include_router(matters_router)
+api_router.include_router(matter_fields_router)
 api_router.include_router(documents_router)
 api_router.include_router(signing_router)
 api_router.include_router(esign_public_router)

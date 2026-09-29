@@ -40,6 +40,16 @@ export interface ProductivitySummary {
   hearings_next_7d: number;
 }
 
+export interface OperationsSummary {
+  submitted_time_entries: number;
+  unbilled_time_entries: number;
+  unbilled_time_hours: number;
+  unbilled_time_value: number;
+  pending_signatures: number;
+  matter_documents: number;
+  follow_ups_due: number;
+}
+
 export interface TrendPoint {
   month: string; // "YYYY-MM"
   invoiced: number;
@@ -51,5 +61,6 @@ export interface AnalyticsOverview {
   matters: MattersSummary;
   pipeline: PipelineSummary;
   productivity: ProductivitySummary;
+  operations: OperationsSummary;
   revenue_trend: TrendPoint[];
 }

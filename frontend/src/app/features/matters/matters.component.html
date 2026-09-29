@@ -7,6 +7,11 @@
       </p>
     </div>
     <div class="flex flex-wrap gap-2">
+      @if (auth.hasPermission('tenant:manage')) {
+        <button mat-icon-button (click)="openFieldSettings()" title="Configure additional matter fields" aria-label="Configure additional matter fields">
+          <mat-icon class="material-icons-outlined">tune</mat-icon>
+        </button>
+      }
       <button mat-stroked-button (click)="showTransfer.set(!showTransfer()); showImport.set(false); showForm.set(false)" title="Move all of one person's matters to another">
         <mat-icon class="material-icons-outlined">swap_horiz</mat-icon>
         Reassign matters
@@ -21,6 +26,62 @@
       </button>
     </div>
   </div>
+
+  @if (showFieldSettings()) {
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-6">
+      <div class="flex items-start justify-between gap-3 mb-4">
+        <div><h2 class="font-semibold text-lg">Matter field settings</h2><p class="text-sm text-content-muted">Add tenant-wide record fields. Sensitive fields are encrypted; masked values need an audited reveal.</p></div>
+        <button mat-icon-button (click)="showFieldSettings.set(false)" aria-label="Close field settings"><mat-icon class="material-icons-outlined">close</mat-icon></button>
+      </div>
+      @if (fieldSettings(); as settings) {
+        <div class="grid gap-5 xl:grid-cols-2">
+          <div>
+            <h3 class="font-medium mb-2">Add a field</h3>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <label class="flex flex-col gap-1"><span class="text-xs text-content-muted">Field label</span><input class="vs-input" [(ngModel)]="newField.label" placeholder="e.g. Claim amount" /></label>
+              <label class="flex flex-col gap-1"><span class="text-xs text-content-muted">Type</span><select class="vs-input" [(ngModel)]="newField.field_type">@for (t of customFieldTypes; track t.value) { <option [value]="t.value">{{ t.label }}</option> }</select></label>
+              <label class="flex flex-col gap-1"><span class="text-xs text-content-muted">Place in section</span><select class="vs-input" [(ngModel)]="newField.section_key">
+                @for (item of settings.standard_sections | keyvalue; track item.key) { <option [value]="item.key">{{ item.value }}</option> }
+                @if (settings.sections.length) { <option value="custom">A custom section…</option> }
+              </select></label>
+              @if (newField.section_key === 'custom') {
+                <label class="flex flex-col gap-1"><span class="text-xs text-content-muted">Custom section</span><select class="vs-input" [(ngModel)]="newField.custom_section_id"><option value="">Select…</option>@for (s of settings.sections; track s.id) { <option [value]="s.id">{{ s.name }}</option> }</select></label>
+              }
+              <label class="flex flex-col gap-1 sm:col-span-2"><span class="text-xs text-content-muted">Help text</span><input class="vs-input" [(ngModel)]="newField.help_text" placeholder="Tell staff what to record" /></label>
+              @if (needsOptions()) {
+                <label class="flex flex-col gap-1 sm:col-span-2"><span class="text-xs text-content-muted">Options (one per line)</span><textarea class="vs-input" rows="4" [(ngModel)]="newField.optionsText"></textarea></label>
+              }
+              <div class="sm:col-span-2 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+                <label class="flex items-center gap-2"><input type="checkbox" [(ngModel)]="newField.is_required" /> Required</label>
+                <label class="flex items-center gap-2"><input type="checkbox" [(ngModel)]="newField.is_encrypted" /> Encrypt at rest</label>
+                <label class="flex items-center gap-2"><input type="checkbox" [(ngModel)]="newField.is_masked" (ngModelChange)="newField.is_encrypted = $event || newField.is_encrypted; newField.is_reportable = $event ? false : newField.is_reportable" /> Mask on screen</label>
+                <label class="flex items-center gap-2"><input type="checkbox" [(ngModel)]="newField.is_reportable" [disabled]="newField.is_encrypted || newField.is_masked" /> Include values in reports</label>
+              </div>
+              <div class="sm:col-span-2 flex justify-end"><button mat-flat-button color="primary" [disabled]="fieldBusy() || !newField.label.trim() || (newField.section_key === 'custom' && !newField.custom_section_id)" (click)="addCustomField()"><mat-icon class="material-icons-outlined">add</mat-icon>Add field</button></div>
+            </div>
+          </div>
+          <div>
+            <h3 class="font-medium mb-2">Add a section</h3>
+            <div class="grid gap-2 sm:grid-cols-[1fr_1fr_auto] mb-4">
+              <input class="vs-input" [(ngModel)]="newSection.name" placeholder="Section name" />
+              <input class="vs-input" [(ngModel)]="newSection.description" placeholder="Description (optional)" />
+              <button mat-stroked-button [disabled]="fieldBusy() || !newSection.name.trim()" (click)="addFieldSection()">Add section</button>
+            </div>
+            <h3 class="font-medium mb-2">Configured fields ({{ settings.fields.length }})</h3>
+            <div class="divide-y divide-line border border-line rounded-card max-h-80 overflow-auto">
+              @for (field of settings.fields; track field.id) {
+                <div class="flex items-start gap-3 p-3">
+                  <mat-icon class="material-icons-outlined text-content-muted">{{ field.is_encrypted ? 'lock' : 'data_object' }}</mat-icon>
+                  <div class="flex-1 min-w-0"><p class="text-sm font-medium">{{ field.label }} @if (field.is_required) { <span class="text-danger">*</span> }</p><p class="text-xs text-content-muted">{{ fieldSectionLabel(field) }} · {{ field.field_type.replace('_', ' ') }}@if (field.is_masked) { · masked }@if (!field.is_reportable) { · values excluded from reports }</p></div>
+                  <button mat-icon-button (click)="deleteCustomField(field.id, field.label)" [attr.aria-label]="'Remove ' + field.label"><mat-icon class="material-icons-outlined">delete</mat-icon></button>
+                </div>
+              } @empty { <p class="p-4 text-sm text-content-muted">No additional fields yet.</p> }
+            </div>
+          </div>
+        </div>
+      } @else { <p class="text-content-muted">Loading field settings…</p> }
+    </section>
+  }
 
   <!-- ── Reassign: X left the firm / practice reorganised ─────────── -->
   @if (showTransfer()) {

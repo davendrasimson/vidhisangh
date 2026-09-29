@@ -18,13 +18,15 @@ from app.modules.analytics.schemas import (
     AnalyticsOverview,
     Bucket,
     MattersSummary,
+    OperationsSummary,
     PipelineSummary,
     ProductivitySummary,
     RevenueSummary,
     TrendPoint,
 )
-from app.modules.billing.models import Invoice, InvoiceStatus
+from app.modules.billing.models import Invoice, InvoiceStatus, TimeEntry, TimeEntryStatus
 from app.modules.crm.models import Lead, LeadStatus
+from app.modules.documents.models import Document
 from app.modules.matters.models import (
     Hearing,
     HearingStatus,
@@ -33,6 +35,7 @@ from app.modules.matters.models import (
     MatterTask,
     TaskStatus,
 )
+from app.modules.signing.models import EnvelopeStatus, SignatureEnvelope
 
 TREND_MONTHS = 6
 
@@ -69,7 +72,82 @@ class AnalyticsService:
             matters=await self._matters(),
             pipeline=await self._pipeline(),
             productivity=await self._productivity(today),
+            operations=await self._operations(today),
             revenue_trend=await self._revenue_trend(today),
+        )
+
+    async def _operations(self, today: date) -> OperationsSummary:
+        time_base = (TimeEntry.tenant_id == self.tenant_id, TimeEntry.deleted_at.is_(None))
+        submitted = int(
+            (
+                await self.session.scalar(
+                    select(func.count()).where(
+                        *time_base, TimeEntry.status == TimeEntryStatus.SUBMITTED
+                    )
+                )
+            )
+            or 0
+        )
+        unbilled = (
+            await self.session.execute(
+                select(
+                    func.count(),
+                    func.coalesce(func.sum(TimeEntry.duration_minutes), 0),
+                    func.coalesce(func.sum(TimeEntry.amount), 0),
+                ).where(
+                    *time_base,
+                    TimeEntry.status == TimeEntryStatus.APPROVED,
+                    TimeEntry.billable.is_(True),
+                    TimeEntry.invoice_id.is_(None),
+                )
+            )
+        ).one()
+        pending_signatures = int(
+            (
+                await self.session.scalar(
+                    select(func.count()).where(
+                        SignatureEnvelope.tenant_id == self.tenant_id,
+                        SignatureEnvelope.deleted_at.is_(None),
+                        SignatureEnvelope.status == EnvelopeStatus.PENDING,
+                    )
+                )
+            )
+            or 0
+        )
+        matter_documents = int(
+            (
+                await self.session.scalar(
+                    select(func.count()).where(
+                        Document.tenant_id == self.tenant_id,
+                        Document.deleted_at.is_(None),
+                        Document.matter_id.is_not(None),
+                    )
+                )
+            )
+            or 0
+        )
+        follow_ups_due = int(
+            (
+                await self.session.scalar(
+                    select(func.count()).where(
+                        Invoice.tenant_id == self.tenant_id,
+                        Invoice.deleted_at.is_(None),
+                        Invoice.status.in_((InvoiceStatus.SENT, InvoiceStatus.OVERDUE)),
+                        Invoice.next_follow_up_on.is_not(None),
+                        Invoice.next_follow_up_on <= today,
+                    )
+                )
+            )
+            or 0
+        )
+        return OperationsSummary(
+            submitted_time_entries=submitted,
+            unbilled_time_entries=int(unbilled[0]),
+            unbilled_time_hours=round(float(unbilled[1] or 0) / 60, 2),
+            unbilled_time_value=_f(unbilled[2]),
+            pending_signatures=pending_signatures,
+            matter_documents=matter_documents,
+            follow_ups_due=follow_ups_due,
         )
 
     # ─── Revenue ────────────────────────────────────────────────────
@@ -267,6 +345,10 @@ class AnalyticsService:
                 buckets[key]["collected"] += float(amount_paid or 0)
 
         return [
-            TrendPoint(month=m, invoiced=round(buckets[m]["invoiced"], 2), collected=round(buckets[m]["collected"], 2))
+            TrendPoint(
+                month=m,
+                invoiced=round(buckets[m]["invoiced"], 2),
+                collected=round(buckets[m]["collected"], 2),
+            )
             for m in months
         ]

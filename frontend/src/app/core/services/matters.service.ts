@@ -31,12 +31,58 @@ import {
   TeamTransferResult,
   TimelineEntry,
   MatterAuthority,
+  MatterCustomField,
+  MatterCustomSection,
+  MatterCustomValue,
+  MatterFieldSettings,
+  MatterFieldReport,
 } from '@core/models/matters.models';
 
 @Injectable({ providedIn: 'root' })
 export class MattersService {
   private readonly http = inject(HttpClient);
   private readonly api = `${environment.apiBaseUrl}/matters`;
+  private readonly fieldApi = `${environment.apiBaseUrl}/matter-fields`;
+
+  fieldSettings(): Observable<MatterFieldSettings> {
+    return this.http.get<MatterFieldSettings>(`${this.fieldApi}/settings`);
+  }
+
+  createFieldSection(payload: { name: string; description?: string | null; position?: number }): Observable<MatterCustomSection> {
+    return this.http.post<MatterCustomSection>(`${this.fieldApi}/sections`, payload);
+  }
+
+  deleteFieldSection(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.fieldApi}/sections/${id}`);
+  }
+
+  createCustomField(payload: Partial<MatterCustomField> & { label: string; field_type: string; section_key: string }): Observable<MatterCustomField> {
+    return this.http.post<MatterCustomField>(`${this.fieldApi}/fields`, payload);
+  }
+
+  updateCustomField(id: string, payload: Partial<MatterCustomField>): Observable<MatterCustomField> {
+    return this.http.patch<MatterCustomField>(`${this.fieldApi}/fields/${id}`, payload);
+  }
+
+  deleteCustomField(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.fieldApi}/fields/${id}`);
+  }
+
+  customValues(matterId: string): Observable<MatterCustomValue[]> {
+    return this.http.get<MatterCustomValue[]>(`${this.fieldApi}/matters/${matterId}/values`);
+  }
+
+  saveCustomValues(matterId: string, values: Array<{ field_id: string; value: unknown }>): Observable<MatterCustomValue[]> {
+    return this.http.put<MatterCustomValue[]>(`${this.fieldApi}/matters/${matterId}/values`, { values });
+  }
+
+  revealCustomValue(matterId: string, fieldId: string): Observable<MatterCustomValue> {
+    return this.http.get<MatterCustomValue>(`${this.fieldApi}/matters/${matterId}/values/${fieldId}/reveal`);
+  }
+
+  customFieldReport(): Observable<MatterFieldReport[]> {
+    return this.http.get<MatterFieldReport[]>(`${this.fieldApi}/report`);
+  }
 
   list(status?: MatterStatus, page = 1, size = 50, extra: { client_id?: string; user_id?: string } = {}): Observable<Matter[]> {
     const params: Record<string, string | number> = { page, size };
