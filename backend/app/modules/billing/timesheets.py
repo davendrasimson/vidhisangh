@@ -9,8 +9,8 @@ import zipfile
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from io import BytesIO, StringIO
+from xml.etree import ElementTree
 
-from defusedxml import ElementTree
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -72,12 +72,18 @@ def spreadsheet_rows(data: bytes, filename: str) -> list[list[str]]:
                 raise ValidationError("The expanded Excel workbook is too large.")
             shared: list[str] = []
             if "xl/sharedStrings.xml" in book.namelist():
-                root = ElementTree.fromstring(book.read("xl/sharedStrings.xml"))
+                shared_xml = book.read("xl/sharedStrings.xml")
+                if b"<!DOCTYPE" in shared_xml.upper() or b"<!ENTITY" in shared_xml.upper():
+                    raise ValidationError("The Excel workbook contains unsafe XML.")
+                root = ElementTree.fromstring(shared_xml)  # noqa: S314 -- DTD/entities rejected
                 shared = [
                     "".join(node.text or "" for node in item.findall(".//m:t", _NS))
                     for item in root.findall("m:si", _NS)
                 ]
-            sheet = ElementTree.fromstring(book.read("xl/worksheets/sheet1.xml"))
+            sheet_xml = book.read("xl/worksheets/sheet1.xml")
+            if b"<!DOCTYPE" in sheet_xml.upper() or b"<!ENTITY" in sheet_xml.upper():
+                raise ValidationError("The Excel workbook contains unsafe XML.")
+            sheet = ElementTree.fromstring(sheet_xml)  # noqa: S314 -- DTD/entities rejected
             out: list[list[str]] = []
             for row in sheet.findall(".//m:sheetData/m:row", _NS):
                 cells: dict[int, str] = {}
