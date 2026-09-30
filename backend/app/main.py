@@ -8,8 +8,9 @@ isolated app instances.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -49,7 +50,16 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         version=__version__,
         environment=settings.ENVIRONMENT.value,
     )
-    yield
+    from app.modules.identity.registration_alerts import run_delivery_loop
+
+    alert_task = asyncio.create_task(run_delivery_loop()) if settings.is_production else None
+    try:
+        yield
+    finally:
+        if alert_task is not None:
+            alert_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await alert_task
     from app.modules.webhooks.service import dispatcher
 
     await dispatcher.drain()

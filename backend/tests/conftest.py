@@ -24,6 +24,9 @@ os.environ.setdefault("VS_OAUTH_ALLOWED_REDIRECT_ORIGINS", "https://app.test")
 # test_auth_hardening covers the default and the invitation-link flow.
 os.environ.setdefault("VS_INVITES_RETURN_TEMP_PASSWORD", "true")
 os.environ.setdefault("VS_ENVIRONMENT", "local")
+# Existing module tests provision authenticated fixtures; dedicated registration
+# verification tests explicitly enable the production-default verification gate.
+os.environ.setdefault("VS_REGISTRATION_REQUIRE_VERIFICATION", "false")
 
 import pytest  # noqa: E402
 import pytest_asyncio  # noqa: E402

@@ -49,6 +49,6 @@ class RateCardRead(BaseModel):
 
     user_id: uuid.UUID
     full_name: str
-    email: str
+    email: str | None
     is_active: bool
     rates: list[RateRead] = Field(default_factory=list)

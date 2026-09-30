@@ -17,6 +17,12 @@
     </div>
   }
 
+  <button mat-stroked-button type="button" class="w-full mb-4" [disabled]="!whatsappAvailable()" (click)="whatsappMode.set(!whatsappMode())">
+    {{ whatsappMode() ? 'Use email and password' : 'Sign in with WhatsApp code' }}
+  </button>
+  @if (whatsappMode()) {
+    <app-whatsapp-login />
+  } @else {
   <form [formGroup]="form" (ngSubmit)="submit()" class="grid gap-1">
     <mat-form-field appearance="outline">
       <mat-label>Email</mat-label>
@@ -61,6 +67,7 @@
       Sign in
     </button>
   </form>
+  <button mat-button type="button" class="mt-2" [disabled]="submitting() || form.controls.email.invalid" (click)="resendVerification()">Resend email verification link</button>
 
   @if (passkeySupported) {
     <button mat-stroked-button type="button" class="h-11 w-full mt-2" [disabled]="submitting()"
@@ -86,6 +93,7 @@
     </div>
   }
 
+  }
   <p class="text-sm text-content-muted mt-6 text-center">
     New to VidhiSangh?
     <a routerLink="/auth/register" class="text-brand font-medium">Create an account</a>

@@ -62,7 +62,10 @@ async def test_time_entry_approval_and_invoice(client: AsyncClient, strong_passw
     rate = await client.post(
         f"{API}/rates",
         headers=headers,
-        json={"user_id": me["id"], "basis": "hourly", "amount": 4000},
+        json={
+            "user_id": me["id"], "basis": "hourly", "amount": 4000,
+            "effective_from": "2026-09-29",
+        },
     )
     assert rate.status_code == 201, rate.text
 

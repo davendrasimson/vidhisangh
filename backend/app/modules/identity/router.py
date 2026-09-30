@@ -57,6 +57,10 @@ from app.modules.identity.schemas import (
     PasskeyRegisterFinish,
     RefreshRequest,
     RegisterRequest,
+    RegistrationPending,
+    PhoneOtpRequest,
+    PhoneOtpResponse,
+    PhoneLoginRequest,
     ResetPasswordRequest,
     SessionRead,
     TermsAcceptanceRequest,
@@ -145,7 +149,7 @@ async def _current_user_row(current: CurrentUserDep, session: TenantSessionDep) 
 # ─── Registration / login / refresh ─────────────────────────────────
 @router.post(
     "/register",
-    response_model=TokenPair,
+    response_model=TokenPair | RegistrationPending,
     status_code=status.HTTP_201_CREATED,
     summary="Register a new organisation and its owner account",
     dependencies=[Depends(register_rate_limit), Depends(auth_rate_limit)],
@@ -153,11 +157,11 @@ async def _current_user_row(current: CurrentUserDep, session: TenantSessionDep) 
 async def register(
     data: RegisterRequest, request: Request, response: Response, session: AuthSessionDep,
     storage: Annotated[Storage, Depends(get_storage)],
-) -> TokenPair:
+) -> TokenPair | RegistrationPending:
     _user, pair = await AuthService(session).register(
         data, ip=client_ip(request), user_agent=_ua(request), sample_storage=storage
     )
-    return deliver_tokens(pair, response)
+    return deliver_tokens(pair, response) if pair else RegistrationPending()
 
 
 @router.post(
@@ -250,10 +254,12 @@ async def verify_email(token: str, session: AuthSessionDep) -> dict[str, bool]:
 )
 async def resend_verification(current: CurrentUserDep, session: TenantSessionDep) -> dict[str, str]:
     user = await _current_user_row(current, session)
+    if not user.email:
+        return {"detail": "This account uses a verified mobile number."}
     if user.is_email_verified:
         return {"detail": "This email address is already verified."}
     await AuthService(session).send_email_verification(user)
-    return {"detail": "Verification email sent."}
+    return {"detail": "Verification email queued. Check your inbox shortly."}
 
 
 # ─── SSO ────────────────────────────────────────────────────────────
@@ -513,3 +519,71 @@ async def mfa_disable(
     user = await _current_user_row(current, session)
     await AuthService(session).mfa_disable(user, password=data.password, code=data.code)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/whatsapp/request", response_model=PhoneOtpResponse,
+             dependencies=[Depends(auth_rate_limit)])
+async def whatsapp_request(data: PhoneOtpRequest, session: AuthSessionDep) -> PhoneOtpResponse:
+    from app.modules.identity.phone_otp import request_code
+    row = await request_code(session, data.phone, data.purpose)
+    return PhoneOtpResponse(challenge_id=row.id)
+
+
+@router.post("/whatsapp/login", response_model=TokenPair,
+             dependencies=[Depends(auth_rate_limit)])
+async def whatsapp_login(
+    data: PhoneLoginRequest, request: Request, response: Response, session: AuthSessionDep,
+) -> TokenPair:
+    from app.modules.identity.phone_otp import consume_code
+    from app.modules.identity.service import MfaRequiredError
+    row = await consume_code(session, data.challenge_id, data.code, purpose="login")
+    user = await UserRepository(session).get_by_id_global(row.user_id) if row.user_id else None
+    if user is None or not user.is_active or not user.is_phone_verified or user.phone != row.phone:
+        raise AuthenticationError("This account is unavailable.")
+    auth = AuthService(session)
+    auth._assert_not_locked(user)
+    if user.mfa_enabled:
+        if not data.mfa_code:
+            raise MfaRequiredError()
+        if not await auth._verify_mfa(user, data.mfa_code):
+            await auth._register_failed_login(user, reason="mfa", ip=client_ip(request))
+            raise AuthenticationError("Invalid MFA code. Request a new WhatsApp code.")
+    user.failed_login_count = 0
+    user.locked_until = None
+    from datetime import UTC, datetime
+    user.last_login_at = datetime.now(UTC)
+    if data.device_id:
+        await auth.tokens.revoke_for_device(user.id, data.device_id)
+    auth._audit(user, "auth.login", "Signed in with WhatsApp code")
+    pair = await auth.issue_tokens_for_user(
+        user, ip=client_ip(request), user_agent=_ua(request), label="WhatsApp",
+        device_id=data.device_id,
+    )
+    return deliver_tokens(pair, response)
+
+
+@router.post("/resend-verification-public", status_code=202,
+             dependencies=[Depends(auth_rate_limit), Depends(account_rate_limit)])
+async def resend_verification_public(data: ForgotPasswordRequest, session: AuthSessionDep) -> dict[str, str]:
+    from app.core import security
+    from app.core.ratelimit import RateLimiter
+    await RateLimiter(times=1, window_seconds=60, scope="verify-resend", fail_closed=True).check(
+        security.hash_link_token(data.email.lower())
+    )
+    users = await UserRepository(session).find_by_email_global(data.email)
+    for user in users:
+        if user.is_active and not user.is_email_verified:
+            await AuthService(session).send_email_verification(user)
+    return {"detail": "If the account needs verification, a fresh link will be emailed."}
+
+
+@router.get("/options")
+def auth_options() -> dict[str, bool]:
+    from pathlib import Path
+    # Public capability only; credentials and identifiers never leave the server.
+    configured = bool(settings.WA_PHONE_NUMBER_ID and settings.WA_OTP_TEMPLATE and (
+        settings.WA_ACCESS_TOKEN or (
+            settings.WA_ACCESS_TOKEN_FILE and Path(settings.WA_ACCESS_TOKEN_FILE).is_file()
+        )
+    ))
+    return {"whatsapp_available": configured}

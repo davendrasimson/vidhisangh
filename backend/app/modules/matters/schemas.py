@@ -232,7 +232,7 @@ class PersonRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
     full_name: str
-    email: str
+    email: str | None
 
 
 # ─── Fee arrangements ───────────────────────────────────────────────

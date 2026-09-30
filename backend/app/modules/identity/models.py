@@ -123,6 +123,9 @@ class User(TenantScopedBase):
     __tablename__ = "users"
     __table_args__ = (
         UniqueConstraint("tenant_id", "email", name="users_tenant_email"),
+        Index("users_verified_phone_unique", "phone", unique=True,
+              postgresql_where=text("deleted_at IS NULL AND is_phone_verified = true"),
+              sqlite_where=text("deleted_at IS NULL AND is_phone_verified = 1")),
         # An email address identifies exactly ONE account platform-wide, so
         # sign-in never has to ask which organisation was meant. Partial —
         # matching the `deleted_at IS NULL` filter every lookup applies — so a
@@ -138,7 +141,16 @@ class User(TenantScopedBase):
         ),
     )
 
-    email: Mapped[str] = mapped_column(String(320), nullable=False, index=True)
+    email: Mapped[str | None] = mapped_column(String(320), nullable=True, index=True)
+    is_phone_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    verification_required: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    email_verification_delivery_token: Mapped[str | None] = mapped_column(
+        EncryptedString(512), nullable=True
+    )
+    email_verification_attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    email_verification_next_attempt_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
     hashed_password: Mapped[str | None] = mapped_column(String(255), nullable=True)
     full_name: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -188,7 +200,7 @@ class User(TenantScopedBase):
     token_epoch: Mapped[int] = mapped_column(
         Integer, default=0, nullable=False, server_default=text("0")
     )
-    # Email verification (hashed single-use token; does not block sign-in).
+    # Single-use verification; new email registrations must verify before sign-in.
     email_verification_token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     email_verification_expires_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
@@ -376,3 +388,34 @@ class WebAuthnChallenge(AuditedBase):
     kind: Mapped[str] = mapped_column(String(20), nullable=False)  # registration | authentication
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     consumed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+
+class RegistrationAlert(AuditedBase):
+    """Global operational mail queue, committed atomically with each signup."""
+
+    __tablename__ = "registration_alerts"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False
+    )
+    recipient: Mapped[str] = mapped_column(String(320), nullable=False)
+    sample_data: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    next_attempt_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (Index("ix_registration_alerts_pending", "sent_at", "next_attempt_at"),)
+
+
+class PhoneOtpChallenge(AuditedBase):
+    """Short-lived, bounded-attempt WhatsApp proof, consumed once."""
+    __tablename__ = "phone_otp_challenges"
+    phone: Mapped[str] = mapped_column(String(20), nullable=False)
+    purpose: Mapped[str] = mapped_column(String(16), nullable=False)
+    code_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    consumed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True
+    )

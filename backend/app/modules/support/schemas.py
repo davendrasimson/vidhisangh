@@ -42,7 +42,7 @@ class TicketRead(BaseModel):
     ticket_number: str
     requester_id: uuid.UUID
     requester_name: str
-    requester_email: EmailStr
+    requester_email: str | None
     subject: str
     description: str
     category: str
@@ -105,7 +105,7 @@ class PlatformUserRead(BaseModel):
     tenant_id: uuid.UUID
     tenant_name: str
     full_name: str
-    email: EmailStr
+    email: EmailStr | None
     is_active: bool
     is_superuser: bool
     is_email_verified: bool

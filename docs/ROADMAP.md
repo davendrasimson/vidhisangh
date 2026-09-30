@@ -65,3 +65,18 @@ Legend: ✅ done · 🚧 in progress · ⬜ planned
 - A migration for every schema change; API docs auto-generated.
 - Security review + code review required to merge.
 - Structured logging, metrics, health checks, tracing on every module.
+
+## Maintenance — 30 September 2026
+
+- ✅ Fixed and deployed www login routing: API POSTs are proxied without redirects;
+  canonical page/HTTPS redirects use 308. Isolated nginx regression checks and
+  live routing/health probes passed.
+
+- ✅ Deployed individual/firm registration and durable signup alerts (migration
+  `0062`); production rollback signup checks and API readiness passed.
+
+- ✅ Deployed mandatory verification for new email registrations and durable email
+  retries, plus incident-alert resend. Migration `0063` applied.
+- ✅ Mobile/WhatsApp registration and login enabled using the same existing account
+  and template as Simsonsts.com. Its account, number, template, webhook, token and
+  service configuration were not changed. Real-recipient delivery awaits user testing.

@@ -11,9 +11,13 @@ export interface TokenPair {
 }
 
 export interface RegisterRequest {
-  organisation_name: string;
+  organisation_name?: string;
+  practice_type?: 'individual' | 'firm';
   full_name: string;
-  email: string;
+  email?: string | null;
+  phone?: string | null;
+  phone_challenge_id?: string | null;
+  phone_code?: string | null;
   password: string;
   accept_terms: boolean;
   add_sample_data?: boolean;
@@ -36,10 +40,23 @@ export interface Role {
   is_system: boolean;
 }
 
+export interface RegistrationPending {
+  verification_required: true;
+  detail: string;
+}
+
+export interface PhoneOtpResponse {
+  challenge_id: string;
+  expires_in: number;
+  detail: string;
+}
+
 export interface User {
   id: string;
   tenant_id: string;
-  email: string;
+  email: string | null;
+  phone?: string | null;
+  is_phone_verified?: boolean;
   full_name: string;
   display_name: string | null;
   avatar_url: string | null;

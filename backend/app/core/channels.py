@@ -24,6 +24,7 @@ step and is deliberately deferred.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import logging
 import os
@@ -31,6 +32,7 @@ import smtplib
 import ssl
 from dataclasses import dataclass
 from email.message import EmailMessage
+from email.utils import formatdate, make_msgid
 from typing import Protocol, runtime_checkable
 
 import httpx
@@ -98,17 +100,22 @@ class EmailSmtpProvider:
         return bool(self.host and (not self.user or self.password))
 
     async def send(self, message: ChannelMessage) -> None:
+        await asyncio.to_thread(self._send, message)
+
+    def _send(self, message: ChannelMessage) -> None:
         if not message.to_email:
             raise ValueError("no recipient email address")
         email = EmailMessage()
         email["From"] = self.sender
         email["To"] = message.to_email
         email["Subject"] = message.subject
+        email["Date"] = formatdate(localtime=False, usegmt=True)
+        email["Message-ID"] = make_msgid(domain=self.sender.rsplit("@", 1)[-1])
         body = message.body
         if message.link:
             body = f"{body}\n\n{message.link}"
         email.set_content(body)
-        # Small, synchronous SMTP send — fine for the current inline path.
+        # Run blocking SMTP I/O in a thread so requests remain responsive.
         if self.use_ssl:
             connection = smtplib.SMTP_SSL(
                 self.host,
@@ -118,12 +125,20 @@ class EmailSmtpProvider:
             )
         else:
             connection = smtplib.SMTP(self.host, self.port, timeout=10)
-        with connection as smtp:
+        try:
             if self.use_tls and not self.use_ssl:
-                smtp.starttls(context=ssl.create_default_context())
+                connection.starttls(context=ssl.create_default_context())
             if self.user:
-                smtp.login(self.user, self.password)
-            smtp.send_message(email)
+                connection.login(self.user, self.password)
+            connection.send_message(email)
+            # Acceptance is definitive even if the server drops the QUIT reply.
+            # Retrying that case would send duplicate alerts/verification links.
+            try:
+                connection.quit()
+            except smtplib.SMTPServerDisconnected:
+                pass
+        finally:
+            connection.close()
 
 
 class SlackWebhookProvider:

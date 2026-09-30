@@ -56,13 +56,13 @@ class SupportService:
         self.user_id = user_id
         self.tenant_id = tenant_id
 
-    async def create(self, data: TicketCreate, *, name: str, email: str) -> SupportTicket:
+    async def create(self, data: TicketCreate, *, name: str, email: str | None) -> SupportTicket:
         ticket = SupportTicket(
             tenant_id=self.tenant_id,
             ticket_number=f"VS-{datetime.now(UTC):%Y%m}-{secrets.token_hex(3).upper()}",
             requester_id=self.user_id,
             requester_name=name,
-            requester_email=email,
+            requester_email=email or "",
             subject=data.subject,
             description=data.description,
             category=data.category,
@@ -92,7 +92,7 @@ class SupportService:
         return await self._get(ticket.id)
 
     async def report_post(
-        self, post: Post, *, name: str, email: str, category: str, reason: str
+        self, post: Post, *, name: str, email: str | None, category: str, reason: str
     ) -> SupportTicket:
         duplicate = await self.session.scalar(
             select(SupportTicket).where(
@@ -111,7 +111,7 @@ class SupportService:
             ticket_number=f"VS-{datetime.now(UTC):%Y%m}-{secrets.token_hex(3).upper()}",
             requester_id=self.user_id,
             requester_name=name,
-            requester_email=email,
+            requester_email=email or "",
             subject=f"Reported network post by {post.author_name}",
             description=f"Reason: {category.replace('_', ' ').title()}\n\n{reason}",
             category="post_report",

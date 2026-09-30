@@ -59,6 +59,7 @@ def mailbox(monkeypatch) -> RecordingEmail:
     box = RecordingEmail()
     registry = ChannelRegistry({NotificationChannel.EMAIL: box})
     monkeypatch.setattr("app.modules.identity.service.get_channels", lambda: registry)
+    monkeypatch.setattr("app.modules.identity.registration_alerts.get_channels", lambda: registry)
     return box
 
 
@@ -644,17 +645,21 @@ async def test_userinfo_email_verified_defaults_to_false() -> None:
 
 
 # ═══ Email verification ══════════════════════════════════════════════
-async def test_email_verification_link(client: AsyncClient, strong_password: str, mailbox: RecordingEmail) -> None:
+async def test_email_verification_link(client: AsyncClient, strong_password: str, mailbox: RecordingEmail, session_factory) -> None:
     tokens = await _register(client, "verify@firm.co", strong_password)
     h = _bearer(tokens)
     assert (await client.get(f"{API}/auth/me", headers=h)).json()["is_email_verified"] is False
+    from app.modules.identity.registration_alerts import deliver_verification_next
+    async with session_factory() as session:
+        assert await deliver_verification_next(session)
+        await session.commit()
     assert mailbox.sent and "/auth/verify-email/" in (mailbox.sent[-1].link or "")
     token = mailbox.last_token()
     assert (await client.post(f"{API}/auth/verify-email/{token}")).status_code == 200
     assert (await client.get(f"{API}/auth/me", headers=h)).json()["is_email_verified"] is True
     assert (await client.post(f"{API}/auth/verify-email/{token}")).status_code == 404  # single use
     assert "auth.email_verified" in await _audit_actions(client, h)
-    # Login was never blocked by the unverified state (product decision).
+    # Legacy accounts retain access; the new-registration gate is tested separately.
 
 
 # ═══ A-14: tenant-aware lookups / role check ═════════════════════════

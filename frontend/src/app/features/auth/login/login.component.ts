@@ -12,6 +12,8 @@ import { AuthService } from '@core/auth/auth.service';
 import { PasskeyService } from '@core/services/passkey.service';
 import { ApiProblem, SsoProvider } from '@core/models/auth.models';
 
+import { WhatsappLoginComponent } from '../whatsapp-login.component';
+
 export const SSO_PROVIDER_KEY = 'vs_sso_provider';
 
 /** In-app paths only: must start with "/" (not "//"), no backslash, no scheme (A-33). */
@@ -24,7 +26,7 @@ export function safeReturnUrl(raw: string | null): string {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    ReactiveFormsModule, RouterLink,
+    ReactiveFormsModule, RouterLink, WhatsappLoginComponent,
     MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule, MatProgressBarModule,
   ],
   templateUrl: './login.component.html',
@@ -37,6 +39,17 @@ export class LoginComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
 
   protected readonly submitting = signal(false);
+  protected readonly whatsappAvailable = signal(false);
+  protected readonly whatsappMode = signal(false);
+  protected async resendVerification(): Promise<void> {
+    if (this.form.controls.email.invalid || this.submitting()) return;
+    this.submitting.set(true);
+    try {
+      const result = await firstValueFrom(this.auth.resendPublicVerification(this.form.controls.email.value));
+      this.infoMsg.set(result.detail);
+    } catch (err) { this.handleError(err as HttpErrorResponse); }
+    finally { this.submitting.set(false); }
+  }
   protected readonly mfaRequired = signal(false);
   protected readonly errorMsg = signal<string | null>(null);
   protected readonly infoMsg = signal<string | null>(
@@ -51,6 +64,9 @@ export class LoginComponent implements OnInit {
   protected readonly passkeySupported = PasskeyService.supported();
 
   async ngOnInit(): Promise<void> {
+    void firstValueFrom(this.auth.authOptions()).then(options => {
+      this.whatsappAvailable.set(options.whatsapp_available);
+    }).catch(() => {});
     try {
       this.ssoProviders.set(await firstValueFrom(this.auth.ssoProviders()));
     } catch {

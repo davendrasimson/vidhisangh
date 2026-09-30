@@ -176,16 +176,19 @@ async def test_smtp_implicit_tls_logs_in_and_sends(monkeypatch) -> None:
         def __init__(self, host, port, *, timeout, context):
             calls.append(("connect", host, port, timeout, context is not None))
 
-        def __enter__(self):
-            return self
+        def quit(self):
+            # The relay accepted DATA but disconnected before replying to QUIT.
+            raise channels.smtplib.SMTPServerDisconnected("server closed")
 
-        def __exit__(self, *_args):
-            return None
+        def close(self):
+            calls.append(("close",))
 
         def login(self, user, password):
             calls.append(("login", user, password))
 
         def send_message(self, message):
+            assert message["Date"]
+            assert message["Message-ID"]
             calls.append(("send", message["From"], message["To"]))
 
     monkeypatch.setattr(settings, "SMTP_HOST", "smtp.example")

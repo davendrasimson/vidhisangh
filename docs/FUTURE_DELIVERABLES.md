@@ -79,3 +79,25 @@ Shipped: validation errors no longer echo input; client identity data encrypted 
 1. Read [PROJECT_STATUS.md](PROJECT_STATUS.md) and [../CLAUDE.md](../CLAUDE.md).
 2. Confirm baseline: `cd backend && .venv/Scripts/python.exe -m pytest -q` (expect 112 passing) and `cd frontend && npx ng build` (clean).
 3. Pick the next item. Prefer 🟢 (fast wins once infra/creds exist) or the **non-superuser Postgres role** (🔴, security-critical). Build behind the existing seams, write tests, keep these docs updated.
+
+## Resolved — 30 September 2026
+
+Intermittent login “Method Not Allowed” caused by the www 301 redirect is fixed
+and deployed. API calls stay on their original origin; redirects preserve methods.
+See PROJECT_STATUS.md for verification.
+
+Individual/firm registration and durable signup alerts are deployed with migration
+`0062`. Signup with sample data passed production rollback checks. Live SMTP
+alert delivery was not exercised by the deployment probes, which send no mail.
+
+## WhatsApp authentication activation — resolved 30 September 2026
+
+Email verification and registration-alert resend are deployed; the owner confirmed
+receipt of the alert. Mobile/WhatsApp signup/login (migration `0063`) is enabled.
+The owner authorized shared use of the existing Simsonsts.com account/template,
+expressly without transferring the account or changing that live site. Its API
+credential is stored separately in VidhiSangh's encrypted systemd credential store.
+No source service, account, number, template, webhook or token was changed.
+A real-recipient delivery test remains for the owner's first login/registration;
+no test number was provided. Source token rotations must also update VidhiSangh's
+encrypted copy. See DEPLOYMENT.md for the configuration.

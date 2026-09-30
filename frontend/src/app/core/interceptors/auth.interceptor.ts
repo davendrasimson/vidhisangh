@@ -8,6 +8,9 @@ import { AuthService } from '@core/auth/auth.service';
 const AUTH_FREE = [
   '/auth/login',
   '/auth/register',
+  '/auth/whatsapp/',
+  '/auth/options',
+  '/auth/resend-verification-public',
   '/auth/refresh',
   '/auth/forgot-password',
   '/auth/reset-password',

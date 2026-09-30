@@ -1,6 +1,6 @@
 <div class="w-full">
   <h2 class="vs-display text-3xl font-semibold text-content">Create your account</h2>
-  <p class="text-sm text-content-muted mt-1.5 mb-6">Start your organisation on VidhiSangh — free to begin.</p>
+  <p class="text-sm text-content-muted mt-1.5 mb-6">Start your practice on VidhiSangh — free to begin.</p>
 
   @if (submitting()) {
     <mat-progress-bar mode="indeterminate" class="mb-4"></mat-progress-bar>
@@ -11,26 +11,64 @@
     </div>
   }
 
+  @if (infoMsg()) {
+    <p role="status" class="mb-4 rounded-lg bg-success/10 p-3 text-sm text-content">{{ infoMsg() }}</p>
+  }
+  @if (pendingEmail()) {
+    <h3 class="text-xl font-semibold mb-3">Check your email</h3>
+    <p class="text-sm text-content-muted mb-4">Open the verification link sent to {{ form.controls.email.value }} to activate your account. Check your spam folder too.</p>
+    <button mat-stroked-button type="button" [disabled]="submitting()" (click)="resendVerification()">Resend verification link</button>
+  } @else {
   <form [formGroup]="form" (ngSubmit)="submit()" class="grid gap-1">
-    <mat-form-field appearance="outline">
-      <mat-label>Organisation name</mat-label>
-      <input matInput formControlName="organisation_name" required />
-      <mat-hint>Your firm, chamber, or “Individual Practice”.</mat-hint>
-    </mat-form-field>
+    <mat-radio-group formControlName="practice_type" (change)="changePracticeType()"
+      aria-label="Practice type" class="flex flex-wrap gap-x-4 mb-4">
+      <mat-radio-button value="individual">Individual practice</mat-radio-button>
+      <mat-radio-button value="firm">Firm / chamber</mat-radio-button>
+    </mat-radio-group>
+
+    @if (form.controls.practice_type.value === 'firm') {
+      <mat-form-field appearance="outline">
+        <mat-label>Firm / chamber name</mat-label>
+        <input matInput formControlName="organisation_name" autocomplete="organization" maxlength="200" required />
+        <mat-error>Enter your firm or chamber name (at least 2 characters).</mat-error>
+      </mat-form-field>
+    }
 
     <mat-form-field appearance="outline">
       <mat-label>Your full name</mat-label>
-      <input matInput formControlName="full_name" autocomplete="name" required />
+      <input matInput formControlName="full_name" autocomplete="name" maxlength="200" required />
+      <mat-error>Enter your full name (at least 2 characters).</mat-error>
     </mat-form-field>
 
     <mat-form-field appearance="outline">
-      <mat-label>Work email</mat-label>
-      <input matInput type="email" formControlName="email" autocomplete="email" required />
+      <mat-label>Email</mat-label>
+      <input matInput type="email" formControlName="email" autocomplete="email" />
       @if (form.controls.email.hasError('email') && form.controls.email.touched) {
         <mat-error>Enter a valid email address.</mat-error>
       }
     </mat-form-field>
 
+    <p class="text-sm text-content-muted mb-3">Enter an email address or a mobile number. If you enter both, verify both.</p>
+    <mat-form-field appearance="outline">
+      <mat-label>Mobile number</mat-label>
+      <input matInput type="tel" formControlName="phone" autocomplete="tel" placeholder="+91 9876543210" (input)="phoneChanged()" />
+      <mat-error>Enter a valid mobile number with country code.</mat-error>
+    </mat-form-field>
+    @if (!whatsappAvailable()) {
+      <p class="text-sm text-content-muted mb-3">WhatsApp verification is temporarily unavailable. You can register using email.</p>
+    }
+    @if (form.controls.phone.value) {
+      <button mat-stroked-button type="button" class="mb-3" [disabled]="sendingCode() || form.controls.phone.invalid" (click)="sendCode()">
+        {{ sendingCode() ? 'Sending…' : phoneChallenge() ? 'Resend WhatsApp code' : 'Send WhatsApp code' }}
+      </button>
+      @if (phoneChallenge()) {
+        <mat-form-field appearance="outline">
+          <mat-label>WhatsApp code</mat-label>
+          <input matInput formControlName="phone_code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" />
+          <mat-hint>6-digit code sent by the Simsondesk WhatsApp service.</mat-hint>
+        </mat-form-field>
+      }
+    }
     <mat-form-field appearance="outline">
       <mat-label>Password</mat-label>
       <input
@@ -60,10 +98,11 @@
       <a routerLink="/privacy" target="_blank" rel="noopener" class="text-brand underline" (click)="$event.stopPropagation()">Privacy Notice</a>.
     </mat-checkbox>
 
-    <button mat-flat-button color="primary" type="submit" [disabled]="submitting() || form.invalid" class="h-11">
+    <button mat-flat-button color="primary" type="submit" [disabled]="submitting() || form.invalid || (!!form.controls.phone.value && (!phoneChallenge() || form.controls.phone_code.value.length !== 6))" class="h-11">
       Create account
     </button>
   </form>
+  }
 
   <p class="text-sm text-content-muted mt-6 text-center">
     Already have an account?

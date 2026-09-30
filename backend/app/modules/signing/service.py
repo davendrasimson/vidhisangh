@@ -84,6 +84,8 @@ class SigningService:
                 user = await users.get_for_tenant(self.tenant_id, signer.user_id)
                 if user is None or not user.is_active:
                     raise ValidationError("An internal signer is unavailable.")
+                if not user.email:
+                    raise ValidationError("This signer has no email address for signature delivery.")
                 name, email, user_id = user.full_name, user.email, user.id
             status = (
                 SignatureStepStatus.PENDING

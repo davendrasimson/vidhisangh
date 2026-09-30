@@ -245,7 +245,13 @@ class UserPrivacyService:
         user.email = anon_email
         user.full_name = DELETED_USER_NAME
         user.display_name = None
+        from app.modules.identity.models import PhoneOtpChallenge
+        if user.phone:
+            await self.session.execute(delete(PhoneOtpChallenge).where(PhoneOtpChallenge.phone == user.phone))
         user.phone = None
+        user.is_phone_verified = False
+        user.email_verification_delivery_token = None
+        user.email_verification_next_attempt_at = None
         user.avatar_url = None
         user.hashed_password = security.hash_password(secrets.token_urlsafe(32))
         user.mfa_enabled = False

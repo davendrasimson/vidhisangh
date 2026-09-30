@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
@@ -20,13 +21,45 @@ def _validate_password_strength(value: str) -> str:
 class RegisterRequest(BaseModel):
     """Sign up: provisions a new tenant and its owner (org_admin) user."""
 
-    organisation_name: str = Field(min_length=2, max_length=200)
+    organisation_name: str | None = Field(default=None, min_length=2, max_length=200)
+    practice_type: Literal["individual", "firm"] | None = None
     full_name: str = Field(min_length=2, max_length=200)
-    email: EmailStr
+    email: EmailStr | None = None
+    phone: str | None = None
+    phone_challenge_id: uuid.UUID | None = None
+    phone_code: str | None = Field(default=None, pattern=r"^\d{6}$")
     password: str = Field(min_length=settings.PASSWORD_MIN_LENGTH, max_length=128)
     accept_terms: bool = Field(description="Must be true to register.")
     add_sample_data: bool = False
     device_id: str | None = Field(default=None, min_length=16, max_length=64)
+
+    @field_validator("email", "phone", mode="before")
+    @classmethod
+    def _empty_contact(cls, value: object) -> object:
+        return value.strip() or None if isinstance(value, str) else value
+
+    @field_validator("phone")
+    @classmethod
+    def _phone(cls, value: str | None) -> str | None:
+        from app.modules.identity.phone_otp import normalize_phone
+        return normalize_phone(value) if value else None
+
+    @field_validator("full_name", "organisation_name", mode="before")
+    @classmethod
+    def _trim_names(cls, value: object) -> object:
+        return value.strip() if isinstance(value, str) else value
+
+    @model_validator(mode="after")
+    def _practice(self) -> RegisterRequest:
+        if not self.email and not self.phone:
+            raise ValueError("Enter an email address or a mobile number.")
+        if self.phone and (not self.phone_challenge_id or not self.phone_code):
+            raise ValueError("Verify your mobile number with the WhatsApp code.")
+        if self.practice_type == "individual":
+            self.organisation_name = self.full_name
+        elif self.organisation_name is None:
+            raise ValueError("Enter your firm or chamber name.")
+        return self
 
     @field_validator("password")
     @classmethod
@@ -189,7 +222,9 @@ class UserRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
     tenant_id: uuid.UUID
-    email: EmailStr
+    email: EmailStr | None
+    phone: str | None = None
+    is_phone_verified: bool = False
     full_name: str
     display_name: str | None
     avatar_url: str | None
@@ -283,3 +318,32 @@ class ChangePasswordRequest(BaseModel):
     @classmethod
     def _pw(cls, v: str) -> str:
         return _validate_password_strength(v)
+
+
+class RegistrationPending(BaseModel):
+    verification_required: bool = True
+    detail: str = "Check your email and open the verification link before signing in."
+
+
+class PhoneOtpRequest(BaseModel):
+    phone: str
+    purpose: Literal["register", "login"]
+
+    @field_validator("phone")
+    @classmethod
+    def _phone(cls, value: str) -> str:
+        from app.modules.identity.phone_otp import normalize_phone
+        return normalize_phone(value)
+
+
+class PhoneOtpResponse(BaseModel):
+    challenge_id: uuid.UUID
+    expires_in: int = 300
+    detail: str = "If this number is eligible, a code has been sent on WhatsApp."
+
+
+class PhoneLoginRequest(BaseModel):
+    challenge_id: uuid.UUID
+    code: str = Field(pattern=r"^\d{6}$")
+    mfa_code: str | None = Field(default=None, max_length=16)
+    device_id: str | None = Field(default=None, min_length=16, max_length=64)

@@ -52,7 +52,7 @@ export class UsersComponent implements OnInit {
   }
 
   protected initials(u: User): string {
-    return (u.full_name || u.email)
+    return (u.full_name || u.email || u.phone || '')
       .split(' ')
       .map((p) => p[0])
       .slice(0, 2)
@@ -78,7 +78,7 @@ export class UsersComponent implements OnInit {
           role_codes: this.invite.role_codes,
         }),
       );
-      this.tempPassword.set({ email: created.user.email, password: created.temporary_password ?? null, link: created.invitation_url ?? null });
+      this.tempPassword.set({ email: created.user.email ?? '', password: created.temporary_password ?? null, link: created.invitation_url ?? null });
       this.invite = this.blankInvite();
       this.showInvite.set(false);
       await this.loadUsers();

@@ -187,6 +187,16 @@ class Settings(BaseSettings):
     VECTOR_DB_URL: str | None = None
 
     # ─── Notifications (SMTP) ───────────────────────────────────────
+    REGISTRATION_ALERT_EMAIL: str = "ds@simsononline.com"
+    REGISTRATION_REQUIRE_VERIFICATION: bool = True
+    WA_PHONE_NUMBER_ID: str = ""
+    WA_ACCESS_TOKEN: str = ""
+    WA_ACCESS_TOKEN_FILE: str = ""
+    WA_API_VERSION: str = "v25.0"
+    WA_OTP_TEMPLATE: str = "simsondeskotp"
+    WA_OTP_TEMPLATE_LANG: str = "en_US"
+    WA_OTP_CALL_NUMBER: str = "+917341100734"
+    WA_OTP_CONTACT: str = "+917341100734"
     SMTP_HOST: str | None = None
     SMTP_PORT: int = 587
     SMTP_USER: str | None = None

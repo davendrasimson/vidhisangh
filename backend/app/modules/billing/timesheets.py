@@ -543,7 +543,7 @@ class TimesheetService:
                     select(User).where(User.tenant_id == self.tenant_id, User.deleted_at.is_(None))
                 )
             ).all()
-            if u.email.lower() in emails
+            if u.email and u.email.lower() in emails
         }
         matters = {
             m.matter_number.lower(): m

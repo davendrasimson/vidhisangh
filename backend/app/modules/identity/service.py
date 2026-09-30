@@ -141,30 +141,41 @@ class AuthService:
     async def register(
         self, data: RegisterRequest, *, ip: str | None = None, user_agent: str | None = None,
         sample_storage: Storage | None = None,
-    ) -> tuple[User, TokenPair]:
+    ) -> tuple[User, TokenPair | None]:
         # Emails are unique platform-wide, so check before creating the tenant —
         # otherwise a rejected signup would leave an empty organisation behind.
-        if await self.users.email_taken_anywhere(data.email):
+        if data.email and await self.users.email_taken_anywhere(data.email):
             raise ConflictError(
                 "An account with this email already exists. Sign in instead, or "
                 "use a different address for this organisation."
             )
 
+        if data.phone:
+            from app.modules.identity.phone_otp import consume_code, phone_user
+            if await phone_user(self.session, data.phone):
+                raise ConflictError("This mobile number already has an account. Sign in instead.")
+            await consume_code(self.session, data.phone_challenge_id, data.phone_code,
+                               purpose="register", phone=data.phone)
+        assert data.organisation_name is not None
         slug = await self.tenants.generate_unique_slug(data.organisation_name)
         tenant = Tenant(
             name=data.organisation_name,
             slug=slug,
-            type=TenantType.INDIVIDUAL,
+            type=TenantType.SMALL_FIRM if data.practice_type == "firm" else TenantType.INDIVIDUAL,
             status=TenantStatus.TRIAL,
             plan=PlanTier.FREE,
-            primary_contact_email=data.email.lower(),
+            primary_contact_email=data.email.lower() if data.email else None,
         )
         self.tenants.add(tenant)
         await self.tenants.flush()  # assign tenant.id
 
         user = User(
             tenant_id=tenant.id,
-            email=data.email.lower(),
+            email=data.email.lower() if data.email else None,
+            phone=data.phone,
+            is_phone_verified=bool(data.phone),
+            verification_required=settings.REGISTRATION_REQUIRE_VERIFICATION,
+            roles=[],
             full_name=data.full_name,
             hashed_password=security.hash_password(data.password),
             is_active=True,
@@ -203,10 +214,16 @@ class AuthService:
 
         log.info("tenant_registered", tenant_id=str(tenant.id), user_id=str(user.id))
         self._audit(user, "auth.registered", f"Registered organisation {tenant.name}", meta={"ip": ip})
-        await self.send_email_verification(user)
-        pair = await self._issue_token_pair(
-            user, ip=ip, user_agent=user_agent, label="signup", device_id=data.device_id
-        )
+        if user.email:
+            await self.send_email_verification(user)
+        pair = None
+        if not user.verification_required or not user.email:
+            pair = await self._issue_token_pair(
+                user, ip=ip, user_agent=user_agent, label="signup", device_id=data.device_id
+            )
+        from app.modules.identity.registration_alerts import queue_registration_alert
+
+        queue_registration_alert(self.session, user, data.add_sample_data)
         return user, pair
 
     async def accept_current_terms(self, user: User) -> User:
@@ -225,24 +242,19 @@ class AuthService:
 
     # ─── Email verification ─────────────────────────────────────────
     async def send_email_verification(self, user: User) -> str:
-        """Issue a fresh verification token and email the link. Returns the raw
-        token (for tests / the log provider); the DB holds only its hash."""
+        """Queue a fresh verification link atomically with the account.
+
+        Lookup uses a hash; the retry queue keeps an encrypted copy of the raw
+        token only until SMTP accepts the email or the link expires.
+        """
         raw = security.generate_url_safe_token(32)
         user.email_verification_token_hash = security.hash_link_token(raw)
         user.email_verification_expires_at = datetime.now(UTC) + timedelta(
             hours=settings.EMAIL_VERIFICATION_EXPIRE_HOURS
         )
-        await self._send_email(
-            to_email=user.email,
-            to_name=user.full_name,
-            subject="Verify your VidhiSangh email address",
-            body=(
-                f"Hello {user.full_name},\n\nPlease confirm this email address for your "
-                f"VidhiSangh account by opening the link below. It expires in "
-                f"{settings.EMAIL_VERIFICATION_EXPIRE_HOURS} hours.\n"
-            ),
-            link=_app_link(f"/auth/verify-email/{raw}"),
-        )
+        user.email_verification_delivery_token = raw
+        user.email_verification_attempts = 0
+        user.email_verification_next_attempt_at = datetime.now(UTC)
         return raw
 
     async def verify_email(self, raw_token: str) -> User:
@@ -252,14 +264,18 @@ class AuthService:
         if _as_utc(user.email_verification_expires_at) < datetime.now(UTC):
             raise ValidationError("This verification link has expired. Sign in and request a new one.")
         user.is_email_verified = True
+        user.email_verification_delivery_token = None
+        user.email_verification_next_attempt_at = None
         user.email_verification_token_hash = None
         user.email_verification_expires_at = None
         self._audit(user, "auth.email_verified", "Email address verified")
         return user
 
     async def _send_email(
-        self, *, to_email: str, to_name: str | None, subject: str, body: str, link: str
+        self, *, to_email: str | None, to_name: str | None, subject: str, body: str, link: str
     ) -> None:
+        if not to_email:
+            return
         provider = get_channels().provider_for(NotificationChannel.EMAIL)
         if provider is None:
             return
@@ -388,6 +404,11 @@ class AuthService:
         device_id: str | None = None,
         replaces: RefreshToken | None = None,
     ) -> TokenPair:
+        if user.verification_required and (
+            (user.email and not user.is_email_verified)
+            or (not user.email and not user.is_phone_verified)
+        ):
+            raise PermissionDeniedError("Verify your email using the link we sent before signing in.")
         tenant = await self.tenants.get_by_id(user.tenant_id)
         if tenant is None or tenant.status in (TenantStatus.SUSPENDED, TenantStatus.CANCELLED):
             raise PermissionDeniedError(
@@ -412,7 +433,7 @@ class AuthService:
 
         extra = {
             "superuser": user.is_superuser,
-            "email": user.email,
+            "email": user.email or "",
             "rtid": str(refresh_row.id),  # the session (refresh-token) this access token belongs to
             "ep": user.token_epoch or 0,
         }
@@ -581,7 +602,7 @@ class AuthService:
         user.mfa_pending_secret = secret  # encrypted at rest via EncryptedString
         await self.backup_codes.delete_all_for_user(user.id)
         uri = pyotp.TOTP(secret).provisioning_uri(
-            name=user.email, issuer_name=settings.MFA_ISSUER
+            name=user.email or user.phone or str(user.id), issuer_name=settings.MFA_ISSUER
         )
         self._audit(user, "auth.mfa_enrolled", "Started MFA enrolment")
         return MfaEnrollResponse(secret=secret, otpauth_uri=uri)

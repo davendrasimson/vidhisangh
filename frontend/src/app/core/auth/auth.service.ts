@@ -9,6 +9,8 @@ import {
   LoginRequest,
   OAuthAuthorize,
   RegisterRequest,
+  RegistrationPending,
+  PhoneOtpResponse,
   SsoProvider,
   TokenPair,
   User,
@@ -67,14 +69,35 @@ export class AuthService {
     return this.tokens.mustChangePassword();
   }
 
-  register(payload: RegisterRequest): Observable<TokenPair> {
+  register(payload: RegisterRequest): Observable<TokenPair | RegistrationPending> {
     this._status.set('authenticating');
     return this.http
-      .post<TokenPair>(`${this.api}/auth/register`, {
+      .post<TokenPair | RegistrationPending>(`${this.api}/auth/register`, {
         ...payload,
         device_id: this.tokens.deviceId,
       }, { withCredentials: true })
-      .pipe(tap((pair) => this.tokens.setSession(pair)));
+      .pipe(tap((result) => {
+        if ('access_token' in result) this.tokens.setSession(result);
+        else this._status.set('anonymous');
+      }));
+  }
+
+  authOptions(): Observable<{ whatsapp_available: boolean }> {
+    return this.http.get<{ whatsapp_available: boolean }>(`${this.api}/auth/options`);
+  }
+
+  requestWhatsAppCode(phone: string, purpose: 'register' | 'login'): Observable<PhoneOtpResponse> {
+    return this.http.post<PhoneOtpResponse>(`${this.api}/auth/whatsapp/request`, { phone, purpose });
+  }
+
+  whatsappLogin(challenge_id: string, code: string, mfa_code?: string): Observable<TokenPair> {
+    return this.http.post<TokenPair>(`${this.api}/auth/whatsapp/login`, {
+      challenge_id, code, mfa_code: mfa_code || null, device_id: this.tokens.deviceId,
+    }, { withCredentials: true }).pipe(tap(pair => this.tokens.setSession(pair)));
+  }
+
+  resendPublicVerification(email: string): Observable<{ detail: string }> {
+    return this.http.post<{ detail: string }>(`${this.api}/auth/resend-verification-public`, { email });
   }
 
   login(payload: LoginRequest): Observable<TokenPair> {

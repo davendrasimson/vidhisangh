@@ -161,3 +161,81 @@ Deployed 2026-09-23 on `203.193.166.109` (Ubuntu 24.04). **Full detail in [DEPLO
 - The per-machine Claude memory (`C:\Users\<you>\.claude\projects\c--GIT-VidhiSangh\memory\`) does **not** live in this folder and will **not** transfer. That's why this doc + CLAUDE.md + FUTURE_DELIVERABLES.md exist — they are the portable memory.
 - On the new machine: recreate `backend/.venv` and `frontend/node_modules` (both gitignored / not reliably portable) — see CLAUDE.md. Then `pytest` and `ng build` to confirm you're at 108 green + clean build before continuing.
 - Optional but recommended: `git init` here and push to a private remote so future transfers are a `git clone`.
+
+## Login routing fix — 30 September 2026
+
+Fixed and deployed the intermittent login 405: the www-to-apex 301 converted
+POST `/api/v1/auth/login` into GET for older www tabs/PWAs. The www host now
+proxies API requests on the same origin with existing rate limits; page and
+HTTP-to-HTTPS redirects use 308. Regression check: `scripts/test_nginx_login.py`
+(five checks against isolated nginx listeners). Live probes verified POST login
+validation on both hosts, the page redirect, and healthy API status. No credentials
+were used and no application build or database change was needed.
+
+## Registration release — 30 September 2026
+
+Deployed individual/firm signup: individuals use their full name as workspace
+name; firms supply a chamber name. Migration `0062_registration_alerts` adds
+durable operational signup alerts. SMTP runs off the event loop; missing account
+records no longer block the alert queue.
+
+Validation: production Angular build, 4 frontend unit checks, 4 local registration
+browser checks, and 3 production rollback signup probes passed. Full backend
+run: 333 passed, one date-sensitive timesheet fixture failed; explicitly setting
+its rate effective date fixed it, and all 14 billing/registration/sample-data
+checks then passed (including two new orphan-alert cases). New worker lint and
+strict type checks pass; wider touched-file lint still reports existing issues.
+
+Post-deployment: all 4 registration browser checks also passed against the live
+site with intercepted submissions (no real accounts created).
+
+## Contact verification release — 30 September 2026
+
+Deployed migration `0063_registration_verification` and the updated registration
+and login UI. New email accounts receive a durable, retryable verification link
+and cannot sign in before using it. The verification click confirms the address;
+it does not issue a session. Existing accounts retain access. Resend is available
+from registration/login and invalidates the previous link.
+
+Optional mobile identity and WhatsApp OTP registration/login are implemented:
+email or mobile is required; mobile must be proved with a code, and when both
+contacts are supplied both are verified. Codes are hashed, single-use, expire in
+five minutes, allow five guesses, and are rate-limited per normalized phone/IP.
+MFA remains enforced. Mobile-only users work with sample data, user lists and rate
+cards; email-only features handle absent addresses explicitly.
+
+**Live WhatsApp is now enabled for shared use (see activation record below).**
+The initial credential-copy review was resolved by the owner's explicit instruction
+to reuse the existing account/template without transferring it or changing
+Simsonsts.com. The token is stored only in VidhiSangh's encrypted runtime store;
+no local plaintext copy or real-recipient test OTP was created.
+
+Mail incident: the original owner alert was accepted at 13:56:14 UTC after one
+SMTP disconnect. The exact incident alert was requeued and accepted at 14:30:18 UTC
+for `ds@simsononline.com`; its signup verification link succeeded on the second
+attempt. This confirms SMTP acceptance, not recipient inbox placement. Added Date
+and Message-ID headers and correct handling of a disconnect after DATA acceptance.
+
+Validation: production build; 9 local browser checks; 8 live checks plus a successful
+isolated rerun of the mobile check after a loading timeout; production rollback
+probes for email verification/login and mobile/sample-data signup; API, PostgreSQL
+and Redis healthy. Full backend run: 353 passed, one old SMTP mock failed after the
+provider lifecycle changed. The corrected mock and 19 related tests passed on rerun.
+18 dedicated verification/WhatsApp/provider checks passed; new modules pass lint
+and strict type checks. No probe accounts or probe emails were left behind.
+
+## Shared WhatsApp activated — 30 September 2026
+
+The owner clarified authorization to reuse the same WhatsApp account and template
+while keeping Simsonsts.com untouched. VidhiSangh now uses that existing account
+and approved template through a separately encrypted runtime credential. Nothing
+was migrated: no number registration, account transfer, template modification,
+webhook change, token rotation, or Simsonsts service/configuration write occurred.
+The shared credential was validated with a read-only Meta API request.
+`/api/v1/auth/options` now reports `whatsapp_available: true`; API/PostgreSQL/Redis
+are healthy, and Simsonsts.com responds HTTP 200. No real recipient OTP has been
+sent during these checks. The owner also confirmed receipt of the registration alert.
+
+Post-activation capability and health checks passed. After an initial form-loading
+timeout, the live browser rerun passed: mobile registration is enabled and the
+WhatsApp login form opens. These checks did not send a code.

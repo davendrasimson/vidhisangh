@@ -21,7 +21,7 @@ import { ApiProblem } from '@core/models/auth.models';
       } @else if (state() === 'ok') {
         <h2 class="vs-display text-3xl font-semibold text-content">Email confirmed</h2>
         <p class="text-sm text-content-muted mt-2 mb-6">Thank you — your address is verified.</p>
-        <a mat-flat-button color="primary" routerLink="/app/dashboard" class="h-11 w-full">Continue</a>
+        <a mat-flat-button color="primary" routerLink="/auth/login" class="h-11 w-full">Sign in</a>
       } @else {
         <h2 class="text-xl font-bold text-content mb-2">We could not confirm this link</h2>
         <p class="text-sm text-danger mb-6">{{ error() }}</p>

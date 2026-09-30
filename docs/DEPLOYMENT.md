@@ -94,7 +94,7 @@ here the role was created as `postgres` and only the GRANTs were applied as owne
    removes brute-force protection rather than breaking the app loudly.
 3. `TrustedHostMiddleware` in production needs the apex listed explicitly;
    `*.vidhisangh.com` does **not** match bare `vidhisangh.com` in Starlette.
-   (This is also why `curl http://127.0.0.1:8000/api/v1/health` on the box
+   (This is also why `curl http://127.0.0.1:8000/health` on the box
    answers 400 — check health through `https://vidhisangh.com` instead.)
 4. `VS_PUBLIC_APP_URL=https://vidhisangh.com` in `.env` — the base for links the
    app sends *out* (the client-facing KYC form `/kyc/{token}`). Without it links
@@ -659,8 +659,9 @@ keep working) and nulls the clear-text column.
   `/auth/change-password` (claim `pmc`); the SPA routes it to `/auth/change-password`.
 - **Password reset:** `POST /auth/forgot-password` (always 202) → email link
   `/auth/reset/{token}` → `POST /auth/reset-password`. Signs every session out.
-- **Email verification:** sign-up sends `/auth/verify-email/{token}`; login is not
-  blocked (product decision) but `is_email_verified` is exposed and audited.
+- **Email verification:** new email registrations must open `/auth/verify-email/{token}`
+  before any session is issued (updated 30 Sep 2026). Existing accounts retain their
+  previous access. Verification links are delivered through a durable retry queue.
 - **OAuth:** `redirect_uri` must be on the app origin; an `id_token` is verified
   (JWKS, aud, iss, exp, nonce) when the provider returns one, otherwise userinfo
   must say `email_verified: true`; identities are linked by `(provider, subject)`
@@ -680,3 +681,86 @@ keep working) and nulls the clear-text column.
   stripping trailing digits/symbols and simple leet) on register / change / reset.
 - **Prometheus:** `vs_ratelimit_fallback_total{scope,mode}` counts rate-limit
   checks that ran without Redis (`mode=open` allowed, `mode=closed` → 503).
+
+## Registration alerts (30 September 2026)
+
+Migration `0062_registration_alerts` adds a global operational outbox. Apply it
+before restarting the API. Production API workers drain committed signup alerts
+in the background, using row locks to coordinate across workers. SMTP delivery
+runs off the event loop and retries failures with backoff up to one hour. No
+Celery service is needed. Delivery is at least once: a crash after SMTP acceptance
+but before the database commit can produce a duplicate email.
+
+`VS_REGISTRATION_ALERT_EMAIL` defaults to `ds@simsononline.com`; a blank value
+stops queueing new alerts. Existing pending alerts retain their original recipient.
+The message includes the registrant's name/email, practice type, workspace,
+registration time (IST), plan, sample-data choice and account/workspace IDs.
+Passwords, verification links and session tokens are never included. Delivery
+uses the existing `VS_SMTP_*` configuration. Log-only delivery is treated as a
+failure and remains queued. Rows reference the user with `ON DELETE CASCADE`.
+
+Operational checks: `registration_alert_sent`, `registration_alert_retry`, and
+`registration_alert_worker_retry` events; query `registration_alerts` for rows
+where `sent_at IS NULL`. The queue applies to new registrations, not historical
+accounts. Local development does not automatically send queued operational mail.
+
+### Registration release verification — 30 September 2026
+
+Applied `0062_registration_alerts`, restarted all three API workers, then shipped
+the frontend with old hashed bundles retained. Production transaction-rollback
+checks passed for individual signup with/without sample data and firm signup
+with sample data, including token issuance, permissions and alert insertion.
+These probes suppressed verification mail, used memory-only sample storage and
+left no accounts or pending alerts. `/health` returned OK; direct API `/ready`
+confirmed PostgreSQL and Redis OK (public `/ready` falls through to the SPA).
+Rollback code/manifests: `backups/releases/pre-registration-20260930.tgz`.
+
+## Contact verification and WhatsApp login — 30 September 2026
+
+Migration `0063_registration_verification` makes user email optional, adds verified
+phone identity and expiring WhatsApp challenges, and stores pending verification
+links encrypted on the account until SMTP acceptance. The normal login gate is
+applied at token issuance, including WhatsApp, SSO and refresh. New email signups
+return `verification_required` without tokens/cookies. Opening the emailed link
+verifies the address; the user then signs in. Mobile-only signup proves phone
+ownership with a WhatsApp code and can immediately create a session. When both
+contacts are supplied, both must be verified. Existing users are not locked out.
+
+WhatsApp OTP reuses the Simsondesk `simsondeskotp` template, including its four
+extra body parameters and Copy-code URL button. Codes expire after five minutes,
+are hashed with the link-token key, are consumed once, and allow five guesses.
+Resends invalidate prior codes; per-phone limits are one per minute/five per hour,
+in addition to the auth IP limiter. Redis failures fail closed. MFA still applies
+to WhatsApp login. Expired challenge records are removed after 24 hours.
+
+Configuration: `VS_WA_PHONE_NUMBER_ID`, `VS_WA_ACCESS_TOKEN_FILE` (prefer a systemd
+runtime credential), `VS_WA_API_VERSION=v25.0`, `VS_WA_OTP_TEMPLATE`,
+`VS_WA_OTP_TEMPLATE_LANG`, `VS_WA_OTP_CALL_NUMBER`, `VS_WA_OTP_CONTACT`.
+`GET /api/v1/auth/options` exposes only whether WhatsApp is configured. The UI
+keeps mobile signup/login disabled until the credentials are configured, while
+email signup remains available. No secrets are returned to the browser.
+
+New email accounts default to `VS_REGISTRATION_REQUIRE_VERIFICATION=true`.
+Public resend is generic and rate-limited; old links stop working after resend.
+The delivery worker logs `verification_email_sent` / `verification_email_retry`
+without links, OTPs or mail bodies. SMTP messages now include Date and Message-ID;
+a disconnect on QUIT after DATA acceptance does not trigger a duplicate send.
+Backup before this release: `backups/releases/pre-contact-verification-20260930.tgz`.
+Do not downgrade to a non-nullable email column after mobile-only accounts exist.
+
+Release applied successfully; email/mobile production-schema probes rolled back.
+Live WhatsApp now shares the existing Simsonsts.com account/template, so
+`/api/v1/auth/options` returns `whatsapp_available: true`. The incident
+owner alert was resent and SMTP-accepted; its verification message also succeeded
+on retry. See PROJECT_STATUS.md for test evidence and incident timestamps.
+
+### Shared WhatsApp credential configuration
+
+`/etc/systemd/system/vidhisangh-api.service.d/whatsapp.conf` loads
+`wa_access_token` from `/etc/credstore.encrypted/vidhisangh.wa_access_token` and
+sets `VS_WA_ACCESS_TOKEN_FILE=%d/wa_access_token` with the existing phone-number ID
+and template settings. Simsonsts.com was only read; no account/phone migration,
+webhook subscription, template change or source credential rotation was performed.
+The credential was validated with a read-only Meta request. Both sites remain up.
+If the shared source token is intentionally rotated later, update this encrypted
+copy too; do not rotate or migrate the shared account as part of a VidhiSangh deploy.
