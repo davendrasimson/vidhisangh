@@ -22,6 +22,8 @@ import { MattersService } from '@core/services/matters.service';
 import { ECourtsCase, MatterDetail, Person } from '@core/models/matters.models';
 import { SignaturePadComponent } from '@shared/signature-pad/signature-pad.component';
 
+import { saveBlob } from '@core/platform/save-file';
+import { isNativeApp } from '@core/platform/platform';
 const todayDdMmYyyy = (): string => { const d = new Date(); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`; };
 
 @Component({
@@ -225,7 +227,11 @@ export class DocumentsComponent implements OnInit {
   protected printDraft(): void {
     const escaped = this.draftText().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>${this.cleanFilename(this.draftFileName)}</title><style>body{font:15px/1.65 Georgia,serif;max-width:760px;margin:48px auto;padding:0 28px;color:#111}pre{font:inherit;white-space:pre-wrap}@media print{body{margin:0 auto}}</style></head><body><pre>${escaped}</pre><script>print()<\/script></body></html>`;
-    const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+    const page = new Blob([html], { type: 'text/html;charset=utf-8' });
+    // No print dialog inside the app: hand the page to the share sheet instead
+    // ("Print" is one of its targets on both Android and iOS).
+    if (isNativeApp()) { void saveBlob(page, `${this.cleanFilename(this.draftFileName)}.html`); return; }
+    const url = URL.createObjectURL(page);
     window.open(url, '_blank', 'noopener,noreferrer');
     setTimeout(() => URL.revokeObjectURL(url), 30_000);
   }
@@ -563,5 +569,5 @@ export class DocumentsComponent implements OnInit {
   private replaceEnvelope(updated: SignatureEnvelope): void { this.signatureEnvelopes.update((items) => items.map((item) => item.id === updated.id ? updated : item)); }
   protected fileSize(bytes: number): string { if (bytes < 1024) return `${bytes} B`; if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`; return `${(bytes / (1024 * 1024)).toFixed(1)} MB`; }
   private patch(updated: DocFile): void { this.files.update((items) => items.map((item) => item.id === updated.id ? updated : item)); }
-  private save(blob: Blob, filename: string): void { const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = filename; anchor.click(); URL.revokeObjectURL(url); }
+  private save(blob: Blob, filename: string): void { void saveBlob(blob, filename); }
 }

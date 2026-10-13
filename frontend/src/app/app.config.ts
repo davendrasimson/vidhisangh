@@ -15,6 +15,7 @@ import { routes } from './app.routes';
 import { authInterceptor } from '@core/interceptors/auth.interceptor';
 import { errorInterceptor } from '@core/interceptors/error.interceptor';
 import { VS_DATE_FORMAT } from '@core/dates/indian-date-adapter';
+import { isNativeApp } from '@core/platform/platform';
 
 // Indian conventions everywhere: dd/mm/yyyy dates by default for `| date`,
 // and en-IN digit grouping (1,00,000) for `| number` / `| currency`.
@@ -32,7 +33,9 @@ export const appConfig: ApplicationConfig = {
     ),
     provideAnimationsAsync(),
     provideServiceWorker('ngsw-worker.js', {
-      enabled: !isDevMode(),
+      // The app ships its assets in the APK/IPA; a service worker there only
+      // serves stale bundles after an app update.
+      enabled: !isDevMode() && !isNativeApp(),
       registrationStrategy: 'registerWhenStable:30000',
     }),
   ],

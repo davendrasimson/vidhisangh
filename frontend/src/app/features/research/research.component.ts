@@ -22,6 +22,8 @@ import { SnippetPipe } from '@shared/pipes/snippet.pipe';
 import { DatePipe } from '@angular/common';
 import { ResearchFolder, ResearchWorkspaceService, SavedAuthority } from './research-workspace.service';
 
+import { publicOrigin } from '@core/platform/platform';
+import { saveBlob } from '@core/platform/save-file';
 const csv = (v: string): string[] => v.split(',').map((s) => s.trim()).filter(Boolean);
 const PAGE_SIZE = 20;
 
@@ -235,10 +237,10 @@ export class ResearchComponent implements OnInit {
       const items = state.authorities.filter((item) => item.folderId === folder.id);
       if (!items.length) continue;
       lines.push(`## ${folder.name}`, '');
-      for (const [index, item] of items.entries()) lines.push(`${index + 1}. **${item.title}**${item.citation ? ` — ${item.citation}` : ''}`, `   ${item.court}${item.judgmentDate ? ` · ${item.judgmentDate}` : ''}`, item.note ? `   Note: ${item.note}` : '', `   ${location.origin}/app/research/${item.judgmentId}`, '');
+      for (const [index, item] of items.entries()) lines.push(`${index + 1}. **${item.title}**${item.citation ? ` — ${item.citation}` : ''}`, `   ${item.court}${item.judgmentDate ? ` · ${item.judgmentDate}` : ''}`, item.note ? `   Note: ${item.note}` : '', `   ${publicOrigin()}/app/research/${item.judgmentId}`, '');
     }
     const blob = new Blob([lines.filter((line) => line !== undefined).join('\n')], { type: 'text/markdown;charset=utf-8' });
-    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `research-memo-${new Date().toISOString().slice(0, 10)}.md`; link.click(); URL.revokeObjectURL(link.href);
+    void saveBlob(blob, `research-memo-${new Date().toISOString().slice(0, 10)}.md`);
   }
 
   private async checkAlerts(): Promise<void> {

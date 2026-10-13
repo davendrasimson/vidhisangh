@@ -16,6 +16,8 @@ import { AuthService } from '@core/auth/auth.service';
 import { JudgmentSummary } from '@core/models/research.models';
 import { Matter } from '@core/models/matters.models';
 import { firstValueFrom } from 'rxjs';
+import { isNativeApp } from '@core/platform/platform';
+import { saveBlob } from '@core/platform/save-file';
 
 const BARE_ACTS_EDITION = '2026-09-26-text-2';
 
@@ -100,6 +102,17 @@ export class ActReaderComponent {
     `${this.localPdfUrl()}#page=1&view=FitH&toolbar=1`,
   ));
   protected readonly currentNumber = computed(() => this.selectedIndex() + 1);
+  /** Android's WebView cannot render a PDF in a frame, so the app opens the
+   *  bundled copy in the phone's own PDF viewer (via the share sheet) instead. */
+  protected readonly native = isNativeApp();
+  protected async openPdfInApp(): Promise<void> {
+    try {
+      const blob = await firstValueFrom(this.http.get(this.localPdfUrl(), { responseType: 'blob' }));
+      await saveBlob(blob, `${this.selected().short || this.selected().id}.pdf`);
+    } catch {
+      this.notify.error('Could not open the PDF.');
+    }
+  }
   protected readonly textBlocks = computed<ReaderBlock[]>(() => {
     const title = this.selected().title.toLowerCase();
     return this.actText().split(/\n{2,}/)

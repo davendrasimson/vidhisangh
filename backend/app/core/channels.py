@@ -83,6 +83,12 @@ class LogProvider:
         )
 
 
+# Titan's server waits for a reverse-DNS lookup of our IP before its greeting
+# (8-11 s for a host without a PTR record). Delivery runs in the background
+# worker, so a generous timeout costs nothing and avoids minute-long retries.
+SMTP_TIMEOUT_SECONDS = 30
+
+
 class EmailSmtpProvider:
     name = "email"
 
@@ -120,11 +126,11 @@ class EmailSmtpProvider:
             connection = smtplib.SMTP_SSL(
                 self.host,
                 self.port,
-                timeout=10,
+                timeout=SMTP_TIMEOUT_SECONDS,
                 context=ssl.create_default_context(),
             )
         else:
-            connection = smtplib.SMTP(self.host, self.port, timeout=10)
+            connection = smtplib.SMTP(self.host, self.port, timeout=SMTP_TIMEOUT_SECONDS)
         try:
             if self.use_tls and not self.use_ssl:
                 connection.starttls(context=ssl.create_default_context())

@@ -11,6 +11,7 @@ import { NotificationService } from '@core/services/notification.service';
 import { PortalAccess, PortalApproval } from '@core/models/portal.models';
 import { DocFile } from '@core/models/documents.models';
 
+import { publicOrigin } from '@core/platform/platform';
 @Component({
   selector: 'app-matter-portal',
   standalone: true,
@@ -60,7 +61,7 @@ export class MatterPortalComponent {
   }
 
   protected link(a: PortalAccess): string {
-    return `${location.origin}/portal/${a.token}`;
+    return `${publicOrigin()}/portal/${a.token}`;
   }
 
   protected async copyLink(a: PortalAccess): Promise<void> {

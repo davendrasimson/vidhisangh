@@ -24,6 +24,7 @@ import { EditorChange, VsRichEditorComponent } from '@shared/rich-editor/vs-rich
 import { ClientChoice, VsClientPickerComponent } from '@shared/client-picker/vs-client-picker.component';
 import { ClientsService } from '@core/services/clients.service';
 
+import { saveBlob } from '@core/platform/save-file';
 const AUTOSAVE_MS = 1500;
 
 /**
@@ -220,10 +221,7 @@ export class DraftEditorComponent implements OnDestroy {
     try {
       await this.flush();
       const blob = await firstValueFrom(this.drafts.exportDocx(d.id));
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `${this.title.trim() || 'Document'}.docx`; a.click();
-      URL.revokeObjectURL(url);
+      await saveBlob(blob, `${this.title.trim() || 'Document'}.docx`);
     } catch { /* handled */ } finally { this.busy.set(null); }
   }
 

@@ -9,7 +9,7 @@ import { ThemeService } from '@core/services/theme.service';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterOutlet, HelpControlsComponent],
-  template: `@if (!help.inWorkspace()) { <div class="public-help"><app-help-controls /></div> }<router-outlet />`,
+  template: `@if (!help.inWorkspace() && !help.onLanding()) { <div class="public-help"><app-help-controls /></div> }<router-outlet />`,
   styles: [`.public-help { display: flex; justify-content: flex-end; padding: .5rem 1rem; background: rgb(var(--vs-surface-raised)); }`],
 })
 export class App {

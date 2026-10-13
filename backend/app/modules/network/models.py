@@ -91,7 +91,7 @@ class Connection(AuditedBase):
         String(20), default=ConnectionStatus.PENDING, nullable=False, index=True
     )
     message: Mapped[str | None] = mapped_column(String(300), nullable=True)
-    responded_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class Follow(AuditedBase):

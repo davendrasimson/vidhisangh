@@ -18,6 +18,7 @@ import {
   InvoiceStatus, LineItemCreate, TimeEntry, TimeImportPreview,
 } from '@core/models/billing.models';
 
+import { saveBlob } from '@core/platform/save-file';
 type Filter = 'all' | 'pending' | InvoiceStatus;
 type View = 'invoices' | 'timesheets' | 'followups' | 'receipts';
 
@@ -233,7 +234,6 @@ export class BillingComponent implements OnInit {
 
   protected async downloadTemplate(): Promise<void> {
     const blob = await firstValueFrom(this.billing.timeImportTemplate());
-    const url = URL.createObjectURL(blob); const link = document.createElement('a');
-    link.href = url; link.download = 'vidhisangh-timesheet-template.csv'; link.click(); URL.revokeObjectURL(url);
+    await saveBlob(blob, 'vidhisangh-timesheet-template.csv');
   }
 }

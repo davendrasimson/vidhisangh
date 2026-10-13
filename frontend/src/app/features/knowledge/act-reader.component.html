@@ -153,15 +153,21 @@
           <div class="pdf-choice">
             <div><strong>Official PDF copies</strong><span>Use these when you need the published page layout or want to verify the reading text.</span></div>
             <div class="pdf-links">
-              <a mat-flat-button color="primary" [href]="localPdfUrl()" target="_blank"><mat-icon class="material-icons-outlined">download</mat-icon>English PDF</a>
+              @if (native) {
+                <button mat-flat-button color="primary" type="button" (click)="openPdfInApp()"><mat-icon class="material-icons-outlined">download</mat-icon>English PDF</button>
+              } @else {
+                <a mat-flat-button color="primary" [href]="localPdfUrl()" target="_blank"><mat-icon class="material-icons-outlined">download</mat-icon>English PDF</a>
+              }
               @if (selected().hindiSource) { <a mat-stroked-button [href]="selected().hindiSource" target="_blank" rel="noopener noreferrer"><mat-icon class="material-icons-outlined">language</mat-icon>Hindi PDF</a> }
               <a mat-stroked-button [href]="selected().source" target="_blank" rel="noopener noreferrer">Official source<mat-icon class="material-icons-outlined">open_in_new</mat-icon></a>
             </div>
           </div>
+          @if (!native) {
           <div class="document-frame">
             @if (pdfLoading()) { <div class="reader-state"><mat-icon class="material-icons-outlined">hourglass_top</mat-icon><p>Opening the English PDF…</p></div> }
             <iframe [src]="readerSource()" [title]="'English PDF of ' + selected().title" (load)="pdfLoading.set(false)"></iframe>
           </div>
+          }
         </section>
       }
     </main>

@@ -5,6 +5,8 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.modules.research.models import CitationRelationship, CourtLevel
@@ -109,6 +111,59 @@ class CaseRead(BaseModel):
     orders: list[CaseOrder]
 
 
+# ─── AI-generated headnotes (migration 0064) ─────────────────────────
+AI_HEADNOTE_LABEL = "AI-generated headnote. Verify against the judgment before relying on it."
+
+
+class AiProvision(BaseModel):
+    """A statutory provision the Court applied, read before the holding is stated."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    act: str = Field(min_length=2, max_length=200)
+    provision: str = Field(min_length=1, max_length=120)
+    how_applied: str = Field(min_length=10, max_length=700)
+    paragraphs: list[str] = Field(default_factory=list, max_length=20)
+
+
+class AiHeldPoint(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    point: str = Field(min_length=10, max_length=1500)
+    paragraphs: list[str] = Field(default_factory=list, max_length=20)
+
+
+class AiHeadnoteContent(BaseModel):
+    """What a headnote writer must produce. Original wording, grounded in the
+    judgment's own paragraphs; never the reporter's editorial headnote."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    summary: str = Field(min_length=20, max_length=900)
+    issues: list[str] = Field(min_length=1, max_length=8)
+    provisions: list[AiProvision] = Field(default_factory=list, max_length=12)
+    held: list[AiHeldPoint] = Field(min_length=1, max_length=10)
+    result: str = Field(min_length=3, max_length=600)
+
+
+class AiHeadnoteRead(AiHeadnoteContent):
+    model_config = ConfigDict(extra="ignore")
+    ai_generated: Literal[True] = True
+    label: str = AI_HEADNOTE_LABEL
+    model: str | None = None
+    generated_at: datetime | None = None
+    version: str | None = None
+
+    @classmethod
+    def from_judgment(cls, judgment) -> "AiHeadnoteRead | None":  # noqa: ANN001
+        data = getattr(judgment, "ai_headnote", None)
+        if not data:
+            return None
+        return cls(
+            **data,
+            model=judgment.ai_headnote_model,
+            generated_at=judgment.ai_headnote_generated_at,
+            version=judgment.ai_headnote_version,
+        )
+
+
 class JudgmentRead(_RegistryFields):
     id: uuid.UUID
     case_name: str
@@ -127,11 +182,14 @@ class JudgmentRead(_RegistryFields):
     # Text extracted from the PDF (migration 0040); null until extracted.
     full_text: str | None = None
     text_extracted_at: datetime | None = None
+    # Always flagged as AI-generated (ai_generated=true, label); null until written.
+    ai_headnote: AiHeadnoteRead | None = None
     created_at: datetime
 
     @classmethod
     def from_orm_row(cls, judgment) -> "JudgmentRead":  # noqa: ANN001
         read = cls.model_validate(judgment)
+        read.ai_headnote = AiHeadnoteRead.from_judgment(judgment)
         read.judge_names = _split_judges(getattr(judgment, "judge_text", None))
         return read
 

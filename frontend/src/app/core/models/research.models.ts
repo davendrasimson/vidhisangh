@@ -117,7 +117,22 @@ export interface Judgment extends JudgmentSummary {
   /** Text extracted from the order PDF; null until extracted. */
   full_text: string | null;
   text_extracted_at: string | null;
+  /** AI-written headnote (Supreme Court); always shown with its AI flag. */
+  ai_headnote?: AiHeadnote | null;
   created_at: string;
+}
+
+export interface AiHeadnote {
+  ai_generated: true;
+  label: string;
+  model: string | null;
+  generated_at: string | null;
+  version: string | null;
+  summary: string;
+  issues: string[];
+  provisions: { act: string; provision: string; how_applied: string; paragraphs: string[] }[];
+  held: { point: string; paragraphs: string[] }[];
+  result: string;
 }
 
 export interface JudgmentCreate {

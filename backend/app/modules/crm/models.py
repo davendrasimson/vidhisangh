@@ -6,7 +6,7 @@ import uuid
 from datetime import date, datetime
 from enum import StrEnum
 
-from sqlalchemy import Boolean, Date, ForeignKey, Numeric, String, Text, Uuid
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Numeric, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import TenantScopedBase
@@ -82,7 +82,7 @@ class LeadActivity(TenantScopedBase):
     body: Mapped[str | None] = mapped_column(Text, nullable=True)
     due_on: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)  # follow-up date
     completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    completed_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_by: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
 
     lead: Mapped[Lead] = relationship(back_populates="activities")

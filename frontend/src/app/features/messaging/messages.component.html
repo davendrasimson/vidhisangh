@@ -1,6 +1,8 @@
 <div class="mx-auto w-full h-[calc(100vh-7rem)] flex gap-4">
   <!-- Conversation list -->
-  <aside class="w-72 shrink-0 rounded-card bg-surface-raised border border-line shadow-card flex flex-col overflow-hidden">
+  <!-- On phones only one pane shows: the list, or the open thread. -->
+  <aside class="w-full md:w-72 shrink-0 rounded-card bg-surface-raised border border-line shadow-card flex-col overflow-hidden md:flex"
+         [class.hidden]="active()" [class.flex]="!active()">
     <div class="flex items-center justify-between p-3 border-b border-line">
       <h1 class="font-semibold">Messages</h1>
       <button mat-icon-button (click)="toggleNewChat()" aria-label="New message">
@@ -51,9 +53,13 @@
   </aside>
 
   <!-- Thread -->
-  <section class="flex-1 rounded-card bg-surface-raised border border-line shadow-card flex flex-col overflow-hidden">
+  <section class="flex-1 min-w-0 rounded-card bg-surface-raised border border-line shadow-card flex-col overflow-hidden md:flex"
+           [class.hidden]="!active()" [class.flex]="active()">
     @if (active(); as a) {
       <header class="flex items-center gap-3 p-3 border-b border-line">
+        <button mat-icon-button class="md:!hidden" (click)="active.set(null)" aria-label="Back to conversations">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
         <span class="relative">
           <span class="vs-avatar-sm">{{ initials(title(a)) }}</span>
           @if (otherOnline(a)) { <span class="vs-online-dot"></span> }

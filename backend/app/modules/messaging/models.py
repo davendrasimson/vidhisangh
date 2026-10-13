@@ -7,6 +7,7 @@ from datetime import datetime
 from enum import StrEnum
 
 from sqlalchemy import (
+    DateTime,
     ForeignKey,
     String,
     Text,
@@ -37,7 +38,9 @@ class Conversation(AuditedBase):
     # Canonical "min:max" user-id pair for a direct chat (unique); null for groups.
     direct_key: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
-    last_message_at: Mapped[datetime | None] = mapped_column(nullable=True, index=True)
+    last_message_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
     last_message_preview: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
     participants: Mapped[list["ConversationParticipant"]] = relationship(
@@ -62,7 +65,7 @@ class ConversationParticipant(AuditedBase):
     participant_name: Mapped[str] = mapped_column(String(200), nullable=False)
     participant_avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     # When the participant last read the conversation (for unread counts).
-    last_read_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    last_read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     conversation: Mapped[Conversation] = relationship(back_populates="participants")
 

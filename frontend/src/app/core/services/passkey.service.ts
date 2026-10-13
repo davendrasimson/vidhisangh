@@ -4,6 +4,7 @@ import { Observable, firstValueFrom } from 'rxjs';
 import { environment } from '@env/environment';
 import { TokenPair } from '@core/models/auth.models';
 import { TokenService } from '@core/auth/token.service';
+import { isNativeApp } from '@core/platform/platform';
 
 export interface Passkey {
   id: string;
@@ -37,7 +38,9 @@ export class PasskeyService {
   private readonly api = `${environment.apiBaseUrl}/auth/passkeys`;
 
   static supported(): boolean {
-    return typeof window !== 'undefined' && !!window.PublicKeyCredential;
+    // Inside the app the page origin is localhost, which the vidhisangh.com
+    // passkey (relying party) does not match, so passkeys stay web-only for now.
+    return typeof window !== 'undefined' && !!window.PublicKeyCredential && !isNativeApp();
   }
 
   list(): Observable<Passkey[]> {

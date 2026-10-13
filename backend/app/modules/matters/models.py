@@ -469,7 +469,7 @@ class Hearing(TenantScopedBase):
     )
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     outcome: Mapped[str | None] = mapped_column(Text, nullable=True)
-    next_date: Mapped[datetime | None] = mapped_column(nullable=True)
+    next_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     matter: Mapped[Matter] = relationship(back_populates="hearings")
 
@@ -486,7 +486,7 @@ class MatterTask(TenantScopedBase):
         String(20), default=TaskStatus.OPEN, nullable=False, index=True
     )
     assigned_to: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
-    completed_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     matter: Mapped[Matter] = relationship(back_populates="tasks")
 

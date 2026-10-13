@@ -11,6 +11,7 @@ import { PaymentService } from '@core/services/payment.service';
 import { NotificationService } from '@core/services/notification.service';
 import { BillingBranding, InvoiceDetail, InvoiceStatus } from '@core/models/billing.models';
 
+import { publicOrigin } from '@core/platform/platform';
 @Component({
   selector: 'app-invoice-detail', standalone: true, changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FormsModule, DatePipe, RouterLink, MatIconModule, MatButtonModule],
@@ -57,7 +58,7 @@ export class InvoiceDetailComponent {
   protected money(v: string | number): string { return `₹${Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`; }
   protected title(): string { return ({ proforma: 'PROFORMA INVOICE', tax_invoice: 'TAX INVOICE', credit_note: 'CREDIT NOTE' })[this.invoice()?.document_type || 'tax_invoice']; }
   protected editable(): boolean { return ['draft', 'sent'].includes(this.invoice()?.status || ''); }
-  protected paymentLink(): string { return `${window.location.origin}/pay/${this.invoice()?.payment_token || ''}`; }
+  protected paymentLink(): string { return `${publicOrigin()}/pay/${this.invoice()?.payment_token || ''}`; }
   protected print(): void { window.print(); }
   protected async copyPaymentLink(): Promise<void> { await navigator.clipboard.writeText(this.paymentLink()); this.notify.success('Payment link copied.'); }
 

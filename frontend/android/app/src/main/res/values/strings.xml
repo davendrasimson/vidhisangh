@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">VidhiSangh</string>
+    <string name="title_activity_main">VidhiSangh</string>
+    <string name="package_name">com.vidhisangh.app</string>
+    <string name="custom_url_scheme">com.vidhisangh.app</string>
+</resources>

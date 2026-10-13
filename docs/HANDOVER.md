@@ -1,3 +1,5 @@
+> **Active task (08/10/2026):** writing AI headnotes for Supreme Court judgments, newest first, with a standing go-ahead and no paid API. Start at [AI_HEADNOTES.md → Continuing in a new session](AI_HEADNOTES.md).
+
 # VidhiSangh — handover note (27 September 2026)
 
 For whoever picks this up next: a person, a fresh Claude session, or another
@@ -125,6 +127,10 @@ version:
 9. Legal research: remaining case-information steps and per-court corpus
    builds (UP, Delhi, P&H, Uttarakhand, Supreme Court) are paused until the
    S3 bucket exists. Do not scrape CAPTCHA-gated eCourts pages.
+10. Mobile apps (see [MOBILE.md](MOBILE.md)): compile and sign iOS on a Mac,
+    publish both store listings, then passkeys/SSO/deep links and push
+    notifications in the app. The Android upload keystore lives only on the dev
+    laptop in `~/.vidhisangh-signing/android/`; back it up.
 
 Completed after the audit handover: refresh tokens are cookie-only by default;
 legacy WebSocket token and webhook signature paths are removed; new directory

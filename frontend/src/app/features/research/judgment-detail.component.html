@@ -80,8 +80,28 @@
       <!-- For an SC judgment the headnote is the Court's own disposal — keep it
            even when the full text is present. For a High Court order record it
            is only the registry's opening, so the full text replaces it. -->
+      @if (j.ai_headnote; as hn) {
+        <section class="ai-headnote" aria-labelledby="ai-headnote-title">
+          <header>
+            <h2 id="ai-headnote-title">Headnote</h2>
+            <span class="ai-badge"><mat-icon class="material-icons-outlined">auto_awesome</mat-icon>AI-generated</span>
+          </header>
+          <p class="ai-disclaimer">{{ hn.label }}@if (hn.model) { Written by {{ hn.model }}@if (hn.generated_at) { on {{ hn.generated_at | date }}}.}</p>
+          <p class="ai-summary">{{ hn.summary }}</p>
+          <h3>Issues</h3>
+          <ol>@for (issue of hn.issues; track $index) { <li>{{ issue }}</li> }</ol>
+          @if (hn.provisions.length) {
+            <h3>Provisions considered</h3>
+            <ul>@for (p of hn.provisions; track $index) { <li><strong>{{ p.provision }}, {{ p.act }}.</strong> {{ p.how_applied }}@if (p.paragraphs.length) { <span class="paras">(para {{ p.paragraphs.join(', ') }})</span>}</li> }</ul>
+          }
+          <h3>Held</h3>
+          <ol>@for (h of hn.held; track $index) { <li>{{ h.point }}@if (h.paragraphs.length) { <span class="paras">(para {{ h.paragraphs.join(', ') }})</span>}</li> }</ol>
+          <h3>Result</h3>
+          <p>{{ hn.result }}</p>
+        </section>
+      }
       @if (j.headnote && !(j.full_text && j.court_level === 'high_court')) {
-        <h2 class="font-semibold mt-4 mb-1">{{ j.court_level === 'high_court' && !j.citation ? 'From the order' : 'Headnote' }}</h2>
+        <h2 class="font-semibold mt-4 mb-1">{{ j.court_level === 'high_court' && !j.citation ? 'From the order' : (j.ai_headnote ? 'Disposal, in the Court\'s words' : 'Headnote') }}</h2>
         <p class="text-sm text-content whitespace-pre-line">{{ j.headnote }}</p>
       }
       @if (j.full_text && !readerOpen()) { <button class="reader-preview" (click)="openReader()"><mat-icon class="material-icons-outlined">article</mat-icon><span><strong>Full judgment available</strong><small>{{ paragraphs().length.toLocaleString('en-IN') }} readable paragraphs · search, cite and save excerpts</small></span><mat-icon>arrow_forward</mat-icon></button> }

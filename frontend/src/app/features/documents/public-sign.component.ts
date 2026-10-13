@@ -9,6 +9,7 @@ import { PublicSignatureStep } from '@core/models/documents.models';
 import { NotificationService } from '@core/services/notification.service';
 import { SignaturePadComponent } from '@shared/signature-pad/signature-pad.component';
 
+import { saveBlob } from '@core/platform/save-file';
 @Component({
   selector: 'app-public-sign', standalone: true, changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FormsModule, MatButtonModule, MatIconModule, SignaturePadComponent],
@@ -52,5 +53,5 @@ export class PublicSignComponent {
   protected async download(): Promise<void> { try { this.save(await firstValueFrom(this.docs.publicSigningDocument(this.token, this.session())), this.step()?.document_title ?? 'document'); } catch { /* handled */ } }
   protected async sign(): Promise<void> { if (!this.canSign()) return; try { this.step.set(await firstValueFrom(this.docs.publicSign(this.token, this.session(), { signed_name: this.signedName, designation: this.designation, signature_data: this.signature(), remarks: this.remarks, consent: this.consent }))); this.notify.success('Document signed successfully.'); } catch { /* handled */ } }
   protected async reject(): Promise<void> { const reason = window.prompt('Reason for rejecting this document:')?.trim(); if (!reason) return; try { this.step.set(await firstValueFrom(this.docs.publicReject(this.token, this.session(), reason))); } catch { /* handled */ } }
-  private save(blob: Blob, name: string): void { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url); }
+  private save(blob: Blob, name: string): void { void saveBlob(blob, name); }
 }

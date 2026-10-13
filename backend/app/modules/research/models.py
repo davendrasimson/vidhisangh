@@ -95,6 +95,15 @@ class Judgment(AuditedBase):
     sections: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
     keywords: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
     headnote: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # AI-generated headnote (migration 0064): original summary writing, never the
+    # reporter's editorial headnote. Always presented with an "AI-generated" flag.
+    # Shape: app.modules.research.schemas.AiHeadnoteContent.
+    ai_headnote: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    ai_headnote_model: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    ai_headnote_generated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    ai_headnote_version: Mapped[str | None] = mapped_column(String(20), nullable=True)
     outcome: Mapped[str | None] = mapped_column(String(300), nullable=True)
     url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     # Text extracted from the order/judgment PDF (migration 0040). Searched

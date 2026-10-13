@@ -145,7 +145,7 @@ export class ClientDetailComponent {
     const c = this.client();
     if (!c) return;
     try {
-      saveBlob(await firstValueFrom(this.privacy.exportBlob(c.id)), `client-${c.display_name.replace(/[^\w-]+/g, '_')}.json`);
+      await saveBlob(await firstValueFrom(this.privacy.exportBlob(c.id)), `client-${c.display_name.replace(/[^\w-]+/g, '_')}.json`);
       this.notify.success('Client data export downloaded (DPDP s.11).');
     } catch { /* handled */ }
   }

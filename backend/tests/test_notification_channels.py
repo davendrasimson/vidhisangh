@@ -211,7 +211,7 @@ async def test_smtp_implicit_tls_logs_in_and_sends(monkeypatch) -> None:
         )
     )
 
-    assert calls[0][:4] == ("connect", "smtp.example", 465, 10)
+    assert calls[0][:4] == ("connect", "smtp.example", 465, 30)
     assert calls[1] == ("login", "sender@example.test", "secret")
     assert calls[2] == ("send", "sender@example.test", "recipient@example.test")
 

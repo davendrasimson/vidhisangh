@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from '@core/guards/auth.guard';
+import { landingGuard } from '@core/guards/landing.guard';
 
 /**
  * Top-level routing. Feature areas are lazy-loaded so the initial bundle stays
@@ -7,7 +8,13 @@ import { authGuard } from '@core/guards/auth.guard';
  * sit under the app shell behind `authGuard`.
  */
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'app/dashboard' },
+  {
+    // Public home page for visitors; members and the mobile app go to the dashboard.
+    path: '',
+    pathMatch: 'full',
+    canActivate: [landingGuard],
+    loadComponent: () => import('@features/landing/landing.component').then((m) => m.LandingComponent),
+  },
   { path: 'help', loadComponent: () => import('@features/help/help-center.component').then(m => m.HelpCenterComponent) },
 
   {

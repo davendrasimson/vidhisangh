@@ -217,7 +217,9 @@ class AuthService:
         if user.email:
             await self.send_email_verification(user)
         pair = None
-        if not user.verification_required or not user.email:
+        # A WhatsApp-verified mobile is enough to sign in; the email link still
+        # goes out and verifies the address whenever it is opened.
+        if not user.verification_required or not user.email or user.is_phone_verified:
             pair = await self._issue_token_pair(
                 user, ip=ip, user_agent=user_agent, label="signup", device_id=data.device_id
             )
@@ -404,10 +406,9 @@ class AuthService:
         device_id: str | None = None,
         replaces: RefreshToken | None = None,
     ) -> TokenPair:
-        if user.verification_required and (
-            (user.email and not user.is_email_verified)
-            or (not user.email and not user.is_phone_verified)
-        ):
+        # Either verified contact proves the account: the email link, or the
+        # WhatsApp code given at sign-up.
+        if user.verification_required and not (user.is_email_verified or user.is_phone_verified):
             raise PermissionDeniedError("Verify your email using the link we sent before signing in.")
         tenant = await self.tenants.get_by_id(user.tenant_id)
         if tenant is None or tenant.status in (TenantStatus.SUSPENDED, TenantStatus.CANCELLED):

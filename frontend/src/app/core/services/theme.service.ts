@@ -2,6 +2,7 @@ import { Injectable, effect, signal } from '@angular/core';
 
 type ThemeMode = 'light' | 'dark' | 'system';
 export type Accent =
+  | 'vidhi'
   | 'amber'
   | 'navy'
   | 'burgundy'
@@ -31,6 +32,7 @@ interface AccentDef {
 }
 
 export const ACCENTS: Record<Accent, AccentDef> = {
+  vidhi: { label: 'VidhiSangh Blue', swatch: '#215dcc', description: 'The VidhiSangh brand colour', light: ['33 93 204', '255 255 255', '73 52 184'], dark: ['72 128 230', '255 255 255', '104 84 214'] },
   amber: { label: 'Court Amber', swatch: '#b45309', description: 'Warm and authoritative', light: ['180 83 9', '255 255 255', '120 53 15'], dark: ['251 191 36', '15 23 42', '217 119 6'] },
   navy: { label: 'Advocate Navy', swatch: '#1e3a8a', description: 'Traditional and formal', light: ['30 58 138', '255 255 255', '30 64 175'], dark: ['147 197 253', '15 23 42', '96 165 250'] },
   burgundy: { label: 'Burgundy', swatch: '#9f1239', description: 'Distinguished and confident', light: ['159 18 57', '255 255 255', '127 29 29'], dark: ['253 164 175', '15 23 42', '251 113 133'] },
@@ -96,7 +98,7 @@ export class ThemeService {
   private apply(): void {
     const dark = this.isDark();
     document.documentElement.classList.toggle('dark', dark);
-    const def = ACCENTS[this.accent()] ?? ACCENTS.amber;
+    const def = ACCENTS[this.accent()] ?? ACCENTS.vidhi;
     const [brand, brandFg, companion] = dark ? def.dark : def.light;
     const root = document.documentElement.style;
     root.setProperty('--vs-brand', brand);
@@ -110,6 +112,6 @@ export class ThemeService {
 
   private initialAccent(): Accent {
     const saved = localStorage.getItem(ACCENT_KEY) as Accent | null;
-    return saved && saved in ACCENTS ? saved : 'amber';
+    return saved && saved in ACCENTS ? saved : 'vidhi';
   }
 }

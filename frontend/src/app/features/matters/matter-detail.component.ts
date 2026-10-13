@@ -51,6 +51,7 @@ import { DocFile } from '@core/models/documents.models';
 import { AuthService } from '@core/auth/auth.service';
 import { EditorChange, VsRichEditorComponent } from '@shared/rich-editor/vs-rich-editor.component';
 
+import { saveBlob } from '@core/platform/save-file';
 interface MilestoneDraft {
   label: string;
   trigger: MilestoneTrigger;
@@ -311,12 +312,7 @@ export class MatterDetailComponent {
   protected async downloadMatterDocument(document: DocFile): Promise<void> {
     try {
       const blob = await firstValueFrom(this.documents.download(document.id));
-      const url = URL.createObjectURL(blob);
-      const anchor = window.document.createElement('a');
-      anchor.href = url;
-      anchor.download = document.name;
-      anchor.click();
-      URL.revokeObjectURL(url);
+      await saveBlob(blob, document.name);
     } catch { this.notify.error('Document download failed.'); }
   }
 

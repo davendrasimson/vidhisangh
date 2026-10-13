@@ -70,7 +70,7 @@ class PortalApproval(TenantScopedBase):
         String(20), default=ApprovalStatus.PENDING, nullable=False, index=True
     )
     response_note: Mapped[str | None] = mapped_column(String(1000), nullable=True)
-    responded_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_by: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
 
 

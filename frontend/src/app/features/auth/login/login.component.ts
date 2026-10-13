@@ -13,6 +13,7 @@ import { PasskeyService } from '@core/services/passkey.service';
 import { ApiProblem, SsoProvider } from '@core/models/auth.models';
 
 import { WhatsappLoginComponent } from '../whatsapp-login.component';
+import { isNativeApp } from '@core/platform/platform';
 
 export const SSO_PROVIDER_KEY = 'vs_sso_provider';
 
@@ -67,6 +68,10 @@ export class LoginComponent implements OnInit {
     void firstValueFrom(this.auth.authOptions()).then(options => {
       this.whatsappAvailable.set(options.whatsapp_available);
     }).catch(() => {});
+    // SSO redirects back to this page's origin, which the app (localhost) cannot
+    // receive until deep links are set up, so the app offers password,
+    // WhatsApp code and MFA sign-in only.
+    if (isNativeApp()) return;
     try {
       this.ssoProviders.set(await firstValueFrom(this.auth.ssoProviders()));
     } catch {

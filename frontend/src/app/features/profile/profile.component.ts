@@ -21,6 +21,7 @@ import {
   PublicationItem,
 } from '@core/models/profile.models';
 
+import { saveBlob } from '@core/platform/save-file';
 const csv = (v: string | null | undefined): string[] =>
   (v ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 
@@ -273,12 +274,7 @@ export class ProfileComponent implements OnInit {
   protected async downloadVcard(): Promise<void> {
     try {
       const blob = await firstValueFrom(this.profiles.vcard());
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'vidhisangh-card.vcf';
-      a.click();
-      URL.revokeObjectURL(url);
+      await saveBlob(blob, 'vidhisangh-card.vcf');
     } catch {
       /* handled */
     }

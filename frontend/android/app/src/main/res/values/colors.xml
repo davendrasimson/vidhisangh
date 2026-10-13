@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shows behind the status and navigation bars (the WebView is padded clear
+         of them). Matches the app header: white in light mode. -->
+    <color name="vs_window">#FFFFFF</color>
+</resources>

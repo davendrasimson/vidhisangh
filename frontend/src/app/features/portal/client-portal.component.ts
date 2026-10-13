@@ -7,6 +7,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { PortalService } from '@core/services/portal.service';
 import { PortalApproval, PortalDocument, PortalView } from '@core/models/portal.models';
 
+import { saveBlob } from '@core/platform/save-file';
 @Component({
   selector: 'app-client-portal',
   standalone: true,
@@ -55,12 +56,7 @@ export class ClientPortalComponent {
   protected async download(doc: PortalDocument): Promise<void> {
     try {
       const blob = await firstValueFrom(this.portal.clientDownload(this.token, doc.id));
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = doc.name;
-      link.click();
-      URL.revokeObjectURL(url);
+      await saveBlob(blob, doc.name);
     } catch {
       /* handled */
     }

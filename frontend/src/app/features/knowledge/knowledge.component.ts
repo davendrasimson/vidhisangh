@@ -21,6 +21,7 @@ import { FIRM_LIBRARY_STARTERS, filteredFirmStarters } from './data/firm-library
 import { checklistLines, fillTemplate, placeholders } from './knowledge.helpers';
 import { VsDateInputComponent } from '@shared/date-input/vs-date-input.component';
 
+import { saveBlob } from '@core/platform/save-file';
 @Component({
   selector: 'app-knowledge', standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -199,8 +200,7 @@ export class KnowledgeComponent implements OnInit {
   protected async download(file: DocFile): Promise<void> {
     try {
       const blob = await firstValueFrom(this.documents.download(file.id));
-      const url = URL.createObjectURL(blob); const a = document.createElement('a');
-      a.href = url; a.download = file.name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+      await saveBlob(blob, file.name);
     } catch { this.notify.error('Could not download the attachment.'); }
   }
 

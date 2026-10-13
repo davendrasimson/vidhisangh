@@ -7,6 +7,7 @@ from datetime import datetime
 
 from sqlalchemy import (
     JSON,
+    DateTime,
     ForeignKey,
     Integer,
     String,
@@ -61,7 +62,7 @@ class Document(TenantScopedBase):
 
     # Check-out lock: only the holder may upload a new version.
     locked_by: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
-    locked_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    locked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     uploaded_by: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
 

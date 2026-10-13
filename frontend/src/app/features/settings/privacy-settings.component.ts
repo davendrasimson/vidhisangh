@@ -85,7 +85,7 @@ export class PrivacySettingsComponent implements OnInit {
     this.busy.set('export');
     try {
       const blob = await firstValueFrom(this.http.get(`${this.api}/privacy/me/export`, { responseType: 'blob' }));
-      saveBlob(blob, `vidhisangh-my-data-${new Date().toISOString().slice(0, 10)}.json`);
+      await saveBlob(blob, `vidhisangh-my-data-${new Date().toISOString().slice(0, 10)}.json`);
       this.notify.success('Your data export has been downloaded.');
     } catch { /* handled */ } finally { this.busy.set(null); }
   }
@@ -133,7 +133,7 @@ export class PrivacySettingsComponent implements OnInit {
     this.busy.set('org-export');
     try {
       const blob = await firstValueFrom(this.http.post(`${this.api}/tenants/current/export`, {}, { responseType: 'blob' }));
-      saveBlob(blob, `${this.tenantSlug() || 'organisation'}-export.zip`);
+      await saveBlob(blob, `${this.tenantSlug() || 'organisation'}-export.zip`);
       this.notify.success('Organisation export downloaded (zip of per-table JSON).');
     } catch { /* handled */ } finally { this.busy.set(null); }
   }

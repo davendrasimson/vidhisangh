@@ -180,7 +180,9 @@ async def test_mobile_signup_and_passwordless_login(
         assert all(row.code_hash != code and len(row.code_hash) == 64 for row in rows)
 
 
-async def test_both_contacts_still_require_email_link(client, strong_password, whatsapp):
+async def test_whatsapp_verified_signup_signs_in_without_email_link(
+    client, session_factory, strong_password, whatsapp, email_provider
+):
     challenge, code = await code_for(client, whatsapp)
     response = await client.post(
         f"{API}/register",
@@ -192,12 +194,21 @@ async def test_both_contacts_still_require_email_link(client, strong_password, w
             phone_code=code,
         ),
     )
-    assert response.status_code == 201
-    assert response.json()["verification_required"] is True
+    assert response.status_code == 201, response.text
+    assert response.json()["access_token"]
+    # Password and WhatsApp sign-in both work before the email link is opened.
+    login = await client.post(
+        f"{API}/login", json={"email": "both@example.com", "password": strong_password}
+    )
+    assert login.status_code == 200, login.text
     challenge, code = await code_for(client, whatsapp, purpose="login")
     assert (
         await client.post(f"{API}/whatsapp/login", json={"challenge_id": challenge, "code": code})
-    ).status_code == 403
+    ).status_code == 200
+    # The email itself is still unverified until its link is opened.
+    async with session_factory() as session:
+        user = await session.scalar(select(User).where(User.email == "both@example.com"))
+        assert user.is_phone_verified and not user.is_email_verified
 
 
 async def test_contact_required_and_phone_cannot_be_claimed_without_code(client, strong_password):

@@ -35,14 +35,5 @@ export class ClientPrivacyService {
   }
 }
 
-/** Trigger a browser download of a Blob. */
-export function saveBlob(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
+/** Kept for existing imports; the shared helper also works inside the app. */
+export { saveBlob } from '@core/platform/save-file';

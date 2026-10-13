@@ -191,9 +191,9 @@
       }
 
       <div class="flex items-center gap-1 text-xs text-content-muted mt-3">
-        @if (post.like_count) { <span>{{ post.like_count }} reactions</span> }
-        @if (post.comment_count) { <span>· {{ post.comment_count }} comments</span> }
-        @if (post.share_count) { <span>· {{ post.share_count }} shares</span> }
+        @if (post.like_count) { <span>{{ post.like_count }} {{ post.like_count === 1 ? 'reaction' : 'reactions' }}</span> }
+        @if (post.comment_count) { <span>· {{ post.comment_count }} {{ post.comment_count === 1 ? 'comment' : 'comments' }}</span> }
+        @if (post.share_count) { <span>· {{ post.share_count }} {{ post.share_count === 1 ? 'share' : 'shares' }}</span> }
       </div>
 
       <div class="flex items-center gap-1 border-t border-line mt-2 pt-1">

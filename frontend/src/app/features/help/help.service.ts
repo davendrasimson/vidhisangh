@@ -18,6 +18,8 @@ export class HelpService {
   ), { initialValue: this.router.url });
   readonly current = computed(() => topicForUrl(this.url()));
   readonly inWorkspace = computed(() => this.url().split(/[?#]/)[0].startsWith('/app/'));
+  /** The public landing page has its own header with sign-in and help links. */
+  readonly onLanding = computed(() => this.url().split(/[?#]/)[0] === '/');
   readonly libraryPath = computed(() => this.inWorkspace() ? '/app/help' : '/help');
   readonly tourTopics = computed(() => HELP_TOPICS.filter(topic => topic.featured &&
     (!this.auth.user() || !topic.permission || this.auth.hasPermission(topic.permission))));
