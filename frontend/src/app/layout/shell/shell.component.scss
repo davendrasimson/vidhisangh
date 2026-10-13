@@ -301,3 +301,25 @@
   .vs-topbar > button[aria-label="Settings"] { display: none; }
   .vs-userbtn .hidden { display: none; }
 }
+
+/* "Tell a friend" — growth matters, so these are deliberately prominent. */
+.vs-invite-btn {
+  display: inline-flex; align-items: center; gap: .35rem; margin-right: .35rem;
+  padding: .45rem .9rem; border: 0; border-radius: 999px; cursor: pointer;
+  color: rgb(var(--vs-brand-fg)); background: var(--vs-gradient-brand);
+  font: 600 .88rem var(--vs-font-ui); box-shadow: var(--vs-glow);
+  mat-icon { width: 18px; height: 18px; font-size: 18px; }
+  &:hover { filter: brightness(1.08); }
+}
+@media (max-width: 600px) {
+  .vs-invite-btn { padding: .4rem .7rem; font-size: .82rem; }
+}
+.vs-invite-card {
+  display: flex; align-items: center; gap: .65rem; width: calc(100% - 1.5rem); margin: 0 .75rem .75rem;
+  padding: .75rem .85rem; border: 0; border-radius: 14px; cursor: pointer; text-align: left;
+  color: rgb(var(--vs-brand-fg)); background: var(--vs-gradient-brand); box-shadow: var(--vs-glow);
+  span { display: flex; flex-direction: column; line-height: 1.25; }
+  strong { font-size: .92rem; }
+  small { font-size: .74rem; opacity: .85; }
+  &:hover { filter: brightness(1.08); }
+}

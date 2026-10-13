@@ -70,6 +70,10 @@
     </mat-nav-list>
 
     <div class="vs-sidenav__footer">
+      <button type="button" class="vs-invite-card" (click)="tellAFriend.share()">
+        <mat-icon class="material-icons-outlined">campaign</mat-icon>
+        <span><strong>Tell a friend</strong><small>Invite colleagues to VidhiSangh</small></span>
+      </button>
       <a routerLink="/trust" class="text-xs text-content-muted px-4">Verified security &amp; privacy status</a>
     </div>
   </mat-sidenav>
@@ -86,6 +90,10 @@
       </div>
 
       <span class="flex-1"></span>
+
+      <button type="button" class="vs-invite-btn" (click)="tellAFriend.share()" aria-label="Tell a friend about VidhiSangh">
+        <mat-icon class="material-icons-outlined">person_add</mat-icon><span>Invite</span>
+      </button>
 
       <app-help-controls />
 
@@ -152,6 +160,7 @@
           <p class="font-medium">{{ user()?.full_name }}</p>
           <p class="text-xs text-content-muted">{{ user()?.email }}</p>
         </div>
+        <button mat-menu-item (click)="tellAFriend.share()"><mat-icon class="material-icons-outlined">person_add</mat-icon><span>Tell a friend</span></button>
         <button mat-menu-item (click)="supportDesk.open()"><mat-icon>support_agent</mat-icon><span>Support & grievance</span></button>
         <a mat-menu-item routerLink="/app/profile">
           <mat-icon class="material-icons-outlined">badge</mat-icon><span>My Profile</span>

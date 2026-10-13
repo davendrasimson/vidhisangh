@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { TellAFriendService } from '@core/services/tell-a-friend.service';
 import { UpperCasePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -27,6 +28,7 @@ interface StatTile {
 })
 export class DashboardComponent implements OnInit {
   private readonly auth = inject(AuthService);
+  protected readonly tellAFriend = inject(TellAFriendService);
   private readonly analytics = inject(AnalyticsService);
   protected readonly tenant = inject(TenantService);
 

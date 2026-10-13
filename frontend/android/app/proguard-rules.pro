@@ -19,3 +19,8 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Keep androidx EdgeToEdge under its real name. R8 renamed it (to
+# androidx.activity.q), and Play's pre-launch scan then reported that the
+# app never calls EdgeToEdge.enable() although MainActivity does.
+-keep class androidx.activity.EdgeToEdge { public static *; }

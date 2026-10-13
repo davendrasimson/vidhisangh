@@ -1,4 +1,5 @@
 import { HelpControlsComponent } from '@features/help/help-controls.component';
+import { TellAFriendService } from '@core/services/tell-a-friend.service';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -105,6 +106,7 @@ export class ShellComponent implements OnInit {
     }
   }
 
+  protected readonly tellAFriend = inject(TellAFriendService);
   protected readonly user = this.auth.user;
   protected readonly initials = computed(() => {
     const name = this.user()?.full_name ?? '';

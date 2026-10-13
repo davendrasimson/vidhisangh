@@ -19,6 +19,16 @@
   </div>
 </section>
 
+<!-- Tell a friend -->
+<section class="vs-invite-banner mb-6">
+  <mat-icon class="material-icons-outlined">diversity_3</mat-icon>
+  <div class="min-w-0 flex-1">
+    <h2>VidhiSangh grows with your colleagues</h2>
+    <p>Invite advocates, juniors, munshis and law students you work with. It's free for them too.</p>
+  </div>
+  <button type="button" (click)="tellAFriend.share()"><mat-icon class="material-icons-outlined">share</mat-icon> Tell a friend</button>
+</section>
+
 @if (overview(); as o) {
   <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-6">
     <div class="flex items-center justify-between gap-3 mb-3"><div><h2 class="font-semibold text-content">Action centre</h2><p class="text-xs text-content-muted">Recent workflow items requiring attention</p></div><a routerLink="/app/analytics" class="text-sm text-brand">Full reporting →</a></div>

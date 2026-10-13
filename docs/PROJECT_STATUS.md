@@ -279,3 +279,8 @@ WhatsApp login form opens. These checks did not send a code.
 - Server-safe code: `ThemeService` skips window/localStorage during prerender. No client hydration (Angular re-renders on load), so browser-only code elsewhere is unaffected.
 - nginx fallback changed to `/index.csr.html` (backup `/etc/nginx/vidhisangh.bak-202610130812`); service worker `index` is `/index.csr.html`. Guarded by `frontend/tests/seo.test.mjs`.
 - Known: a signed-in member opening `/` briefly sees the landing page before the guard sends them to the dashboard.
+
+## Tell a friend + Android 1.0.2 — 13 October 2026
+- **Tell a friend** (`TellAFriendService`): native share sheet in the app, Web Share in browsers, clipboard otherwise; invite text with the Play link and `vidhisangh.com/?utm_source=tell_a_friend`. Placed as an "Invite" pill in the top bar (phones too), a card in the side menu, an account-menu item and a dashboard banner. Live on the web.
+- **Play R8/edge-to-edge warnings:** R8 had renamed `androidx.activity.EdgeToEdge` (to `androidx.activity.q`), so Play's scan could not see `EdgeToEdge.enable()`; a keep rule in `proguard-rules.pro` fixes it. Resource shrinking on; Android Gradle Plugin 8.13 → **9.4.1**, Gradle 8.14.3 → **9.8.1** (`aaptOptions` → `androidResources`). All Capacitor plugins build unchanged.
+- **Android 1.0.2 (versionCode 3)** verified on the emulator (sign-in, share sheet from both buttons, icon and splash kept): `~/vidhisangh-release/vidhisangh-1.0.2-release.aab` + `-mapping.txt`.

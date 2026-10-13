@@ -135,3 +135,20 @@
   opacity: 1;
   transform: none;
 }
+
+.vs-invite-banner {
+  display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; padding: 1rem 1.25rem;
+  border-radius: 16px; border: 1.5px solid color-mix(in srgb, rgb(var(--vs-brand)) 35%, rgb(var(--vs-line)));
+  background: color-mix(in srgb, rgb(var(--vs-brand)) 8%, rgb(var(--vs-surface-raised)));
+  > mat-icon { width: 36px; height: 36px; font-size: 36px; color: rgb(var(--vs-brand)); }
+  h2 { margin: 0; font-size: 1.05rem; font-weight: 700; color: rgb(var(--vs-content)); }
+  p { margin: .2rem 0 0; font-size: .86rem; color: rgb(var(--vs-text-muted)); }
+  button {
+    display: inline-flex; align-items: center; gap: .4rem; padding: .7rem 1.3rem; border: 0; border-radius: 999px;
+    cursor: pointer; color: rgb(var(--vs-brand-fg)); background: var(--vs-gradient-brand); box-shadow: var(--vs-glow);
+    font: 700 .95rem var(--vs-font-ui);
+    mat-icon { width: 20px; height: 20px; font-size: 20px; }
+    &:hover { filter: brightness(1.08); }
+  }
+  @media (max-width: 600px) { button { width: 100%; justify-content: center; } }
+}
