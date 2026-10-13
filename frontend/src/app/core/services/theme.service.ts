@@ -18,6 +18,9 @@ export type Accent =
   | 'rose'
   | 'slate';
 
+/** False while public pages are prerendered at build time (no window or storage). */
+const BROWSER = typeof window !== 'undefined' && typeof localStorage !== 'undefined';
+
 const STORAGE_KEY = 'vs.theme';
 const ACCENT_KEY = 'vs.accent';
 
@@ -59,13 +62,14 @@ export const ACCENTS: Record<Accent, AccentDef> = {
 export class ThemeService {
   readonly mode = signal<ThemeMode>(this.initialMode());
   readonly accent = signal<Accent>(this.initialAccent());
-  private readonly media = window.matchMedia('(prefers-color-scheme: dark)');
+  private readonly media = BROWSER ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 
   /** Ordered list for building the colour picker. */
   readonly accentList = (Object.keys(ACCENTS) as Accent[]).map((key) => ({ key, ...ACCENTS[key] }));
 
   constructor() {
-    this.media.addEventListener('change', () => {
+    if (!BROWSER) return;
+    this.media?.addEventListener('change', () => {
       if (this.mode() === 'system') this.apply();
     });
     effect(() => {
@@ -78,7 +82,7 @@ export class ThemeService {
 
   set(mode: ThemeMode): void {
     this.mode.set(mode);
-    localStorage.setItem(STORAGE_KEY, mode);
+    if (BROWSER) localStorage.setItem(STORAGE_KEY, mode);
   }
 
   toggle(): void {
@@ -87,12 +91,12 @@ export class ThemeService {
 
   setAccent(accent: Accent): void {
     this.accent.set(accent);
-    localStorage.setItem(ACCENT_KEY, accent);
+    if (BROWSER) localStorage.setItem(ACCENT_KEY, accent);
   }
 
   isDark(): boolean {
     const mode = this.mode();
-    return mode === 'dark' || (mode === 'system' && this.media.matches);
+    return mode === 'dark' || (mode === 'system' && !!this.media?.matches);
   }
 
   private apply(): void {
@@ -107,11 +111,11 @@ export class ThemeService {
   }
 
   private initialMode(): ThemeMode {
-    return (localStorage.getItem(STORAGE_KEY) as ThemeMode) || 'system';
+    return (BROWSER && (localStorage.getItem(STORAGE_KEY) as ThemeMode)) || 'system';
   }
 
   private initialAccent(): Accent {
-    const saved = localStorage.getItem(ACCENT_KEY) as Accent | null;
+    const saved = BROWSER ? (localStorage.getItem(ACCENT_KEY) as Accent | null) : null;
     return saved && saved in ACCENTS ? saved : 'vidhi';
   }
 }

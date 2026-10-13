@@ -273,3 +273,9 @@ WhatsApp login form opens. These checks did not send a code.
 - `SeoService` sets title, description, canonical, Open Graph/Twitter tags per route from `data.seo`; routes without it get `noindex, nofollow` (the whole signed-in app, portal/KYC/payment/e-sign links).
 - `index.html`: JSON-LD (Organization, WebSite, MobileApplication with the Play link), Twitter card, a `<noscript>` summary; no site-wide canonical (it would mark every page a duplicate of the home page). Guarded by `frontend/tests/seo.test.mjs`.
 - Landing: Join now (solid blue) and Sign in (outlined) are prominent in the header on every screen size; hero buttons larger.
+
+## Prerendered public pages — 13 October 2026
+- `@angular/ssr` static output (`outputMode: "static"` in the production config): the 7 public routes in `app.routes.server.ts` are rendered to HTML at build time; all other routes are client-rendered from `index.csr.html`. Crawlers and link previews now get real content, titles and canonicals without running JavaScript.
+- Server-safe code: `ThemeService` skips window/localStorage during prerender. No client hydration (Angular re-renders on load), so browser-only code elsewhere is unaffected.
+- nginx fallback changed to `/index.csr.html` (backup `/etc/nginx/vidhisangh.bak-202610130812`); service worker `index` is `/index.csr.html`. Guarded by `frontend/tests/seo.test.mjs`.
+- Known: a signed-in member opening `/` briefly sees the landing page before the guard sends them to the dashboard.

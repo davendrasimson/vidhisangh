@@ -33,3 +33,14 @@ test('index.html has structured data and no site-wide canonical', () => {
   // A fixed canonical would mark every public page a copy of the home page.
   assert.doesNotMatch(index, /rel="canonical"/);
 });
+
+test('public pages are prerendered to static HTML in production builds', () => {
+  const angular = JSON.parse(read('angular.json'));
+  const build = Object.values(angular.projects)[0].architect.build.configurations;
+  assert.equal(build.production.outputMode, 'static');
+  assert.equal(build.mobile.server, false); // the app bundle stays client-only
+  const server = read('src/app/app.routes.server.ts');
+  for (const path of ["''", "'privacy'", "'terms'", "'help'", "'auth/register'"]) {
+    assert.match(server, new RegExp(`path: ${path}, renderMode: RenderMode.Prerender`));
+  }
+});

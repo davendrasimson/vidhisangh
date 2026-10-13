@@ -1,12 +1,19 @@
 {
   "$schema": "./node_modules/@angular/service-worker/config/schema.json",
-  "index": "/index.html",
+  "index": "/index.csr.html",
   "assetGroups": [
     {
       "name": "app-shell",
       "installMode": "prefetch",
       "resources": {
-        "files": ["/favicon.svg", "/index.html", "/manifest.webmanifest", "/*.css", "/*.js"]
+        "files": [
+          "/favicon.svg",
+          "/index.html",
+          "/index.csr.html",
+          "/manifest.webmanifest",
+          "/*.css",
+          "/*.js"
+        ]
       }
     },
     {
@@ -14,7 +21,12 @@
       "installMode": "lazy",
       "updateMode": "prefetch",
       "resources": {
-        "files": ["/assets/**", "/icons/**", "/fonts/**", "/*.(svg|png|jpg|webp|woff2)"]
+        "files": [
+          "/assets/**",
+          "/icons/**",
+          "/fonts/**",
+          "/*.(svg|png|jpg|webp|woff2)"
+        ]
       }
     },
     {
@@ -22,17 +34,19 @@
       "installMode": "lazy",
       "updateMode": "lazy",
       "resources": {
-        "files": ["/bare-acts/**"]
+        "files": [
+          "/bare-acts/**"
+        ]
       }
     }
   ],
   "_dataGroups_note": [
     "Audit A-11 / P-9: the service worker used to cache every /api/v1/** response",
     "(matters, clients with PAN/GSTIN, documents, messages) in the browser's",
-    "Cache Storage for an hour — readable after logout and by anyone with the",
+    "Cache Storage for an hour \u2014 readable after logout and by anyone with the",
     "device. No API response is cached any more: every /api/v1 route, including",
     "the news feed, requires a signed-in user (CurrentUserDep) and there is no",
-    "unauthenticated reference API — the statutory library is served as static",
+    "unauthenticated reference API \u2014 the statutory library is served as static",
     "files under /bare-acts/** and stays cached via the asset group above.",
     "If a genuinely public, tenant-independent read is added later, give it its",
     "own `freshness` group with maxAge <= 10m here; never add /api/v1/** back."

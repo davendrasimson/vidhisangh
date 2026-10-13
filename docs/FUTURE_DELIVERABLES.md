@@ -73,7 +73,7 @@ These ship complete and mock/flow-tested; flip them on by setting env in `backen
 
 ## 🔎 SEO, next steps (13 Oct 2026)
 - **Google Search Console + Bing Webmaster** — owner verifies vidhisangh.com (DNS TXT record) and submits `sitemap.xml`.
-- **Prerender the public pages** (Angular SSG via `@angular/ssr`) so crawlers that do not run JavaScript, and WhatsApp/LinkedIn previews of inner pages, get full HTML. Needs browser-only code (localStorage, matchMedia, navigator.locks) guarded for the server build.
+- ✅ **Prerender the public pages** — done 13 Oct 2026 (see PROJECT_STATUS).
 - **Public, indexable knowledge pages** — one page per bare-act section and per reported judgment (title, citation, summary, link into the app). The single biggest source of search traffic for a legal site; needs prerendering or server-rendered HTML first.
 
 ## 🔐 Privacy / DPDP — deferred after the 27 Sep 2026 remediation (privacy agent)

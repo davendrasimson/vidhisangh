@@ -68,7 +68,9 @@
                   "inlineCritical": false
                 },
                 "fonts": true
-              }
+              },
+              "server": "src/main.server.ts",
+              "outputMode": "static"
             },
             "development": {
               "optimization": false,
@@ -83,7 +85,8 @@
                 }
               ],
               "serviceWorker": false,
-              "outputPath": "dist-mobile/vidhisangh"
+              "outputPath": "dist-mobile/vidhisangh",
+              "server": false
             }
           },
           "defaultConfiguration": "production"

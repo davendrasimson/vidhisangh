@@ -323,6 +323,14 @@ ssh vidhisangh 'cd /opt/vidhisangh/backend && set -a && . ./.env.admin && set +a
 # (0036 was rolled out in the wrong order and Legal Research was blank for the
 # duration of a multi-minute table rewrite as a result.)
 npx ng build && rsync -az frontend/dist/ vidhisangh:/opt/vidhisangh/frontend/dist/
+# PRERENDERED PUBLIC PAGES (since 13 Oct 2026): `ng build` (production) writes
+# static HTML for /, /help, /privacy, /terms, /trust, /auth/login and
+# /auth/register (dist/.../browser/<route>/index.html) plus index.csr.html, the
+# client-side shell for every other route. nginx (both server blocks in
+# /etc/nginx/sites-available/vidhisangh) must use
+#   try_files $uri $uri/index.html /index.csr.html;
+# never /index.html as the fallback: that is now the prerendered home page.
+# The mobile build (`build:mobile`) stays client-only (`"server": false`).
 # NO --delete for the dist. Bundles are content-hashed and the app is a PWA
 # (ngsw): a tab that is already open — or a service worker mid-update — still
 # requests the *previous* build's chunks by their old hashes. Deleting them
