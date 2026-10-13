@@ -33,7 +33,7 @@ const PLAY_URL = 'https://play.google.com/store/apps/details?id=com.vidhisangh.a
       <nav aria-label="Sections">
         <a href="#network">Network</a>
         <a href="#research">Research</a>
-        <a href="#bare-acts">Bare Acts</a>
+        <a href="/acts/">Bare Acts</a>
         <a href="#practice">Practice tools</a>
       </nav>
       <div class="auth">
@@ -114,6 +114,7 @@ const PLAY_URL = 'https://play.google.com/store/apps/details?id=com.vidhisangh.a
     <footer>
       <div class="foot-brand"><img src="/brand-mark.svg" alt="" width="24" height="24" /> VidhiSangh</div>
       <nav aria-label="Legal and help">
+        <a href="/acts/">Bare Acts</a>
         <a routerLink="/help">Help</a>
         <a routerLink="/privacy">Privacy</a>
         <a routerLink="/terms">Terms</a>
@@ -222,7 +223,7 @@ export class LandingComponent {
     {
       id: 'bare-acts', eyebrow: 'Bare Acts', title: 'BNS, BNSS, BSA — clear and offline',
       text: 'Read the new criminal laws and other central Acts as clear, searchable text on your phone, even without a connection.',
-      points: ['25 central Acts', 'Search within an Act by section or phrase', 'Copy any provision with one tap'],
+      points: ['25 central Acts', 'Search within an Act by section or phrase', 'Read BNS, BNSS and BSA section by section at vidhisangh.com/acts'],
       image: '/images/landing/09-bareact.webp', alt: 'Reading the Bharatiya Nyaya Sanhita 2023 as clear text',
     },
     {

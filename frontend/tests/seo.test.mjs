@@ -44,3 +44,23 @@ test('public pages are prerendered to static HTML in production builds', () => {
     assert.match(server, new RegExp(`path: ${path}, renderMode: RenderMode.Prerender`));
   }
 });
+
+test('bare-act pages exist for every section and are in the sitemap', () => {
+  const sitemap = read('public/sitemap.xml');
+  for (const id of ['bns', 'bnss', 'bsa']) {
+    const act = JSON.parse(read(`content/acts/${id}.json`));
+    assert.ok(act.sections.length > 100, `${id} has sections`);
+    for (const sec of act.sections) {
+      assert.ok(sec.heading, `${id} ${sec.number} has a heading`);
+      const page = read(`public/acts/${id}/section-${sec.number.toLowerCase()}/index.html`);
+      assert.match(page, /<link rel="canonical" href="https:\/\/vidhisangh\.com\/acts\//);
+    }
+    assert.match(sitemap, new RegExp(`/acts/${id}/section-1/</loc>`));
+  }
+  assert.match(read('public/acts/bns/section-103/index.html'), /Indian Penal Code, 1860 \(IPC\), section 302/);
+});
+
+test('the service worker leaves the static bare-act pages to the network', () => {
+  const ngsw = JSON.parse(read('ngsw-config.json'));
+  assert.ok(ngsw.navigationUrls.includes('!/acts/**'), 'otherwise a returning visitor gets the app shell on /acts/');
+});

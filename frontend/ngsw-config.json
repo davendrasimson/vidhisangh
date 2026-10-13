@@ -51,5 +51,12 @@
     "If a genuinely public, tenant-independent read is added later, give it its",
     "own `freshness` group with maxAge <= 10m here; never add /api/v1/** back."
   ],
-  "dataGroups": []
+  "dataGroups": [],
+  "navigationUrls": [
+    "/**",
+    "!/**/*.*",
+    "!/**/*__*",
+    "!/**/*__*/**",
+    "!/acts/**"
+  ]
 }

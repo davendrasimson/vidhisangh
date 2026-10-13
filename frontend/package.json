@@ -1,7 +1,7 @@
 {
   "name": "vidhisangh-frontend",
   "version": "0.1.0",
-  "description": "VidhiSangh — integrated legal ecosystem (Angular 21 PWA).",
+  "description": "VidhiSangh \u2014 integrated legal ecosystem (Angular 21 PWA).",
   "scripts": {
     "start": "ng serve --port 4200",
     "build": "ng build",
@@ -12,7 +12,8 @@
     "docs:help": "node --experimental-strip-types scripts/generate-help.mjs",
     "build:mobile": "ng build --configuration production,mobile && cap sync",
     "android:apk": "npm run build:mobile && cd android && ./gradlew assembleDebug",
-    "android:release": "npm run build:mobile && cd android && ./gradlew bundleRelease assembleRelease"
+    "android:release": "npm run build:mobile && cd android && ./gradlew bundleRelease assembleRelease",
+    "build:acts": "node scripts/build-act-pages.mjs"
   },
   "private": true,
   "dependencies": {
