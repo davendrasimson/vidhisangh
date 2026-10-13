@@ -130,17 +130,19 @@ const PLAY_URL = 'https://play.google.com/store/apps/details?id=com.vidhisangh.a
     .brand { display: flex; align-items: center; gap: .55rem; color: rgb(var(--vs-content)); font-family: var(--vs-font-display); font-size: 1.3rem; font-weight: 700; }
     .topbar nav { display: flex; gap: 1.25rem; } .topbar nav a { color: rgb(var(--vs-text-muted)); font-size: .9rem; font-weight: 500; } .topbar nav a:hover { color: rgb(var(--vs-content)); }
     .auth { display: flex; align-items: center; gap: .5rem; margin-left: auto; }
-    .join { padding: .55rem .9rem; border-radius: 999px; color: rgb(var(--vs-content)); font-weight: 600; font-size: .9rem; }
-    .signin { padding: .5rem 1.1rem; border-radius: 999px; border: 1.5px solid #215dcc; color: #215dcc; font-weight: 600; font-size: .9rem; }
+    .join { padding: .7rem 1.4rem; border-radius: 999px; color: #fff; background: linear-gradient(135deg, #215dcc, #4934b8); font-weight: 700; font-size: .98rem; box-shadow: 0 8px 20px -8px rgb(33 93 204 / .7); }
+    .join:hover { filter: brightness(1.08); }
+    .signin { padding: .62rem 1.3rem; border-radius: 999px; border: 2px solid #215dcc; color: #215dcc; font-weight: 700; font-size: .98rem; }
+    .signin:hover { background: rgb(33 93 204 / .08); }
     main { overflow-x: hidden; }
     .hero { display: grid; grid-template-columns: 1.1fr .9fr; align-items: center; gap: 2rem; padding: 4rem max(1rem, calc((100vw - 1160px) / 2)) 3rem; color: #fff; background: linear-gradient(160deg, #173b7a 0%, #215dcc 55%, #4934b8 100%); }
     .eyebrow { margin: 0 0 .75rem; color: #f4c86a; font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
     h1 { margin: 0; font-family: var(--vs-font-display); font-size: clamp(2.3rem, 5vw, 3.9rem); line-height: 1.05; }
     .lede { max-width: 560px; margin: 1.25rem 0 0; color: rgb(255 255 255 / .85); font-size: 1.15rem; line-height: 1.6; }
     .cta { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 2rem; }
-    .btn { display: inline-flex; align-items: center; padding: .85rem 1.4rem; border-radius: 999px; font-weight: 600; font-size: 1rem; }
-    .btn.primary { color: #173b7a; background: #f4c86a; } .btn.primary:hover { background: #f7d48a; }
-    .btn.ghost { color: #fff; border: 1.5px solid rgb(255 255 255 / .7); } .btn.ghost:hover { background: rgb(255 255 255 / .1); }
+    .btn { display: inline-flex; align-items: center; justify-content: center; min-width: 11rem; padding: 1rem 2rem; border-radius: 999px; font-weight: 700; font-size: 1.1rem; }
+    .btn.primary { color: #173b7a; background: #f4c86a; box-shadow: 0 12px 28px -10px rgb(0 0 0 / .45); } .btn.primary:hover { background: #f7d48a; transform: translateY(-1px); }
+    .btn.ghost { color: #fff; border: 2px solid #fff; background: rgb(255 255 255 / .08); } .btn.ghost:hover { background: rgb(255 255 255 / .18); }
     .play { display: inline-flex; align-items: center; gap: .4rem; margin-top: 1.25rem; color: rgb(255 255 255 / .85); font-size: .92rem; } .play:hover { color: #fff; text-decoration: underline; }
     .hero-shot { display: flex; justify-content: center; }
     .phone { width: min(300px, 70vw); padding: 10px; border-radius: 36px; background: #0d1530; box-shadow: 0 30px 70px rgb(0 0 0 / .35); }
@@ -173,7 +175,10 @@ const PLAY_URL = 'https://play.google.com/store/apps/details?id=com.vidhisangh.a
     footer nav { display: flex; flex-wrap: wrap; gap: 1.25rem; } footer nav a { color: rgb(var(--vs-text-muted)); } footer nav a:hover { color: rgb(var(--vs-content)); }
     footer p { flex-basis: 100%; margin: 0; }
     @media (max-width: 860px) {
-      .topbar nav, .join { display: none; }
+      .topbar { gap: .75rem; } .topbar nav { display: none; }
+      .brand span { font-size: 1.1rem; }
+      .join { padding: .55rem 1rem; font-size: .9rem; } .signin { padding: .48rem .95rem; font-size: .9rem; }
+      .cta .btn { flex: 1 1 100%; }
       .hero { grid-template-columns: 1fr; padding-top: 2.5rem; text-align: left; }
       .stats { grid-template-columns: 1fr; }
       .feature { grid-template-columns: 1fr; gap: 1.5rem; } .feature.flip .feature-copy { order: 0; }

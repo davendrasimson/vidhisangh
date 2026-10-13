@@ -13,9 +13,14 @@ export const routes: Routes = [
     path: '',
     pathMatch: 'full',
     canActivate: [landingGuard],
+    data: { seo: { title: "VidhiSangh — Free professional network for India's legal fraternity", description: 'The free professional network for advocates, judges, legal researchers, law students, munshis, law firms and corporate legal teams in India. Search 5.9 million judgments and read BNS, BNSS and BSA.' } },
     loadComponent: () => import('@features/landing/landing.component').then((m) => m.LandingComponent),
   },
-  { path: 'help', loadComponent: () => import('@features/help/help-center.component').then(m => m.HelpCenterComponent) },
+  {
+    path: 'help',
+    data: { seo: { title: 'Help centre — VidhiSangh', description: 'How to use VidhiSangh: your professional profile, network, communities, legal research, bare acts, matters, documents and billing.' } },
+    loadComponent: () => import('@features/help/help-center.component').then(m => m.HelpCenterComponent),
+  },
 
   {
     path: 'auth',
@@ -25,15 +30,18 @@ export const routes: Routes = [
   {
     // Public legal documents (DPDP s.5 notice; Terms with the DPA schedule).
     path: 'privacy',
+    data: { seo: { title: 'Privacy notice — VidhiSangh', description: 'How VidhiSangh collects, uses and protects personal data under the Digital Personal Data Protection Act, 2023, and how to exercise your rights.' } },
     loadComponent: () =>
       import('@features/legal/privacy-notice.component').then((m) => m.PrivacyNoticeComponent),
   },
   {
     path: 'terms',
+    data: { seo: { title: 'Terms of service — VidhiSangh', description: 'The terms for using VidhiSangh, the professional network and practice platform for the Indian legal fraternity.' } },
     loadComponent: () => import('@features/legal/terms.component').then((m) => m.TermsComponent),
   },
   {
     path: 'trust',
+    data: { seo: { title: 'Trust and security — VidhiSangh', description: 'Security and privacy controls at VidhiSangh: OWASP Top 10 review, DPDP Act 2023 controls, encryption and tenant isolation.' } },
     loadComponent: () =>
       import('@features/legal/compliance-status.component').then((m) => m.ComplianceStatusComponent),
   },

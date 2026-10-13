@@ -267,3 +267,9 @@ WhatsApp login form opens. These checks did not send a code.
 - **Brand colour:** new default accent "VidhiSangh Blue" (#215dcc, the logo blue) replaces Court Amber, which turned bright yellow in dark mode. Members who chose an accent keep it (Settings → Appearance).
 - **Play recommendations:** `EdgeToEdge.enable(this)` in `MainActivity` AFTER `super.onCreate` (before it, the WebView laid out wrongly under a native title strip), and R8 on for release (`minifyEnabled true`, optimize rules; Capacitor's consumer rules keep the plugins). Release build verified on the emulator: sign-in through native HTTP, back button, no crashes. Upload `vidhisangh-1.0.1-mapping.txt` as the deobfuscation file with each release.
 - **Android 1.0.1 (versionCode 2)** built with these fixes: `~/vidhisangh-release/vidhisangh-1.0.1-release.aab`.
+
+## SEO basics — 13 October 2026
+- `robots.txt` (app, API and tokenised client links disallowed) and `sitemap.xml` (7 public pages) are real files; before this both URLs returned the SPA shell.
+- `SeoService` sets title, description, canonical, Open Graph/Twitter tags per route from `data.seo`; routes without it get `noindex, nofollow` (the whole signed-in app, portal/KYC/payment/e-sign links).
+- `index.html`: JSON-LD (Organization, WebSite, MobileApplication with the Play link), Twitter card, a `<noscript>` summary; no site-wide canonical (it would mark every page a duplicate of the home page). Guarded by `frontend/tests/seo.test.mjs`.
+- Landing: Join now (solid blue) and Sign in (outlined) are prominent in the header on every screen size; hero buttons larger.

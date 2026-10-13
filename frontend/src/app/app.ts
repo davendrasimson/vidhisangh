@@ -3,6 +3,7 @@ import { HelpService } from '@features/help/help.service';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ThemeService } from '@core/services/theme.service';
+import { SeoService } from '@core/services/seo.service';
 
 @Component({
   selector: 'app-root',
@@ -16,4 +17,6 @@ export class App {
   readonly help = inject(HelpService);
   // Instantiated eagerly so the persisted theme is applied on first paint.
   private readonly theme = inject(ThemeService);
+  // Per-route title, description, canonical URL and robots tag.
+  private readonly seo = inject(SeoService);
 }

@@ -71,6 +71,11 @@ These ship complete and mock/flow-tested; flip them on by setting env in `backen
 ## ✉️ Email delivery (13 Oct 2026)
 - **Reverse DNS for the server IP.** 203.193.166.109 has no PTR record, so Titan's SMTP server waits 8–11 s (a reverse lookup) before greeting us. The send timeout is now 30 s (deployed), so emails go out on the first try, but the root fix is a PTR record `203.193.166.109 → vidhisangh.com` set by the hosting provider (only the IP owner can). The IP belongs to STPI (Software Technology Parks of India, APNIC contact blr.tech@stpi.in); request it through the STPI centre account. It also lowers the chance of mail being marked as spam.
 
+## 🔎 SEO, next steps (13 Oct 2026)
+- **Google Search Console + Bing Webmaster** — owner verifies vidhisangh.com (DNS TXT record) and submits `sitemap.xml`.
+- **Prerender the public pages** (Angular SSG via `@angular/ssr`) so crawlers that do not run JavaScript, and WhatsApp/LinkedIn previews of inner pages, get full HTML. Needs browser-only code (localStorage, matchMedia, navigator.locks) guarded for the server build.
+- **Public, indexable knowledge pages** — one page per bare-act section and per reported judgment (title, citation, summary, link into the app). The single biggest source of search traffic for a legal site; needs prerendering or server-rendered HTML first.
+
 ## 🔐 Privacy / DPDP — deferred after the 27 Sep 2026 remediation (privacy agent)
 Shipped: validation errors no longer echo input; client identity data encrypted at rest with blind-index search (0049); append-only consent ledger gating client-facing sends; minor/guardian consent; user/client/tenant export; user/client/tenant erasure with legal hold and 30-day tenant grace; rights-request register; retention purge (`app/scripts/retention_purge.py`, `infra/jobs/vidhisangh-retention.*`); public `/privacy` and `/terms`; Settings → Privacy & data; lawful basis on matter parties and leads (0051); portal rights requests; privacy settings protection; directory opt-in; and a blocking terms-version re-acceptance flow. Still to do:
 - **Notification bodies still carry client names** (P-12): purge covers it (365 d); moving to ids-only needs a template layer.

@@ -1,0 +1,18 @@
+# VidhiSangh — public pages are indexable; the signed-in app and private
+# client links are not.
+User-agent: *
+Allow: /
+Disallow: /app/
+Disallow: /api/
+Disallow: /portal/
+Disallow: /kyc/
+Disallow: /pay/
+Disallow: /esign/
+Disallow: /verify/
+Disallow: /platform-admin
+Disallow: /auth/callback
+Disallow: /auth/reset/
+Disallow: /auth/verify-email/
+Disallow: /auth/change-password
+
+Sitemap: https://vidhisangh.com/sitemap.xml
