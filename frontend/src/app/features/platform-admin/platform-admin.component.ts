@@ -7,24 +7,25 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '@core/auth/auth.service';
 import { SupportService } from '@core/services/support.service';
+import { GrowthDashboardComponent } from './growth-dashboard.component';
 import { NotificationService } from '@core/services/notification.service';
 import { AdminAction, PlatformOverview, PlatformPost, PlatformTenant, PlatformUser, SupportTicket, TicketPriority, TicketStatus } from '@core/models/support.models';
 
-type Section = 'overview' | 'members' | 'firms' | 'posts' | 'grievances' | 'actions';
+type Section = 'growth' | 'overview' | 'members' | 'firms' | 'posts' | 'grievances' | 'actions';
 
-@Component({ selector: 'app-platform-admin', standalone: true, changeDetection: ChangeDetectionStrategy.OnPush, imports: [FormsModule, DatePipe, MatButtonModule, MatIconModule], templateUrl: './platform-admin.component.html' })
+@Component({ selector: 'app-platform-admin', standalone: true, changeDetection: ChangeDetectionStrategy.OnPush, imports: [FormsModule, DatePipe, MatButtonModule, MatIconModule, GrowthDashboardComponent], templateUrl: './platform-admin.component.html' })
 export class PlatformAdminComponent implements OnInit {
   private readonly support = inject(SupportService); protected readonly auth = inject(AuthService);
   private readonly notify = inject(NotificationService); private readonly router = inject(Router);
   protected readonly allowed = signal<boolean | null>(null); protected readonly loading = signal(true);
-  protected readonly section = signal<Section>('overview'); protected readonly overview = signal<PlatformOverview | null>(null);
+  protected readonly section = signal<Section>('growth'); protected readonly overview = signal<PlatformOverview | null>(null);
   protected readonly users = signal<PlatformUser[]>([]); protected readonly selectedUser = signal<PlatformUser | null>(null);
   protected readonly tenants = signal<PlatformTenant[]>([]); protected readonly posts = signal<PlatformPost[]>([]);
   protected readonly tickets = signal<SupportTicket[]>([]); protected readonly selectedTicket = signal<SupportTicket | null>(null);
   protected readonly actions = signal<AdminAction[]>([]); protected search = ''; protected statusFilter = ''; protected ticketStatus = '';
   protected response = ''; protected replyStatus: TicketStatus = 'waiting_on_user'; protected replyPriority: TicketPriority = 'medium';
   protected readonly sections = [
-    { id: 'overview' as const, icon: 'space_dashboard', label: 'Overview' }, { id: 'members' as const, icon: 'group', label: 'Members' },
+    { id: 'growth' as const, icon: 'trending_up', label: 'Growth' }, { id: 'overview' as const, icon: 'space_dashboard', label: 'Overview' }, { id: 'members' as const, icon: 'group', label: 'Members' },
     { id: 'firms' as const, icon: 'domain', label: 'Firms' }, { id: 'posts' as const, icon: 'dynamic_feed', label: 'Content' },
     { id: 'grievances' as const, icon: 'support_agent', label: 'Grievance Cell' }, { id: 'actions' as const, icon: 'history', label: 'Admin actions' },
   ];

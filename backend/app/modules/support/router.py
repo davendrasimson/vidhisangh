@@ -100,6 +100,14 @@ async def platform_overview(current: CurrentUserDep, session: AuthSessionDep) ->
     return await _admin(current, session).overview()
 
 
+@router.get("/platform-admin/growth", summary="Registrations by day, week and month (India time)")
+async def platform_growth(current: CurrentUserDep, session: AuthSessionDep) -> dict:
+    from app.modules.support.growth import registration_growth
+
+    require_platform_admin(current.is_superuser)
+    return await registration_growth(session)
+
+
 @router.get("/platform-admin/users", response_model=list[PlatformUserRead])
 async def platform_users(
     page: Pagination,

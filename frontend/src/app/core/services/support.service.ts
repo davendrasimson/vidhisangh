@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '@env/environment';
-import { AdminAction, PlatformOverview, PlatformPost, PlatformTenant, PlatformUser, SupportTicket, TicketPriority, TicketStatus } from '@core/models/support.models';
+import { AdminAction, PlatformOverview, RegistrationGrowth, PlatformPost, PlatformTenant, PlatformUser, SupportTicket, TicketPriority, TicketStatus } from '@core/models/support.models';
 
 @Injectable({ providedIn: 'root' })
 export class SupportService {
@@ -11,6 +11,7 @@ export class SupportService {
   mine(): Observable<SupportTicket[]> { return this.http.get<SupportTicket[]>(`${this.api}/support/tickets`); }
   reply(id: string, body: string): Observable<SupportTicket> { return this.http.post<SupportTicket>(`${this.api}/support/tickets/${id}/messages`, { body }); }
   adminMe(): Observable<{ allowed: boolean; email: string }> { return this.http.get<{ allowed: boolean; email: string }>(`${this.api}/platform-admin/me`); }
+  growth(): Observable<RegistrationGrowth> { return this.http.get<RegistrationGrowth>(`${this.api}/platform-admin/growth`); }
   overview(): Observable<PlatformOverview> { return this.http.get<PlatformOverview>(`${this.api}/platform-admin/overview`); }
   users(q = '', status = ''): Observable<PlatformUser[]> { const params: Record<string, string> = {}; if (q) params['q'] = q; if (status) params['status'] = status; return this.http.get<PlatformUser[]>(`${this.api}/platform-admin/users`, { params }); }
   user(id: string): Observable<PlatformUser> { return this.http.get<PlatformUser>(`${this.api}/platform-admin/users/${id}`); }

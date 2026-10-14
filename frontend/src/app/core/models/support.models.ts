@@ -15,3 +15,17 @@ export interface PlatformUser { id: string; tenant_id: string; tenant_name: stri
 export interface PlatformTenant { id: string; name: string; slug: string; status: string; plan: string; type: string; created_at: string; user_count: number; active_user_count: number; matter_count: number; invoice_count: number; ticket_count: number; }
 export interface PlatformPost { id: string; author_id: string; author_name: string; title: string | null; content: string; visibility: string; like_count: number; comment_count: number; created_at: string; deleted_at: string | null; }
 export interface AdminAction { id: string; actor_email: string; action: string; entity_type: string; entity_id: string; reason: string | null; detail: Record<string, unknown> | null; created_at: string; }
+
+export interface GrowthPoint { start: string; label: string; count: number; cumulative: number; }
+export interface GrowthSlice { key: string; label: string; count: number; }
+export interface GrowthRecent { name: string; joined_at: string; method: string; role: string; verified: boolean; invited: boolean; }
+export interface RegistrationGrowth {
+  generated_at: string; total_members: number; self_signups: number; added_by_firms: number; via_invite: number;
+  verified: number; returned: number;
+  kpis: { today: number; yesterday: number; this_week: number; last_week_same_point: number; last_week: number;
+    this_month: number; last_month: number; last_7_days: number; previous_7_days: number; last_30_days: number; previous_30_days: number; };
+  best_day: { date: string; count: number } | null; last_signup_at: string | null; days_since_last: number | null;
+  next_milestone: number | null; previous_milestone: number;
+  daily: GrowthPoint[]; weekly: GrowthPoint[]; monthly: GrowthPoint[];
+  by_method: GrowthSlice[]; by_role: GrowthSlice[]; recent: GrowthRecent[];
+}

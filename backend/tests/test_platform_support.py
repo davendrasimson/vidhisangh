@@ -156,3 +156,52 @@ async def test_ticket_and_platform_moderation(
         "post.removed",
         "ticket.updated",
     }
+
+
+async def test_registration_growth_by_day_week_month_in_india_time(
+    client: AsyncClient, strong_password: str, session_factory: async_sessionmaker
+) -> None:
+    """Admin growth view: buckets in IST, comparisons, method/role breakdowns; admins only."""
+    from datetime import UTC, datetime
+
+    from app.modules.support.growth import registration_growth
+    from app.modules.tenancy.models import Tenant
+
+    await _register(client, "Operator", "op@platform.co", strong_password)
+    for i in range(3):
+        await _register(client, f"Firm {i}", f"m{i}@firm.co", strong_password)
+    member = await _login(client, "m0@firm.co", strong_password)
+    assert (await client.get(f"{API}/platform-admin/growth", headers=member)).status_code == 403
+
+    # Fixed clock: Wed 15 Oct 2026, 10:00 IST. m0 joined 00:30 IST today (still 14 Oct in UTC),
+    # m1 last week, m2 two months ago.
+    when = {
+        "m0@firm.co": datetime(2026, 10, 14, 19, 0, tzinfo=UTC),
+        "m1@firm.co": datetime(2026, 10, 8, 6, 0, tzinfo=UTC),
+        "m2@firm.co": datetime(2026, 8, 20, 6, 0, tzinfo=UTC),
+    }
+    async with session_factory() as session:
+        for user in (await session.scalars(select(User))).all():
+            if user.email == "op@platform.co":
+                user.is_superuser = True
+            elif user.email in when:
+                user.created_at = when[user.email]
+                (await session.get(Tenant, user.tenant_id)).created_at = when[user.email]
+        await session.commit()
+        growth = await registration_growth(session, now=datetime(2026, 10, 15, 4, 30, tzinfo=UTC))
+
+    assert growth["total_members"] == 3 and growth["self_signups"] == 3
+    k = growth["kpis"]
+    assert (k["today"], k["yesterday"], k["this_week"], k["last_week"]) == (1, 0, 1, 1)
+    assert (k["this_month"], k["last_month"]) == (2, 0)
+    assert growth["daily"][-1] == {"start": "2026-10-15", "label": "15 Oct", "count": 1, "cumulative": 3}
+    assert len(growth["daily"]) == 30 and len(growth["weekly"]) == 12 and len(growth["monthly"]) == 12
+    assert [m["count"] for m in growth["monthly"][-3:]] == [1, 0, 2]  # Aug, Sep, Oct
+    assert growth["monthly"][0]["cumulative"] == 0
+    assert growth["by_method"] == [{"key": "email", "label": "Email", "count": 3}]
+    assert growth["next_milestone"] == 10 and growth["days_since_last"] == 0
+    assert growth["recent"][0]["name"] == "M0"
+
+    admin = await _login(client, "op@platform.co", strong_password)
+    live = await client.get(f"{API}/platform-admin/growth", headers=admin)
+    assert live.status_code == 200 and live.json()["total_members"] == 3
