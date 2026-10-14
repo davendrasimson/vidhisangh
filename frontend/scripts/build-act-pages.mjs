@@ -3,14 +3,17 @@
 // public/sitemap.xml. Plain static HTML: fast, crawlable, no app bootstrap.
 //
 //   node scripts/build-act-pages.mjs        (from frontend/, before `ng build`)
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 const SITE = 'https://vidhisangh.com';
 const OUT = join(ROOT, 'public/acts');
-const ACT_IDS = ['bns', 'bnss', 'bsa'];
+// Every extracted Act; the three new criminal laws first, then by title.
+const FIRST = ['bns', 'bnss', 'bsa'];
+const ACT_IDS = readdirSync(join(ROOT, 'content/acts')).filter((f) => f.endsWith('.json')).map((f) => f.slice(0, -5))
+  .sort((a, b) => (FIRST.includes(b) - FIRST.includes(a)) || (FIRST.indexOf(a) - FIRST.indexOf(b)) || a.localeCompare(b));
 const OLD_ACTS = {
   ipc: 'Indian Penal Code, 1860 (IPC)',
   crpc: 'Code of Criminal Procedure, 1973 (CrPC)',
@@ -24,15 +27,16 @@ const CSS_URL = `/acts/acts.css?v=${createHash('sha256').update(CSS).digest('hex
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const base = (section) => section.toUpperCase().replace(/^SECTION\s*/, '').replace(/[\s(–-].*$/, '');
 
-/** Old-law equivalents curated in the app (section-intelligence.ts). */
+/** Old-law <-> new-law equivalents curated in the app (section-intelligence.ts),
+ *  keyed both ways: 'bns:103' -> IPC 302, and 'ipc:302' -> BNS 103. */
 function crossReferences() {
   const src = readFileSync(join(ROOT, 'src/app/features/knowledge/data/section-intelligence.ts'), 'utf8');
   const refs = {};
   const row = /\{ actId: '(\w+)', section: '([^']+)', correspondingActId: '(\w+)', correspondingSection: '([^']+)', subject: '([^']+)'(?:, note: '([^']+)')? \}/g;
   for (const m of src.matchAll(row)) {
     const [, oldAct, oldSection, act, section, subject, note] = m;
-    const key = `${act}:${base(section)}`;
-    (refs[key] ??= []).push({ oldAct, oldSection, section, subject, note });
+    (refs[`${act}:${base(section)}`] ??= []).push({ oldAct, oldSection, section, subject, note });
+    (refs[`${oldAct}:${base(oldSection)}`] ??= []).push({ newAct: act, newSection: section, oldSection, subject, note });
   }
   return refs;
 }
@@ -108,34 +112,45 @@ function build() {
   for (const act of acts) {
     const actUrl = `/acts/${act.id}/`;
     urls.push([actUrl, 'monthly', '0.8']);
+    const seen = new Set();
+    act.sections = act.sections.filter((sec) => !seen.has(sec.number) && seen.add(sec.number));
+    const label = (sec) => sec.heading ? `Section ${sec.number}: ${sec.heading}` : `Section ${sec.number}`;
+    const repealed = act.status === 'repealed'
+      ? `<p class="repealed"><strong>Repealed.</strong> ${esc(act.statusNote || 'This Act has been repealed.')}</p>` : '';
     act.sections.forEach((sec, i) => {
       const url = `${actUrl}section-${sec.number.toLowerCase()}/`;
       const prev = act.sections[i - 1];
       const next = act.sections[i + 1];
-      const old = refs[`${act.id}:${base(sec.number)}`] ?? [];
+      const links = refs[`${act.id}:${base(sec.number)}`] ?? [];
+      const old = links.filter((r) => r.oldAct);
+      const now = links.filter((r) => r.newAct);
       const first = sec.paragraphs.join(' ').replace(/^\d+[A-Z]*\.\s*/, '');
-      const description = `Section ${sec.number}, ${act.title} (${act.short}): ${sec.heading}. ${first}`.slice(0, 158).replace(/\s+\S*$/, '') + '…';
-      const title = `Section ${sec.number} ${act.short} — ${sec.heading} | ${act.title}`;
+      const description = `Section ${sec.number}, ${act.title} (${act.short})${sec.heading ? `: ${sec.heading}` : ''}. ${first}`.slice(0, 158).replace(/\s+\S*$/, '') + '…';
+      const title = sec.heading
+        ? `Section ${sec.number} ${act.short} — ${sec.heading} | ${act.title}`
+        : `Section ${sec.number}, ${act.title} (${act.short}) | VidhiSangh`;
       const [chapterNo, chapterName = ''] = sec.chapter.split(' — ');
       const body = `<main>
-<nav class="crumbs" aria-label="Breadcrumb"><a href="/acts/">Bare Acts</a> › <a href="${actUrl}">${esc(act.short)}</a> › <span>${esc(chapterNo.replace('CHAPTER', 'Chapter'))}</span></nav>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/acts/">Bare Acts</a> › <a href="${actUrl}">${esc(act.short)}</a>${chapterNo ? ` › <span>${esc(chapterNo.replace('CHAPTER', 'Chapter').replace('PART', 'Part'))}</span>` : ''}</nav>
 <p class="eyebrow">${esc(act.title)}</p>
-<h1>Section ${esc(sec.number)}: ${esc(sec.heading)}</h1>
-<p class="chapter">${esc(chapterNo.replace('CHAPTER', 'Chapter'))}${chapterName ? ` — ${esc(chapterName)}` : ''}</p>
+<h1>${esc(label(sec))}</h1>
+${repealed}
+${chapterNo ? `<p class="chapter">${esc(chapterNo.replace('CHAPTER', 'Chapter').replace('PART', 'Part'))}${chapterName ? ` — ${esc(chapterName)}` : ''}</p>` : ''}
 <article class="text">
 ${paragraphs(sec.paragraphs)}
 </article>
 ${old.map((r) => `<section class="old-law"><h2>Old law equivalent</h2><p>${esc(OLD_ACTS[r.oldAct] ?? r.oldAct)}, section ${esc(r.oldSection)} — ${esc(r.subject)}${r.section !== sec.number ? ` (now ${esc(act.short)} ${esc(r.section)})` : ''}.</p>${r.note ? `<p class="small">${esc(r.note)}</p>` : ''}</section>`).join('\n')}
+${now.map((r) => `<section class="old-law"><h2>Now in the new law</h2><p><a href="/acts/${r.newAct}/section-${base(r.newSection).toLowerCase()}/">${esc(r.newAct.toUpperCase())} section ${esc(r.newSection)}</a> — ${esc(r.subject)}.</p>${r.note ? `<p class="small">${esc(r.note)}</p>` : ''}</section>`).join('\n')}
 ${cta(act, sec.number)}
-<nav class="pager">${prev ? `<a href="${actUrl}section-${prev.number.toLowerCase()}/">← Section ${esc(prev.number)}: ${esc(prev.heading)}</a>` : '<span></span>'}${next ? `<a class="next" href="${actUrl}section-${next.number.toLowerCase()}/">Section ${esc(next.number)}: ${esc(next.heading)} →</a>` : ''}</nav>
-<p class="source">Source: <a href="${act.source}" rel="nofollow noopener" target="_blank">official text of the ${esc(act.title)}</a> (Ministry of Home Affairs).</p>
+<nav class="pager">${prev ? `<a href="${actUrl}section-${prev.number.toLowerCase()}/">← ${esc(label(prev))}</a>` : '<span></span>'}${next ? `<a class="next" href="${actUrl}section-${next.number.toLowerCase()}/">${esc(label(next))} →</a>` : ''}</nav>
+<p class="source">Source: <a href="${act.source}" rel="nofollow noopener" target="_blank">official text of the ${esc(act.title)}</a>.</p>
 </main>`;
       const jsonLd = {
         '@context': 'https://schema.org',
         '@graph': [
           {
             '@type': 'Legislation',
-            name: `Section ${sec.number}, ${act.title} — ${sec.heading}`,
+            name: `Section ${sec.number}, ${act.title}${sec.heading ? ` — ${sec.heading}` : ''}`,
             legislationIdentifier: `${act.short} s. ${sec.number}`,
             legislationJurisdiction: 'IN',
             inLanguage: 'en-IN',
@@ -160,9 +175,10 @@ ${cta(act, sec.number)}
 <nav class="crumbs" aria-label="Breadcrumb"><a href="/acts/">Bare Acts</a> › <span>${esc(act.short)}</span></nav>
 <p class="eyebrow">Bare Act · ${act.sections.length} sections</p>
 <h1>${esc(act.title)} (${esc(act.short)})</h1>
+${repealed}
 ${cta(act, '')}
-${chapters.map((c) => `<section class="toc"><h2>${esc(c.name.replace('CHAPTER', 'Chapter'))}</h2><ol>${c.sections.map((s) => `<li><a href="${actUrl}section-${s.number.toLowerCase()}/"><b>${esc(s.number)}.</b> ${esc(s.heading)}</a></li>`).join('')}</ol></section>`).join('\n')}
-<p class="source">Source: <a href="${act.source}" rel="nofollow noopener" target="_blank">official text</a> (Ministry of Home Affairs).</p>
+${chapters.map((c) => `<section class="toc"><h2>${esc((c.name || 'Sections').replace('CHAPTER', 'Chapter').replace('PART', 'Part'))}</h2><ol>${c.sections.map((s) => `<li><a href="${actUrl}section-${s.number.toLowerCase()}/"><b>${esc(s.number)}.</b> ${esc(s.heading || 'Section ' + s.number)}</a></li>`).join('')}</ol></section>`).join('\n')}
+<p class="source">Source: <a href="${act.source}" rel="nofollow noopener" target="_blank">official text</a>.</p>
 </main>`;
     const jsonLd = {
       '@context': 'https://schema.org',
@@ -179,17 +195,24 @@ ${chapters.map((c) => `<section class="toc"><h2>${esc(c.name.replace('CHAPTER', 
     }));
   }
 
-  // Bare Acts landing.
+  // Bare Acts landing, grouped by area of law.
+  const groups = [
+    ['New criminal laws (from 1 July 2024)', (a) => FIRST.includes(a.id)],
+    ['Civil, commercial and procedure', (a) => !FIRST.includes(a.id) && a.status !== 'repealed' && !/family|safety|women/i.test(a.area)],
+    ['Family, women and children', (a) => !FIRST.includes(a.id) && a.status !== 'repealed' && /family|safety|women/i.test(a.area)],
+    ['Repealed laws (for reference)', (a) => a.status === 'repealed'],
+  ];
+  const card = (a) => `<a class="act" href="/acts/${a.id}/"><b>${esc(a.short)}</b><span>${esc(a.title)}</span><small>${a.sections.length} sections</small></a>`;
   const body = `<main>
 <p class="eyebrow">Bare Acts</p>
-<h1>India's new criminal laws, section by section</h1>
-<p class="lede">Read the Bharatiya Nyaya Sanhita, the Bharatiya Nagarik Suraksha Sanhita and the Bharatiya Sakshya Adhiniyam as clear text, one section per page.</p>
-<div class="acts">${acts.map((a) => `<a class="act" href="/acts/${a.id}/"><b>${esc(a.short)}</b><span>${esc(a.title)}</span><small>${a.sections.length} sections</small></a>`).join('')}</div>
+<h1>India's central Acts, section by section</h1>
+<p class="lede">Read ${acts.length} central Acts as clear text, one section per page: the new criminal laws (BNS, BNSS, BSA), the Companies Act, CPC, Contract Act, IBC, IT Act and more, with old-law equivalents where they exist.</p>
+${groups.map(([name, test]) => { const list = acts.filter(test); return list.length ? `<h2 class="group">${esc(name)}</h2><div class="acts">${list.map(card).join('')}</div>` : ''; }).join('\n')}
 ${cta({ id: 'bns', short: 'Acts' }, '')}
 </main>`;
   writeFileSync(join(OUT, 'index.html'), page({
-    title: 'Bare Acts: BNS, BNSS and BSA section by section | VidhiSangh',
-    description: 'Read the Bharatiya Nyaya Sanhita, Bharatiya Nagarik Suraksha Sanhita and Bharatiya Sakshya Adhiniyam section by section, free. Headings, chapters and old-law equivalents.',
+    title: 'Bare Acts of India section by section — BNS, BNSS, BSA, CPC, IPC and more | VidhiSangh',
+    description: `Read ${acts.length} central Acts of India section by section, free: BNS, BNSS, BSA, Companies Act, CPC, Contract Act, IBC, IT Act, Arbitration Act and more.`,
     canonical: `${SITE}/acts/`,
     body,
     jsonLd: { '@context': 'https://schema.org', ...breadcrumbs([['Bare Acts', '/acts/']]) },
@@ -197,7 +220,7 @@ ${cta({ id: 'bns', short: 'Acts' }, '')}
   urls.unshift(['/acts/', 'monthly', '0.9']);
 
   // Sitemap: the app's public pages, then every act page.
-  const fixed = [['/', 'weekly', '1.0'], ['/auth/register', 'monthly', '0.8'], ['/auth/login', 'monthly', '0.5'], ['/help', 'monthly', '0.6'], ['/trust', 'monthly', '0.4'], ['/privacy', 'yearly', '0.3'], ['/terms', 'yearly', '0.3']];
+  const fixed = [['/', 'weekly', '1.0'], ['/auth/register', 'monthly', '0.8'], ['/auth/login', 'monthly', '0.5'], ['/help', 'monthly', '0.6'], ['/about', 'yearly', '0.5'], ['/trust', 'monthly', '0.4'], ['/privacy', 'yearly', '0.3'], ['/terms', 'yearly', '0.3']];
   const xml = [...fixed, ...urls].map(([u, f, p]) => `  <url><loc>${SITE}${u}</loc><changefreq>${f}</changefreq><priority>${p}</priority></url>`).join('\n');
   writeFileSync(join(ROOT, 'public/sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${xml}\n</urlset>\n`);
   console.log(`acts pages: ${urls.length}; sitemap urls: ${fixed.length + urls.length}`);

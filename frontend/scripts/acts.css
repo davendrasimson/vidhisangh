@@ -67,3 +67,7 @@ footer p { margin: .3rem 0; }
   .top nav a { padding: .42rem .8rem; font-size: .85rem; } .brand span { font-size: 1.05rem; }
   .pager { flex-direction: column; } .pager a { max-width: 100%; } .pager .next { text-align: left; margin-left: 0; }
 }
+
+.repealed { margin: .75rem 0 0; padding: .75rem 1rem; border-radius: 12px; font-size: .93rem; color: var(--ink);
+  background: color-mix(in srgb, #d97706 12%, var(--card)); border: 1px solid color-mix(in srgb, #d97706 40%, var(--line)); }
+h2.group { margin: 2rem 0 .25rem; font-size: 1.1rem; }

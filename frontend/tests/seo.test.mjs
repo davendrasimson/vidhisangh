@@ -1,7 +1,8 @@
 // Guards for search-engine basics: crawl rules, sitemap and per-page tags.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 
 const root = new URL('..', import.meta.url).pathname;
@@ -45,19 +46,28 @@ test('public pages are prerendered to static HTML in production builds', () => {
   }
 });
 
-test('bare-act pages exist for every section and are in the sitemap', () => {
+test('bare-act pages are generated for every section of every Act', () => {
+  // public/acts/ is build output (gitignored); generate it as `npm run build` does.
+  execFileSync(process.execPath, [join(root, 'scripts/build-act-pages.mjs')], { cwd: root });
   const sitemap = read('public/sitemap.xml');
-  for (const id of ['bns', 'bnss', 'bsa']) {
+  const ids = readdirSync(join(root, 'content/acts')).map((f) => f.replace(/\.json$/, ''));
+  assert.ok(ids.length >= 21, `expected 21+ Acts, found ${ids.length}`);
+  let sections = 0, untitled = 0;
+  for (const id of ids) {
     const act = JSON.parse(read(`content/acts/${id}.json`));
-    assert.ok(act.sections.length > 100, `${id} has sections`);
+    assert.ok(act.title && act.short && act.source, `${id} has title, short name and source`);
     for (const sec of act.sections) {
-      assert.ok(sec.heading, `${id} ${sec.number} has a heading`);
+      sections++;
+      if (!sec.heading) untitled++;
       const page = read(`public/acts/${id}/section-${sec.number.toLowerCase()}/index.html`);
       assert.match(page, /<link rel="canonical" href="https:\/\/vidhisangh\.com\/acts\//);
     }
-    assert.match(sitemap, new RegExp(`/acts/${id}/section-1/</loc>`));
+    assert.match(sitemap, new RegExp(`/acts/${id}/</loc>`));
   }
+  assert.ok(untitled <= 30, `${untitled} of ${sections} sections have no heading`);
   assert.match(read('public/acts/bns/section-103/index.html'), /Indian Penal Code, 1860 \(IPC\), section 302/);
+  assert.match(read('public/acts/ipc/section-302/index.html'), /href="\/acts\/bns\/section-103\/"/);
+  assert.match(read('public/acts/ipc/section-302/index.html'), /class="repealed"/);
 });
 
 test('the service worker leaves the static bare-act pages to the network', () => {

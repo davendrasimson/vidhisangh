@@ -64,3 +64,5 @@ My Note.txt
 # Browser test artifacts
 frontend/test-results/
 frontend/playwright-report/
+# Generated bare-act pages (npm run build:acts); the source data is content/acts/*.json.
+frontend/public/acts/

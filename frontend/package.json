@@ -4,7 +4,7 @@
   "description": "VidhiSangh \u2014 integrated legal ecosystem (Angular 21 PWA).",
   "scripts": {
     "start": "ng serve --port 4200",
-    "build": "ng build",
+    "build": "node scripts/build-act-pages.mjs && ng build",
     "watch": "ng build --watch --configuration development",
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "lint": "ng lint",

@@ -26,7 +26,7 @@ VidhiSangh is a **multi-tenant legal-profession SaaS** for advocates & law firms
 .venv/Scripts/python.exe -m pytest -q                          # tests (SQLite, hermetic) — 112 passing
 # Frontend (cwd: frontend/)
 npm start                                                      # → http://localhost:4200
-npx ng build                                                   # production build (use `> log 2>&1`, NOT `| tail`, when backgrounding — it hangs)
+npm run build                                                  # production build: generates the bare-act pages, then ng build (use `> log 2>&1`, NOT `| tail`, when backgrounding — it hangs)
 ```
 **On a fresh machine, recreate the environments** (`.venv/` and `node_modules/` are gitignored and may not be portable):
 ```

@@ -75,7 +75,8 @@ These ship complete and mock/flow-tested; flip them on by setting env in `backen
 - **Google Search Console + Bing Webmaster** — owner verifies vidhisangh.com (DNS TXT record) and submits `sitemap.xml`.
 - ✅ **Prerender the public pages** — done 13 Oct 2026 (see PROJECT_STATUS).
 - ✅ **Public bare-act pages for BNS, BNSS, BSA** — done 13 Oct 2026 (1,059 sections).
-- **More public knowledge pages** — the other 22 bundled Acts (same extractor; check each Act's layout), then reported judgments (title, citation, bench, AI headnote, link into the app). Extend the curated IPC/CrPC/Evidence ↔ new-law table beyond its 32 rows for richer old-law links.
+- **Remaining Acts not published** — POCSO and RTI (the bundled PDFs are OCR scans with errors; POCSO's holds 13 of 46 sections) and CrPC and the NI Act (their text lost its line structure). Each needs a clean official PDF (India Code) before it can go through `scripts/act_sections.py`.
+- **Judgment pages** — reported judgments (title, citation, bench, AI headnote, link into the app). Extend the curated IPC/CrPC/Evidence ↔ new-law table beyond its 32 rows for richer old-law links.
 
 ## 🔐 Privacy / DPDP — deferred after the 27 Sep 2026 remediation (privacy agent)
 Shipped: validation errors no longer echo input; client identity data encrypted at rest with blind-index search (0049); append-only consent ledger gating client-facing sends; minor/guardian consent; user/client/tenant export; user/client/tenant erasure with legal hold and 30-day tenant grace; rights-request register; retention purge (`app/scripts/retention_purge.py`, `infra/jobs/vidhisangh-retention.*`); public `/privacy` and `/terms`; Settings → Privacy & data; lawful basis on matter parties and leads (0051); portal rights requests; privacy settings protection; directory opt-in; and a blocking terms-version re-acceptance flow. Still to do:
