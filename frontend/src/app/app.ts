@@ -4,6 +4,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ThemeService } from '@core/services/theme.service';
 import { SeoService } from '@core/services/seo.service';
+import { captureReferral } from '@core/services/referral-capture';
 
 @Component({
   selector: 'app-root',
@@ -19,4 +20,9 @@ export class App {
   private readonly theme = inject(ThemeService);
   // Per-route title, description, canonical URL and robots tag.
   private readonly seo = inject(SeoService);
+
+  constructor() {
+    // A colleague's invite link; credited when this visitor signs up. (Not during prerender.)
+    if (typeof window !== 'undefined') captureReferral(window.location.search);
+  }
 }

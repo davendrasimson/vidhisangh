@@ -9,6 +9,8 @@ import { ResearchService } from '@core/services/research.service';
 import { MattersService } from '@core/services/matters.service';
 import { AuthService } from '@core/auth/auth.service';
 import { NotificationService } from '@core/services/notification.service';
+import { TellAFriendService } from '@core/services/tell-a-friend.service';
+import { publicOrigin } from '@core/platform/platform';
 import { CitationGraph, CitationRelationship, Judgment } from '@core/models/research.models';
 import { Matter } from '@core/models/matters.models';
 import { DatePipe } from '@angular/common';
@@ -27,6 +29,7 @@ export class JudgmentDetailComponent {
   private readonly research = inject(ResearchService);
   private readonly matters = inject(MattersService);
   private readonly notify = inject(NotificationService);
+  private readonly sharing = inject(TellAFriendService);
   protected readonly auth = inject(AuthService);
 
   private id = '';
@@ -137,6 +140,17 @@ export class JudgmentDetailComponent {
     const citation = judgment.neutral_citation || judgment.citation || judgment.cnr_number || '';
     const date = judgment.judgment_date ? `, decided ${judgment.judgment_date}` : '';
     return `${title}${citation ? `, ${citation}` : ''} (${judgment.court}${date})`;
+  }
+
+  /** The headnote's public page, readable without an account (served by the API at /judgments/). */
+  protected shareHeadnote(j: Judgment): Promise<void> {
+    const summary = j.ai_headnote?.summary ?? '';
+    return this.sharing.shareLink(
+      j.case_name,
+      `${j.case_name}: ${summary}\n\nAI-generated headnote, free on VidhiSangh:`,
+      `${publicOrigin()}/judgments/${j.id}/`,
+      'Share headnote',
+    );
   }
 
   protected async copyCitation(): Promise<void> {

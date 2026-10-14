@@ -24,3 +24,9 @@
 # androidx.activity.q), and Play's pre-launch scan then reported that the
 # app never calls EdgeToEdge.enable() although MainActivity does.
 -keep class androidx.activity.EdgeToEdge { public static *; }
+
+# WorkManager (pulled in by the live-update plugin) creates its Room database
+# by reflection through a no-argument constructor. R8 removed it and the app
+# crashed at start-up ("NoSuchMethodException: WorkDatabase_Impl.<init>").
+-keep class * extends androidx.room.RoomDatabase { <init>(); }
+-keep class androidx.work.impl.WorkDatabase_Impl { <init>(); }

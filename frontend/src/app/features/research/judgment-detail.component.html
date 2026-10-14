@@ -84,7 +84,10 @@
         <section class="ai-headnote" aria-labelledby="ai-headnote-title">
           <header>
             <h2 id="ai-headnote-title">Headnote</h2>
-            <span class="ai-badge"><mat-icon class="material-icons-outlined">auto_awesome</mat-icon>AI-generated</span>
+            <span class="ai-actions">
+              <span class="ai-badge"><mat-icon class="material-icons-outlined">auto_awesome</mat-icon>AI-generated</span>
+              <button mat-stroked-button type="button" (click)="shareHeadnote(j)"><mat-icon>share</mat-icon>Share</button>
+            </span>
           </header>
           <p class="ai-disclaimer">{{ hn.label }}@if (hn.model) { Written by {{ hn.model }}@if (hn.generated_at) { on {{ hn.generated_at | date }}}.}</p>
           <p class="ai-summary">{{ hn.summary }}</p>

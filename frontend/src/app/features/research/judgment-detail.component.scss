@@ -16,6 +16,7 @@
 .ai-headnote p { margin: 0; font-size: 13px; line-height: 1.6; }
 .ai-headnote .ai-summary { margin-top: 10px; font-size: 14px; font-weight: 500; }
 .ai-headnote .paras { margin-left: 4px; color: rgb(var(--vs-text-muted)); font-size: 11px; white-space: nowrap; }
+.ai-actions { display: inline-flex; align-items: center; gap: 8px; }
 .ai-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; background: rgb(var(--vs-warning) / .14); color: rgb(var(--vs-warning)); font-size: 11px; font-weight: 700; white-space: nowrap; }
 .ai-badge mat-icon { width: 14px; height: 14px; font-size: 14px; }
 .ai-disclaimer { margin-top: 6px !important; color: rgb(var(--vs-text-muted)); font-size: 11px !important; }

@@ -56,7 +56,6 @@
     width: 2.375rem;
     height: 2.375rem;
     flex: none;
-    filter: drop-shadow(0 6px 10px color-mix(in srgb, rgb(var(--vs-brand)) 24%, transparent));
     transition: transform 0.18s ease, filter 0.18s ease;
   }
   &:hover &__mark { transform: translateY(-1px); }

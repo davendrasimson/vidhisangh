@@ -22,6 +22,7 @@ export interface RegisterRequest {
   accept_terms: boolean;
   add_sample_data?: boolean;
   device_id?: string | null;
+  referral_code?: string | null;
 }
 
 export interface LoginRequest {

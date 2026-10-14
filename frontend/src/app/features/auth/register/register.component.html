@@ -49,11 +49,7 @@
     </mat-form-field>
 
     <p class="text-sm text-content-muted mb-3">Enter an email address or a mobile number. If you enter both, verify both.</p>
-    <mat-form-field appearance="outline">
-      <mat-label>Mobile number</mat-label>
-      <input matInput type="tel" formControlName="phone" autocomplete="tel" placeholder="+91 9876543210" (input)="phoneChanged()" />
-      <mat-error>Enter a valid mobile number with country code.</mat-error>
-    </mat-form-field>
+    <vs-phone-input formControlName="phone" hint="We send a 6-digit code to this number on WhatsApp." />
     @if (!whatsappAvailable()) {
       <p class="text-sm text-content-muted mb-3">WhatsApp verification is temporarily unavailable. You can register using email.</p>
     }

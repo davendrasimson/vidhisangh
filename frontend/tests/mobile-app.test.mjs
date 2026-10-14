@@ -61,3 +61,41 @@ test('the page never asks for viewport-fit=cover (app would draw under the syste
   // WebView 140+ it hands the insets to page CSS, and this app has none.
   assert.doesNotMatch(read('src/index.html'), /viewport-fit\s*=\s*cover/);
 });
+
+test('live screen updates come only from vidhisangh.com, never the Capgo cloud', () => {
+  const cap = read('capacitor.config.ts');
+  const block = cap.slice(cap.indexOf('CapacitorUpdater: {'), cap.indexOf('},', cap.indexOf('CapacitorUpdater: {')));
+  assert.match(block, /autoUpdate: false/, 'the app decides when to download');
+  assert.match(block, /statsUrl: ''/, 'stats and health reporting off');
+  assert.match(block, /channelUrl: ''/, 'channel calls off');
+  assert.match(block, /resetWhenUpdate: true/, 'a store update drops downloaded screens');
+  assert.doesNotMatch(block, /capgo\.app/);
+  // Without notifyAppReady the plugin rolls every update back.
+  assert.match(read('src/app/core/platform/native-shell.ts'), /await initLiveUpdates\(\)/);
+});
+
+test('a published release is used only by the native build it was made for', async () => {
+  const { releaseFor } = await import('../src/app/core/platform/live-update.ts');
+  const files = [{ name: 'index.html', sha256: 'a'.repeat(64) }];
+  const manifest = { android: { 4: { version: '1.0.3-web.1', files } } };
+  assert.equal(releaseFor(manifest, 'android', '4')?.version, '1.0.3-web.1');
+  assert.equal(releaseFor(manifest, 'android', '5'), null);
+  assert.equal(releaseFor(manifest, 'ios', '4'), null);
+  assert.equal(releaseFor({ android: { 4: { version: 'x', files: [{ name: 'a', sha256: 'nothex' }] } } }, 'android', '4'), null);
+  assert.equal(releaseFor(null, 'android', '4'), null);
+});
+
+test('background reconnects never toast "Cannot reach the server"', () => {
+  // A phone in the background has no network; the realtime socket used to retry
+  // every 3 s and every failed ticket request showed the error toast.
+  const realtime = read('src/app/core/services/realtime.service.ts');
+  assert.match(realtime, /ws-ticket`, \{\}, \{\s*context: new HttpContext\(\)\.set\(SILENT_ERRORS, true\)/);
+  assert.match(realtime, /visibilityState !== 'visible' \|\| !navigator\.onLine\) return;\s*this\.reconnectTimer/);
+  assert.match(realtime, /addEventListener\('visibilitychange'/);
+  assert.match(realtime, /addEventListener\('online'/);
+  const delays = [0, 1, 2, 3, 4, 5, 10].map((n) => Math.min(3000 * 2 ** n, 60_000));
+  assert.match(realtime, /Math\.min\(3000 \* 2 \*\* Math\.max\(attempt, 0\), 60_000\)/);
+  assert.deepEqual(delays, [3000, 6000, 12000, 24000, 48000, 60000, 60000]);
+  // And no connection toast at all while the app is hidden.
+  assert.match(read('src/app/core/interceptors/error.interceptor.ts'), /err\.status === 0 && typeof document !== 'undefined' && document\.visibilityState === 'hidden'/);
+});

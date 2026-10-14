@@ -10,7 +10,9 @@ import { MatRadioModule } from '@angular/material/radio';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '@core/auth/auth.service';
+import { VsPhoneInputComponent } from '@shared/phone-input/vs-phone-input.component';
 import { ApiProblem } from '@core/models/auth.models';
 import {
   PasswordStrengthComponent,
@@ -22,6 +24,7 @@ import {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    VsPhoneInputComponent,
     ReactiveFormsModule, RouterLink,
     MatFormFieldModule, MatInputModule, MatButtonModule, MatCheckboxModule,
     MatIconModule, MatProgressBarModule, PasswordStrengthComponent, MatRadioModule,
@@ -63,6 +66,11 @@ export class RegisterComponent implements OnInit {
     accept_terms: [false, [Validators.requiredTrue]],
   }, { validators: control => control.get('email')?.value?.trim() || control.get('phone')?.value?.trim()
       ? null : { contactRequired: true } });
+
+  constructor() {
+    // A new number or country invalidates a code already sent.
+    this.form.controls.phone.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => this.phoneChanged());
+  }
 
   protected phoneChanged(): void {
     this.phoneChallenge.set(null);

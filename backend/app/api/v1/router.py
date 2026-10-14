@@ -34,6 +34,7 @@ from app.modules.network.router import router as network_router
 from app.modules.news.router import router as news_router
 from app.modules.notifications.router import router as notifications_router
 from app.modules.payments.router import router as payments_router
+from app.modules.referrals.router import router as referrals_router
 from app.modules.plans.router import router as plans_router
 from app.modules.portal.router import router as portal_router
 from app.modules.privacy.router import router as privacy_router
@@ -69,6 +70,7 @@ api_router.include_router(portal_router)
 api_router.include_router(calendar_router)
 api_router.include_router(research_router)
 api_router.include_router(news_router)
+api_router.include_router(referrals_router)
 api_router.include_router(payments_router)
 api_router.include_router(crm_router)
 api_router.include_router(billing_router)

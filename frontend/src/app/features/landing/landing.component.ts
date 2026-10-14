@@ -28,12 +28,13 @@ const PLAY_URL = 'https://play.google.com/store/apps/details?id=com.vidhisangh.a
   template: `
     <header class="topbar">
       <a routerLink="/" class="brand" aria-label="VidhiSangh home">
-        <img src="/brand-mark.svg" alt="" width="32" height="32" /><span>VidhiSangh</span>
+        <img src="/brand-mark.svg?v=3" alt="" width="32" height="32" /><span>VidhiSangh</span>
       </a>
       <nav aria-label="Sections">
         <a href="#network">Network</a>
         <a href="#research">Research</a>
         <a href="/acts/">Bare Acts</a>
+        <a href="/judgments/">Judgments</a>
         <a href="#practice">Practice tools</a>
       </nav>
       <div class="auth">
@@ -112,9 +113,11 @@ const PLAY_URL = 'https://play.google.com/store/apps/details?id=com.vidhisangh.a
     </main>
 
     <footer>
-      <div class="foot-brand"><img src="/brand-mark.svg" alt="" width="24" height="24" /> VidhiSangh</div>
+      <div class="foot-brand"><img src="/brand-mark.svg?v=3" alt="" width="24" height="24" /> VidhiSangh</div>
       <nav aria-label="Legal and help">
         <a href="/acts/">Bare Acts</a>
+        <a href="/judgments/">SC headnotes</a>
+        <a routerLink="/about">About us</a>
         <a routerLink="/help">Help</a>
         <a routerLink="/privacy">Privacy</a>
         <a routerLink="/terms">Terms</a>
@@ -122,6 +125,7 @@ const PLAY_URL = 'https://play.google.com/store/apps/details?id=com.vidhisangh.a
         <a href="mailto:grievance@vidhisangh.com">Grievance officer</a>
       </nav>
       <p>© 2026 VidhiSangh. A professional network and knowledge platform; it does not advertise or solicit work for advocates.</p>
+      <p>VidhiSangh is developed and managed by <a routerLink="/about">Simson Softwares Private Limited</a>.</p>
     </footer>
   `,
   styles: [`

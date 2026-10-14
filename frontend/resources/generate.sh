@@ -22,7 +22,8 @@ for f in splash-2732x2732.png splash-2732x2732-1.png splash-2732x2732-2.png; do
 done
 
 # ── Android launcher icons per density (dp scale: mdpi 1 … xxxhdpi 4)
-convert icon-background.png icon-foreground.png -composite adaptive-full.png
+# Launchers show the middle 72 of the 108-unit layers; legacy round icons get the same crop.
+convert icon-background.png icon-foreground.png -composite -gravity center -crop 288x288+0+0 +repage adaptive-full.png
 for pair in mdpi:1 hdpi:1.5 xhdpi:2 xxhdpi:3 xxxhdpi:4; do
   d=${pair%%:*}; s=${pair##*:}
   legacy=$(python3 -c "print(round(48*$s))"); layer=$(python3 -c "print(round(108*$s))")

@@ -104,6 +104,48 @@ It needs `google-chrome` and ImageMagick. It writes the iOS 1024 px icon and
 splash, Android legacy, round and adaptive icon layers for every density (the
 foreground also serves as the Android 13+ themed icon), and Android splash images.
 
+## Live screen updates (since 1.0.3, 14 October 2026)
+
+Screen, text and style changes reach installed apps without a store update.
+The app ships its screens built in; on each launch it reads
+`https://vidhisangh.com/app-updates/latest`, downloads only the files that
+changed (hash-checked, identical files copied from the built-in screens) and
+switches when the user next leaves and reopens the app. Code:
+`src/app/core/platform/live-update.ts` with the `@capgo/capacitor-updater`
+plugin in manual mode. No Capgo cloud service is used: update checks, stats and
+channel calls are switched off in `capacitor.config.ts` (a test enforces this).
+
+To publish (from `frontend/`, after the website deploy so both match):
+
+```
+npm run publish:app-update                    # Android
+npm run publish:app-update -- --platform ios  # iOS
+npm run publish:app-update -- --dry-run       # build and count files only
+```
+
+- A release targets exactly one native build (Android `versionCode`, iOS
+  `CURRENT_PROJECT_VERSION`) read from the project, so screens never run on
+  native code they were not built with. After a store update, publish again for
+  the new build.
+- A store update discards downloaded screens (`resetWhenUpdate`).
+- If new screens fail to start, `notifyAppReady()` is never called and the
+  plugin returns to the previous screens; that version is never retried. A
+  failed download is retried on the next launch.
+- Still needs a store update: a new or upgraded Capacitor plugin, permissions,
+  icons, splash, or anything in `android/` or `ios/`.
+- Server: `/opt/vidhisangh/frontend/dist/vidhisangh/browser/app-updates/`
+  (`latest` plus `files/<sha256>`; content-addressed, never deleted by the dist
+  rsync). Files must be world-readable for nginx; the script sets 755/644.
+- To withdraw a release, delete its entry from `latest` (the app then keeps the
+  screens it has; the next published release replaces them).
+- The plugin pulls in WorkManager (permissions WAKE_LOCK, ACCESS_NETWORK_STATE,
+  RECEIVE_BOOT_COMPLETED, FOREGROUND_SERVICE; no foreground-service type, so no
+  Play declaration). R8 removed WorkManager's database constructor and the app
+  crashed on start; `proguard-rules.pro` keeps it.
+- Verified 14/10/2026 on the emulator with a throwaway build 999: delta download
+  of 6 changed files in ~3 s, switched after Home → reopen, kept after a cold
+  start; the test release was then removed from `latest`.
+
 ## Verification done (4 October 2026)
 
 On an Android 16 emulator, against production, with a throwaway organisation

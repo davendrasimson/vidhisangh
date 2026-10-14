@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { Observable, firstValueFrom } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { environment } from '@env/environment';
+import { clearReferral, pendingReferral } from '@core/services/referral-capture';
 import {
   AuthSession,
   LoginRequest,
@@ -75,8 +76,10 @@ export class AuthService {
       .post<TokenPair | RegistrationPending>(`${this.api}/auth/register`, {
         ...payload,
         device_id: this.tokens.deviceId,
+        referral_code: pendingReferral(),
       }, { withCredentials: true })
       .pipe(tap((result) => {
+        clearReferral();
         if ('access_token' in result) this.tokens.setSession(result);
         else this._status.set('anonymous');
       }));

@@ -302,6 +302,14 @@ class MatterRepository:
         )
         return res.scalar_one_or_none()
 
+    async def matter_hearings(self, tenant_id: uuid.UUID, matter_id: uuid.UUID) -> list[Hearing]:
+        res = await self.session.execute(
+            select(Hearing).where(
+                Hearing.tenant_id == tenant_id, Hearing.matter_id == matter_id, Hearing.deleted_at.is_(None)
+            )
+        )
+        return list(res.scalars().all())
+
     async def upcoming_hearings(
         self, tenant_id: uuid.UUID, limit: int, offset: int
     ) -> list[Hearing]:

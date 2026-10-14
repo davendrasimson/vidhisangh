@@ -111,3 +111,45 @@ async def test_api_returns_headnote_flagged_as_ai_generated(session_factory, cli
 
     other = (await client.get(f"{API}/research/judgments/{ids['old']}", headers=headers)).json()
     assert other["ai_headnote"] is None
+
+
+async def test_public_pages_show_only_headnoted_judgments_with_the_ai_flag(session_factory, client: AsyncClient, strong_password: str) -> None:
+    from app.modules.research.ai_headnotes import apply_ai_headnote
+
+    await _user(client, "Public LLP", "public@firm.co", strong_password)
+    ids = await _seed(session_factory)
+    async with session_factory() as session:
+        await apply_ai_headnote(session, ids["new"], HEADNOTE, model="claude-opus-5-5")
+        await apply_ai_headnote(session, ids["mid"], {**HEADNOTE, "summary": "A <b>2024</b> ruling on input tax credit."}, model="m")
+        await session.commit()
+
+    # No sign-in needed. A bare id redirects to the canonical address with the case-name slug.
+    bare = await client.get(f"/judgments/{ids['new']}/", follow_redirects=False)
+    assert bare.status_code == 301 and bare.headers["location"] == f"/judgments/{ids['new']}/new-v-state/"
+    assert (await client.get(f"/judgments/{ids['new']}/wrong-name/", follow_redirects=False)).status_code == 301
+
+    page = await client.get(f"/judgments/{ids['new']}/new-v-state/")
+    assert page.status_code == 200 and page.headers["content-type"].startswith("text/html")
+    html = page.text
+    assert "AI-generated headnote" in html and "new v. State" in html and "12/08/2026" in html
+    assert "Section 16(4), Central Goods and Services Tax Act, 2017" in html and "(¶¶ 12, 14)" in html
+    assert f'<link rel="canonical" href="https://vidhisangh.com/judgments/{ids["new"]}/new-v-state/"' in html
+    assert "EDITORIAL HEADNOTE" not in html and "The appeal is allowed" not in html  # no full text, no reporter text
+    assert "style-src 'self'" in page.headers["content-security-policy"]
+
+    mid = (await client.get(f"/judgments/{ids['mid']}/mid-v-state/")).text
+    assert "&lt;b&gt;2024&lt;/b&gt;" in mid and "<b>2024</b>" not in mid  # escaped
+
+    # Judgments without a headnote, High Court orders and junk ids are not pages.
+    for path in (f"/judgments/{ids['old']}/", f"/judgments/{ids['hc']}/", "/judgments/not-an-id/", "/judgments/1999/"):
+        assert (await client.get(path, follow_redirects=False)).status_code == 404, path
+
+    index = (await client.get("/judgments/")).text
+    assert index.index("new v. State") < index.index("mid v. State") and 'href="/judgments/2026/"' in index
+    year = (await client.get("/judgments/2024/")).text
+    assert "mid v. State" in year and "new v. State" not in year
+
+    sitemap = await client.get("/sitemap-judgments.xml")
+    assert sitemap.headers["content-type"].startswith("application/xml")
+    assert f"https://vidhisangh.com/judgments/{ids['new']}/new-v-state/" in sitemap.text
+    assert "https://vidhisangh.com/judgments/2024/" in sitemap.text and str(ids["old"]) not in sitemap.text

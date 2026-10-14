@@ -155,6 +155,10 @@ def create_app() -> FastAPI:
     from app.api.v1.router import api_router
 
     app.include_router(api_router, prefix=settings.API_V1_PREFIX)
+    # Public HTML pages at the site root (nginx proxies /judgments/ here).
+    from app.modules.research.public_pages import router as public_judgments_router
+
+    app.include_router(public_judgments_router)
 
     # ── Metrics (Prometheus scrape target) ──────────────────────────
     app.mount("/metrics", _metrics_app())

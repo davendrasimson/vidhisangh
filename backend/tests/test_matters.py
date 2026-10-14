@@ -330,3 +330,54 @@ async def test_ecourts_refresh_without_a_cnr_explains_itself(
         assert "no cnr" in resp.text.lower()
     finally:
         set_ecourts_client(None)
+
+
+async def test_hearings_keep_the_matters_next_hearing_in_step(client: AsyncClient, strong_password: str) -> None:
+    """Adding, moving and completing hearings updates "Next hearing" (FUTURE_DELIVERABLES, 11 Oct 2026)."""
+    from datetime import UTC, datetime, timedelta
+
+    h, _ = await _user(client, "Next & Co", "next@firm.co", strong_password)
+    mid = (await client.post(f"{API}/matters", headers=h, json={
+        "title": "Sharma v. State", "client_name": "R. Sharma", "matter_type": "litigation", "court": "Sessions Court",
+    })).json()["id"]
+
+    def at(days: int) -> str:
+        return (datetime.now(UTC) + timedelta(days=days)).replace(hour=5, minute=0, second=0, microsecond=0).isoformat()
+
+    async def matter() -> dict:
+        return (await client.get(f"{API}/matters/{mid}", headers=h)).json()
+
+    later = (await client.post(f"{API}/matters/{mid}/hearings", headers=h,
+                               json={"scheduled_on": at(20), "purpose": "Arguments"})).json()
+    m = await matter()
+    assert m["next_hearing_date"] == at(20)[:10] and m["hearing_purpose"] == "Arguments"
+
+    soon = (await client.post(f"{API}/matters/{mid}/hearings", headers=h,
+                              json={"scheduled_on": at(5), "purpose": "Framing of charge"})).json()
+    m = await matter()
+    assert m["next_hearing_date"] == at(5)[:10] and m["hearing_purpose"] == "Framing of charge"
+
+    # The listed matters carry it too (the "next 14 days" tile reads this list).
+    listed = next(x for x in (await client.get(f"{API}/matters", headers=h)).json() if x["id"] == mid)
+    assert listed["next_hearing_date"] == at(5)[:10]
+
+    # Cancelled: the next one follows.
+    await client.patch(f"{API}/matters/hearings/{soon['id']}", headers=h, json={"status": "cancelled"})
+    m = await matter()
+    assert m["next_hearing_date"] == at(20)[:10] and m["hearing_purpose"] == "Arguments"
+
+    # Held, with a next date given by the court: that becomes the next hearing.
+    await client.patch(f"{API}/matters/hearings/{later['id']}", headers=h, json={"status": "held", "next_date": at(10)})
+    m = await matter()
+    assert m["next_hearing_date"] == at(10)[:10] and m["last_hearing_date"] == at(20)[:10]
+
+    # A new hearing before the court's date; the court's date is then withdrawn.
+    extra = (await client.post(f"{API}/matters/{mid}/hearings", headers=h,
+                               json={"scheduled_on": at(3), "purpose": "Bail"})).json()
+    await client.patch(f"{API}/matters/hearings/{later['id']}", headers=h, json={"next_date": None})
+    assert (await matter())["next_hearing_date"] == at(3)[:10]
+
+    # That hearing cancelled and nothing else upcoming: its date is cleared.
+    await client.patch(f"{API}/matters/hearings/{extra['id']}", headers=h, json={"status": "cancelled"})
+    m = await matter()
+    assert m["next_hearing_date"] is None and m["hearing_purpose"] is None

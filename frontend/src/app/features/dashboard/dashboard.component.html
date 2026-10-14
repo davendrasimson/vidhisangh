@@ -5,11 +5,8 @@
     <div class="min-w-0 flex-1">
       <h1 class="text-2xl md:text-3xl font-bold leading-tight">{{ greeting() }}, {{ user()?.full_name }}</h1>
       <p class="text-sm opacity-85 mt-1">
-        @if (tenant.current(); as t) {
-          {{ t.name }} · {{ t.plan | uppercase }} plan · {{ t.status }}
-        } @else {
-          Welcome to your VidhiSangh workspace.
-        }
+        {{ today | date: 'EEEE, dd/MM/yyyy' }}
+        @if (tenant.current(); as t) { @if (t.name !== user()?.full_name) { · {{ t.name }} } }
       </p>
     </div>
     <div class="flex gap-2">
@@ -17,16 +14,6 @@
       <a routerLink="/app/matters" class="vs-hero__btn vs-hero__btn--solid"><mat-icon class="material-icons-outlined">add</mat-icon> New matter</a>
     </div>
   </div>
-</section>
-
-<!-- Tell a friend -->
-<section class="vs-invite-banner mb-6">
-  <mat-icon class="material-icons-outlined">diversity_3</mat-icon>
-  <div class="min-w-0 flex-1">
-    <h2>VidhiSangh grows with your colleagues</h2>
-    <p>Invite advocates, juniors, munshis and law students you work with. It's free for them too.</p>
-  </div>
-  <button type="button" (click)="tellAFriend.share()"><mat-icon class="material-icons-outlined">share</mat-icon> Tell a friend</button>
 </section>
 
 @if (overview(); as o) {

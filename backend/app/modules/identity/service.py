@@ -205,6 +205,11 @@ class AuthService:
         )
         await self.session.flush()
 
+        if data.referral_code:
+            from app.modules.referrals.service import ReferralService
+
+            await ReferralService(self.session).record_signup(data.referral_code, user.id)
+
         if data.add_sample_data:
             from app.modules.sampledata.service import SampleDataService
 

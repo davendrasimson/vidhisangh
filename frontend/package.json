@@ -13,7 +13,8 @@
     "build:mobile": "ng build --configuration production,mobile && cap sync",
     "android:apk": "npm run build:mobile && cd android && ./gradlew assembleDebug",
     "android:release": "npm run build:mobile && cd android && ./gradlew bundleRelease assembleRelease",
-    "build:acts": "node scripts/build-act-pages.mjs"
+    "build:acts": "node scripts/build-act-pages.mjs",
+    "publish:app-update": "node scripts/publish-app-update.mjs"
   },
   "private": true,
   "dependencies": {
@@ -36,6 +37,7 @@
     "@capacitor/ios": "^8.5.2",
     "@capacitor/share": "^8.0.3",
     "@capacitor/splash-screen": "^8.0.2",
+    "@capgo/capacitor-updater": "8.52.1",
     "@fontsource-variable/source-serif-4": "5.3.0",
     "@fontsource/inter": "5.3.0",
     "@fontsource/tiro-devanagari-hindi": "5.3.0",

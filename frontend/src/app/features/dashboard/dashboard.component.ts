@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { TellAFriendService } from '@core/services/tell-a-friend.service';
-import { UpperCasePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
@@ -22,13 +21,13 @@ interface StatTile {
   selector: 'app-dashboard',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatIconModule, UpperCasePipe, RouterLink],
+  imports: [MatIconModule, DatePipe, RouterLink],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
 export class DashboardComponent implements OnInit {
   private readonly auth = inject(AuthService);
-  protected readonly tellAFriend = inject(TellAFriendService);
+  protected readonly today = new Date();
   private readonly analytics = inject(AnalyticsService);
   protected readonly tenant = inject(TenantService);
 

@@ -8,6 +8,7 @@ Disallow: /portal/
 Disallow: /kyc/
 Disallow: /pay/
 Disallow: /esign/
+Disallow: /app-updates/
 Disallow: /verify/
 Disallow: /platform-admin
 Disallow: /auth/callback
@@ -16,3 +17,4 @@ Disallow: /auth/verify-email/
 Disallow: /auth/change-password
 
 Sitemap: https://vidhisangh.com/sitemap.xml
+Sitemap: https://vidhisangh.com/sitemap-judgments.xml

@@ -21,7 +21,11 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((err: HttpErrorResponse) => {
-      if (err.status !== 401 && !req.context.get(SILENT_ERRORS)) {
+      // status 0 = the request never got an answer. In the background (phone
+      // asleep, app minimised) that is the OS cutting the network, not news
+      // for the user; the screen reloads its data when it is shown again.
+      const backgroundDrop = err.status === 0 && typeof document !== 'undefined' && document.visibilityState === 'hidden';
+      if (err.status !== 401 && !req.context.get(SILENT_ERRORS) && !backgroundDrop) {
         notify.error(extractMessage(err));
       }
       return throwError(() => err);

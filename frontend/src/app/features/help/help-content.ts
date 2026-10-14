@@ -703,6 +703,19 @@ export const HELP_TOPICS: HelpTopic[] = [
     "featured": false
   },
   {
+    "id": "about",
+    "title": "About VidhiSangh",
+    "path": "/about",
+    "summary": "What VidhiSangh offers and who builds it: developed and managed by Simson Softwares Private Limited.",
+    "steps": [
+      "Read what the network, research and practice tools cover.",
+      "Use the contact address on the page for questions, complaints or data requests."
+    ],
+    "tip": "VidhiSangh does not advertise or solicit work for advocates.",
+    "permission": null,
+    "featured": false
+  },
+  {
     "id": "platform-admin",
     "title": "Platform administration",
     "path": "/platform-admin",

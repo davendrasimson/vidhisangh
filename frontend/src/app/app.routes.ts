@@ -40,6 +40,11 @@ export const routes: Routes = [
     loadComponent: () => import('@features/legal/terms.component').then((m) => m.TermsComponent),
   },
   {
+    path: 'about',
+    data: { seo: { title: 'About us — VidhiSangh', description: 'VidhiSangh is a free professional network for India\'s legal fraternity, developed and managed by Simson Softwares Private Limited.' } },
+    loadComponent: () => import('@features/legal/about.component').then((m) => m.AboutComponent),
+  },
+  {
     path: 'trust',
     data: { seo: { title: 'Trust and security — VidhiSangh', description: 'Security and privacy controls at VidhiSangh: OWASP Top 10 review, DPDP Act 2023 controls, encryption and tenant isolation.' } },
     loadComponent: () =>

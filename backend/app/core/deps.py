@@ -134,8 +134,12 @@ async def get_tenant_session(current: CurrentUserDep) -> AsyncIterator[AsyncSess
         yield session
 
 
-TenantSessionDep = Annotated[AsyncSession, Depends(get_tenant_session)]
-AuthSessionDep = Annotated[AsyncSession, Depends(get_auth_session)]
+# scope="function": commit when the endpoint returns, BEFORE the response is
+# sent. With FastAPI's default ("request") the commit ran after the response, so
+# a failed commit reached the client as 200/201 and the change was silently lost
+# (seen in production: an accepted connection that was never saved).
+TenantSessionDep = Annotated[AsyncSession, Depends(get_tenant_session, scope="function")]
+AuthSessionDep = Annotated[AsyncSession, Depends(get_auth_session, scope="function")]
 
 
 async def get_current_user_model(current: CurrentUserDep, session: TenantSessionDep):  # noqa: ANN201

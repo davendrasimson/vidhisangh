@@ -79,6 +79,7 @@ from app.modules.network.models import (
     PostReaction,
 )
 from app.modules.news.models import NewsItem
+from app.modules.referrals.models import Referral, ReferralCode
 from app.modules.notifications.models import (
     Notification,
     NotificationDelivery,
@@ -106,6 +107,8 @@ from app.modules.webhooks.models import WebhookDelivery, WebhookEndpoint
 
 __all__ = [
     "Base",
+    "Referral",
+    "ReferralCode",
     "Tenant",
     "User",
     "Role",

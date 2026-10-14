@@ -1,9 +1,10 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Subject, firstValueFrom } from 'rxjs';
 import { environment } from '@env/environment';
 import { TokenService } from '@core/auth/token.service';
 import { Message } from '@core/models/messaging.models';
+import { SILENT_ERRORS } from '@core/interceptors/error.interceptor';
 
 export type RealtimeEvent =
   | { type: 'message'; conversation_id: string; message: Message }
@@ -16,8 +17,19 @@ interface WsTicket {
   expires_in: number;
 }
 
+/** Retry delay after `attempt` failures: 3 s, doubling, at most 60 s. */
+export function reconnectDelay(attempt: number): number {
+  return Math.min(3000 * 2 ** Math.max(attempt, 0), 60_000);
+}
+
 /** Live messaging socket: delivers messages, presence and typing signals.
  *  Single connection, auto-reconnecting while authenticated.
+ *
+ *  Reconnecting is a background job, so it never shows an error. It pauses
+ *  while the page is hidden or the device is offline (a phone in the
+ *  background has no network: retrying every 3 s there used to pile up
+ *  "Cannot reach the server" toasts), backs off up to a minute, and
+ *  reconnects at once when the page is visible and online again.
  *
  *  The handshake carries a 60-second single-use ticket from
  *  `POST /auth/ws-ticket`, never the access token itself (audit A-26: the
@@ -32,6 +44,18 @@ export class RealtimeService {
   private connecting = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private closedByUs = false;
+  private failures = 0;
+
+  constructor() {
+    if (typeof document === 'undefined') return;
+    const resume = () => {
+      if (this.closedByUs || document.visibilityState !== 'visible' || !navigator.onLine) return;
+      this.failures = 0;
+      this.connect();
+    };
+    document.addEventListener('visibilitychange', resume);
+    window.addEventListener('online', resume);
+  }
 
   /** Events other than presence (message, typing) for components to consume. */
   readonly events = new Subject<RealtimeEvent>();
@@ -50,7 +74,9 @@ export class RealtimeService {
   private async openWithTicket(): Promise<void> {
     let ticket: string;
     try {
-      ({ ticket } = await firstValueFrom(this.http.post<WsTicket>(`${this.api}/auth/ws-ticket`, {})));
+      ({ ticket } = await firstValueFrom(this.http.post<WsTicket>(`${this.api}/auth/ws-ticket`, {}, {
+        context: new HttpContext().set(SILENT_ERRORS, true),
+      })));
     } catch {
       // Not signed in (or the API is down): try again later unless we were told to stop.
       if (!this.closedByUs) this.scheduleReconnect();
@@ -62,6 +88,7 @@ export class RealtimeService {
     const socket = new WebSocket(`${base}/ws?ticket=${encodeURIComponent(ticket)}`);
     this.socket = socket;
 
+    socket.onopen = () => (this.failures = 0);
     socket.onmessage = (e) => this.handle(JSON.parse(e.data) as RealtimeEvent);
     socket.onclose = () => {
       this.socket = null;
@@ -114,6 +141,8 @@ export class RealtimeService {
 
   private scheduleReconnect(): void {
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
-    this.reconnectTimer = setTimeout(() => this.connect(), 3000);
+    // Hidden or offline: wait for the visibilitychange / online event instead.
+    if (typeof document === 'undefined' || document.visibilityState !== 'visible' || !navigator.onLine) return;
+    this.reconnectTimer = setTimeout(() => this.connect(), reconnectDelay(this.failures++));
   }
 }

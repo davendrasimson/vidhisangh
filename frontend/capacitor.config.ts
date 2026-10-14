@@ -27,6 +27,19 @@ const config: CapacitorConfig = {
       backgroundColor: '#ffffff',
       showSpinner: false,
     },
+    // Live screen updates from our own server (core/platform/live-update.ts).
+    // Manual mode: the app decides when to download. Every Capgo cloud call
+    // (update checks, stats, crash/health reporting, channels) is switched off.
+    CapacitorUpdater: {
+      autoUpdate: false,
+      updateUrl: 'https://vidhisangh.com/app-updates/latest',
+      statsUrl: '',
+      channelUrl: '',
+      resetWhenUpdate: true,
+      autoDeleteFailed: false,
+      autoDeletePrevious: true,
+      appReadyTimeout: 15000,
+    },
     SystemBars: {
       insetsHandling: 'native',
       initialViewportFitValueHint: 'auto',

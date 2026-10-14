@@ -1,10 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="VidhiSangh">
-  <defs><linearGradient id="b" x1="8" y1="5" x2="56" y2="60" gradientUnits="userSpaceOnUse"><stop stop-color="#173b7a"/><stop offset=".55" stop-color="#215dcc"/><stop offset="1" stop-color="#4934b8"/></linearGradient></defs>
-  <rect x="3" y="3" width="58" height="58" rx="15" fill="url(#b)"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="8 9 48 50" role="img" aria-label="VidhiSangh">
   <g fill="none" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M32 13v31" stroke="#f4c86a" stroke-width="3"/><circle cx="32" cy="12.5" r="2.5" fill="#f4c86a"/>
-    <path d="M17 20.5h30M18.5 21 13 33.5h11L18.5 21Zm27 0L40 33.5h11L45.5 21ZM12.5 33.5c.7 4 3 6 6 6s5.3-2 6-6m15 0c.7 4 3 6 6 6s5.3-2 6-6" stroke="#fff" stroke-width="2.4"/>
-    <path d="M14 45.5c7.3-2.3 13.3-.9 18 3.9 4.7-4.8 10.7-6.2 18-3.9v8.2c-7.2-2.2-13.2-.9-18 3.8-4.8-4.7-10.8-6-18-3.8v-8.2Z" fill="#fff" stroke="#fff" stroke-width="1.4"/>
-    <path d="M32 49.5v8" stroke="#f4c86a" stroke-width="2"/>
+    <path d="M32 13v31" stroke="#e41e26" stroke-width="3"/>
+    <circle cx="32" cy="12.5" r="2.5" fill="#e41e26" stroke="none"/>
+    <path d="M17 20.5h30" stroke="#8c8c8c" stroke-width="2.8"/>
+    <path d="M18.5 21 13 33.5h11L18.5 21Zm27 0L40 33.5h11L45.5 21Z" stroke="#8c8c8c" stroke-width="2.25"/>
+    <path d="M12.5 33.5c.7 4 3 6 6 6s5.3-2 6-6m15 0c.7 4 3 6 6 6s5.3-2 6-6" stroke="#8c8c8c" stroke-width="2.25"/>
+    <path d="M14 45.5c7.3-2.3 13.3-.9 18 3.9 4.7-4.8 10.7-6.2 18-3.9v8.2c-7.2-2.2-13.2-.9-18 3.8-4.8-4.7-10.8-6-18-3.8v-8.2Z" fill="#e41e26" stroke="#e41e26" stroke-width="1.4"/>
+    <path d="M32 49.5v8" stroke="#ffffff" stroke-width="2"/>
   </g>
 </svg>

@@ -37,7 +37,7 @@ import { RouterLink, RouterOutlet } from '@angular/router';
 
         <div class="auth__brand-inner">
           <div class="auth__logo">
-            <img class="auth__mark" src="brand-mark.svg" alt="" width="42" height="42" />
+            <img class="auth__mark" src="brand-mark.svg?v=3" alt="" width="42" height="42" />
             <span class="auth__wordmark">VidhiSangh</span>
           </div>
 
@@ -74,7 +74,7 @@ import { RouterLink, RouterOutlet } from '@angular/router';
       <section class="auth__panel">
         <div class="auth__panel-inner">
           <div class="auth__mobile-brand" aria-hidden="true">
-            <img class="auth__mark" src="brand-mark.svg" alt="" width="34" height="34" />
+            <img class="auth__mark" src="brand-mark.svg?v=3" alt="" width="34" height="34" />
             <span class="auth__wordmark">VidhiSangh</span>
           </div>
           <router-outlet />
@@ -148,7 +148,6 @@ import { RouterLink, RouterOutlet } from '@angular/router';
         width: 2.625rem;
         height: 2.625rem;
         flex: none;
-        filter: drop-shadow(0 8px 16px rgb(0 0 0 / 0.2));
       }
 
       .auth__wordmark {

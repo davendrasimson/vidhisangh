@@ -7,19 +7,17 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { AuthService } from '@core/auth/auth.service';
+import { VsPhoneInputComponent } from '@shared/phone-input/vs-phone-input.component';
 
 @Component({
   selector: 'app-whatsapp-login', standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, MatFormFieldModule, MatInputModule, MatButtonModule],
+  imports: [FormsModule, MatFormFieldModule, MatInputModule, MatButtonModule, VsPhoneInputComponent],
   template: `
     <form (ngSubmit)="challenge() ? login() : send()" class="grid gap-3">
       @if (error()) { <p role="alert" class="text-danger text-sm">{{ error() }}</p> }
       @if (info()) { <p role="status" class="text-content-muted text-sm">{{ info() }}</p> }
-      <mat-form-field appearance="outline">
-        <mat-label>Mobile number</mat-label>
-        <input matInput type="tel" name="phone" [(ngModel)]="phone" (ngModelChange)="reset()" autocomplete="tel" placeholder="+91 9876543210" required />
-      </mat-form-field>
+      <vs-phone-input name="phone" [(ngModel)]="phone" (ngModelChange)="reset()" #phoneField="ngModel" required />
       @if (challenge()) {
         <mat-form-field appearance="outline">
           <mat-label>WhatsApp code</mat-label>
@@ -34,7 +32,7 @@ import { AuthService } from '@core/auth/auth.service';
         <button mat-flat-button type="submit" [disabled]="busy() || code.length !== 6">Verify and sign in</button>
         <button mat-button type="button" [disabled]="busy()" (click)="send()">Resend WhatsApp code</button>
       } @else {
-        <button mat-flat-button type="submit" [disabled]="busy() || !phone.trim()">Send WhatsApp login code</button>
+        <button mat-flat-button type="submit" [disabled]="busy() || !phone || !!phoneField.invalid">Send WhatsApp login code</button>
       }
       <p class="text-xs text-content-muted">Use the mobile number verified when you registered. Codes arrive through the Simsondesk WhatsApp service and expire in 5 minutes.</p>
     </form>

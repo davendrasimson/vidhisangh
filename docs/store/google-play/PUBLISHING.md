@@ -112,4 +112,4 @@ export VIDHISANGH_KEYSTORE_PROPERTIES=~/.vidhisangh-signing/android/keystore.pro
 ./gradlew bundleRelease          # app/build/outputs/bundle/release/app-release.aab
 ```
 
-The app shows live data from vidhisangh.com, so most changes (new headnotes, data, server features) reach app users without a store update. A new upload is needed only when the bundled screens change.
+The app shows live data from vidhisangh.com, so data and server changes reach app users without a store update. Since 1.0.3, screen changes do too: run `npm run publish:app-update` after the website deploy (see `docs/MOBILE.md`, "Live screen updates"). A new store upload is needed only for native changes: a new or upgraded plugin, permissions, icons or the splash screen.

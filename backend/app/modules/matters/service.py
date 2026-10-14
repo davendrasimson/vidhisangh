@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, date, datetime, timedelta
+from zoneinfo import ZoneInfo
 from decimal import Decimal
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -102,6 +103,9 @@ def _apply_court_record(matter: Matter, data: object) -> None:
         if name in supplied:
             setattr(matter, name, getattr(data, name))
 
+
+# Hearing days are Indian court days, whatever the server clock's zone.
+_IST = ZoneInfo("Asia/Kolkata")
 
 class MatterService:
     def __init__(self, session: AsyncSession, user_id: uuid.UUID, tenant_id: uuid.UUID) -> None:
@@ -566,6 +570,7 @@ class MatterService:
         )
         self.repo.add(hearing)
         await self.session.flush()
+        await self._sync_next_hearing(matter_id)
         return hearing
 
     async def update_hearing(self, hearing_id: uuid.UUID, data: HearingUpdate) -> Hearing:
@@ -578,7 +583,43 @@ class MatterService:
         await self.session.flush()
         if hearing.status != old_status and hearing.status in (HearingStatus.HELD, HearingStatus.ADJOURNED):
             await self._on_hearing_outcome(hearing)
+        await self._sync_next_hearing(hearing.matter_id)
         return hearing
+
+    async def _sync_next_hearing(self, matter_id: uuid.UUID) -> None:
+        """Keep the matter's "Next hearing" (and the 14-day tile) in step with its hearings.
+
+        Next = the earliest scheduled hearing from today on, or the next date an
+        adjourned/held hearing was given. Last = the latest hearing that took
+        place. With nothing upcoming, a date that has passed or belonged to a
+        hearing now held, adjourned or cancelled is cleared; a future date typed
+        on the matter by hand (or from eCourts) is kept.
+        """
+        matter = await self._require_matter(matter_id)
+        hearings = await self.repo.matter_hearings(self.tenant_id, matter_id)
+        today = datetime.now(_IST).date()
+
+        def day(value: datetime) -> date:
+            return (value if value.tzinfo else value.replace(tzinfo=UTC)).astimezone(_IST).date()
+
+        upcoming = [(day(h.scheduled_on), h.purpose) for h in hearings
+                    if h.status == HearingStatus.SCHEDULED and day(h.scheduled_on) >= today]
+        upcoming += [(day(h.next_date), None) for h in hearings
+                     if h.next_date and h.status in (HearingStatus.HELD, HearingStatus.ADJOURNED) and day(h.next_date) >= today]
+        past = [day(h.scheduled_on) for h in hearings if h.status in (HearingStatus.HELD, HearingStatus.ADJOURNED)]
+        if past:
+            matter.last_hearing_date = max(past)
+        if upcoming:
+            when, purpose = min(upcoming, key=lambda item: (item[0], item[1] is None))
+            matter.next_hearing_date = when
+            matter.hearing_purpose = purpose
+        elif matter.next_hearing_date and (
+            matter.next_hearing_date < today
+            or matter.next_hearing_date in {day(h.scheduled_on) for h in hearings if h.status != HearingStatus.SCHEDULED}
+        ):
+            matter.next_hearing_date = None
+            matter.hearing_purpose = None
+        await self.session.flush()
 
     async def upcoming_hearings(self, limit: int, offset: int) -> list[Hearing]:
         return await self.repo.upcoming_hearings(self.tenant_id, limit, offset)

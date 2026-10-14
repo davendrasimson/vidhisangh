@@ -32,6 +32,8 @@ class RegisterRequest(BaseModel):
     accept_terms: bool = Field(description="Must be true to register.")
     add_sample_data: bool = False
     device_id: str | None = Field(default=None, min_length=16, max_length=64)
+    # From a colleague's invite link (?ref=). Unknown codes are ignored.
+    referral_code: str | None = Field(default=None, max_length=32)
 
     @field_validator("email", "phone", mode="before")
     @classmethod
