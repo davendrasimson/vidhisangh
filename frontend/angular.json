@@ -86,7 +86,16 @@
               ],
               "serviceWorker": false,
               "outputPath": "dist-mobile/vidhisangh",
-              "server": false
+              "server": false,
+              "assets": [
+                {
+                  "glob": "**/*",
+                  "input": "public",
+                  "ignore": [
+                    "acts/**"
+                  ]
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"

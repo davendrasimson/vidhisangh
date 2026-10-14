@@ -99,3 +99,12 @@ test('background reconnects never toast "Cannot reach the server"', () => {
   // And no connection toast at all while the app is hidden.
   assert.match(read('src/app/core/interceptors/error.interceptor.ts'), /err\.status === 0 && typeof document !== 'undefined' && document\.visibilityState === 'hidden'/);
 });
+
+test('the app bundle leaves out the public bare-act web pages', () => {
+  // public/acts/ holds ~3,800 generated SEO pages (~46 MB). The app reads Acts
+  // from its own offline library; shipping the pages would bloat the store
+  // bundle and every live update.
+  const angular = JSON.parse(read('angular.json'));
+  const mobile = Object.values(angular.projects)[0].architect.build.configurations.mobile;
+  assert.ok(mobile.assets?.some((a) => a.input === 'public' && a.ignore?.includes('acts/**')));
+});
