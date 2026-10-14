@@ -137,6 +137,9 @@ class Settings(BaseSettings):
     # The built-in mock IdP is a full sign-in bypass: opt in explicitly, never in
     # production (refused at start-up).
     OAUTH_MOCK_ENABLED: bool = False
+    # "Continue with Google" for someone without an account creates one from
+    # the provider's verified email (an individual account). Off = sign-in only.
+    OAUTH_SIGNUP_ENABLED: bool = True
 
     # ─── Rate limiting ──────────────────────────────────────────────
     # Master switch (tests turn it off; never off in production).

@@ -10,6 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { AuthService } from '@core/auth/auth.service';
+import { isNativeApp } from '@core/platform/platform';
 import { problemMessage } from '@core/interceptors/error.interceptor';
 import { STRICT_EMAIL } from '../send-code-cooldown';
 import { PROFESSIONAL_ROLES } from '../professional-roles';
@@ -49,6 +50,8 @@ export class RegisterComponent implements OnInit {
   /** WhatsApp is shown until the server says it is not configured. */
   protected readonly whatsappAvailable = signal(true);
   protected readonly useEmail = signal(false);
+  /** "Continue with Google": web only (the app cannot receive the redirect yet). */
+  protected readonly googleAvailable = signal(false);
 
   protected readonly form = this.fb.nonNullable.group({
     firm: [false],
@@ -62,10 +65,24 @@ export class RegisterComponent implements OnInit {
   });
 
   async ngOnInit(): Promise<void> {
+    if (!isNativeApp()) {
+      firstValueFrom(this.auth.ssoProviders())
+        .then(list => this.googleAvailable.set(list.some(p => p.name === 'google')))
+        .catch(() => { /* Google stays hidden. */ });
+    }
     try {
       const options = await firstValueFrom(this.auth.authOptions());
       this.whatsappAvailable.set(options.whatsapp_available);
     } catch { /* Keep WhatsApp on offer; the email form is one tap away. */ }
+  }
+
+  protected async continueWithGoogle(): Promise<void> {
+    this.errorMsg.set(null);
+    try {
+      await this.auth.startSso('google');
+    } catch (err) {
+      this.errorMsg.set(problemMessage(err, 'Could not open Google sign-in. Please try again.'));
+    }
   }
 
   protected changeFirm(): void {

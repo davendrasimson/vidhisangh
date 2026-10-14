@@ -304,7 +304,8 @@ async def oauth_callback(
     session: AuthSessionDep,
 ) -> TokenPair:
     pair = await OAuthService(session).callback(
-        provider, data.code, data.state, ip=client_ip(request), user_agent=_ua(request)
+        provider, data.code, data.state, ip=client_ip(request), user_agent=_ua(request),
+        referral_code=data.referral_code,
     )
     return deliver_tokens(pair, response)
 

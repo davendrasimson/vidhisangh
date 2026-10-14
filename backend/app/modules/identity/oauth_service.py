@@ -2,9 +2,9 @@
 
 Implements the authorization-code + PKCE flow: ``authorize`` mints a signed
 state row and returns the provider URL; ``callback`` validates the state,
-resolves the external identity to an existing VidhiSangh user, and issues our
-own token pair. SSO signs in **existing** accounts only — provisioning is done
-by an admin invite.
+resolves the external identity to a VidhiSangh user, and issues our own token
+pair. A verified email with no account behind it creates an individual account
+(sign-up with Google) unless ``OAUTH_SIGNUP_ENABLED`` is off.
 
 Identity resolution (audit A-21):
 1. A verified OIDC ``id_token`` (signature via the provider's JWKS, ``aud``,
@@ -134,6 +134,7 @@ class OAuthService:
         *,
         ip: str | None = None,
         user_agent: str | None = None,
+        referral_code: str | None = None,
     ) -> TokenPair:
         cfg = get_oauth_providers().get(provider)
         if cfg is None:
@@ -156,6 +157,13 @@ class OAuthService:
             raise AuthenticationError("The identity provider did not return a stable subject.")
 
         user = await self._resolve_user(provider, info)
+        if user is None:
+            created, pair = await self._sign_up(cfg, info, ip=ip, user_agent=user_agent,
+                                                referral_code=referral_code)
+            created.last_login_at = datetime.now(UTC)
+            assert pair is not None  # the provider verified the email
+            pair.new_account = True
+            return pair
         user.last_login_at = datetime.now(UTC)
         user.failed_login_count = 0
         user.locked_until = None
@@ -207,7 +215,43 @@ class OAuthService:
             info.from_id_token = True
         return info
 
-    async def _resolve_user(self, provider: str, info: OAuthUserInfo) -> User:
+    async def _sign_up(
+        self, cfg: OAuthProviderConfig, info: OAuthUserInfo, *, ip: str | None,
+        user_agent: str | None, referral_code: str | None,
+    ) -> tuple[User, TokenPair | None]:
+        """An individual account for a provider-verified email, linked to the identity."""
+        from app.modules.identity.schemas import RegisterRequest
+
+        assert info.email
+        name = " ".join((info.name or "").split())[:200]
+        if len(name) < 2:
+            name = info.email.split("@", 1)[0][:200]
+        registration = RegisterRequest.model_construct(
+            organisation_name=name, practice_type="individual", full_name=name,
+            email=info.email, phone=None,
+            # Never shown: they sign in with Google, or set one via "Forgot password".
+            password=secrets.token_urlsafe(24) + "aA1!",
+            # The sign-up button states that continuing accepts the Terms and Privacy Notice.
+            accept_terms=True, add_sample_data=False, device_id=None,
+            referral_code=referral_code, professional_role=None, role_visibility="everyone",
+        )
+        user, pair = await self.auth.register(
+            registration, ip=ip, user_agent=user_agent, verified_email=True
+        )
+        self.identities.add(OAuthIdentity(
+            user_id=user.id, provider=cfg.name, subject=info.subject, email=info.email,
+            last_used_at=datetime.now(UTC),
+        ))
+        record_audit(
+            self.session, tenant_id=user.tenant_id, actor_id=user.id, actor_label=user.email,
+            action="auth.sso_signup", summary=f"Created the account with {cfg.display_name}",
+            entity_type="user", entity_id=str(user.id), meta={"ip": ip, "provider": cfg.name},
+        )
+        await self.session.flush()
+        return user, pair
+
+    async def _resolve_user(self, provider: str, info: OAuthUserInfo) -> User | None:
+        """The linked or same-email account; ``None`` when a new one may be created."""
         identity = await self.identities.get(provider, info.subject)
         if identity is not None:
             user = await self.users.get_by_id_global(identity.user_id)
@@ -226,6 +270,8 @@ class OAuthService:
         if not info.email_verified:
             raise AuthenticationError("Your email address is not verified with the provider.")
         candidates = await self.users.find_by_email_global(info.email)
+        if not candidates and settings.OAUTH_SIGNUP_ENABLED:
+            return None
         if not candidates:
             raise PermissionDeniedError(
                 "No VidhiSangh account is linked to this email. Ask your administrator to invite you."

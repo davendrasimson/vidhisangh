@@ -8,6 +8,9 @@ import { clearReferral, pendingReferral } from '@core/services/referral-capture'
 import { AuthSession, LoginRequest, OAuthAuthorize, RegisterRequest, RegistrationPending, PhoneOtpResponse, SsoProvider, TokenPair, User, WhatsAppSignupRequest, WhatsAppSignupRequired } from '@core/models/auth.models';
 import { TokenService } from './token.service';
 
+/** sessionStorage key: which SSO provider the callback page is finishing. */
+export const SSO_PROVIDER_KEY = 'vs_sso_provider';
+
 type AuthStatus = 'idle' | 'authenticating' | 'authenticated' | 'anonymous';
 
 /** Custom header the API requires on cookie-based auth calls (CSRF defence). */
@@ -167,8 +170,20 @@ export class AuthService {
   ssoCallback(provider: string, code: string, state: string): Observable<TokenPair> {
     this._status.set('authenticating');
     return this.http
-      .post<TokenPair>(`${this.api}/auth/oauth/${provider}/callback`, { code, state }, { withCredentials: true })
-      .pipe(tap((pair) => this.tokens.setSession(pair)));
+      .post<TokenPair>(`${this.api}/auth/oauth/${provider}/callback`,
+        { code, state, referral_code: pendingReferral() }, { withCredentials: true })
+      .pipe(tap((pair) => {
+        if (pair.new_account) clearReferral();
+        this.tokens.setSession(pair);
+      }));
+  }
+
+  /** Leave for the provider's sign-in page; `/auth/callback` finishes (and signs up new people). */
+  async startSso(provider: string): Promise<void> {
+    const redirectUri = `${window.location.origin}/auth/callback`;
+    const { authorize_url } = await firstValueFrom(this.ssoAuthorize(provider, redirectUri));
+    sessionStorage.setItem(SSO_PROVIDER_KEY, provider);
+    window.location.href = authorize_url;
   }
 
   /** Exchange the HttpOnly refresh cookie for a fresh access token (rotation). */

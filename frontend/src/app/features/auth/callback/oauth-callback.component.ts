@@ -1,11 +1,10 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { AuthService } from '@core/auth/auth.service';
-import { ApiProblem } from '@core/models/auth.models';
-import { SSO_PROVIDER_KEY } from '../login/login.component';
+import { AuthService, SSO_PROVIDER_KEY } from '@core/auth/auth.service';
+import { problemMessage } from '@core/interceptors/error.interceptor';
+import { NotificationService } from '@core/services/notification.service';
 
 @Component({
   selector: 'app-oauth-callback',
@@ -29,6 +28,7 @@ export class OAuthCallbackComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly notify = inject(NotificationService);
 
   protected readonly error = signal<string | null>(null);
 
@@ -50,12 +50,17 @@ export class OAuthCallbackComponent implements OnInit {
     }
 
     try {
-      await firstValueFrom(this.auth.ssoCallback(provider, code, state));
+      const pair = await firstValueFrom(this.auth.ssoCallback(provider, code, state));
       await firstValueFrom(this.auth.loadCurrentUser());
+      if (pair.new_account) {
+        // Signed up with Google: the one thing it cannot tell us is their role.
+        this.notify.success('Welcome to VidhiSangh! Add your role so colleagues can find you.');
+        await this.router.navigateByUrl('/app/profile');
+        return;
+      }
       await this.router.navigateByUrl('/app/dashboard');
     } catch (err) {
-      const problem = (err as HttpErrorResponse).error as ApiProblem | undefined;
-      this.error.set(problem?.detail ?? 'We could not complete sign-in. Please try again.');
+      this.error.set(problemMessage(err, 'We could not complete sign-in. Please try again.'));
     }
   }
 }

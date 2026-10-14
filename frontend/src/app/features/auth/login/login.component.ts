@@ -15,7 +15,6 @@ import { ApiProblem, SsoProvider } from '@core/models/auth.models';
 import { WhatsappLoginComponent } from '../whatsapp-login.component';
 import { isNativeApp } from '@core/platform/platform';
 
-export const SSO_PROVIDER_KEY = 'vs_sso_provider';
 
 /** In-app paths only: must start with "/" (not "//"), no backslash, no scheme (A-33). */
 export function safeReturnUrl(raw: string | null): string {
@@ -103,12 +102,7 @@ export class LoginComponent implements OnInit {
   protected async startSso(provider: SsoProvider): Promise<void> {
     this.errorMsg.set(null);
     try {
-      const redirectUri = `${window.location.origin}/auth/callback`;
-      const { authorize_url } = await firstValueFrom(
-        this.auth.ssoAuthorize(provider.name, redirectUri),
-      );
-      sessionStorage.setItem(SSO_PROVIDER_KEY, provider.name);
-      window.location.href = authorize_url;
+      await this.auth.startSso(provider.name);
     } catch (err) {
       this.handleError(err as HttpErrorResponse);
     }

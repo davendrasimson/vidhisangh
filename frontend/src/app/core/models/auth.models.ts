@@ -8,6 +8,8 @@ export interface TokenPair {
   expires_in: number;
   /** True when this session may only call /auth/change-password (temporary password). */
   password_must_change?: boolean;
+  /** True when this sign-in created the account (sign-up with Google). */
+  new_account?: boolean;
 }
 
 export interface RegisterRequest {

@@ -141,9 +141,12 @@ class AuthService:
     async def register(
         self, data: RegisterRequest, *, ip: str | None = None, user_agent: str | None = None,
         sample_storage: Storage | None = None, verified_phone: str | None = None,
+        verified_email: bool = False,
     ) -> tuple[User, TokenPair | None]:
         """`verified_phone`: a number already proven by a WhatsApp sign-up pass
-        (the caller consumed it), used instead of `data.phone` + its code."""
+        (the caller consumed it), used instead of `data.phone` + its code.
+        `verified_email`: the email was vouched for by an SSO provider (Google),
+        so no verification link is sent."""
         # Emails are unique platform-wide, so check before creating the tenant —
         # otherwise a rejected signup would leave an empty organisation behind.
         if data.email and await self.users.email_taken_anywhere(data.email):
@@ -183,7 +186,7 @@ class AuthService:
             full_name=data.full_name,
             hashed_password=security.hash_password(data.password),
             is_active=True,
-            is_email_verified=False,
+            is_email_verified=verified_email,
             # ── privacy agent: persist the terms acceptance (DPDP s.6) ──
             terms_version=str(_current_terms_version()),
             terms_accepted_at=datetime.now(UTC),
@@ -230,12 +233,13 @@ class AuthService:
 
         log.info("tenant_registered", tenant_id=str(tenant.id), user_id=str(user.id))
         self._audit(user, "auth.registered", f"Registered organisation {tenant.name}", meta={"ip": ip})
-        if user.email:
+        if user.email and not user.is_email_verified:
             await self.send_email_verification(user)
         pair = None
         # A WhatsApp-verified mobile is enough to sign in; the email link still
         # goes out and verifies the address whenever it is opened.
-        if not user.verification_required or not user.email or user.is_phone_verified:
+        if (not user.verification_required or not user.email or user.is_phone_verified
+                or user.is_email_verified):
             pair = await self._issue_token_pair(
                 user, ip=ip, user_agent=user_agent, label="signup", device_id=data.device_id
             )

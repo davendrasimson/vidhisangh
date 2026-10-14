@@ -156,6 +156,9 @@ class TokenPair(BaseModel):
         default=False,
         description="True when the session may only call /auth/change-password.",
     )
+    new_account: bool = Field(
+        default=False, description="True when this sign-in created the account (SSO sign-up)."
+    )
 
 
 class MfaRequiredResponse(BaseModel):
@@ -212,6 +215,8 @@ class OAuthAuthorizeResponse(BaseModel):
 class OAuthCallbackRequest(BaseModel):
     code: str = Field(min_length=1, max_length=2048)
     state: str = Field(min_length=1, max_length=128)
+    # From a colleague's invite link, used if this sign-in creates the account.
+    referral_code: str | None = Field(default=None, max_length=32)
 
 
 class PasskeyRegisterFinish(BaseModel):

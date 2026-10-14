@@ -138,3 +138,41 @@ test('email registration is the only form when WhatsApp is not configured', asyn
   await fillEmailForm(page);
   await expect(page.getByRole('button', { name: 'Create account', exact: true })).toBeEnabled();
 });
+
+test('Continue with Google appears only when Google is configured, and starts the redirect', async ({ page }) => {
+  await page.route('**/api/v1/auth/oauth/providers', route => route.fulfill({ json: [] }));
+  await page.goto('/auth/register');
+  await expect(page.getByRole('button', { name: /Sign up with email instead/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Continue with Google' })).toHaveCount(0);
+
+  await page.unroute('**/api/v1/auth/oauth/providers');
+  await page.route('**/api/v1/auth/oauth/providers', route => route.fulfill({ json: [{ name: 'google', display_name: 'Google' }] }));
+  let redirectUri: string | undefined;
+  await page.route('**/api/v1/auth/oauth/google/authorize', async route => {
+    redirectUri = route.request().postDataJSON()['redirect_uri'];
+    await route.fulfill({ json: { authorize_url: '/help?google=1', state: 's' } });
+  });
+  await page.goto('/auth/register');
+  await expect(page.getByText(/By continuing with Google you agree/)).toBeVisible();
+  await page.getByRole('button', { name: 'Continue with Google' }).click();
+  await expect(page).toHaveURL(/help\?google=1/);
+  expect(redirectUri).toMatch(/\/auth\/callback$/);
+});
+
+test('a new Google account lands on the profile to add a role', async ({ page }) => {
+  await page.route('**/api/v1/auth/oauth/google/callback', async route => {
+    expect(route.request().postDataJSON()).toMatchObject({ code: 'c', state: 's' });
+    await route.fulfill({ json: {
+      access_token: 'a.b.c', refresh_token: null, token_type: 'bearer', expires_in: 900, new_account: true,
+    } });
+  });
+  await page.route('**/api/v1/auth/me', route => route.fulfill({ json: {
+    id: 'u1', tenant_id: 't1', email: 'new@gmail.com', full_name: 'New Member', is_active: true,
+    is_email_verified: true, roles: [], permissions: [], mfa_enabled: false,
+  } }));
+  await page.addInitScript(() => sessionStorage.setItem('vs_sso_provider', 'google'));
+  await page.goto('/auth/callback?code=c&state=s');
+  // The stub token is not a real session, so the guard may bounce to sign-in, keeping
+  // /app/profile as the return address; either way the new account was sent to the profile.
+  await expect(page).toHaveURL(/\/app\/profile$|returnUrl=%2Fapp%2Fprofile/);
+});
