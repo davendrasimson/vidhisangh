@@ -207,6 +207,13 @@ class AuthService:
                 avatar_url=user.avatar_url,
             )
         )
+        if data.professional_role:
+            from app.modules.profile.models import ProfessionalProfile
+
+            self.session.add(ProfessionalProfile(
+                tenant_id=tenant.id, user_id=user.id, professional_role=data.professional_role,
+                visibility_settings={"professional": data.role_visibility},
+            ))
         await self.session.flush()
 
         if data.referral_code:

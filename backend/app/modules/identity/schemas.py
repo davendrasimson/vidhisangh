@@ -17,6 +17,13 @@ def _validate_password_strength(value: str) -> str:
     return validate_password(value)
 
 
+def _check_professional_role(value: str) -> str:
+    from app.modules.profile.masters import PROFILE_MASTERS
+    if value not in {r["value"] for r in PROFILE_MASTERS["professional_roles"]}:
+        raise ValueError("Choose your job profile from the list.")
+    return value
+
+
 # ─── Registration & login ───────────────────────────────────────────
 class RegisterRequest(BaseModel):
     """Sign up: provisions a new tenant and its owner (org_admin) user."""
@@ -34,6 +41,15 @@ class RegisterRequest(BaseModel):
     device_id: str | None = Field(default=None, min_length=16, max_length=64)
     # From a colleague's invite link (?ref=). Unknown codes are ignored.
     referral_code: str | None = Field(default=None, max_length=32)
+    # Job profile for the network (advocate, law_student, ...); optional so
+    # older app versions and API clients keep working.
+    professional_role: str | None = Field(default=None, max_length=80)
+    role_visibility: Literal["everyone", "connections", "none"] = "everyone"
+
+    @field_validator("professional_role")
+    @classmethod
+    def _professional_role(cls, value: str | None) -> str | None:
+        return _check_professional_role(value) if value else None
 
     @field_validator("email", "phone", mode="before")
     @classmethod
@@ -360,7 +376,8 @@ class WhatsAppSignupRequest(BaseModel):
     signup_id: uuid.UUID
     signup_token: str = Field(min_length=20, max_length=100)
     full_name: str = Field(min_length=2, max_length=200)
-    email: EmailStr
+    # Optional: the verified number is enough to sign in.
+    email: EmailStr | None = None
     accept_terms: Literal[True] = Field(description="Privacy notice and terms accepted.")
     # A value from the profile masters (advocate, law_student, judicial_officer, in_house_counsel, ...).
     professional_role: str = Field(max_length=80)
@@ -377,13 +394,15 @@ class WhatsAppSignupRequest(BaseModel):
             raise ValueError("Enter your full name.")
         return value
 
+    @field_validator("email", mode="before")
+    @classmethod
+    def _empty_email(cls, value: object) -> object:
+        return value.strip() or None if isinstance(value, str) else value
+
     @field_validator("professional_role")
     @classmethod
     def _role(cls, value: str) -> str:
-        from app.modules.profile.masters import PROFILE_MASTERS
-        if value not in {r["value"] for r in PROFILE_MASTERS["professional_roles"]}:
-            raise ValueError("Choose your job profile from the list.")
-        return value
+        return _check_professional_role(value)
 
 
 class PhoneLoginRequest(BaseModel):

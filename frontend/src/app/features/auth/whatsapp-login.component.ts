@@ -1,9 +1,10 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { problemMessage } from '@core/interceptors/error.interceptor';
 import { SendCodeCooldown } from './send-code-cooldown';
+import { PROFESSIONAL_ROLES } from './professional-roles';
 import { firstValueFrom } from 'rxjs';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -24,7 +25,7 @@ import { VsPhoneInputComponent } from '@shared/phone-input/vs-phone-input.compon
       <form (ngSubmit)="finishSignup()" class="grid gap-3" #signupForm="ngForm">
         <div>
           <h2 class="text-lg font-semibold text-content">Welcome to VidhiSangh</h2>
-          <p class="text-sm text-content-muted">Your number is verified. A few details to create your free account.</p>
+          <p class="text-sm text-content-muted">Your number is verified. Add your name and role, and you're in.</p>
         </div>
         @if (error()) { <p role="alert" class="text-danger text-sm">{{ error() }}</p> }
         <mat-form-field appearance="outline">
@@ -32,8 +33,8 @@ import { VsPhoneInputComponent } from '@shared/phone-input/vs-phone-input.compon
           <input matInput name="full_name" [(ngModel)]="fullName" autocomplete="name" required minlength="2" maxlength="200" />
         </mat-form-field>
         <mat-form-field appearance="outline">
-          <mat-label>Email</mat-label>
-          <input matInput type="email" name="email" [(ngModel)]="email" autocomplete="email" required email pattern="\\s*[^\\s@]+@[^\\s@.]+(\\.[^\\s@.]+)+\\s*" />
+          <mat-label>Email (optional)</mat-label>
+          <input matInput type="email" name="email" [(ngModel)]="email" autocomplete="email" email pattern="\\s*[^\\s@]+@[^\\s@.]+(\\.[^\\s@.]+)+\\s*" />
         </mat-form-field>
         <mat-form-field appearance="outline">
           <mat-label>I am a</mat-label>
@@ -73,21 +74,27 @@ import { VsPhoneInputComponent } from '@shared/phone-input/vs-phone-input.compon
             <input matInput name="mfa" [(ngModel)]="mfa" autocomplete="one-time-code" />
           </mat-form-field>
         }
-        <button mat-flat-button type="submit" [disabled]="busy() || code.length !== 6">Verify and sign in</button>
+        <button mat-flat-button type="submit" [disabled]="busy() || code.length !== 6">{{ mode() === 'join' ? 'Verify and continue' : 'Verify and sign in' }}</button>
         <button mat-button type="button" [disabled]="busy() || !!cooldown.seconds()" (click)="send()">
           {{ cooldown.seconds() ? 'Resend code in ' + cooldown.seconds() + 's' : 'Resend WhatsApp code' }}
         </button>
       } @else {
         <button mat-flat-button type="submit" [disabled]="busy() || !phone || !!phoneField.invalid || !!cooldown.seconds()">
-          {{ cooldown.seconds() ? 'Try again in ' + cooldown.seconds() + 's' : 'Send WhatsApp login code' }}
+          {{ cooldown.seconds() ? 'Try again in ' + cooldown.seconds() + 's' : mode() === 'join' ? 'Send WhatsApp code' : 'Send WhatsApp login code' }}
         </button>
       }
-      <p class="text-xs text-content-muted">New to VidhiSangh? Enter your number all the same: after the code, we'll create your free account. Codes arrive on WhatsApp and expire in 5 minutes.</p>
+      @if (mode() === 'join') {
+        <p class="text-xs text-content-muted">We send a 6-digit code on WhatsApp (valid 5 minutes). No password needed. Already a member? The code signs you in.</p>
+      } @else {
+        <p class="text-xs text-content-muted">New to VidhiSangh? Enter your number all the same: after the code, we'll create your free account. Codes arrive on WhatsApp and expire in 5 minutes.</p>
+      }
     </form>
     }
   `,
 })
 export class WhatsappLoginComponent {
+  /** `join` on the sign-up page: same flow, wording for new members. */
+  readonly mode = input<'login' | 'join'>('login');
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -107,21 +114,7 @@ export class WhatsappLoginComponent {
   protected role = '';
   protected visibility: RoleVisibility = 'everyone';
   protected acceptTerms = false;
-  /** Job profiles (values from the profile masters), the common ones first. */
-  protected readonly roles = [
-    { value: 'advocate', label: 'Advocate' },
-    { value: 'law_student', label: 'Law Student' },
-    { value: 'judicial_officer', label: 'Judicial Officer' },
-    { value: 'in_house_counsel', label: 'Corporate / In-house Counsel' },
-    { value: 'senior_advocate', label: 'Senior Advocate' },
-    { value: 'retired_judicial_officer', label: 'Retired Judicial Officer' },
-    { value: 'arbitrator', label: 'Arbitrator / Mediator' },
-    { value: 'law_officer', label: 'Government Law Officer' },
-    { value: 'law_teacher', label: 'Law Teacher / Academic' },
-    { value: 'paralegal', label: 'Paralegal' },
-    { value: 'clerk', label: 'Court Clerk / Munshi' },
-    { value: 'other', label: 'Other legal professional' },
-  ];
+  protected readonly roles = PROFESSIONAL_ROLES;
   protected reset(): void { this.challenge.set(null); this.code = ''; this.info.set(null); this.cooldown.seconds.set(0); }
   protected async send(): Promise<void> {
     if (this.busy() || this.cooldown.seconds()) return;
@@ -157,7 +150,7 @@ export class WhatsappLoginComponent {
     try {
       await firstValueFrom(this.auth.whatsappSignup({
         signup_id: pass.signup_id, signup_token: pass.signup_token, full_name: this.fullName.trim(),
-        email: this.email.trim(), accept_terms: true, professional_role: this.role, role_visibility: this.visibility,
+        email: this.email.trim() || null, accept_terms: true, professional_role: this.role, role_visibility: this.visibility,
       }));
       await this.enterApp();
     } catch (err) {

@@ -23,6 +23,8 @@ export interface RegisterRequest {
   add_sample_data?: boolean;
   device_id?: string | null;
   referral_code?: string | null;
+  professional_role?: string | null;
+  role_visibility?: RoleVisibility;
 }
 
 export interface LoginRequest {
@@ -128,7 +130,7 @@ export interface WhatsAppSignupRequest {
   signup_id: string;
   signup_token: string;
   full_name: string;
-  email: string;
+  email: string | null;
   accept_terms: true;
   professional_role: string;
   role_visibility: RoleVisibility;

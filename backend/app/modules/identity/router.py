@@ -582,32 +582,32 @@ async def whatsapp_signup(
     from app.core.exceptions import ConflictError
     from app.modules.identity.phone_otp import consume_code
     from app.modules.identity.schemas import RegisterRequest
-    from app.modules.profile.models import ProfessionalProfile
 
     # Before using up the pass, so a taken address can be corrected and retried.
-    if await UserRepository(session).email_taken_anywhere(data.email):
+    if data.email and await UserRepository(session).email_taken_anywhere(data.email):
         raise ConflictError("An account with this email already exists. Sign in with email, or use another address.")
     row = await consume_code(session, data.signup_id, data.signup_token, purpose="signup_pass")
-    registration = RegisterRequest(
+    # Built directly: the number is already proven (the pass), so the
+    # contact/code rules of the public form do not apply.
+    registration = RegisterRequest.model_construct(
         organisation_name=data.full_name,
         practice_type="individual",
         full_name=data.full_name,
         email=data.email,
+        phone=None,
         # Never shown: they sign in with WhatsApp codes and can set a password
         # later with "Forgot password".
         password=secrets.token_urlsafe(24) + "aA1!",
         accept_terms=True,
+        add_sample_data=False,
         device_id=data.device_id,
         referral_code=data.referral_code,
+        professional_role=data.professional_role,
+        role_visibility=data.role_visibility,
     )
     user, pair = await AuthService(session).register(
         registration, ip=client_ip(request), user_agent=_ua(request), verified_phone=row.phone,
     )
-    session.add(ProfessionalProfile(
-        tenant_id=user.tenant_id, user_id=user.id, professional_role=data.professional_role,
-        visibility_settings={"professional": data.role_visibility},
-    ))
-    await session.flush()
     if pair is None:  # cannot happen: the phone is verified
         raise AuthenticationError("Sign-up could not be completed. Please sign in.")
     return deliver_tokens(pair, response)

@@ -39,6 +39,23 @@ test('sign-up screens use it, count down before a new code and check emails like
     const src = readFileSync(new URL(`../src/app/features/auth/${file}`, import.meta.url), 'utf8');
     assert.ok(!/error\?\.detail \?\?/.test(src), `${file} still shows only the generic detail`);
     assert.match(src, /problemMessage\(err/);
-    assert.match(src, /this\.cooldown\.start\(\)/);
   }
+  const whatsapp = readFileSync(new URL('../src/app/features/auth/whatsapp-login.component.ts', import.meta.url), 'utf8');
+  assert.match(whatsapp, /this\.cooldown\.start\(\)/);
+});
+
+test('sign-up starts with WhatsApp; email is the alternative and firm questions only for firms', () => {
+  const html = readFileSync(new URL('../src/app/features/auth/register/register.component.html', import.meta.url), 'utf8');
+  const ts = readFileSync(new URL('../src/app/features/auth/register/register.component.ts', import.meta.url), 'utf8');
+  assert.ok(html.indexOf('<app-whatsapp-login mode="join"') < html.indexOf('formControlName="email"'), 'WhatsApp comes first');
+  assert.match(html, /Sign up with email instead/);
+  assert.match(html, /formControlName="professional_role"/);
+  // Firm name and the sample workspace sit inside the firm branch, not in the default form.
+  const firm = html.slice(html.indexOf('@if (form.controls.firm.value)'));
+  assert.ok(firm.includes('formControlName="organisation_name"') && firm.includes('formControlName="add_sample_data"'));
+  assert.ok(!html.includes('formControlName="phone"'), 'the email form no longer asks for a phone');
+  assert.match(ts, /add_sample_data: values\.firm && values\.add_sample_data/);
+  const whatsapp = readFileSync(new URL('../src/app/features/auth/whatsapp-login.component.ts', import.meta.url), 'utf8');
+  assert.match(whatsapp, /Email \(optional\)/);
+  assert.match(whatsapp, /email: this\.email\.trim\(\) \|\| null/);
 });

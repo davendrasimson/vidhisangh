@@ -251,6 +251,8 @@ import { RouterLink, RouterOutlet } from '@angular/router';
       /* ── Form side ──────────────────────────────────────────────── */
       .auth__panel {
         display: grid;
+        /* minmax(0, …): the phone-number input must not widen the page on phones. */
+        grid-template-columns: minmax(0, 1fr);
         place-items: center;
         padding: 2rem;
         background: rgb(var(--vs-surface-sunken));
@@ -260,6 +262,7 @@ import { RouterLink, RouterOutlet } from '@angular/router';
          column so both pages align with the brand bar above them. */
       .auth__panel-inner {
         width: 100%;
+        min-width: 0;
         max-width: 27rem;
       }
 

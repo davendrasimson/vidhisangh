@@ -321,6 +321,37 @@ async def test_whatsapp_signup_with_a_taken_email_can_be_corrected(client, whats
     assert fixed.status_code == 201, fixed.text
 
 
+async def test_whatsapp_signup_without_email(client, whatsapp, session_factory):
+    """The short sign-up: number, code, name and role. Email can be added later."""
+    from app.modules.profile.models import ProfessionalProfile
+
+    signup = await start_signup(client, whatsapp, phone="+919833334444")
+    created = await client.post(f"{API}/whatsapp/signup", json=signup_form(signup, email="  ", professional_role="advocate"))
+    assert created.status_code == 201, created.text
+    me = (await client.get(f"{API}/me", headers={"Authorization": f"Bearer {created.json()['access_token']}"})).json()
+    assert me["email"] is None and me["full_name"] == "Meera Nair"
+    async with session_factory() as session:
+        user = await session.scalar(select(User).where(User.phone == "+919833334444"))
+        assert user.is_phone_verified and user.email is None
+        profile = await session.scalar(select(ProfessionalProfile).where(ProfessionalProfile.user_id == user.id))
+        assert profile.professional_role == "advocate"
+
+
+async def test_email_signup_records_the_job_profile(client, strong_password, session_factory):
+    from app.modules.profile.models import ProfessionalProfile
+
+    bad = await client.post(f"{API}/register", json=registration(strong_password, email="role@example.com", professional_role="astronaut"))
+    assert bad.status_code == 422
+    ok = await client.post(f"{API}/register", json=registration(
+        strong_password, email="role@example.com", professional_role="law_student", role_visibility="connections"))
+    assert ok.status_code == 201, ok.text
+    async with session_factory() as session:
+        user = await session.scalar(select(User).where(User.email == "role@example.com"))
+        profile = await session.scalar(select(ProfessionalProfile).where(ProfessionalProfile.user_id == user.id))
+        assert profile.professional_role == "law_student"
+        assert profile.visibility_settings == {"professional": "connections"}
+
+
 async def test_whatsapp_outage_creates_no_challenge(client, session_factory, monkeypatch):
     from app.core.exceptions import ServiceUnavailableError
 

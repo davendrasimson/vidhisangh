@@ -31,7 +31,9 @@ test('WhatsApp sign-in with a new number continues to a sign-up form', () => {
   const login = readFileSync(new URL('../src/app/features/auth/whatsapp-login.component.ts', import.meta.url), 'utf8');
   assert.match(login, /'signup_required' in result\) \{ this\.signup\.set\(result\)/);
   for (const field of ['name="full_name"', 'name="email"', 'name="role"', 'name="visibility"', 'name="terms"']) assert.ok(login.includes(field), field);
-  for (const role of ['advocate', 'law_student', 'judicial_officer', 'in_house_counsel']) assert.ok(login.includes(`value: '${role}'`), role);
+  const roles = readFileSync(new URL('../src/app/features/auth/professional-roles.ts', import.meta.url), 'utf8');
+  assert.match(login, /roles = PROFESSIONAL_ROLES/);
+  for (const role of ['advocate', 'law_student', 'judicial_officer', 'in_house_counsel', 'clerk']) assert.ok(roles.includes(`value: '${role}'`), role);
   const auth = readFileSync(new URL('../src/app/core/auth/auth.service.ts', import.meta.url), 'utf8');
   assert.match(auth, /auth\/whatsapp\/signup/);
   assert.match(auth, /if \('access_token' in result\) this\.tokens\.setSession\(result\)/);
