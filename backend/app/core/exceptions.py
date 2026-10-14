@@ -143,6 +143,12 @@ def register_exception_handlers(app: FastAPI) -> None:
         # `ctx` is kept only as JSON-safe scalars (a validator's ValueError
         # object is not JSON) — it holds rule parameters, never the value.
         details = [_public_validation_error(err) for err in exc.errors()]
+        # Which field failed and the rule, never the value: enough to see why
+        # sign-ups are rejected without logging what people typed.
+        log.info(
+            "request_validation_failed",
+            fields=[".".join(str(p) for p in d["loc"]) + ":" + d["type"] for d in details],
+        )
         return _problem(
             status_code=422,
             code="validation_error",

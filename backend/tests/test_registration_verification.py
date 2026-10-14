@@ -90,8 +90,11 @@ async def test_email_signup_requires_single_use_link(
     response = await client.post(f"{API}/verify-email/{token}")
     assert response.status_code == 200
     assert "set-cookie" not in response.headers  # click validates; it does not silently log in
-    assert (await client.post(f"{API}/verify-email/{token}")).status_code == 404
+    # A second open (often an email security scanner got there first) still succeeds.
+    again = await client.post(f"{API}/verify-email/{token}")
+    assert again.status_code == 200 and "set-cookie" not in again.headers
     assert (await client.post(f"{API}/login", json=login)).status_code == 200
+    assert (await client.post(f"{API}/verify-email/not-a-real-token")).status_code == 404
 
 
 async def test_verification_delivery_retries_and_resend_invalidates_old_link(

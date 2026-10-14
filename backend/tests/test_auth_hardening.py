@@ -657,8 +657,11 @@ async def test_email_verification_link(client: AsyncClient, strong_password: str
     token = mailbox.last_token()
     assert (await client.post(f"{API}/auth/verify-email/{token}")).status_code == 200
     assert (await client.get(f"{API}/auth/me", headers=h)).json()["is_email_verified"] is True
-    assert (await client.post(f"{API}/auth/verify-email/{token}")).status_code == 404  # single use
-    assert "auth.email_verified" in await _audit_actions(client, h)
+    # Opened again (or first by a mail scanner): still "verified", no second audit entry.
+    again = await client.post(f"{API}/auth/verify-email/{token}")
+    assert again.status_code == 200 and "set-cookie" not in again.headers
+    audit = (await client.get(f"{API}/admin/audit", headers=h)).json()
+    assert [e["action"] for e in audit].count("auth.email_verified") == 1
     # Legacy accounts retain access; the new-registration gate is tested separately.
 
 

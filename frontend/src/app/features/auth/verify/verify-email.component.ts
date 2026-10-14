@@ -25,7 +25,7 @@ import { ApiProblem } from '@core/models/auth.models';
       } @else {
         <h2 class="text-xl font-bold text-content mb-2">We could not confirm this link</h2>
         <p class="text-sm text-danger mb-6">{{ error() }}</p>
-        <a routerLink="/auth/login" class="text-brand font-medium">Back to sign in</a>
+        <a mat-flat-button color="primary" routerLink="/auth/login" class="h-11 w-full">Sign in</a>
       }
     </div>
   `,

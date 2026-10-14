@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -13,7 +12,8 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '@core/auth/auth.service';
 import { VsPhoneInputComponent } from '@shared/phone-input/vs-phone-input.component';
-import { ApiProblem } from '@core/models/auth.models';
+import { problemMessage } from '@core/interceptors/error.interceptor';
+import { SendCodeCooldown, STRICT_EMAIL } from '../send-code-cooldown';
 import {
   PasswordStrengthComponent,
   STRONG_PASSWORD,
@@ -53,12 +53,14 @@ export class RegisterComponent implements OnInit {
   protected readonly infoMsg = signal<string | null>(null);
   protected readonly phoneChallenge = signal<string | null>(null);
   protected readonly sendingCode = signal(false);
+  /** Seconds until another WhatsApp code may be requested (the server allows one a minute). */
+  protected readonly cooldown = new SendCodeCooldown();
 
   protected readonly form = this.fb.nonNullable.group({
     practice_type: ['individual' as 'individual' | 'firm'],
     organisation_name: [''],
     full_name: ['', [Validators.required, Validators.pattern(/\s*\S(?:[\s\S]*\S)\s*/), Validators.maxLength(200)]],
-    email: ['', [Validators.email]],
+    email: ['', [Validators.email, Validators.pattern(STRICT_EMAIL)]],
     phone: ['', [Validators.pattern(/^(?:\+?[1-9][0-9 ()-]{7,20})$/)]],
     phone_code: [''],
     password: ['', [Validators.required, Validators.pattern(STRONG_PASSWORD)]],
@@ -75,11 +77,13 @@ export class RegisterComponent implements OnInit {
   protected phoneChanged(): void {
     this.phoneChallenge.set(null);
     this.form.controls.phone_code.setValue('');
+    // The server's one-a-minute limit is per number, so a corrected number may be sent at once.
+    this.cooldown.seconds.set(0);
   }
 
   protected async sendCode(): Promise<void> {
     const phone = this.form.controls.phone;
-    if (!phone.value || phone.invalid || this.sendingCode()) return;
+    if (!phone.value || phone.invalid || this.sendingCode() || this.cooldown.seconds()) return;
     this.sendingCode.set(true);
     this.errorMsg.set(null);
     const number = phone.value;
@@ -87,9 +91,11 @@ export class RegisterComponent implements OnInit {
       const result = await firstValueFrom(this.auth.requestWhatsAppCode(number, 'register'));
       if (phone.value !== number) return;
       this.phoneChallenge.set(result.challenge_id);
+      this.cooldown.start();
       this.infoMsg.set('Enter the WhatsApp code below. It expires in 5 minutes.');
     } catch (err) {
-      this.errorMsg.set((err as HttpErrorResponse).error?.detail ?? 'Could not send the code. Try again.');
+      this.cooldown.fromError(err);
+      this.errorMsg.set(problemMessage(err, 'Could not send the code. Try again.'));
     } finally { this.sendingCode.set(false); }
   }
 
@@ -99,7 +105,7 @@ export class RegisterComponent implements OnInit {
       const result = await firstValueFrom(this.auth.resendPublicVerification(this.form.controls.email.value));
       this.infoMsg.set(result.detail);
     } catch (err) {
-      this.errorMsg.set((err as HttpErrorResponse).error?.detail ?? 'Could not resend. Please try again.');
+      this.errorMsg.set(problemMessage(err, 'Could not resend. Please try again.'));
     } finally { this.submitting.set(false); }
   }
 
@@ -133,8 +139,7 @@ export class RegisterComponent implements OnInit {
       await firstValueFrom(this.auth.loadCurrentUser());
       await this.router.navigateByUrl('/app/dashboard');
     } catch (err) {
-      const problem = (err as HttpErrorResponse).error as ApiProblem | undefined;
-      this.errorMsg.set(problem?.detail ?? 'Registration failed. Please try again.');
+      this.errorMsg.set(problemMessage(err, 'Registration failed. Please try again.'));
     } finally {
       this.submitting.set(false);
     }

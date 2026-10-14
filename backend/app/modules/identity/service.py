@@ -270,14 +270,22 @@ class AuthService:
 
     async def verify_email(self, raw_token: str) -> User:
         user = await self.users.get_by_verification_hash(security.hash_link_token(raw_token))
+        if user is not None and user.is_email_verified:
+            # Opened again, or a mail scanner (Microsoft Defender, Titan) opened
+            # it before the person did: the address is verified, say so.
+            return user
         if user is None or user.email_verification_expires_at is None:
-            raise NotFoundError("This verification link is invalid or has already been used.")
+            raise NotFoundError(
+                "This link has already been used or is not valid. "
+                "If you have confirmed your email, simply sign in."
+            )
         if _as_utc(user.email_verification_expires_at) < datetime.now(UTC):
             raise ValidationError("This verification link has expired. Sign in and request a new one.")
         user.is_email_verified = True
         user.email_verification_delivery_token = None
         user.email_verification_next_attempt_at = None
-        user.email_verification_token_hash = None
+        # The hash stays so a second open of the same link still answers
+        # "verified"; a new link (resend) replaces it.
         user.email_verification_expires_at = None
         self._audit(user, "auth.email_verified", "Email address verified")
         return user

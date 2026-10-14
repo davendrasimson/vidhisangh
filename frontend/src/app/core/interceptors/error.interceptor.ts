@@ -2,7 +2,9 @@ import { HttpContextToken, HttpErrorResponse, HttpInterceptorFn } from '@angular
 import { inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
 import { NotificationService } from '@core/services/notification.service';
-import { ApiProblem } from '@core/models/auth.models';
+import { problemMessage } from '@core/http/problem-message';
+
+export { problemMessage };
 
 /**
  * Set on requests whose failure the caller reports itself (background
@@ -34,8 +36,5 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 };
 
 function extractMessage(err: HttpErrorResponse): string {
-  if (err.status === 0) return 'Cannot reach the server. Check your connection.';
-  const problem = err.error as ApiProblem | undefined;
-  if (problem?.detail) return problem.detail;
-  return err.message || 'An unexpected error occurred.';
+  return problemMessage(err, err.message || 'An unexpected error occurred.');
 }

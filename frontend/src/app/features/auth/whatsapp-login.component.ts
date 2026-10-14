@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
+import { problemMessage } from '@core/interceptors/error.interceptor';
+import { SendCodeCooldown } from './send-code-cooldown';
 import { firstValueFrom } from 'rxjs';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -31,7 +33,7 @@ import { VsPhoneInputComponent } from '@shared/phone-input/vs-phone-input.compon
         </mat-form-field>
         <mat-form-field appearance="outline">
           <mat-label>Email</mat-label>
-          <input matInput type="email" name="email" [(ngModel)]="email" autocomplete="email" required email />
+          <input matInput type="email" name="email" [(ngModel)]="email" autocomplete="email" required email pattern="\\s*[^\\s@]+@[^\\s@.]+(\\.[^\\s@.]+)+\\s*" />
         </mat-form-field>
         <mat-form-field appearance="outline">
           <mat-label>I am a</mat-label>
@@ -72,9 +74,13 @@ import { VsPhoneInputComponent } from '@shared/phone-input/vs-phone-input.compon
           </mat-form-field>
         }
         <button mat-flat-button type="submit" [disabled]="busy() || code.length !== 6">Verify and sign in</button>
-        <button mat-button type="button" [disabled]="busy()" (click)="send()">Resend WhatsApp code</button>
+        <button mat-button type="button" [disabled]="busy() || !!cooldown.seconds()" (click)="send()">
+          {{ cooldown.seconds() ? 'Resend code in ' + cooldown.seconds() + 's' : 'Resend WhatsApp code' }}
+        </button>
       } @else {
-        <button mat-flat-button type="submit" [disabled]="busy() || !phone || !!phoneField.invalid">Send WhatsApp login code</button>
+        <button mat-flat-button type="submit" [disabled]="busy() || !phone || !!phoneField.invalid || !!cooldown.seconds()">
+          {{ cooldown.seconds() ? 'Try again in ' + cooldown.seconds() + 's' : 'Send WhatsApp login code' }}
+        </button>
       }
       <p class="text-xs text-content-muted">New to VidhiSangh? Enter your number all the same: after the code, we'll create your free account. Codes arrive on WhatsApp and expire in 5 minutes.</p>
     </form>
@@ -93,6 +99,7 @@ export class WhatsappLoginComponent {
   protected readonly error = signal<string | null>(null);
   protected readonly info = signal<string | null>(null);
   protected readonly mfaRequired = signal(false);
+  protected readonly cooldown = new SendCodeCooldown();
   /** Set when the verified number has no account: the sign-up form is shown. */
   protected readonly signup = signal<WhatsAppSignupRequired | null>(null);
   protected fullName = '';
@@ -115,16 +122,17 @@ export class WhatsappLoginComponent {
     { value: 'clerk', label: 'Court Clerk / Munshi' },
     { value: 'other', label: 'Other legal professional' },
   ];
-  protected reset(): void { this.challenge.set(null); this.code = ''; this.info.set(null); }
+  protected reset(): void { this.challenge.set(null); this.code = ''; this.info.set(null); this.cooldown.seconds.set(0); }
   protected async send(): Promise<void> {
-    if (this.busy()) return;
+    if (this.busy() || this.cooldown.seconds()) return;
     this.busy.set(true); this.error.set(null);
     const phone = this.phone;
     try {
       const result = await firstValueFrom(this.auth.requestWhatsAppCode(phone, 'login'));
       if (this.phone !== phone) return;
       this.challenge.set(result.challenge_id); this.code = ''; this.info.set(result.detail);
-    } catch (err) { this.error.set((err as HttpErrorResponse).error?.detail ?? 'Could not send code.'); }
+      this.cooldown.start();
+    } catch (err) { this.cooldown.fromError(err); this.error.set(problemMessage(err, 'Could not send code.')); }
     finally { this.busy.set(false); }
   }
   protected async login(): Promise<void> {
@@ -138,7 +146,7 @@ export class WhatsappLoginComponent {
     } catch (err) {
       const problem = (err as HttpErrorResponse).error;
       if (problem?.title === 'mfa_required') this.mfaRequired.set(true);
-      this.error.set(problem?.detail ?? 'Sign in failed. Please try again.');
+      this.error.set(problemMessage(err, 'Sign in failed. Please try again.'));
     } finally { this.busy.set(false); }
   }
 
@@ -153,13 +161,12 @@ export class WhatsappLoginComponent {
       }));
       await this.enterApp();
     } catch (err) {
-      const problem = (err as HttpErrorResponse).error;
       if ((err as HttpErrorResponse).status === 401) {
         // The pass expired (15 minutes) or was used: start again with a new code.
         this.signup.set(null); this.reset();
         this.error.set('That took a little long. Request a new WhatsApp code to continue.');
       } else {
-        this.error.set(problem?.detail ?? 'Could not create your account. Please try again.');
+        this.error.set(problemMessage(err, 'Could not create your account. Please try again.'));
       }
     } finally { this.busy.set(false); }
   }

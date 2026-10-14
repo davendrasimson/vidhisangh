@@ -83,6 +83,23 @@ async def test_validation_errors_do_not_echo_input(client: AsyncClient) -> None:
     assert resp.status_code == 422 and bad_pan not in resp.text
 
 
+async def test_validation_failures_log_the_field_not_the_value(client: AsyncClient) -> None:
+    """Rejected sign-ups are logged by field and rule so the cause can be found,
+    without what the person typed."""
+    from structlog.testing import capture_logs
+
+    secret = "Password@123"  # passes the character rules, but is on the common list
+    with capture_logs() as logs:
+        resp = await client.post(f"{API}/auth/register", json={
+            "full_name": "Log User", "email": "log-user@acme.co", "password": secret, "accept_terms": True,
+            "practice_type": "individual",
+        })
+    assert resp.status_code == 422
+    entry = next(e for e in logs if e["event"] == "request_validation_failed")
+    assert entry["fields"] == ["body.password:value_error"]
+    assert secret not in json.dumps(entry) and "log-user@acme.co" not in json.dumps(entry)
+
+
 # ═══ P-3 — encryption at rest + blind-index search ═══════════════════
 async def test_client_identity_encrypted_at_rest_with_blind_index_search(
     client: AsyncClient, session_factory: async_sessionmaker
