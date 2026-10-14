@@ -344,6 +344,48 @@ class PhoneOtpResponse(BaseModel):
     detail: str = "If this number is eligible, a code has been sent on WhatsApp."
 
 
+class WhatsAppSignupRequired(BaseModel):
+    """The verified number has no account yet: finish with POST /auth/whatsapp/signup."""
+
+    signup_required: Literal[True] = True
+    signup_id: uuid.UUID
+    signup_token: str
+    expires_in: int = 900
+
+
+ROLE_VISIBILITY = Literal["everyone", "connections", "none"]
+
+
+class WhatsAppSignupRequest(BaseModel):
+    signup_id: uuid.UUID
+    signup_token: str = Field(min_length=20, max_length=100)
+    full_name: str = Field(min_length=2, max_length=200)
+    email: EmailStr
+    accept_terms: Literal[True] = Field(description="Privacy notice and terms accepted.")
+    # A value from the profile masters (advocate, law_student, judicial_officer, in_house_counsel, ...).
+    professional_role: str = Field(max_length=80)
+    # Who sees the job profile: everyone, connections only, or nobody.
+    role_visibility: ROLE_VISIBILITY = "everyone"
+    device_id: str | None = Field(default=None, min_length=16, max_length=64)
+    referral_code: str | None = Field(default=None, max_length=32)
+
+    @field_validator("full_name")
+    @classmethod
+    def _name(cls, value: str) -> str:
+        value = " ".join(value.split())
+        if len(value) < 2:
+            raise ValueError("Enter your full name.")
+        return value
+
+    @field_validator("professional_role")
+    @classmethod
+    def _role(cls, value: str) -> str:
+        from app.modules.profile.masters import PROFILE_MASTERS
+        if value not in {r["value"] for r in PROFILE_MASTERS["professional_roles"]}:
+            raise ValueError("Choose your job profile from the list.")
+        return value
+
+
 class PhoneLoginRequest(BaseModel):
     challenge_id: uuid.UUID
     code: str = Field(pattern=r"^\d{6}$")

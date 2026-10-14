@@ -39,6 +39,8 @@ from app.modules.identity.oauth_service import OAuthService
 from app.modules.identity.passkey_service import PasskeyService
 from app.modules.identity.repository import UserRepository
 from app.modules.identity.schemas import (
+    WhatsAppSignupRequest,
+    WhatsAppSignupRequired,
     ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
@@ -529,13 +531,20 @@ async def whatsapp_request(data: PhoneOtpRequest, session: AuthSessionDep) -> Ph
     return PhoneOtpResponse(challenge_id=row.id)
 
 
-@router.post("/whatsapp/login", response_model=TokenPair,
+@router.post("/whatsapp/login", response_model=TokenPair | WhatsAppSignupRequired,
              dependencies=[Depends(auth_rate_limit)])
 async def whatsapp_login(
     data: PhoneLoginRequest, request: Request, response: Response, session: AuthSessionDep,
-) -> TokenPair:
-    from app.modules.identity.phone_otp import consume_code
+) -> TokenPair | WhatsAppSignupRequired:
+    from app.modules.identity.models import PhoneOtpChallenge
+    from app.modules.identity.phone_otp import consume_code, issue_signup_pass
     from app.modules.identity.service import MfaRequiredError
+    pending = await session.get(PhoneOtpChallenge, data.challenge_id)
+    if pending is not None and pending.purpose == "signup":
+        # A new number: the code proves it; the sign-up form comes next.
+        row = await consume_code(session, data.challenge_id, data.code, purpose="signup")
+        signup_id, token = await issue_signup_pass(session, row.phone)
+        return WhatsAppSignupRequired(signup_id=signup_id, signup_token=token)
     row = await consume_code(session, data.challenge_id, data.code, purpose="login")
     user = await UserRepository(session).get_by_id_global(row.user_id) if row.user_id else None
     if user is None or not user.is_active or not user.is_phone_verified or user.phone != row.phone:
@@ -559,6 +568,48 @@ async def whatsapp_login(
         user, ip=client_ip(request), user_agent=_ua(request), label="WhatsApp",
         device_id=data.device_id,
     )
+    return deliver_tokens(pair, response)
+
+
+@router.post("/whatsapp/signup", response_model=TokenPair, status_code=status.HTTP_201_CREATED,
+             summary="Finish a WhatsApp sign-up: create an individual account for the verified number",
+             dependencies=[Depends(register_rate_limit), Depends(auth_rate_limit)])
+async def whatsapp_signup(
+    data: WhatsAppSignupRequest, request: Request, response: Response, session: AuthSessionDep,
+) -> TokenPair:
+    import secrets
+
+    from app.core.exceptions import ConflictError
+    from app.modules.identity.phone_otp import consume_code
+    from app.modules.identity.schemas import RegisterRequest
+    from app.modules.profile.models import ProfessionalProfile
+
+    # Before using up the pass, so a taken address can be corrected and retried.
+    if await UserRepository(session).email_taken_anywhere(data.email):
+        raise ConflictError("An account with this email already exists. Sign in with email, or use another address.")
+    row = await consume_code(session, data.signup_id, data.signup_token, purpose="signup_pass")
+    registration = RegisterRequest(
+        organisation_name=data.full_name,
+        practice_type="individual",
+        full_name=data.full_name,
+        email=data.email,
+        # Never shown: they sign in with WhatsApp codes and can set a password
+        # later with "Forgot password".
+        password=secrets.token_urlsafe(24) + "aA1!",
+        accept_terms=True,
+        device_id=data.device_id,
+        referral_code=data.referral_code,
+    )
+    user, pair = await AuthService(session).register(
+        registration, ip=client_ip(request), user_agent=_ua(request), verified_phone=row.phone,
+    )
+    session.add(ProfessionalProfile(
+        tenant_id=user.tenant_id, user_id=user.id, professional_role=data.professional_role,
+        visibility_settings={"professional": data.role_visibility},
+    ))
+    await session.flush()
+    if pair is None:  # cannot happen: the phone is verified
+        raise AuthenticationError("Sign-up could not be completed. Please sign in.")
     return deliver_tokens(pair, response)
 
 

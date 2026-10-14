@@ -140,8 +140,10 @@ class AuthService:
     # ─── Registration ───────────────────────────────────────────────
     async def register(
         self, data: RegisterRequest, *, ip: str | None = None, user_agent: str | None = None,
-        sample_storage: Storage | None = None,
+        sample_storage: Storage | None = None, verified_phone: str | None = None,
     ) -> tuple[User, TokenPair | None]:
+        """`verified_phone`: a number already proven by a WhatsApp sign-up pass
+        (the caller consumed it), used instead of `data.phone` + its code."""
         # Emails are unique platform-wide, so check before creating the tenant —
         # otherwise a rejected signup would leave an empty organisation behind.
         if data.email and await self.users.email_taken_anywhere(data.email):
@@ -150,12 +152,14 @@ class AuthService:
                 "use a different address for this organisation."
             )
 
-        if data.phone:
+        phone = verified_phone or data.phone
+        if phone:
             from app.modules.identity.phone_otp import consume_code, phone_user
-            if await phone_user(self.session, data.phone):
+            if await phone_user(self.session, phone):
                 raise ConflictError("This mobile number already has an account. Sign in instead.")
-            await consume_code(self.session, data.phone_challenge_id, data.phone_code,
-                               purpose="register", phone=data.phone)
+            if not verified_phone:
+                await consume_code(self.session, data.phone_challenge_id, data.phone_code,
+                                   purpose="register", phone=data.phone)
         assert data.organisation_name is not None
         slug = await self.tenants.generate_unique_slug(data.organisation_name)
         tenant = Tenant(
@@ -172,8 +176,8 @@ class AuthService:
         user = User(
             tenant_id=tenant.id,
             email=data.email.lower() if data.email else None,
-            phone=data.phone,
-            is_phone_verified=bool(data.phone),
+            phone=phone,
+            is_phone_verified=bool(phone),
             verification_required=settings.REGISTRATION_REQUIRE_VERIFICATION,
             roles=[],
             full_name=data.full_name,

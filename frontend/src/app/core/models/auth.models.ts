@@ -113,3 +113,23 @@ export interface ApiProblem {
   request_id?: string;
   errors?: unknown;
 }
+
+/** POST /auth/whatsapp/login for a number with no account: finish with whatsappSignup. */
+export interface WhatsAppSignupRequired {
+  signup_required: true;
+  signup_id: string;
+  signup_token: string;
+  expires_in: number;
+}
+
+export type RoleVisibility = 'everyone' | 'connections' | 'none';
+
+export interface WhatsAppSignupRequest {
+  signup_id: string;
+  signup_token: string;
+  full_name: string;
+  email: string;
+  accept_terms: true;
+  professional_role: string;
+  role_visibility: RoleVisibility;
+}

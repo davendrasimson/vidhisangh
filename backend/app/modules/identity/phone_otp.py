@@ -109,7 +109,13 @@ async def request_code(session: AsyncSession, phone: str, purpose: str) -> Phone
         subject
     )
     user = await phone_user(session, phone)
-    eligible = (purpose == "register" and user is None) or (
+    if purpose == "login" and user is None:
+        # A number with no account on the sign-in screen: send a real code that
+        # starts a WhatsApp sign-up (many people tap "Sign in with WhatsApp"
+        # instead of "Create an account"). The response is the same either way,
+        # so the screen still does not reveal which numbers have accounts.
+        purpose = "signup"
+    eligible = (purpose in ("register", "signup") and user is None) or (
         purpose == "login" and user is not None and user.is_active
     )
     await session.execute(
@@ -174,3 +180,26 @@ async def consume_code(
     row.consumed = True
     await session.flush()
     return row
+
+
+SIGNUP_PASS_MINUTES = 15
+
+
+async def issue_signup_pass(session: AsyncSession, phone: str) -> tuple[uuid.UUID, str]:
+    """After a sign-up code is verified: a single-use pass to finish the sign-up form.
+
+    Stored like a code (hashed, attempt-limited, expiring) so the number stays
+    proven while the person fills in their name and email.
+    """
+    token = secrets.token_urlsafe(32)
+    pass_id = uuid.uuid4()
+    session.add(PhoneOtpChallenge(
+        id=pass_id,
+        phone=phone,
+        purpose="signup_pass",
+        code_hash=_hash(pass_id, token),
+        expires_at=datetime.now(UTC) + timedelta(minutes=SIGNUP_PASS_MINUTES),
+        consumed=False,
+    ))
+    await session.flush()
+    return pass_id, token

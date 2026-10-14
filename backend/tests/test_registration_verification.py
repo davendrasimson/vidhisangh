@@ -255,18 +255,67 @@ async def test_phone_code_binding_resend_and_expiry(
     assert (await client.post(f"{API}/register", json=data)).status_code == 401
 
 
-async def test_unknown_mobile_login_does_not_send_or_issue_tokens(client, whatsapp):
-    response = await client.post(
-        f"{API}/whatsapp/request", json={"phone": "+919876543210", "purpose": "login"}
-    )
-    assert response.status_code == 200
-    assert whatsapp == []
-    assert (
-        await client.post(
-            f"{API}/whatsapp/login",
-            json={"challenge_id": response.json()["challenge_id"], "code": "123456"},
-        )
-    ).status_code == 401
+async def test_unknown_mobile_on_sign_in_gets_a_code_that_starts_signup(client, whatsapp):
+    """Many new users tap "Sign in with WhatsApp"; they get a real code and a sign-up form."""
+    known_shape = await client.post(f"{API}/whatsapp/request", json={"phone": "+919876543210", "purpose": "login"})
+    assert known_shape.status_code == 200
+    assert len(whatsapp) == 1 and whatsapp[0][0] == "+919876543210"
+    challenge = known_shape.json()["challenge_id"]
+    wrong = await client.post(f"{API}/whatsapp/login", json={"challenge_id": challenge, "code": "000000" if whatsapp[0][1] != "000000" else "111111"})
+    assert wrong.status_code == 401
+    verified = await client.post(f"{API}/whatsapp/login", json={"challenge_id": challenge, "code": whatsapp[0][1]})
+    assert verified.status_code == 200, verified.text
+    body = verified.json()
+    assert body["signup_required"] is True and body["signup_id"] and len(body["signup_token"]) >= 20
+    assert "access_token" not in body and "set-cookie" not in verified.headers
+
+
+def signup_form(signup, **extra):
+    return {"signup_id": signup["signup_id"], "signup_token": signup["signup_token"],
+            "full_name": "  Meera   Nair ", "email": "meera@example.com", "accept_terms": True,
+            "professional_role": "law_student", "role_visibility": "connections", **extra}
+
+
+async def start_signup(client, whatsapp, phone="+919812345678"):
+    challenge, code = await code_for(client, whatsapp, phone=phone, purpose="login")
+    response = await client.post(f"{API}/whatsapp/login", json={"challenge_id": challenge, "code": code})
+    assert response.json().get("signup_required") is True, response.text
+    return response.json()
+
+
+async def test_whatsapp_signup_creates_an_individual_account_and_signs_in(client, whatsapp, session_factory):
+    from app.modules.profile.models import ProfessionalProfile
+    from app.modules.tenancy.models import Tenant
+
+    signup = await start_signup(client, whatsapp)
+    for bad in ({"accept_terms": False}, {"professional_role": "astronaut"}, {"role_visibility": "friends"}, {"email": "not-an-email"}):
+        assert (await client.post(f"{API}/whatsapp/signup", json=signup_form(signup, **bad))).status_code == 422, bad
+    created = await client.post(f"{API}/whatsapp/signup", json=signup_form(signup))
+    assert created.status_code == 201, created.text
+    headers = {"Authorization": f"Bearer {created.json()['access_token']}"}
+    me = (await client.get(f"{API}/me", headers=headers)).json()
+    assert me["full_name"] == "Meera Nair" and me["email"] == "meera@example.com"
+    async with session_factory() as session:
+        user = await session.scalar(select(User).where(User.email == "meera@example.com"))
+        assert user.phone == "+919812345678" and user.is_phone_verified and user.terms_accepted_at
+        tenant = await session.get(Tenant, user.tenant_id)
+        assert tenant.type == "individual" and tenant.name == "Meera Nair"
+        profile = await session.scalar(select(ProfessionalProfile).where(ProfessionalProfile.user_id == user.id))
+        assert profile.professional_role == "law_student" and profile.visibility_settings == {"professional": "connections"}
+    # The pass is single-use, and the number now signs in normally.
+    assert (await client.post(f"{API}/whatsapp/signup", json=signup_form(signup, email="other@example.com"))).status_code == 401
+    challenge, code = await code_for(client, whatsapp, phone="+919812345678", purpose="login")
+    login = await client.post(f"{API}/whatsapp/login", json={"challenge_id": challenge, "code": code})
+    assert login.status_code == 200 and "access_token" in login.json()
+
+
+async def test_whatsapp_signup_with_a_taken_email_can_be_corrected(client, whatsapp, strong_password, email_provider):
+    await client.post(f"{API}/register", json=registration(strong_password, email="taken@example.com"))
+    signup = await start_signup(client, whatsapp, phone="+919811112222")
+    taken = await client.post(f"{API}/whatsapp/signup", json=signup_form(signup, email="taken@example.com"))
+    assert taken.status_code == 409
+    fixed = await client.post(f"{API}/whatsapp/signup", json=signup_form(signup, email="fresh@example.com"))
+    assert fixed.status_code == 201, fixed.text
 
 
 async def test_whatsapp_outage_creates_no_challenge(client, session_factory, monkeypatch):

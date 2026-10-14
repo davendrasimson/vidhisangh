@@ -26,3 +26,13 @@ test('sign-up sends the kept code and the app captures it on every page', () => 
   assert.match(auth, /referral_code: pendingReferral\(\)/);
   assert.match(readFileSync(new URL('../src/app/app.ts', import.meta.url), 'utf8'), /captureReferral\(window\.location\.search\)/);
 });
+
+test('WhatsApp sign-in with a new number continues to a sign-up form', () => {
+  const login = readFileSync(new URL('../src/app/features/auth/whatsapp-login.component.ts', import.meta.url), 'utf8');
+  assert.match(login, /'signup_required' in result\) \{ this\.signup\.set\(result\)/);
+  for (const field of ['name="full_name"', 'name="email"', 'name="role"', 'name="visibility"', 'name="terms"']) assert.ok(login.includes(field), field);
+  for (const role of ['advocate', 'law_student', 'judicial_officer', 'in_house_counsel']) assert.ok(login.includes(`value: '${role}'`), role);
+  const auth = readFileSync(new URL('../src/app/core/auth/auth.service.ts', import.meta.url), 'utf8');
+  assert.match(auth, /auth\/whatsapp\/signup/);
+  assert.match(auth, /if \('access_token' in result\) this\.tokens\.setSession\(result\)/);
+});

@@ -5,17 +5,7 @@ import { Observable, firstValueFrom } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { environment } from '@env/environment';
 import { clearReferral, pendingReferral } from '@core/services/referral-capture';
-import {
-  AuthSession,
-  LoginRequest,
-  OAuthAuthorize,
-  RegisterRequest,
-  RegistrationPending,
-  PhoneOtpResponse,
-  SsoProvider,
-  TokenPair,
-  User,
-} from '@core/models/auth.models';
+import { AuthSession, LoginRequest, OAuthAuthorize, RegisterRequest, RegistrationPending, PhoneOtpResponse, SsoProvider, TokenPair, User, WhatsAppSignupRequest, WhatsAppSignupRequired } from '@core/models/auth.models';
 import { TokenService } from './token.service';
 
 type AuthStatus = 'idle' | 'authenticating' | 'authenticated' | 'anonymous';
@@ -93,10 +83,18 @@ export class AuthService {
     return this.http.post<PhoneOtpResponse>(`${this.api}/auth/whatsapp/request`, { phone, purpose });
   }
 
-  whatsappLogin(challenge_id: string, code: string, mfa_code?: string): Observable<TokenPair> {
-    return this.http.post<TokenPair>(`${this.api}/auth/whatsapp/login`, {
+  /** Signs in, or, for a number with no account yet, returns a pass for `whatsappSignup`. */
+  whatsappLogin(challenge_id: string, code: string, mfa_code?: string): Observable<TokenPair | WhatsAppSignupRequired> {
+    return this.http.post<TokenPair | WhatsAppSignupRequired>(`${this.api}/auth/whatsapp/login`, {
       challenge_id, code, mfa_code: mfa_code || null, device_id: this.tokens.deviceId,
-    }, { withCredentials: true }).pipe(tap(pair => this.tokens.setSession(pair)));
+    }, { withCredentials: true }).pipe(tap(result => { if ('access_token' in result) this.tokens.setSession(result); }));
+  }
+
+  /** Finish a WhatsApp sign-up: creates an individual account and signs in. */
+  whatsappSignup(payload: WhatsAppSignupRequest): Observable<TokenPair> {
+    return this.http.post<TokenPair>(`${this.api}/auth/whatsapp/signup`, {
+      ...payload, device_id: this.tokens.deviceId, referral_code: pendingReferral(),
+    }, { withCredentials: true }).pipe(tap(pair => { clearReferral(); this.tokens.setSession(pair); }));
   }
 
   resendPublicVerification(email: string): Observable<{ detail: string }> {
