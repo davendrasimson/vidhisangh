@@ -190,6 +190,13 @@
     }
 
     <main class="vs-main">
+      @if (auth.offline()) {
+        <div role="status" class="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-content">
+          <mat-icon class="material-icons-outlined text-warning">cloud_off</mat-icon>
+          <span class="flex-1 min-w-[12rem]">Can't reach VidhiSangh right now. You're still signed in; we'll reconnect automatically.</span>
+          <button mat-button type="button" (click)="auth.reconnect()">Retry now</button>
+        </div>
+      }
       <router-outlet />
     </main>
   </mat-sidenav-content>

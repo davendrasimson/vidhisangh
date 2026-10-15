@@ -39,6 +39,9 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         request_id = request.headers.get("x-request-id") or uuid4().hex
         request.state.request_id = request_id
+        from app.core.client import APP_CLIENT_HEADER, set_app_client
+
+        set_app_client(request.headers.get(APP_CLIENT_HEADER, "").strip().lower() == "app")
 
         structlog.contextvars.clear_contextvars()
         structlog.contextvars.bind_contextvars(

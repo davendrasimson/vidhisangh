@@ -24,6 +24,7 @@ import structlog
 
 from app.core import security
 from app.core.channels import ChannelMessage, get_channels
+from app.core.client import refresh_reuse_grace_seconds, refresh_token_days
 from app.core.config import settings
 from app.core.exceptions import (
     AppError,
@@ -449,7 +450,7 @@ class AuthService:
             user_id=user.id,
             token_hash=security.hash_refresh_token(raw_refresh),
             expires_at=datetime.now(UTC)
-            + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+            + timedelta(days=refresh_token_days()),
             device_label=label,
             device_id=device_id,
             ip_address=ip,
@@ -506,7 +507,7 @@ class AuthService:
         if stored.replaced_by_id is not None:
             elapsed = (now - _as_utc(stored.revoked_at)).total_seconds() if stored.revoked_at else 1e9
             same_agent = ((user_agent or "")[:400] or None) == stored.user_agent
-            if elapsed > settings.REFRESH_REUSE_GRACE_SECONDS or not same_agent:
+            if elapsed > refresh_reuse_grace_seconds() or not same_agent:
                 await self.tokens.revoke_all_for_user(stored.user_id)
                 victim = await self.users.get_by_id_global(stored.user_id)
                 if victim is not None:

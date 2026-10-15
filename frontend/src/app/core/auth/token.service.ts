@@ -16,6 +16,8 @@ interface AccessClaims {
 
 /** Non-secret marker: "this browser has a session cookie worth trying". */
 const SESSION_KEY = 'vs.session';
+/** Last known profile + permissions, so the app opens signed in while offline. */
+const PROFILE_KEY = 'vs.profile-cache';
 /** Stable, non-secret ID used only to replace stale sessions from this browser. */
 const DEVICE_KEY = 'vs.device-id';
 
@@ -89,6 +91,20 @@ export class TokenService {
       doomed.forEach((k) => localStorage.removeItem(k));
     } catch {
       /* storage unavailable */
+    }
+  }
+
+  /** Remember who is signed in (no credentials): used only while the server cannot be reached. */
+  cacheProfile(user: unknown, scopes: string[]): void {
+    try { localStorage.setItem(PROFILE_KEY, JSON.stringify({ user, scopes })); } catch { /* storage unavailable */ }
+  }
+
+  cachedProfile<T>(): { user: T; scopes: string[] } | null {
+    try {
+      const raw = localStorage.getItem(PROFILE_KEY);
+      return raw ? JSON.parse(raw) as { user: T; scopes: string[] } : null;
+    } catch {
+      return null;
     }
   }
 

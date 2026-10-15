@@ -3,6 +3,8 @@ import { inject } from '@angular/core';
 import { Observable, catchError, from, switchMap, throwError } from 'rxjs';
 import { TokenService } from '@core/auth/token.service';
 import { AuthService } from '@core/auth/auth.service';
+import { isNativeApp } from '@core/platform/platform';
+import { environment } from '@env/environment';
 
 /** Requests to these paths must not carry a bearer token / trigger refresh. */
 const AUTH_FREE = [
@@ -30,6 +32,11 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const tokens = inject(TokenService);
   const auth = inject(AuthService);
 
+  // The phone app says so: its sessions last until the person signs out
+  // (backend app/core/client.py). Only on calls to our own API.
+  if (isNativeApp() && req.url.startsWith(environment.apiBaseUrl)) {
+    req = req.clone({ setHeaders: { 'X-VidhiSangh-Client': 'app' } });
+  }
   const isAuthFree = AUTH_FREE.some((p) => req.url.includes(p));
   const withAuth = (token: string | null) =>
     token ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : req;

@@ -108,3 +108,14 @@ test('the app bundle leaves out the public bare-act web pages', () => {
   const mobile = Object.values(angular.projects)[0].architect.build.configurations.mobile;
   assert.ok(mobile.assets?.some((a) => a.input === 'public' && a.ignore?.includes('acts/**')));
 });
+
+test('the app stays signed in when the server cannot be reached', () => {
+  const read = (f) => readFileSync(new URL(`../src/app/${f}`, import.meta.url), 'utf8');
+  const interceptor = read('core/interceptors/auth.interceptor.ts');
+  assert.match(interceptor, /isNativeApp\(\) && req\.url\.startsWith\(environment\.apiBaseUrl\)/);
+  assert.match(interceptor, /'X-VidhiSangh-Client': 'app'/);
+  const auth = read('core/auth/auth.service.ts');
+  // Only 401/403 ends a session; anything else (offline, 502) keeps the person signed in.
+  assert.match(auth, /if \(status === 401 \|\| status === 403\) \{\s*this\.tokens\.dropAccessToken\(\);[\s\S]*?return false;\s*\}\s*\/\/[^\n]*\n[^\n]*\n\s*return this\.enterOffline\(\);/);
+  assert.match(read('layout/shell/shell.component.html'), /auth\.offline\(\)/);
+});

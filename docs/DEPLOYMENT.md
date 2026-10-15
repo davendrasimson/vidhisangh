@@ -204,7 +204,8 @@ the whole `.env.admin`; only `VS_POSTGRES_*`/`VS_DATABASE_URL` reach the loaders
 
 ```bash
 sudo systemctl status  vidhisangh-api          # API (gunicorn/uvicorn, 127.0.0.1:8000)
-sudo systemctl restart vidhisangh-api          # after a backend deploy
+sudo systemctl reload vidhisangh-api           # after a backend deploy: graceful, no 502 window
+sudo systemctl restart vidhisangh-api          # only after .env / credential changes (reload keeps the old environment)
 sudo systemctl stop    vidhisangh-api          # stop for this boot only
 sudo systemctl disable vidhisangh-api          # stop auto-starting on boot
 sudo journalctl -u vidhisangh-api -f           # live logs
@@ -313,7 +314,10 @@ rsync -az --delete \
   backend/ vidhisangh:/opt/vidhisangh/backend/   # add -n first to preview
 ssh vidhisangh 'cd /opt/vidhisangh/backend && set -a && . ./.env.admin && set +a && \
     PYTHONPATH=$PWD .venv/bin/python -m alembic upgrade head && \
-    sudo systemctl restart vidhisangh-api'
+    sudo systemctl reload vidhisangh-api'
+# reload = gunicorn HUP (drop-in graceful-reload.conf, 15 Oct 2026): new workers
+# start on the new code while the old ones finish, so phones never see a 502
+# mid-deploy. Use restart only when .env or a systemd credential changed.
 
 # frontend (built locally; the server has no node toolchain yet)
 # ORDER MATTERS: ship the dist only AFTER the API above has restarted on the new

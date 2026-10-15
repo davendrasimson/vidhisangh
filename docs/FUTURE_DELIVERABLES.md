@@ -101,7 +101,10 @@ Shipped: validation errors no longer echo input; client identity data encrypted 
 - **Real WebAuthn verification** — install `webauthn` (+ optionally `soft-webauthn` for tests) to cover the actual attestation/assertion crypto that the mock verifier currently stands in for.
 
 ## 📱 Mobile
-Android and iOS apps exist since 4 October 2026 (Capacitor, see [MOBILE.md](MOBILE.md)). Android is built, signed and verified on an emulator against production. Still open:
+Android and iOS apps exist since 4 October 2026 (Capacitor, see [MOBILE.md](MOBILE.md)). Android is built, signed and verified on an emulator against production.
+- ✅ **Sudden sign-outs on phones — fixed 15 Oct 2026.** Cause: when the app opened or woke with an expired 15-minute access token and could not reach the server (weak signal, offline, or the API restarting during a deploy → 502), the sign-in guard treated the failed refresh as "signed out". Now only a 401/403 from `/auth/refresh` ends a session; otherwise the app opens with the cached profile, shows "Can't reach VidhiSangh… still signed in" and reconnects on its own. App requests carry `X-VidhiSangh-Client: app`: app sessions slide for 365 days (`REFRESH_TOKEN_EXPIRE_DAYS_APP`) and a rotated token re-sent by the same app within 7 days (`REFRESH_REUSE_GRACE_SECONDS_APP`, a lost reply) is a retry, not theft. Deploys now use `systemctl reload` (graceful; verified 60/60 requests OK during a reload).
+
+Still open:
 - **iOS build and signing** — needs a Mac with Xcode and the Apple Developer account (USD 99/year). The Xcode project is ready; nothing has been compiled yet.
 - **Store publishing** — listing text (network-first, "VidhiSangh: Legal Network"), 18 screenshots and the step-by-step guide are ready in [store/google-play/](store/google-play/PUBLISHING.md) (11 Oct 2026). Still open: the Google Play developer account (USD 25, owner's identity), the data-safety form, and the Play reviewer demo account.
 - **Timesheets table on phones** — the Billing → Timesheets table is too cramped at phone width (columns wrap one word per line). Needs a card layout under `md`, like the invoice list. Not in the store screenshots until then.

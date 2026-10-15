@@ -127,6 +127,48 @@ async def test_refresh_reuse_after_grace_revokes_every_session(
     assert successor.status_code == 401
 
 
+async def test_app_sessions_last_until_sign_out_and_survive_a_lost_reply(
+    client: AsyncClient, strong_password: str, monkeypatch, session_factory
+) -> None:
+    """The phone app (X-VidhiSangh-Client: app): a year-long sliding session, and
+    a rotated token presented again later (its reply was lost) is a retry, not
+    theft. The website keeps 14 days and the 60-second grace."""
+    import asyncio
+    from datetime import UTC, datetime, timedelta
+
+    from sqlalchemy import select
+
+    from app.core.config import settings
+    from app.modules.identity.models import RefreshToken
+
+    app = {"X-VidhiSangh-Client": "app", "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 16)"}
+    client.headers.update(app)  # signed up in the app, as on a real phone
+    tokens = await _register(client, "phone@acme.co", strong_password)
+    r1 = await client.post("/api/v1/auth/refresh", json={"refresh_token": tokens["refresh_token"]}, headers=app)
+    assert r1.status_code == 200
+    assert "max-age=31536000" in r1.headers["set-cookie"].lower()
+    async with session_factory() as session:
+        latest = max(r.expires_at for r in (await session.scalars(select(RefreshToken))).all())
+        expires = latest if latest.tzinfo else latest.replace(tzinfo=UTC)
+        assert expires - datetime.now(UTC) > timedelta(days=360)
+
+    # The reply to r1 never arrived: much later the app presents the old token again.
+    monkeypatch.setattr(settings, "REFRESH_REUSE_GRACE_SECONDS", 0)
+    await asyncio.sleep(0.05)
+    retry = await client.post("/api/v1/auth/refresh", json={"refresh_token": tokens["refresh_token"]}, headers=app)
+    assert retry.status_code == 200, retry.text
+
+    # The website: same situation is still treated as theft.
+    for name in app:
+        client.headers.pop(name, None)
+    web = await _register(client, "browser@acme.co", strong_password)
+    w1 = await client.post("/api/v1/auth/refresh", json={"refresh_token": web["refresh_token"]})
+    assert w1.status_code == 200 and "max-age=1209600" in w1.headers["set-cookie"].lower()
+    await asyncio.sleep(0.05)
+    w2 = await client.post("/api/v1/auth/refresh", json={"refresh_token": web["refresh_token"]})
+    assert w2.status_code == 401 and w2.json()["title"] == "refresh_reuse_detected"
+
+
 async def test_change_password_revokes_sessions(client: AsyncClient, strong_password: str) -> None:
     tokens = await _register(client, "chg@acme.co", strong_password)
     access, refresh = tokens["access_token"], tokens["refresh_token"]

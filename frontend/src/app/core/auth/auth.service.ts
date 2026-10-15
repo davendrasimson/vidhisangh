@@ -43,7 +43,17 @@ export class AuthService {
   readonly user = this._user.asReadonly();
   readonly status = this._status.asReadonly();
   readonly isAuthenticated = computed(() => this._status() === 'authenticated');
-  readonly permissions = computed(() => this.tokens.claims()?.scopes ?? []);
+  /**
+   * Signed in, but the server cannot be reached (no network, weak signal, a
+   * deploy restarting the API). The person stays signed in with their last
+   * known profile; only a rejected refresh token (401/403) or "Sign out" ends
+   * the session.
+   */
+  readonly offline = signal(false);
+  private readonly cachedScopes = signal<string[]>([]);
+  readonly permissions = computed(() => this.tokens.claims()?.scopes ?? (this.offline() ? this.cachedScopes() : []));
+  private reconnectTimer: ReturnType<typeof setInterval> | null = null;
+  private bootedOffline = false;
 
   constructor() {
     if (this.channel) {
@@ -203,6 +213,7 @@ export class AuthService {
       .pipe(tap((user) => {
         this._user.set(user);
         this._status.set('authenticated');
+        this.tokens.cacheProfile(user, this.tokens.claims()?.scopes ?? []);
       }));
   }
 
@@ -230,6 +241,8 @@ export class AuthService {
 
   /** Forget everything this browser holds for the session (audit A-11 / P-9). */
   private async clearLocalState(): Promise<void> {
+    this.offline.set(false);
+    this.stopReconnecting();
     this.tokens.clear();
     this._user.set(null);
     this._status.set('anonymous');
@@ -302,9 +315,66 @@ export class AuthService {
           this.tokens.dropAccessToken();
           this._user.set(null);
           this._status.set('anonymous');
+          return false;
         }
-        return false;
+        // Cannot reach the server: stay signed in with the last known profile
+        // and keep trying, rather than showing the sign-in screen.
+        return this.enterOffline();
       }
+    }
+  }
+
+  private enterOffline(): boolean {
+    if (!this.tokens.hasSession) return false;
+    const cached = this.tokens.cachedProfile<User>();
+    if (!cached?.user) return false;
+    if (!this._user()) this.bootedOffline = true;
+    this._user.set(cached.user);
+    this.cachedScopes.set(cached.scopes ?? []);
+    this._status.set('authenticated');
+    this.offline.set(true);
+    this.startReconnecting();
+    return true;
+  }
+
+  private startReconnecting(): void {
+    if (this.reconnectTimer || typeof window === 'undefined') return;
+    const retry = () => void this.reconnect();
+    window.addEventListener('online', retry);
+    document.addEventListener('visibilitychange', retry);
+    this.reconnectTimer = setInterval(retry, 15_000);
+    this.stopReconnecting = () => {
+      window.removeEventListener('online', retry);
+      document.removeEventListener('visibilitychange', retry);
+      if (this.reconnectTimer) clearInterval(this.reconnectTimer);
+      this.reconnectTimer = null;
+    };
+  }
+
+  private stopReconnecting: () => void = () => undefined;
+  private reconnecting = false;
+
+  /** Try the server again (also the banner's "Retry"). */
+  async reconnect(): Promise<void> {
+    if (!this.offline() || this.reconnecting) return;
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    this.reconnecting = true;
+    try {
+      await firstValueFrom(this.refresh());
+      await firstValueFrom(this.loadCurrentUser());
+      this.offline.set(false);
+      this.stopReconnecting();
+      // Opened while offline: nothing on screen was loaded, so start fresh.
+      if (this.bootedOffline && typeof window !== 'undefined') window.location.reload();
+    } catch (err) {
+      const status = err instanceof HttpErrorResponse ? err.status : 0;
+      if (status === 401 || status === 403) {
+        this.offline.set(false);
+        this.stopReconnecting();
+        await this.redirectToLoginAfterExpiry();
+      }
+    } finally {
+      this.reconnecting = false;
     }
   }
 

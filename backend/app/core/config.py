@@ -112,6 +112,12 @@ class Settings(BaseSettings):
     # rotated is a client race (two tabs booting, a reload mid-rotation), not
     # theft: it gets a fresh pair. Beyond it, reuse revokes every session.
     REFRESH_REUSE_GRACE_SECONDS: int = 60
+    # The phone app (X-VidhiSangh-Client: app): stay signed in until sign-out.
+    # Sliding: every refresh starts a new period. A rotated token presented
+    # again from the same app (its reply was lost on a weak network) is a
+    # retry, not theft, for this long.
+    REFRESH_TOKEN_EXPIRE_DAYS_APP: int = 365
+    REFRESH_REUSE_GRACE_SECONDS_APP: int = 7 * 86400
     # The HttpOnly cookie is always set. Browser sessions keep refresh tokens
     # exclusively there; body delivery may be enabled only for a separately
     # reviewed non-browser client.

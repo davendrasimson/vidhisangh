@@ -17,6 +17,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request, Response, status
 
+from app.core.client import refresh_token_days
 from app.core.config import settings
 from app.core.deps import (
     AuthSessionDep,
@@ -97,7 +98,7 @@ def set_refresh_cookie(response: Response, raw_refresh: str) -> None:
     response.set_cookie(
         key=settings.REFRESH_COOKIE_NAME,
         value=raw_refresh,
-        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400,
+        max_age=refresh_token_days() * 86400,
         path=_cookie_path(),
         httponly=True,
         secure=settings.cookie_secure,
