@@ -176,3 +176,16 @@ test('a new Google account lands on the profile to add a role', async ({ page })
   // /app/profile as the return address; either way the new account was sent to the profile.
   await expect(page).toHaveURL(/\/app\/profile$|returnUrl=%2Fapp%2Fprofile/);
 });
+
+test('sign-in always offers WhatsApp, even when the options check is refused', async ({ page }) => {
+  await page.route('**/api/v1/auth/options', route => route.fulfill({ status: 429, json: { detail: 'Too many requests.' } }));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/auth/login');
+  const whatsapp = page.getByRole('button', { name: /Sign in with WhatsApp code/ });
+  await expect(whatsapp).toBeEnabled();
+  await expect(page.getByText(/Privileged and confidential/)).toHaveCount(0);
+  await expect(page.getByLabel('Tip of the day')).toBeVisible();
+  await page.screenshot({ path: 'test-results/login-mobile.png', fullPage: true });
+  await whatsapp.click();
+  await expect(page.getByLabel('Mobile number', { exact: true })).toBeVisible();
+});

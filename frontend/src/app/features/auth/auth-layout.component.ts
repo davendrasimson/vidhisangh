@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
+import { DailyTipComponent } from './daily-tip.component';
 
 /**
  * Split-screen marketing / form layout for unauthenticated pages.
@@ -15,7 +16,7 @@ import { RouterLink, RouterOutlet } from '@angular/router';
   selector: 'app-auth-layout',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink],
+  imports: [RouterOutlet, RouterLink, DailyTipComponent],
   template: `
     <div class="auth">
       <aside class="auth__brand">
@@ -78,6 +79,7 @@ import { RouterLink, RouterOutlet } from '@angular/router';
             <span class="auth__wordmark">VidhiSangh</span>
           </div>
           <router-outlet />
+          <app-daily-tip />
         </div>
       </section>
     </div>
@@ -269,8 +271,8 @@ import { RouterLink, RouterOutlet } from '@angular/router';
       .auth__mobile-brand {
         display: none;
         align-items: center;
-        gap: 0.6rem;
-        margin-bottom: 2rem;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
         color: rgb(var(--vs-brand));
       }
 
@@ -280,7 +282,7 @@ import { RouterLink, RouterOutlet } from '@angular/router';
       }
 
       .auth__mobile-brand .auth__wordmark {
-        font-size: 1.3rem;
+        font-size: 1.1rem;
         color: rgb(var(--vs-text));
       }
 
@@ -293,6 +295,11 @@ import { RouterLink, RouterOutlet } from '@angular/router';
         }
         .auth__mobile-brand {
           display: flex;
+        }
+        /* Phones: start at the top instead of centring under empty space. */
+        .auth__panel {
+          align-content: start;
+          padding: 1rem 1rem 1.5rem;
         }
       }
 

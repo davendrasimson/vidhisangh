@@ -1,6 +1,6 @@
 <div class="w-full">
-  <h2 class="vs-display text-3xl font-semibold text-content">Welcome back</h2>
-  <p class="text-sm text-content-muted mt-1.5 mb-6">Sign in to your VidhiSangh account.</p>
+  <h2 class="vs-display text-2xl md:text-3xl font-semibold text-content">Welcome back</h2>
+  <p class="text-sm text-content-muted mt-1 mb-4 md:mb-6">Sign in to your VidhiSangh account.</p>
 
   @if (submitting()) {
     <mat-progress-bar mode="indeterminate" class="mb-4"></mat-progress-bar>
@@ -17,7 +17,10 @@
     </div>
   }
 
-  <button mat-stroked-button type="button" class="w-full mb-4" [disabled]="!whatsappAvailable()" (click)="whatsappMode.set(!whatsappMode())">
+  <!-- Always offered: a wrong password, a slow network or a rate-limited
+       options check must never take the WhatsApp route away. -->
+  <button mat-stroked-button type="button" class="w-full h-11 mb-4" (click)="whatsappMode.set(!whatsappMode())">
+    <mat-icon class="material-icons-outlined">{{ whatsappMode() ? 'mail' : 'chat' }}</mat-icon>
     {{ whatsappMode() ? 'Use email and password' : 'Sign in with WhatsApp code' }}
   </button>
   @if (whatsappMode()) {
@@ -99,8 +102,4 @@
     <a routerLink="/auth/register" class="text-brand font-medium">Create an account</a>
   </p>
 
-  <p class="mt-6 border-t border-line pt-4 text-center text-xs leading-relaxed text-content-muted">
-    Privileged and confidential. Access is logged and audited in keeping with
-    your obligations under the Advocates Act and the Bar Council of India Rules.
-  </p>
 </div>

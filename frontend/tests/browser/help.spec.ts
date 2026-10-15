@@ -28,7 +28,7 @@ test('public help home covers prominent features, searches and opens a deep-link
   await page.screenshot({ path: 'test-results/help-home-desktop.png', fullPage: true });
   await page.getByLabel('Search help', { exact: true }).fill('Prepare for e-signature');
   await expect(page.getByText('1 topic', { exact: true })).toBeVisible();
-  await page.locator('section').last().getByRole('link', { name: /Documents and e-signatures/ }).click();
+  await page.locator('section[aria-labelledby="topics-title"]').getByRole('link', { name: /Documents and e-signatures/ }).click();
   await expect(page.locator('#guide-title')).toHaveText('Documents and e-signatures');
   await expect(page.locator('article')).toBeFocused();
   await page.reload();
