@@ -6,6 +6,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { HELP_TOPICS } from './help-content';
 import { HelpService } from './help.service';
 
+import { CONTACT_EMAIL, WHATSAPP_LINK, WHATSAPP_NUMBER } from '@core/contact';
+
 @Component({
   selector: 'app-help-center',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -44,6 +46,12 @@ import { HelpService } from './help.service';
           } @empty { <p>No help topics match. Try a feature name or clear your search.</p> }
         </div>
       </section>
+      <section aria-labelledby="contact-title" class="contact">
+        <h2 id="contact-title">Contact us</h2>
+        <p>VidhiSangh is developed and managed by <a routerLink="/about">Simson Softwares Private Limited</a>.</p>
+        <p>WhatsApp: <a [href]="whatsappLink" target="_blank" rel="noopener">{{ whatsappNumber }}</a> ·
+          Email: <a [href]="'mailto:' + contactEmail">{{ contactEmail }}</a></p>
+      </section>
     </div>
   `,
   styles: [`
@@ -63,6 +71,9 @@ import { HelpService } from './help.service';
   `],
 })
 export class HelpCenterComponent {
+  protected readonly whatsappNumber = WHATSAPP_NUMBER;
+  protected readonly whatsappLink = WHATSAPP_LINK;
+  protected readonly contactEmail = CONTACT_EMAIL;
   readonly help = inject(HelpService);
   private readonly params = toSignal(inject(ActivatedRoute).queryParamMap);
   readonly selected = computed(() => HELP_TOPICS.find(topic => topic.id === this.params()?.get('topic')));

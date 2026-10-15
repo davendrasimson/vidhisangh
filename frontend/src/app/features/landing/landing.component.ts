@@ -20,6 +20,8 @@ const PLAY_URL = 'https://play.google.com/store/apps/details?id=com.vidhisangh.a
  * `landingGuard`). It markets VidhiSangh as a professional network and a
  * knowledge tool — never as a way for advocates to win clients (BCI Rule 36).
  */
+import { WHATSAPP_LINK, WHATSAPP_NUMBER } from '@core/contact';
+
 @Component({
   selector: 'app-landing',
   standalone: true,
@@ -125,7 +127,8 @@ const PLAY_URL = 'https://play.google.com/store/apps/details?id=com.vidhisangh.a
         <a href="mailto:grievance@vidhisangh.com">Grievance officer</a>
       </nav>
       <p>© 2026 VidhiSangh. A professional network and knowledge platform; it does not advertise or solicit work for advocates.</p>
-      <p>VidhiSangh is developed and managed by <a routerLink="/about">Simson Softwares Private Limited</a>.</p>
+      <p>VidhiSangh is developed and managed by <a routerLink="/about">Simson Softwares Private Limited</a>.
+        WhatsApp: <a [href]="whatsappLink" target="_blank" rel="noopener">{{ whatsappNumber }}</a></p>
     </footer>
   `,
   styles: [`
@@ -192,6 +195,8 @@ const PLAY_URL = 'https://play.google.com/store/apps/details?id=com.vidhisangh.a
   `],
 })
 export class LandingComponent {
+  protected readonly whatsappNumber = WHATSAPP_NUMBER;
+  protected readonly whatsappLink = WHATSAPP_LINK;
   protected readonly playUrl = PLAY_URL;
 
   protected readonly roles = [

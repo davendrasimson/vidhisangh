@@ -71,6 +71,7 @@ function page({ title, description, canonical, body, jsonLd }) {
 ${body}
 <footer>
   <p><a href="/acts/">Bare Acts</a> · <a href="/">VidhiSangh</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></p>
+  <p>VidhiSangh is developed and managed by <a href="/about">Simson Softwares Private Limited</a>. WhatsApp: <a href="https://wa.me/917341100692" rel="noopener">+91 73411 00692</a></p>
   <p>Text reproduced from the official publication for reference. Check the official source and later amendments before relying on it.</p>
 </footer>
 </body>

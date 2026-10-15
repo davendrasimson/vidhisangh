@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
+import { WHATSAPP_LINK, WHATSAPP_NUMBER } from '@core/contact';
+
 @Component({
   selector: 'app-about',
   standalone: true,
@@ -44,6 +46,7 @@ import { RouterLink } from '@angular/router';
 
         <section>
           <h2>Contact</h2>
+          <p>WhatsApp: <a [href]="whatsappLink" target="_blank" rel="noopener">{{ whatsappNumber }}</a></p>
           <p>Questions, complaints and data requests: <a href="mailto:grievance@vidhisangh.com">grievance@vidhisangh.com</a>.
             For help using the product, see the <a routerLink="/help">help centre</a>. Our security and privacy
             controls are summarised on the <a routerLink="/trust">trust page</a>.</p>
@@ -72,4 +75,7 @@ import { RouterLink } from '@angular/router';
     @media (max-width: 600px) { nav a:not(:last-child) { display: none; } }
   `],
 })
-export class AboutComponent {}
+export class AboutComponent {
+  protected readonly whatsappNumber = WHATSAPP_NUMBER;
+  protected readonly whatsappLink = WHATSAPP_LINK;
+}

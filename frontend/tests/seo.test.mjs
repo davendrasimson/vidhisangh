@@ -74,3 +74,12 @@ test('the service worker leaves the static bare-act pages to the network', () =>
   const ngsw = JSON.parse(read('ngsw-config.json'));
   assert.ok(ngsw.navigationUrls.includes('!/acts/**'), 'otherwise a returning visitor gets the app shell on /acts/');
 });
+
+test('the WhatsApp number is published next to the company name (Meta display-name review)', () => {
+  const read = (f) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
+  assert.match(read('src/app/core/contact.ts'), /WHATSAPP_NUMBER = '\+91 73411 00692'/);
+  for (const f of ['src/app/features/landing/landing.component.ts', 'src/app/features/legal/about.component.ts', 'src/app/features/help/help-center.component.ts']) {
+    assert.match(read(f), /WhatsApp: <a \[href\]="whatsappLink"/, f);
+  }
+  assert.match(read('scripts/build-act-pages.mjs'), /Simson Softwares Private Limited<\/a>\. WhatsApp: <a href="https:\/\/wa\.me\/917341100692"/);
+});
