@@ -729,6 +729,20 @@ export const HELP_TOPICS: HelpTopic[] = [
     "featured": false
   },
   {
+    "id": "app-platform-admin",
+    "title": "Platform admin in the app",
+    "path": "/app/platform-admin",
+    "summary": "For VidhiSangh administrators: registrations and growth, members, firms, content and grievances, inside the app.",
+    "steps": [
+      "Open Platform admin from the menu (shown only to administrators).",
+      "Start on Growth for sign-ups by day, week and month; switch sections with the tabs at the top.",
+      "Give a reason when blocking a member or removing content: every action is recorded."
+    ],
+    "tip": "The same console is also at admin.vidhisangh.com on a computer.",
+    "permission": null,
+    "featured": false
+  },
+  {
     "id": "auth-login",
     "title": "Sign in",
     "path": "/auth/login",
