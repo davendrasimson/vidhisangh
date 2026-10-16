@@ -10,17 +10,16 @@ interface FrameworkStatus {
   detail: string;
 }
 
+import { PublicFooterComponent, PublicHeaderComponent } from '@shared/public-chrome/public-chrome.component';
+
 @Component({
   selector: 'app-compliance-status',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, MatIconModule],
+  imports: [RouterLink, MatIconModule, PublicHeaderComponent, PublicFooterComponent],
   template: `
     <div class="page">
-      <header class="topbar">
-        <a routerLink="/" class="brand">VidhiSangh</a>
-        <nav><a routerLink="/privacy">Privacy</a><a routerLink="/terms">Terms</a><a routerLink="/auth/login">Sign in</a></nav>
-      </header>
+      <vs-public-header />
 
       <main>
         <section class="hero">
@@ -69,13 +68,11 @@ interface FrameworkStatus {
 
         <div class="actions"><a routerLink="/privacy">Read the Privacy Notice</a><a routerLink="/terms">Read the Terms</a><a routerLink="/auth/login" class="primary">Open VidhiSangh</a></div>
       </main>
+      <vs-public-footer />
     </div>
   `,
   styles: [`
     :host { display: block; min-height: 100vh; background: rgb(var(--vs-surface-sunken)); color: rgb(var(--vs-content)); }
-    .topbar { display: flex; align-items: center; gap: 1rem; padding: 1rem max(1.25rem, calc((100vw - 1120px)/2)); background: rgb(var(--vs-surface-raised)); border-bottom: 1px solid rgb(var(--vs-line)); }
-    .brand { color: rgb(var(--vs-content)); font-family: var(--vs-font-display); font-size: 1.25rem; font-weight: 700; text-decoration: none; }
-    nav { display: flex; gap: 1.25rem; margin-left: auto; } nav a { color: rgb(var(--vs-text-muted)); font-size: .88rem; text-decoration: none; }
     main { width: min(1120px, calc(100% - 2rem)); margin: 0 auto; padding: 3.5rem 0 4rem; }
     .hero { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2rem; padding: clamp(2rem, 5vw, 4rem); border-radius: 24px; overflow: hidden; color: #fff; background: radial-gradient(circle at 85% 15%, rgb(36 180 126 / .38), transparent 33%), linear-gradient(145deg, #111d3c, #173d67 58%, #135b55); box-shadow: 0 20px 60px rgb(16 30 65 / .2); }
     .eyebrow { margin: 0 0 .65rem; color: #80e8bf; font-size: .75rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }

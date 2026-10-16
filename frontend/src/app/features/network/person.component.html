@@ -114,7 +114,16 @@
             <span class="text-xs text-content-muted">{{ post.created_at | date: 'dd/MM/yyyy, h:mm a' }}</span>
           </div>
           @if (post.title) { <h3 class="font-semibold mt-1">{{ post.title }}</h3> }
-          <p class="mt-1 text-content whitespace-pre-line">{{ post.content }}</p>
+          @if (post.content_html) {
+            <div class="vs-post-body mt-1 text-content" [innerHTML]="post.content_html"></div>
+          } @else { <p class="mt-1 text-content whitespace-pre-line">{{ post.content }}</p> }
+          @if (post.images?.length) {
+            <div class="vs-post-images mt-2" [class.vs-post-images--single]="post.images!.length === 1">
+              @for (img of post.images; track img.id) {
+                <a [href]="imageUrl(img.id)" target="_blank" rel="noopener"><img [src]="imageUrl(img.id)" [attr.width]="img.width" [attr.height]="img.height" alt="Photo in the post" loading="lazy" /></a>
+              }
+            </div>
+          }
           <div class="flex items-center gap-2 text-xs text-content-muted mt-2">
             @if (post.like_count) { <span>{{ post.like_count }} reactions</span> }
             @if (post.comment_count) { <span>· {{ post.comment_count }} comments</span> }

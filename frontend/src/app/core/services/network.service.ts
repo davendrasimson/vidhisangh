@@ -15,6 +15,7 @@ import {
   PostReportResult,
   ReactionType,
   TrendingTag,
+  PostImage,
 } from '@core/models/network.models';
 
 @Injectable({ providedIn: 'root' })
@@ -34,6 +35,18 @@ export class NetworkService {
   /** Resolve a URL's Open Graph preview (feed 'unfurl'). 404 when none found. */
   linkPreview(url: string): Observable<LinkPreview> {
     return this.http.get<LinkPreview>(`${this.api}/link-preview`, { params: { url } });
+  }
+
+  /** Upload one photo for a post (JPEG/PNG ≤ 5 MB); attach it with `image_ids` on createPost. */
+  uploadPostImage(blob: Blob): Observable<PostImage> {
+    const form = new FormData();
+    form.append('file', blob, 'photo.jpg');
+    return this.http.post<PostImage>(`${this.api}/post-images`, form);
+  }
+
+  /** Where a post's photo is served (no sign-in needed: <img> cannot send the token). */
+  postImageUrl(id: string): string {
+    return `${this.api}/post-images/${id}`;
   }
 
   deletePost(postId: string): Observable<void> {

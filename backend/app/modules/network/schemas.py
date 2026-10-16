@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.modules.network.models import (
     ConnectionStatus,
@@ -88,7 +88,12 @@ class LinkPreviewRead(BaseModel):
 
 
 class PostCreate(BaseModel):
-    content: str = Field(min_length=1, max_length=8000)
+    # Plain text. With `content_html` the server derives it from the HTML instead.
+    content: str = Field(default="", max_length=8000)
+    # Formatted body from the rich composer; cleaned to an allow-list on the server.
+    content_html: str | None = Field(default=None, max_length=60000)
+    # Photos uploaded first via POST /network/post-images (at most 4).
+    image_ids: list[uuid.UUID] = Field(default_factory=list, max_length=4)
     title: str | None = Field(default=None, max_length=300)
     post_type: PostType = PostType.TEXT
     visibility: PostVisibility = PostVisibility.PUBLIC
@@ -101,6 +106,21 @@ class PostCreate(BaseModel):
     link_description: str | None = None
     link_image: str | None = Field(default=None, max_length=1000)
     link_site_name: str | None = Field(default=None, max_length=200)
+
+    @model_validator(mode="after")
+    def _something_to_post(self) -> PostCreate:
+        if not (self.content.strip() or (self.content_html or "").strip() or self.image_ids):
+            raise ValueError("Write something or add a photo.")
+        return self
+
+
+class PostImageRead(BaseModel):
+    """The image is served at GET /network/post-images/{id}."""
+
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    width: int
+    height: int
 
 
 class ShareCreate(BaseModel):
@@ -117,6 +137,8 @@ class PostRead(BaseModel):
     post_type: PostType
     title: str | None
     content: str
+    content_html: str | None = None
+    images: list[PostImageRead] = Field(default_factory=list)
     visibility: PostVisibility
     hashtags: list[str]
     like_count: int

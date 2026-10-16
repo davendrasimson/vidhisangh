@@ -90,6 +90,13 @@ Funnel from the nginx log for 13–14 Oct: 22 `POST /auth/register`, of which 6 
   6. **A first-party sign-up funnel count** (page → form opened → code sent → account created), stored in our own database with no third-party tracker, so each change above can be measured. ✅ Part done 14 Oct 2026: **Platform admin → Growth** (`GET /platform-admin/growth`) shows registrations by day / week / month in India time, period comparisons, running total, next milestone, sign-up method, role, invites, verified and returning share, and the latest sign-ups. Still to add: the steps before an account exists (visits, form opened, code sent).
   7. **In-app review prompt** (Play In-App Review API) after a good moment, such as a first connection accepted.
 
+## 📝 Feed posts with formatting and photos (16 Oct 2026)
+Built (migration 0066): rich composer (bold, italic, underline, heading, lists, quote, link) that grows with its content; up to 4 photos per post (JPEG/PNG ≤ 5 MB, re-drawn to ≤ 2000 px JPEG in the app, EXIF/GPS stripped on the server, virus-scanned); server-side allow-list HTML cleaning (`app/core/html_clean.py`); own posts can be deleted from the feed. Still open:
+- **Purge unused uploads**: photos uploaded but never posted (`post_images.post_id IS NULL` older than a day) and photos of deleted posts stay in storage. Add to `app/scripts/retention_purge.py` with the storage delete.
+- **Group posts** (`/app/groups/:id`) still use the plain text box; reuse `PostComposerComponent` there.
+- **Reposts** copy the text only, not the photos.
+- **Photo viewer**: photos open in a new tab; a swipeable full-screen viewer would be nicer on phones.
+
 ## 🔐 Privacy / DPDP — deferred after the 27 Sep 2026 remediation (privacy agent)
 Shipped: validation errors no longer echo input; client identity data encrypted at rest with blind-index search (0049); append-only consent ledger gating client-facing sends; minor/guardian consent; user/client/tenant export; user/client/tenant erasure with legal hold and 30-day tenant grace; rights-request register; retention purge (`app/scripts/retention_purge.py`, `infra/jobs/vidhisangh-retention.*`); public `/privacy` and `/terms`; Settings → Privacy & data; lawful basis on matter parties and leads (0051); portal rights requests; privacy settings protection; directory opt-in; and a blocking terms-version re-acceptance flow. Still to do:
 - **Notification bodies still carry client names** (P-12): purge covers it (365 d); moving to ids-only needs a template layer.

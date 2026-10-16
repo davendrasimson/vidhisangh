@@ -120,6 +120,9 @@ class Post(AuditedBase):
     )
     title: Mapped[str | None] = mapped_column(String(300), nullable=True)
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    # Formatted body (allow-listed HTML, app/core/html_clean.py). `content`
+    # always holds its plain text, for search, notifications and older apps.
+    content_html: Mapped[str | None] = mapped_column(Text, nullable=True)
     visibility: Mapped[PostVisibility] = mapped_column(
         String(20), default=PostVisibility.PUBLIC, nullable=False, index=True
     )
@@ -158,6 +161,29 @@ class Post(AuditedBase):
     comments: Mapped[list["Comment"]] = relationship(
         back_populates="post", cascade="all, delete-orphan"
     )
+    images: Mapped[list["PostImage"]] = relationship(
+        back_populates="post", lazy="selectin", order_by="PostImage.position"
+    )
+
+
+class PostImage(AuditedBase):
+    """A photo uploaded for a post (app/modules/network/media.py). Unattached
+    until the post is published; served only once attached to a live post."""
+
+    __tablename__ = "post_images"
+
+    uploader_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), index=True)
+    post_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("posts.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    storage_key: Mapped[str] = mapped_column(String(300), nullable=False)
+    content_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    width: Mapped[int] = mapped_column(Integer, nullable=False)
+    height: Mapped[int] = mapped_column(Integer, nullable=False)
+    position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    post: Mapped["Post | None"] = relationship(back_populates="images")
 
 
 class PostReaction(AuditedBase):

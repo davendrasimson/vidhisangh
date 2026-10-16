@@ -23,6 +23,7 @@ export class PersonComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly net = inject(NetworkService);
+  protected imageUrl(id: string): string { return this.net.postImageUrl(id); }
   private readonly messaging = inject(MessagingService);
   private readonly notify = inject(NotificationService);
   private readonly profiles = inject(ProfileService);

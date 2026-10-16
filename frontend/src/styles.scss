@@ -591,3 +591,27 @@ button[color='primary'].mat-mdc-unelevated-button {
 @media (prefers-reduced-motion: reduce) {
   .vs-main > *, .vs-lift, .mat-mdc-unelevated-button.mat-primary { animation: none; transition: none; }
 }
+
+/* Formatted feed posts (server-cleaned HTML) and the post composer share this typography. */
+.vs-post-body, .vs-pc__editor .ProseMirror { overflow-wrap: anywhere; }
+.vs-post-body h2, .vs-pc__editor h2 { font-size: 1.15rem; font-weight: 700; margin: .9rem 0 .35rem; }
+.vs-post-body h3, .vs-pc__editor h3 { font-size: 1.02rem; font-weight: 700; margin: .75rem 0 .3rem; }
+.vs-post-body p, .vs-pc__editor p { margin: .45rem 0; }
+.vs-post-body ul, .vs-pc__editor ul { list-style: disc; padding-left: 1.4rem; margin: .45rem 0; }
+.vs-post-body ol, .vs-pc__editor ol { list-style: decimal; padding-left: 1.4rem; margin: .45rem 0; }
+.vs-post-body li, .vs-pc__editor li { margin: .2rem 0; }
+.vs-post-body blockquote, .vs-pc__editor blockquote { margin: .6rem 0; padding-left: .8rem; border-left: 3px solid rgb(var(--vs-brand)); color: rgb(var(--vs-text-muted)); }
+.vs-post-body a, .vs-pc__editor a { color: rgb(var(--vs-brand)); text-decoration: underline; }
+.vs-post-body > :first-child { margin-top: 0; }
+.vs-post-images { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; border-radius: 12px; overflow: hidden; }
+.vs-post-images a { display: block; background: rgb(var(--vs-surface-sunken)); }
+.vs-post-images img { display: block; width: 100%; height: 100%; aspect-ratio: 1; object-fit: cover; }
+.vs-post-images--single { grid-template-columns: 1fr; }
+.vs-post-images--single img { aspect-ratio: auto; max-height: 520px; object-fit: contain; }
+
+/* The VidhiSangh wordmark: "Vidhi" in ink, "Sangh" in the red of the logo's
+   book and pillar. Markup: <span class="vs-wordmark">Vidhi<b>Sangh</b></span> */
+:root { --vs-wordmark-red: #d71920; }
+.dark { --vs-wordmark-red: #ff5a5f; }
+.vs-wordmark { font-family: var(--vs-font-display); font-weight: 650; letter-spacing: -0.02em; line-height: 1; color: rgb(var(--vs-text)); white-space: nowrap; }
+.vs-wordmark b { font-weight: 760; color: var(--vs-wordmark-red); }

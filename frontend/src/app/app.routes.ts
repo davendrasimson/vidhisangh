@@ -18,7 +18,8 @@ export const routes: Routes = [
   },
   {
     path: 'help',
-    data: { seo: { title: 'Help centre — VidhiSangh', description: 'How to use VidhiSangh: your professional profile, network, communities, legal research, bare acts, matters, documents and billing.' } },
+    // publicChrome: the site header and footer (the in-app /app/help has the app's own).
+    data: { publicChrome: true, seo: { title: 'Help centre — VidhiSangh', description: 'How to use VidhiSangh: your professional profile, network, communities, legal research, bare acts, matters, documents and billing.' } },
     loadComponent: () => import('@features/help/help-center.component').then(m => m.HelpCenterComponent),
   },
 

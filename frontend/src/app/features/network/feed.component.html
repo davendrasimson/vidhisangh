@@ -25,13 +25,7 @@
       <div class="flex gap-3">
         <span class="vs-avatar-sm">{{ myInitials() }}</span>
         <div class="flex-1">
-          <textarea
-            class="vs-composer"
-            rows="2"
-            placeholder="Share an update, a judgment, or a question…"
-            [ngModel]="draft()"
-            (ngModelChange)="onDraftInput($event)"
-          ></textarea>
+          <app-post-composer (changed)="onComposed($event)" />
           @if (taggedPeople().length) {
             <div class="flex flex-wrap gap-2 mt-2">
               @for (p of taggedPeople(); track p.user_id) {
@@ -75,8 +69,8 @@
             <button mat-button (click)="toggleTagPicker()">
               <mat-icon class="material-icons-outlined">alternate_email</mat-icon> Tag people
             </button>
-            <button mat-flat-button color="primary" (click)="publish()" [disabled]="posting() || !draft().trim()">
-              <mat-icon class="material-icons-outlined">send</mat-icon> Post
+            <button mat-flat-button color="primary" (click)="publish()" [disabled]="!canPost()">
+              <mat-icon class="material-icons-outlined">send</mat-icon> {{ composed().uploading ? 'Uploading photo…' : 'Post' }}
             </button>
           </div>
 
@@ -139,11 +133,26 @@
           <button mat-icon-button class="ml-auto" (click)="openReport(post)" aria-label="Report this post" title="Report post">
             <mat-icon class="material-icons-outlined">flag</mat-icon>
           </button>
+        } @else {
+          <button mat-icon-button class="ml-auto" (click)="deletePost(post)" aria-label="Delete this post" title="Delete post">
+            <mat-icon class="material-icons-outlined">delete</mat-icon>
+          </button>
         }
       </header>
 
       @if (post.title) { <h3 class="font-semibold mt-3">{{ post.title }}</h3> }
-      @if (post.content) { <p class="mt-2 text-content whitespace-pre-line">{{ post.content }}</p> }
+      @if (post.content_html) {
+        <div class="vs-post-body mt-2 text-content" [innerHTML]="post.content_html"></div>
+      } @else if (post.content) { <p class="mt-2 text-content whitespace-pre-line">{{ post.content }}</p> }
+      @if (post.images?.length) {
+        <div class="vs-post-images mt-3" [class.vs-post-images--single]="post.images!.length === 1">
+          @for (img of post.images; track img.id) {
+            <a [href]="imageUrl(img.id)" target="_blank" rel="noopener">
+              <img [src]="imageUrl(img.id)" [attr.width]="img.width" [attr.height]="img.height" alt="Photo in the post" loading="lazy" />
+            </a>
+          }
+        </div>
+      }
 
       @if (post.link_url) {
         <a class="vs-linkcard vs-linkcard--link mt-3" [href]="post.link_url" target="_blank" rel="noopener noreferrer">

@@ -231,6 +231,19 @@ Legal notices: legal@vidhisangh.com. Privacy and grievances: the Grievance Offic
 /** Minimal Markdown → HTML for our own trusted documents (headings, paragraphs,
  *  bullet lists, pipe tables, bold, code, links, horizontal rules). Output is
  *  bound through Angular's sanitizer; the source is a compile-time constant. */
+const plain = (s: string) => s.replace(/[*`]/g, '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').trim();
+
+/** The id of a "## " section heading. */
+export function legalSlug(heading: string): string {
+  return 'section-' + plain(heading).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+/** The document's sections, for the "On this page" list. */
+export function legalToc(md: string): { id: string; text: string }[] {
+  return md.split(/\r?\n/).filter((l) => /^##\s+/.test(l))
+    .map((l) => l.replace(/^##\s+/, '')).map((t) => ({ id: legalSlug(t), text: plain(t) }));
+}
+
 export function renderMarkdown(md: string): string {
   const escapeHtml = (s: string) =>
     s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -252,7 +265,11 @@ export function renderMarkdown(md: string): string {
     if (!line.trim()) { i++; continue; }
     if (/^---+$/.test(line.trim())) { out.push('<hr />'); i++; continue; }
     const h = /^(#{1,4})\s+(.*)$/.exec(line);
-    if (h) { out.push(`<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`); i++; continue; }
+    if (h) {
+      // Sections (##) get an id for the page's "On this page" list.
+      const id = h[1].length === 2 ? ` id="${legalSlug(h[2])}"` : '';
+      out.push(`<h${h[1].length}${id}>${inline(h[2])}</h${h[1].length}>`); i++; continue;
+    }
     if (line.trim().startsWith('|')) {
       const rows: string[][] = [];
       while (i < lines.length && lines[i].trim().startsWith('|')) {
@@ -262,7 +279,8 @@ export function renderMarkdown(md: string): string {
       }
       const [head, ...body] = rows;
       out.push('<table><thead><tr>' + head.map((c) => `<th>${inline(c)}</th>`).join('') + '</tr></thead><tbody>'
-        + body.map((r) => '<tr>' + r.map((c) => `<td>${inline(c)}</td>`).join('') + '</tr>').join('') + '</tbody></table>');
+        // data-label: on phones each row becomes a card that names its columns.
+        + body.map((r) => '<tr>' + r.map((c, col) => `<td data-label="${escapeHtml(plain(head[col] ?? ''))}">${inline(c)}</td>`).join('') + '</tr>').join('') + '</tbody></table>');
       continue;
     }
     if (/^\s*[-*]\s+/.test(line)) {

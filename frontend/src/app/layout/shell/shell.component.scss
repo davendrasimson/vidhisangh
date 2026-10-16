@@ -75,11 +75,8 @@
     color: rgb(var(--vs-text));
 
     strong {
-      font-weight: 720;
-      background: linear-gradient(115deg, rgb(var(--vs-brand)), color-mix(in srgb, rgb(var(--vs-brand)) 55%, #7c3aed));
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
+      font-weight: 750;
+      color: var(--vs-wordmark-red);
     }
   }
 

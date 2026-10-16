@@ -6,16 +6,18 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy import select
 
-from app.core.deps import CurrentUserDep, TenantSessionDep, require_permission
+from app.core.deps import AuthSessionDep, CurrentUserDep, TenantSessionDep, require_permission
+from app.core.storage import Storage, get_storage
 from app.core.exceptions import TenantError
 from app.core.link_preview import fetch_link_preview
 from app.core.pagination import PageParams, page_params
 from app.modules.identity.models import User
 from app.modules.network.models import ConnectionStatus, ReactionType
 from app.modules.network.schemas import (
+    PostImageRead,
     CommentCreate,
     CommentRead,
     ConnectionRead,
@@ -157,6 +159,55 @@ async def create_post(
     read = PostRead.model_validate(post)
     read.mentions = _mention_reads(await svc.mentions_of(post.id))
     return read
+
+
+@router.post(
+    "/post-images",
+    dependencies=[require_permission("post:create")],
+    response_model=PostImageRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Upload a photo for a post (JPEG or PNG, up to 5 MB; metadata removed)",
+)
+async def upload_post_image(
+    current: CurrentUserDep,
+    session: TenantSessionDep,
+    storage: Annotated[Storage, Depends(get_storage)],
+    file: Annotated[UploadFile, File()],
+) -> PostImageRead:
+    from app.core.uploads import UploadTooLargeError, read_limited
+    from app.modules.network.media import MAX_IMAGE_BYTES, ImageRejected
+
+    try:
+        data = await read_limited(file, MAX_IMAGE_BYTES)
+    except UploadTooLargeError as exc:
+        raise ImageRejected() from exc
+    image = await _svc(current, session).upload_image(data, storage)
+    return PostImageRead.model_validate(image)
+
+
+@router.get("/post-images/{image_id}", summary="A post's photo (public once its post is published)")
+async def get_post_image(
+    image_id: uuid.UUID,
+    session: AuthSessionDep,
+    storage: Annotated[Storage, Depends(get_storage)],
+) -> Response:
+    # No sign-in: an <img> cannot send the in-memory access token. The id is a
+    # random UUID and only images on a live (not deleted) post are served.
+    from app.modules.network.models import Post, PostImage
+
+    row = (await session.execute(
+        select(PostImage.storage_key, PostImage.content_type)
+        .join(Post, Post.id == PostImage.post_id)
+        .where(PostImage.id == image_id, PostImage.deleted_at.is_(None), Post.deleted_at.is_(None))
+    )).first()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Image not found.")
+    data = await storage.get(row.storage_key)
+    return Response(content=data, media_type=row.content_type, headers={
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "default-src 'none'; sandbox",
+    })
 
 
 @router.get("/posts/{post_id}", dependencies=[require_permission("post:read")], response_model=PostRead, summary="Get a post")

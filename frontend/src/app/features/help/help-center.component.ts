@@ -8,11 +8,14 @@ import { HelpService } from './help.service';
 
 import { CONTACT_EMAIL, WHATSAPP_LINK, WHATSAPP_NUMBER } from '@core/contact';
 
+import { PublicFooterComponent, PublicHeaderComponent } from '@shared/public-chrome/public-chrome.component';
+
 @Component({
   selector: 'app-help-center',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, MatButtonModule, MatIconModule],
+  imports: [RouterLink, MatButtonModule, MatIconModule, PublicHeaderComponent, PublicFooterComponent],
   template: `
+    @if (publicPage) { <vs-public-header /> }
     <div class="help-center">
       <header>
         <div><h1 #pageTitle tabindex="-1">Help & feature tour</h1><p>Discover what you can do with VidhiSangh, or find help for a specific page.</p></div>
@@ -46,13 +49,16 @@ import { CONTACT_EMAIL, WHATSAPP_LINK, WHATSAPP_NUMBER } from '@core/contact';
           } @empty { <p>No help topics match. Try a feature name or clear your search.</p> }
         </div>
       </section>
+      @if (!publicPage) {
       <section aria-labelledby="contact-title" class="contact">
         <h2 id="contact-title">Contact us</h2>
         <p>VidhiSangh is developed and managed by <a routerLink="/about">Simson Softwares Private Limited</a>.</p>
         <p>WhatsApp: <a [href]="whatsappLink" target="_blank" rel="noopener">{{ whatsappNumber }}</a> ·
           Email: <a [href]="'mailto:' + contactEmail">{{ contactEmail }}</a></p>
       </section>
+      }
     </div>
+    @if (publicPage) { <vs-public-footer /> }
   `,
   styles: [`
     .help-center { max-width: 1100px; margin: auto; padding: 1rem; color: rgb(var(--vs-text)); }
@@ -74,6 +80,8 @@ export class HelpCenterComponent {
   protected readonly whatsappNumber = WHATSAPP_NUMBER;
   protected readonly whatsappLink = WHATSAPP_LINK;
   protected readonly contactEmail = CONTACT_EMAIL;
+  /** /help (public): the site header and footer; /app/help sits inside the app. */
+  protected readonly publicPage = inject(ActivatedRoute).snapshot.data['publicChrome'] === true;
   readonly help = inject(HelpService);
   private readonly params = toSignal(inject(ActivatedRoute).queryParamMap);
   readonly selected = computed(() => HELP_TOPICS.find(topic => topic.id === this.params()?.get('topic')));

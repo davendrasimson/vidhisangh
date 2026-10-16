@@ -21,6 +21,9 @@ export interface FeedItem {
   post_type: PostType;
   title: string | null;
   content: string;
+  /** Formatted body (server-cleaned HTML); null for plain-text posts. */
+  content_html?: string | null;
+  images?: PostImage[];
   visibility: PostVisibility;
   hashtags: string[];
   like_count: number;
@@ -52,8 +55,12 @@ export interface LinkPreview {
   site_name: string | null;
 }
 
+export interface PostImage { id: string; width: number; height: number; }
+
 export interface PostCreate {
   content: string;
+  content_html?: string | null;
+  image_ids?: string[];
   title?: string | null;
   post_type?: PostType;
   visibility?: PostVisibility;

@@ -75,6 +75,7 @@ from app.modules.network.models import (
     NetworkIdentity,
     Post,
     PostBookmark,
+    PostImage,
     PostMention,
     PostReaction,
 )
@@ -131,6 +132,7 @@ __all__ = [
     "Connection",
     "Follow",
     "Post",
+    "PostImage",
     "PostReaction",
     "Comment",
     "PostBookmark",

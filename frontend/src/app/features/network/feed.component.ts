@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { AuthService } from '@core/auth/auth.service';
 import { NetworkService } from '@core/services/network.service';
 import { NotificationService } from '@core/services/notification.service';
+import { ComposerValue, PostComposerComponent } from './post-composer.component';
 import {
   Comment,
   DirectoryPerson,
@@ -22,7 +23,7 @@ import {
   selector: 'app-feed',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, DatePipe, RouterLink, MatIconModule, MatButtonModule],
+  imports: [FormsModule, DatePipe, RouterLink, MatIconModule, MatButtonModule, PostComposerComponent],
   templateUrl: './feed.component.html',
   styleUrl: './feed.component.scss',
 })
@@ -34,6 +35,13 @@ export class FeedComponent implements OnInit {
   protected readonly posts = signal<FeedItem[]>([]);
   protected readonly loading = signal(true);
   protected readonly draft = signal('');
+  /** What the rich composer holds: HTML, its plain text and uploaded photo ids. */
+  protected readonly composed = signal<ComposerValue>({ html: '', text: '', imageIds: [], uploading: false });
+  private readonly composer = viewChild(PostComposerComponent);
+  protected readonly canPost = computed(() => {
+    const c = this.composed();
+    return !this.posting() && !c.uploading && (!!c.text.trim() || c.imageIds.length > 0);
+  });
   protected readonly posting = signal(false);
   protected readonly view = signal<'all' | 'saved' | 'mentions'>('all');
   protected readonly trending = signal<TrendingTag[]>([]);
@@ -203,9 +211,26 @@ export class FeedComponent implements OnInit {
     this.previewLoading.set(false);
   }
 
+  protected onComposed(value: ComposerValue): void {
+    this.composed.set(value);
+    this.onDraftInput(value.text);
+  }
+
+  protected imageUrl(id: string): string { return this.net.postImageUrl(id); }
+
+  protected async deletePost(post: FeedItem): Promise<void> {
+    if (!window.confirm('Delete this post? It is removed from every feed.')) return;
+    try {
+      await firstValueFrom(this.net.deletePost(post.id));
+      this.posts.update(list => list.filter(p => p.id !== post.id));
+      this.notify.success('Post deleted.');
+    } catch { /* handled */ }
+  }
+
   protected async publish(): Promise<void> {
-    const content = this.draft().trim();
-    if (!content || this.posting()) return;
+    const composed = this.composed();
+    const content = composed.text.trim();
+    if (!this.canPost()) return;
     this.posting.set(true);
     try {
       const hashtags = [...content.matchAll(/#(\w+)/g)].map((m) => m[1]);
@@ -214,6 +239,8 @@ export class FeedComponent implements OnInit {
       const created = await firstValueFrom(
         this.net.createPost({
           content,
+          content_html: composed.html || null,
+          image_ids: composed.imageIds,
           hashtags,
           mention_ids,
           link_url: preview?.url ?? null,
@@ -224,6 +251,7 @@ export class FeedComponent implements OnInit {
         }),
       );
       this.posts.update((list) => [created, ...list]);
+      this.composer()?.clear();
       this.draft.set('');
       this.taggedIds.set(new Set());
       this.showTagPicker.set(false);

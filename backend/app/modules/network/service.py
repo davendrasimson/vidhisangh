@@ -19,6 +19,7 @@ from app.core.exceptions import (
     PermissionDeniedError,
     ValidationError,
 )
+from app.core.storage import Storage
 from app.modules.identity.repository import UserRepository
 from app.modules.network.models import (
     Comment,
@@ -28,6 +29,7 @@ from app.modules.network.models import (
     NetworkIdentity,
     Post,
     PostBookmark,
+    PostImage,
     PostMention,
     PostReaction,
     PostVisibility,
@@ -173,6 +175,17 @@ class NetworkService:
     async def create_post(self, data: PostCreate) -> Post:
         await self._ensure_posting_allowed()
         me = await self.ensure_my_identity()
+        content, content_html = data.content.strip(), None
+        if data.content_html and data.content_html.strip():
+            from app.core.html_clean import clean_html, html_to_text
+
+            content_html = clean_html(data.content_html) or None
+            content = html_to_text(content_html) if content_html else ""
+        if len(content) > 8000:
+            raise ValidationError("This post is too long: keep it under 8,000 characters.")
+        images = await self._claim_images(data.image_ids)
+        if not content and not images:
+            raise ValidationError("Write something or add a photo.")
         post = Post(
             author_id=self.user_id,
             author_name=me.display_name,
@@ -180,7 +193,8 @@ class NetworkService:
             author_avatar_url=me.avatar_url,
             post_type=data.post_type,
             title=data.title,
-            content=data.content,
+            content=content,
+            content_html=content_html,
             visibility=data.visibility,
             hashtags=data.hashtags,
             link_url=data.link_url,
@@ -189,10 +203,53 @@ class NetworkService:
             link_image=data.link_image,
             link_site_name=data.link_site_name,
         )
+        # Set before the first flush: appending to a flushed relationship
+        # raises MissingGreenlet under async.
+        post.images = images
         self.posts.add(post)
         await self.session.flush()
         await self._attach_mentions(post.id, data.mention_ids)
         return post
+
+    async def _claim_images(self, image_ids: list[uuid.UUID]) -> list[PostImage]:
+        """The caller's own unattached uploads, in the order given."""
+        from sqlalchemy import select
+
+        ids = list(dict.fromkeys(image_ids))
+        if not ids:
+            return []
+        rows = {
+            img.id: img
+            for img in await self.session.scalars(
+                select(PostImage).where(
+                    PostImage.id.in_(ids), PostImage.uploader_id == self.user_id,
+                    PostImage.post_id.is_(None), PostImage.deleted_at.is_(None),
+                )
+            )
+        }
+        if len(rows) != len(ids):
+            raise ValidationError("One of the photos is no longer available. Remove it and add it again.")
+        for position, image_id in enumerate(ids):
+            rows[image_id].position = position
+        return [rows[i] for i in ids]
+
+    async def upload_image(self, data: bytes, storage: Storage) -> PostImage:
+        from app.core.malware import scan_upload
+        from app.core.ratelimit import RateLimiter
+        from app.modules.network.media import prepare_post_image
+
+        await self._ensure_posting_allowed()
+        await RateLimiter(times=40, window_seconds=3600, scope="post-image").check(str(self.user_id))
+        cleaned, kind, width, height = prepare_post_image(data)
+        await scan_upload(cleaned)
+        image_id = uuid.uuid4()
+        key = f"network/post-images/{image_id}.{'png' if kind == 'image/png' else 'jpg'}"
+        await storage.put(key, cleaned, kind)
+        image = PostImage(id=image_id, uploader_id=self.user_id, storage_key=key, content_type=kind,
+                          size_bytes=len(cleaned), width=width, height=height)
+        self.session.add(image)
+        await self.session.flush()
+        return image
 
     async def _attach_mentions(
         self, post_id: uuid.UUID, mention_ids: list[uuid.UUID]
@@ -257,6 +314,7 @@ class NetworkService:
             origin_created = target.created_at
 
         repost = Post(
+            images=[],  # set before flush (async relationship)
             author_id=self.user_id,
             author_name=me.display_name,
             author_headline=me.headline,

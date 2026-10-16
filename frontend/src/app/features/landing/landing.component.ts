@@ -20,17 +20,17 @@ const PLAY_URL = 'https://play.google.com/store/apps/details?id=com.vidhisangh.a
  * `landingGuard`). It markets VidhiSangh as a professional network and a
  * knowledge tool — never as a way for advocates to win clients (BCI Rule 36).
  */
-import { WHATSAPP_LINK, WHATSAPP_NUMBER } from '@core/contact';
+import { PublicFooterComponent, PublicHeaderComponent } from '@shared/public-chrome/public-chrome.component';
 
 @Component({
   selector: 'app-landing',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, MatIconModule],
+  imports: [RouterLink, MatIconModule, PublicFooterComponent],
   template: `
     <header class="topbar">
       <a routerLink="/" class="brand" aria-label="VidhiSangh home">
-        <img src="/brand-mark.svg?v=3" alt="" width="32" height="32" /><span>VidhiSangh</span>
+        <img src="/brand-mark.svg?v=4" alt="" width="34" height="34" /><span class="vs-wordmark">Vidhi<b>Sangh</b></span>
       </a>
       <nav aria-label="Sections">
         <a href="#network">Network</a>
@@ -114,22 +114,7 @@ import { WHATSAPP_LINK, WHATSAPP_NUMBER } from '@core/contact';
       </section>
     </main>
 
-    <footer>
-      <div class="foot-brand"><img src="/brand-mark.svg?v=3" alt="" width="24" height="24" /> VidhiSangh</div>
-      <nav aria-label="Legal and help">
-        <a href="/acts/">Bare Acts</a>
-        <a href="/judgments/">SC headnotes</a>
-        <a routerLink="/about">About us</a>
-        <a routerLink="/help">Help</a>
-        <a routerLink="/privacy">Privacy</a>
-        <a routerLink="/terms">Terms</a>
-        <a routerLink="/trust">Trust &amp; security</a>
-        <a href="mailto:grievance@vidhisangh.com">Grievance officer</a>
-      </nav>
-      <p>© 2026 VidhiSangh. A professional network and knowledge platform; it does not advertise or solicit work for advocates.</p>
-      <p>VidhiSangh is developed and managed by <a routerLink="/about">Simson Softwares Private Limited</a>.
-        WhatsApp: <a [href]="whatsappLink" target="_blank" rel="noopener">{{ whatsappNumber }}</a></p>
-    </footer>
+    <vs-public-footer />
   `,
   styles: [`
     :host { display: block; min-height: 100vh; background: rgb(var(--vs-surface)); color: rgb(var(--vs-content)); }
@@ -195,8 +180,6 @@ import { WHATSAPP_LINK, WHATSAPP_NUMBER } from '@core/contact';
   `],
 })
 export class LandingComponent {
-  protected readonly whatsappNumber = WHATSAPP_NUMBER;
-  protected readonly whatsappLink = WHATSAPP_LINK;
   protected readonly playUrl = PLAY_URL;
 
   protected readonly roles = [

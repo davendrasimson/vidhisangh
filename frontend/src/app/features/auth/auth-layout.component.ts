@@ -38,8 +38,8 @@ import { DailyTipComponent } from './daily-tip.component';
 
         <div class="auth__brand-inner">
           <div class="auth__logo">
-            <img class="auth__mark" src="brand-mark.svg?v=3" alt="" width="42" height="42" />
-            <span class="auth__wordmark">VidhiSangh</span>
+            <img class="auth__mark" src="brand-mark.svg?v=4" alt="" width="42" height="42" />
+            <span class="auth__wordmark vs-wordmark">Vidhi<b>Sangh</b></span>
           </div>
 
           <div class="auth__motto">
@@ -75,8 +75,8 @@ import { DailyTipComponent } from './daily-tip.component';
       <section class="auth__panel">
         <div class="auth__panel-inner">
           <div class="auth__mobile-brand" aria-hidden="true">
-            <img class="auth__mark" src="brand-mark.svg?v=3" alt="" width="34" height="34" />
-            <span class="auth__wordmark">VidhiSangh</span>
+            <img class="auth__mark" src="brand-mark.svg?v=4" alt="" width="34" height="34" />
+            <span class="auth__wordmark vs-wordmark">Vidhi<b>Sangh</b></span>
           </div>
           <router-outlet />
           <app-daily-tip />
@@ -156,9 +156,10 @@ import { DailyTipComponent } from './daily-tip.component';
         font-family: var(--vs-font-display);
         font-size: 1.6rem;
         font-weight: 600;
-        letter-spacing: 0.005em;
         color: #fff;
       }
+      /* On the dark brand panel the red needs to be lighter to read. */
+      .auth__brand .auth__wordmark b { color: #ff6b6b; }
 
       .auth__trust {
         display: inline-block;

@@ -3,17 +3,16 @@ import { RouterLink } from '@angular/router';
 
 import { WHATSAPP_LINK, WHATSAPP_NUMBER } from '@core/contact';
 
+import { PublicFooterComponent, PublicHeaderComponent } from '@shared/public-chrome/public-chrome.component';
+
 @Component({
   selector: 'app-about',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink],
+  imports: [RouterLink, PublicHeaderComponent, PublicFooterComponent],
   template: `
     <div class="page">
-      <header class="topbar">
-        <a routerLink="/" class="brand"><img src="/brand-mark.svg?v=3" alt="" width="30" height="30" />VidhiSangh</a>
-        <nav><a routerLink="/help">Help</a><a routerLink="/privacy">Privacy</a><a routerLink="/auth/login">Sign in</a></nav>
-      </header>
+      <vs-public-header />
 
       <main>
         <p class="eyebrow">About us</p>
@@ -54,13 +53,11 @@ import { WHATSAPP_LINK, WHATSAPP_NUMBER } from '@core/contact';
 
         <p class="actions"><a routerLink="/auth/register" class="join">Join VidhiSangh free</a></p>
       </main>
+      <vs-public-footer />
     </div>
   `,
   styles: [`
     :host { display: block; min-height: 100vh; background: rgb(var(--vs-surface)); color: rgb(var(--vs-content)); }
-    .topbar { display: flex; align-items: center; gap: 1rem; padding: 1rem max(1.25rem, calc((100vw - 860px)/2)); background: rgb(var(--vs-surface-raised)); border-bottom: 1px solid rgb(var(--vs-line)); }
-    .brand { display: flex; align-items: center; gap: .5rem; color: rgb(var(--vs-content)); font-family: var(--vs-font-display); font-size: 1.25rem; font-weight: 700; text-decoration: none; }
-    nav { display: flex; gap: 1rem; margin-left: auto; } nav a { color: rgb(var(--vs-text-muted)); text-decoration: none; font-size: .92rem; }
     main { width: min(860px, calc(100% - 2rem)); margin: 0 auto; padding: 3rem 0 4rem; line-height: 1.7; }
     .eyebrow { margin: 0 0 .5rem; color: rgb(var(--vs-brand)); font-size: .75rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
     h1 { margin: 0; font-family: var(--vs-font-display); font-size: clamp(2rem, 5vw, 3rem); line-height: 1.1; }
