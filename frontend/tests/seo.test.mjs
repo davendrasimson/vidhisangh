@@ -91,3 +91,9 @@ test('the WhatsApp number is published next to the company name (Meta display-na
   }
   assert.match(read('scripts/build-act-pages.mjs'), /Simson Softwares Private Limited<\/a>\. WhatsApp: <a href="https:\/\/wa\.me\/917341100692"/);
 });
+
+test('prerendered pages never carry an error toast from the build', () => {
+  const src = readFileSync(new URL('../src/app/core/interceptors/error.interceptor.ts', import.meta.url), 'utf8');
+  assert.match(src, /const browser = isPlatformBrowser\(inject\(PLATFORM_ID\)\)/);
+  assert.match(src, /if \(browser && err\.status !== 401/);
+});

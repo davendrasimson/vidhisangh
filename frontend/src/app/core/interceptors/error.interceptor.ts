@@ -1,5 +1,6 @@
 import { HttpContextToken, HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
-import { inject } from '@angular/core';
+import { PLATFORM_ID, inject } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { catchError, throwError } from 'rxjs';
 import { NotificationService } from '@core/services/notification.service';
 import { problemMessage } from '@core/http/problem-message';
@@ -20,6 +21,10 @@ export const SILENT_ERRORS = new HttpContextToken<boolean>(() => false);
  */
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const notify = inject(NotificationService);
+  // Pages are prerendered at build time, when there is no API: a toast raised
+  // then is baked into the static HTML ("Cannot reach the server" on /privacy
+  // and /auth/login for every visitor). Only a real browser shows toasts.
+  const browser = isPlatformBrowser(inject(PLATFORM_ID));
 
   return next(req).pipe(
     catchError((err: HttpErrorResponse) => {
@@ -27,7 +32,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       // asleep, app minimised) that is the OS cutting the network, not news
       // for the user; the screen reloads its data when it is shown again.
       const backgroundDrop = err.status === 0 && typeof document !== 'undefined' && document.visibilityState === 'hidden';
-      if (err.status !== 401 && !req.context.get(SILENT_ERRORS) && !backgroundDrop) {
+      if (browser && err.status !== 401 && !req.context.get(SILENT_ERRORS) && !backgroundDrop) {
         notify.error(extractMessage(err));
       }
       return throwError(() => err);
