@@ -2,31 +2,6 @@
   display: block;
 }
 
-.vs-trust-strip {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  padding: 0.9rem 1rem;
-  border: 1px solid color-mix(in srgb, rgb(var(--vs-success)) 32%, rgb(var(--vs-line)));
-  border-radius: 14px;
-  color: rgb(var(--vs-content));
-  background: color-mix(in srgb, rgb(var(--vs-success)) 7%, rgb(var(--vs-surface-raised)));
-  text-decoration: none;
-  transition: border-color .15s ease, transform .15s ease;
-
-  &:hover { border-color: rgb(var(--vs-success)); transform: translateY(-1px); }
-  &__icon { display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: 11px; color: rgb(var(--vs-success)); background: color-mix(in srgb, rgb(var(--vs-success)) 14%, transparent); }
-  strong, small { display: block; }
-  strong { font-size: .88rem; }
-  small { margin-top: .15rem; color: rgb(var(--vs-text-muted)); font-size: .75rem; }
-  &__status { display: inline-flex; align-items: center; gap: .25rem; flex: none; color: rgb(var(--vs-brand)); font-size: .8rem; font-weight: 700; }
-  &__status mat-icon { width: 17px; height: 17px; font-size: 17px; }
-}
-
-@media (max-width: 640px) {
-  .vs-trust-strip__status { font-size: 0; }
-}
-
 /* ── Hero ── */
 .vs-hero__avatar {
   display: grid;
