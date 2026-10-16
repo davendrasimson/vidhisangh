@@ -20,19 +20,23 @@ professional (not personal) addresses, honour every unsubscribe and objection
 at once (reply-to goes to `grievance@vidhisangh.com`), and stop if complaints
 appear. Have counsel review before scaling beyond 50/day.
 
-## Connecting the mail service (owner, once)
-Kept off the main domain so invitation complaints cannot hurt sign-up and
-verification mail (Titan, `vidhisangh.com`).
-1. Create a **Brevo** account (free: 300 emails/day) with `invite@news.vidhisangh.com` as the sender; add the domain `news.vidhisangh.com`.
-2. Brevo shows DNS records (a TXT for ownership, DKIM `brevo1._domainkey` / `brevo2._domainkey` CNAMEs, and an SPF include). Send them to Claude: they go into `/etc/bind/db.vidhisangh.com` on the server (self-hosted DNS), plus `_dmarc.news` `v=DMARC1; p=quarantine; rua=mailto:grievance@vidhisangh.com`.
-3. In Brevo → *SMTP & API*, create an SMTP key. On the server, as a systemd credential like the Titan password:
-   ```
-   VS_OUTREACH_SMTP_HOST=smtp-relay.brevo.com
-   VS_OUTREACH_SMTP_PORT=587
-   VS_OUTREACH_SMTP_USER=<Brevo SMTP login>
-   VS_OUTREACH_SMTP_PASSWORD_FILE=/run/credentials/vidhisangh-outreach.service/outreach_smtp
-   ```
-4. Platform admin → Outreach → **Send me a test**, check it lands in the inbox (not spam), then **Start sending**.
+## Mail service (set up 16 Oct 2026)
+Brevo, kept off the main domain's reputation: invitations come from
+`invite@news.vidhisangh.com`; sign-up/verification mail stays on Titan.
+- **DNS** (self-hosted BIND, `/etc/bind/db.vidhisangh.com`): `news` TXT `brevo-code:…` + `v=spf1 include:spf.brevo.com ~all`;
+  DKIM CNAMEs `brevo1/brevo2._domainkey.news` → `b1/b2.news-vidhisangh-com.dkim.brevo.com` and, because the Brevo
+  account also holds the main domain, `brevo1/brevo2._domainkey` → `b1/b2.vidhisangh-com.dkim.brevo.com` plus the
+  root `brevo-code` TXT; `_dmarc.news` `p=quarantine; adkim=s` (the root DMARC is strict `p=reject`, so Brevo's DKIM
+  must sign as news.vidhisangh.com). Branded links on **`links`** / `img.links` (CNAMEs to `*.brand.brevosend.com`):
+  not `news`, which cannot be a CNAME while it carries the TXT records.
+- **Server**: drop-ins `/etc/systemd/system/{vidhisangh-api,vidhisangh-outreach}.service.d/outreach.conf` set
+  `VS_OUTREACH_SMTP_HOST=smtp-relay.brevo.com`, port 587, user `be802e001@smtp-brevo.com`, and load the SMTP key from
+  `/etc/credstore.encrypted/vidhisangh.outreach_smtp` (systemd-creds). Changing them needs `systemctl restart`, not reload.
+- **Brevo account**: the server IP `203.193.166.109` must be in *Security → Authorised IPs* (otherwise
+  `525 5.7.1 Unauthorized IP address`); `invite@news.vidhisangh.com` must be an added sender.
+- Rotate the SMTP key (it was pasted in a chat): new key in Brevo, then
+  `printf %s NEWKEY | sudo systemd-creds encrypt --name=outreach_smtp - /etc/credstore.encrypted/vidhisangh.outreach_smtp`
+  and restart both units.
 
 ## CSV format
 Header row required: `email` (required), `name`, `city`, `court`, `source`.
