@@ -37,7 +37,7 @@ def build(*, name: str | None, source: str, token: str) -> tuple[str, str, str]:
     """(subject, text, html) for one contact."""
     greeting = f"Dear {name.strip()}," if name and name.strip() else "Dear Colleague,"
     join, unsub = join_url(), unsubscribe_url(token)
-    address = settings.OUTREACH_POSTAL_ADDRESS
+    sender = settings.OUTREACH_SENDER_LINE
 
     text = f"""{greeting}
 
@@ -61,7 +61,7 @@ Team VidhiSangh
 —
 You are receiving this one-time invitation because your professional email address is publicly listed in {source}. We will not email you again unless you join.
 Unsubscribe: {unsub}
-VidhiSangh is developed and managed by {address}. Grievance officer: grievance@vidhisangh.com
+{sender}. Grievance officer: grievance@vidhisangh.com
 """
 
     e = html.escape
@@ -100,7 +100,7 @@ VidhiSangh is developed and managed by {address}. Grievance officer: grievance@v
   <tr><td style="padding:18px 28px;background:#f9fafb;border-top:1px solid #e5e7eb;font-size:12px;line-height:19px;color:#6b7280;">
     You are receiving this one-time invitation because your professional email address is publicly listed in {e(source)}. We will not email you again unless you join.
     <a href="{e(unsub)}" style="color:#215dcc;">Unsubscribe</a>.<br>
-    VidhiSangh is developed and managed by {e(address)}. Grievance officer: <a href="mailto:grievance@vidhisangh.com" style="color:#215dcc;">grievance@vidhisangh.com</a>
+    {e(sender)}. Grievance officer: <a href="mailto:grievance@vidhisangh.com" style="color:#215dcc;">grievance@vidhisangh.com</a>
   </td></tr>
 </table>
 </td></tr></table>

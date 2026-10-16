@@ -87,6 +87,7 @@ async def test_import_send_unsubscribe_and_join(client: AsyncClient, session_fac
     assert "Punjab & Haryana Bar directory" in recorder.sent[1].text  # the row's own source wins
     assert "/unsubscribe/" in msg.text and "/api/v1/outreach/unsubscribe/" in msg.one_click_url
     assert "Join VidhiSangh free" in msg.html and "<script" not in msg.html
+    assert "Simson" not in msg.text + msg.html and "Sent by VidhiSangh, India. Grievance officer" in msg.text
 
     # The daily limit holds for the rest of the (IST) day.
     async with session_factory() as s:

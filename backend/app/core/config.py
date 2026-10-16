@@ -230,7 +230,8 @@ class Settings(BaseSettings):
     OUTREACH_REPLY_TO: str = "grievance@vidhisangh.com"
     # Hard ceiling; the admin can lower it, never raise it above this.
     OUTREACH_DAILY_LIMIT: int = 50
-    OUTREACH_POSTAL_ADDRESS: str = "Simson Softwares Private Limited, India"
+    # Who the email says it is from (footer); the owner chose not to name the company.
+    OUTREACH_SENDER_LINE: str = "Sent by VidhiSangh, India"
 
     @property
     def outreach_smtp_password(self) -> str:
