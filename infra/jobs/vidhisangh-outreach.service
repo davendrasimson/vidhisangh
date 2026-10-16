@@ -1,0 +1,18 @@
+[Unit]
+Description=VidhiSangh invitation emails (at most 50 a day; paused/resumed in Platform admin)
+After=network-online.target postgresql.service
+OnFailure=vidhisangh-job-failed@%n.service
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/opt/vidhisangh/backend
+EnvironmentFile=/opt/vidhisangh/backend/.env
+Environment=PYTHONPATH=/opt/vidhisangh/backend
+ExecStart=/opt/vidhisangh/backend/.venv/bin/python -m app.scripts.outreach_send
+# 50 messages spaced 30-90 s apart take up to ~75 minutes.
+TimeoutStartSec=6000
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only

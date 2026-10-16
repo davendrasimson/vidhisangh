@@ -232,6 +232,11 @@ class AuthService:
                 raise RuntimeError("Storage is required when sample data is requested.")
             await SampleDataService(self.session, tenant.id, user.id, sample_storage).create()
 
+        if user.email:
+            from app.modules.outreach.service import mark_joined
+
+            await mark_joined(self.session, user.email, user.id)
+
         log.info("tenant_registered", tenant_id=str(tenant.id), user_id=str(user.id))
         self._audit(user, "auth.registered", f"Registered organisation {tenant.name}", meta={"ip": ip})
         if user.email and not user.is_email_verified:

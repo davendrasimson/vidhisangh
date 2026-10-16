@@ -35,6 +35,7 @@ from app.modules.news.router import router as news_router
 from app.modules.notifications.router import router as notifications_router
 from app.modules.payments.router import router as payments_router
 from app.modules.referrals.router import router as referrals_router
+from app.modules.outreach.router import router as outreach_router
 from app.modules.plans.router import router as plans_router
 from app.modules.portal.router import router as portal_router
 from app.modules.privacy.router import router as privacy_router
@@ -55,6 +56,7 @@ api_router.include_router(identity_router)
 api_router.include_router(tenancy_router)
 api_router.include_router(profile_router)
 api_router.include_router(network_router)
+api_router.include_router(outreach_router)
 api_router.include_router(groups_router)
 api_router.include_router(messaging_router)
 api_router.include_router(notifications_router)

@@ -217,6 +217,29 @@ class Settings(BaseSettings):
     SMTP_TLS: bool = True  # STARTTLS; only ever false against a local relay
     SMTP_SSL: bool = False  # implicit TLS, normally port 465
 
+    # ─── Outreach (invitation emails to non-members) ────────────────
+    # A separate mail service on its own sub-domain (news.vidhisangh.com), so
+    # complaints about invitations never touch the deliverability of sign-up
+    # and verification mail sent through SMTP_* above. Unset = nothing is sent.
+    OUTREACH_SMTP_HOST: str | None = None
+    OUTREACH_SMTP_PORT: int = 587
+    OUTREACH_SMTP_USER: str | None = None
+    OUTREACH_SMTP_PASSWORD: str | None = None
+    OUTREACH_SMTP_PASSWORD_FILE: str | None = None
+    OUTREACH_FROM: str = "VidhiSangh <invite@news.vidhisangh.com>"
+    OUTREACH_REPLY_TO: str = "grievance@vidhisangh.com"
+    # Hard ceiling; the admin can lower it, never raise it above this.
+    OUTREACH_DAILY_LIMIT: int = 50
+    OUTREACH_POSTAL_ADDRESS: str = "Simson Softwares Private Limited, India"
+
+    @property
+    def outreach_smtp_password(self) -> str:
+        if self.OUTREACH_SMTP_PASSWORD:
+            return self.OUTREACH_SMTP_PASSWORD
+        if not self.OUTREACH_SMTP_PASSWORD_FILE:
+            return ""
+        return Path(self.OUTREACH_SMTP_PASSWORD_FILE).read_text(encoding="utf-8").strip()
+
     @property
     def smtp_password(self) -> str:
         if self.SMTP_PASSWORD:

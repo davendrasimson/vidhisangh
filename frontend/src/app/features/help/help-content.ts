@@ -616,6 +616,19 @@ export const HELP_TOPICS: HelpTopic[] = [
     "featured": false
   },
   {
+    "id": "unsubscribe",
+    "title": "Stop invitation emails",
+    "path": "/unsubscribe/:token",
+    "summary": "Remove your address from VidhiSangh invitation emails.",
+    "steps": [
+      "Tap Unsubscribe to confirm.",
+      "Your address goes on the do-not-email list and is never emailed again."
+    ],
+    "tip": "Your mail app's own Unsubscribe button works too, without opening this page.",
+    "permission": null,
+    "featured": false
+  },
+  {
     "id": "kyc",
     "title": "Client KYC form",
     "path": "/kyc/:token",

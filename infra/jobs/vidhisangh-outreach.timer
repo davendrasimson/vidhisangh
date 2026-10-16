@@ -1,0 +1,11 @@
+[Unit]
+Description=Send VidhiSangh invitation emails on weekday mornings (India time)
+
+[Timer]
+# 10:30 IST, Monday to Saturday (court working days).
+OnCalendar=Mon..Sat *-*-* 05:00:00 UTC
+RandomizedDelaySec=1200
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -14,6 +14,7 @@
           </nav>
         }
         @if (section() === 'growth') { <app-growth-dashboard /> }
+        @else if (section() === 'outreach') { <app-outreach-admin /> }
         @else if (loading() && !overview()) { <p class="text-content-muted">Loading administration data…</p> }
         @else if (section() === 'overview' && overview(); as item) {
           <header><h1 class="text-2xl font-bold">Platform overview</h1><p class="text-content-muted">Membership, customer firms, content health and grievance workload.</p></header>
