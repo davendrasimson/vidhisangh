@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -17,6 +17,8 @@ type Section = 'growth' | 'overview' | 'members' | 'firms' | 'posts' | 'grievanc
 export class PlatformAdminComponent implements OnInit {
   private readonly support = inject(SupportService); protected readonly auth = inject(AuthService);
   private readonly notify = inject(NotificationService); private readonly router = inject(Router);
+  /** Inside the app (/app/platform-admin): the app's own header and menu, sections as tabs. */
+  protected readonly embedded = inject(ActivatedRoute).snapshot.data['embedded'] === true;
   protected readonly allowed = signal<boolean | null>(null); protected readonly loading = signal(true);
   protected readonly section = signal<Section>('growth'); protected readonly overview = signal<PlatformOverview | null>(null);
   protected readonly users = signal<PlatformUser[]>([]); protected readonly selectedUser = signal<PlatformUser | null>(null);

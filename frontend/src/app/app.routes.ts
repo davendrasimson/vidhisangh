@@ -241,6 +241,14 @@ export const routes: Routes = [
           import('@features/analytics/analytics.component').then((m) => m.AnalyticsComponent),
       },
       {
+        // Platform admin inside the app for administrators (the server checks
+        // is_superuser on every call; others see "access required").
+        path: 'platform-admin',
+        data: { embedded: true },
+        loadComponent: () =>
+          import('@features/platform-admin/platform-admin.component').then((m) => m.PlatformAdminComponent),
+      },
+      {
         path: 'settings',
         loadComponent: () =>
           import('@features/settings/settings-home.component').then(

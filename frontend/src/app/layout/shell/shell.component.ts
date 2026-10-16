@@ -27,6 +27,8 @@ interface NavItem {
   route: string;
   permission?: string;
   queryParams?: Record<string, string>;
+  /** Only for platform administrators (is_superuser). */
+  platformAdmin?: boolean;
 }
 
 interface NavGroup {
@@ -157,7 +159,8 @@ export class ShellComponent implements OnInit {
     {
       // Single link to the Settings hub page — the sub-areas live there as tiles.
       items: [{ label: 'Settings', icon: 'settings', route: '/app/settings' },
-        { label: 'Help & feature tour', icon: 'help_outline', route: '/app/help' }],
+        { label: 'Help & feature tour', icon: 'help_outline', route: '/app/help' },
+        { label: 'Platform admin', icon: 'admin_panel_settings', route: '/app/platform-admin', platformAdmin: true }],
     },
   ];
 
@@ -166,7 +169,8 @@ export class ShellComponent implements OnInit {
     this.navGroups
       .map((g) => ({
         ...g,
-        items: g.items.filter((n) => !n.permission || this.auth.hasPermission(n.permission)),
+        items: g.items.filter((n) => (!n.permission || this.auth.hasPermission(n.permission))
+          && (!n.platformAdmin || this.user()?.is_superuser === true)),
       }))
       .filter((g) => g.items.length > 0),
   );
