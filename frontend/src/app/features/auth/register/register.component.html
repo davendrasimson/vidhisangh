@@ -33,20 +33,15 @@
       </p>
     }
   } @else {
-    @if (submitting()) {
-      <mat-progress-bar mode="indeterminate" class="mb-4"></mat-progress-bar>
-    }
-    @if (errorMsg()) {
-      <div class="mb-4 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
-        {{ errorMsg() }}
-      </div>
-    }
     @if (infoMsg()) {
       <p role="status" class="mb-4 rounded-lg bg-success/10 p-3 text-sm text-content">{{ infoMsg() }}</p>
     }
     @if (pendingEmail()) {
       <h3 class="text-xl font-semibold mb-3">Check your email</h3>
       <p class="text-sm text-content-muted mb-4">Open the verification link sent to {{ form.controls.email.value }} to activate your account. Check your spam folder too.</p>
+      @if (errorMsg()) {
+        <div class="mb-3 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">{{ errorMsg() }}</div>
+      }
       <button mat-stroked-button type="button" [disabled]="submitting()" (click)="resendVerification()">Resend verification link</button>
     } @else {
       <form [formGroup]="form" (ngSubmit)="submit()" class="grid gap-1">
@@ -103,8 +98,18 @@
           <a routerLink="/privacy" target="_blank" rel="noopener" class="text-brand underline" (click)="$event.stopPropagation()">Privacy Notice</a>.
         </mat-checkbox>
 
-        <button mat-flat-button color="primary" type="submit" [disabled]="submitting() || form.invalid" class="h-11">
-          Create account
+        <!-- Errors and progress sit next to the button: on a phone the top of
+             the form is scrolled out of view when it is tapped. -->
+        @if (errorMsg()) {
+          <div class="mb-2 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
+            {{ errorMsg() }}
+          </div>
+        }
+        @if (submitting()) {
+          <mat-progress-bar mode="indeterminate" class="mb-2"></mat-progress-bar>
+        }
+        <button mat-flat-button color="primary" type="submit" [disabled]="submitting()" class="h-11">
+          {{ submitting() ? 'Creating account…' : 'Create account' }}
         </button>
       </form>
       @if (whatsappAvailable()) {

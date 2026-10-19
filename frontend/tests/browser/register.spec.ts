@@ -41,7 +41,9 @@ for (const firm of [false, true]) {
     await expect(submit).toBeEnabled();
     if (firm) {
       await page.getByRole('checkbox', { name: /registering a law firm or chamber/ }).check();
-      await expect(submit).toBeDisabled();
+      await submit.click();
+      await expect(page.getByRole('alert')).toContainText('your firm or chamber name');
+      expect(submitted).toBeUndefined();
       await page.getByLabel('Firm / chamber name').fill(' Example Chambers ');
     }
     await submit.click();
@@ -52,6 +54,39 @@ for (const firm of [false, true]) {
     expect(submitted?.['add_sample_data']).toBe(firm);
   });
 }
+
+test('Create account on a phone says what is missing, next to the button', async ({ page }) => {
+  let called = false;
+  await page.route('**/api/v1/auth/register', route => { called = true; return route.abort(); });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openEmailForm(page);
+  await page.getByLabel('Your full name').fill('Solo Advocate');
+  await page.getByLabel('Email', { exact: true }).fill('solo@example.com');
+  const submit = page.getByRole('button', { name: 'Create account', exact: true });
+  await expect(submit).toBeEnabled();
+  await submit.click();
+  const alert = page.getByRole('alert');
+  await expect(alert).toContainText('what best describes you');
+  await expect(alert).toContainText('a password of at least 8 characters');
+  await expect(alert).toContainText('agreement to the Terms of Service');
+  await expect(alert).not.toContainText('your full name');
+  await expect(alert).toBeInViewport();
+  expect(called).toBe(false);
+});
+
+test('an email with the trailing space a phone keyboard adds is accepted and sent trimmed', async ({ page }) => {
+  let submitted: Record<string, unknown> | undefined;
+  await page.route('**/api/v1/auth/register', async route => {
+    submitted = route.request().postDataJSON();
+    await route.fulfill({ status: 201, json: { verification_required: true, detail: 'Check your email.' } });
+  });
+  await openEmailForm(page);
+  await fillEmailForm(page);
+  await page.getByLabel('Email', { exact: true }).fill('solo@example.com ');
+  await page.getByRole('button', { name: 'Create account', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
+  expect(submitted?.['email']).toBe('solo@example.com');
+});
 
 test('sign-up fits a phone without horizontal scrolling', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -137,6 +172,7 @@ test('email registration is the only form when WhatsApp is not configured', asyn
   await expect(page.getByRole('button', { name: /Use WhatsApp instead/ })).toHaveCount(0);
   await fillEmailForm(page);
   await expect(page.getByRole('button', { name: 'Create account', exact: true })).toBeEnabled();
+  await expect(page.getByRole('alert')).toHaveCount(0);
 });
 
 test('Continue with Google appears only when Google is configured, and starts the redirect', async ({ page }) => {

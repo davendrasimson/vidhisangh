@@ -57,7 +57,9 @@ export class RegisterComponent implements OnInit {
     firm: [false],
     organisation_name: [''],
     full_name: ['', [Validators.required, Validators.pattern(/\s*\S(?:[\s\S]*\S)\s*/), Validators.maxLength(200)]],
-    email: ['', [Validators.required, Validators.email, Validators.pattern(STRICT_EMAIL)]],
+    // STRICT_EMAIL alone: Validators.email rejects the trailing space phone
+    // keyboards add after an autocompleted address (trimmed on submit).
+    email: ['', [Validators.required, Validators.pattern(STRICT_EMAIL)]],
     professional_role: ['', [Validators.required]],
     password: ['', [Validators.required, Validators.pattern(STRONG_PASSWORD)]],
     add_sample_data: [true],
@@ -102,8 +104,28 @@ export class RegisterComponent implements OnInit {
     } finally { this.submitting.set(false); }
   }
 
+  /** What is still missing, in the order of the form (shown next to the button). */
+  protected missing(): string[] {
+    const c = this.form.controls;
+    const out: string[] = [];
+    if (c.full_name.invalid) out.push('your full name');
+    if (c.email.invalid) out.push('a valid email address');
+    if (c.professional_role.invalid) out.push('what best describes you');
+    if (c.password.invalid) out.push('a password of at least 8 characters with upper and lower case, a number and a symbol');
+    if (c.organisation_name.invalid) out.push('your firm or chamber name');
+    if (c.accept_terms.invalid) out.push('agreement to the Terms of Service');
+    return out;
+  }
+
   protected async submit(): Promise<void> {
-    if (this.form.invalid || this.submitting()) return;
+    if (this.submitting()) return;
+    if (this.form.invalid) {
+      // The button stays tappable: a silent disabled button on a phone looks
+      // like "nothing happens". Say what is missing, next to the button.
+      this.form.markAllAsTouched();
+      this.errorMsg.set(`Please add ${this.missing().join('; ')}.`);
+      return;
+    }
     this.submitting.set(true);
     this.errorMsg.set(null);
     try {
