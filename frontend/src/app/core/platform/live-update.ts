@@ -9,6 +9,13 @@
  * only the files it does not already have (identical files are copied from the
  * built-in screens), verifies every hash, and switches on the next launch.
  *
+ * When: only at launch, never while the app is in use. The plugin's own
+ * `next()` installs on the next trip to the background, which reloaded the
+ * screens while people were in WhatsApp reading a sign-in code (the form was
+ * gone when they came back). So a `kill` delay blocks that path on every
+ * launch, and a version downloaded earlier is applied with `set()` as soon as
+ * the app starts.
+ *
  * Safety: each version is built for one native build, so screens never run
  * against native code they were not built with; a store update discards
  * downloaded screens (`resetWhenUpdate`). If new screens fail to start,
@@ -23,16 +30,20 @@
 import type { CapacitorUpdaterPlugin } from '@capgo/capacitor-updater';
 
 const BASE = 'https://vidhisangh.com/app-updates';
-/** The version last handed to `next()`, to tell a failed start from a failed download. */
+/** The version last switched to, to tell a failed start from a failed download. */
 const NEXT_KEY = 'vs_live_update_next';
+/** A version downloaded and verified, waiting for the next launch. */
+const READY_KEY = 'vs_live_update_ready';
 
-function remembered(): string | null {
-  try { return localStorage.getItem(NEXT_KEY); } catch { return null; }
+function read(key: string): string | null {
+  try { return localStorage.getItem(key); } catch { return null; }
 }
 
-function remember(version: string): void {
-  try { localStorage.setItem(NEXT_KEY, version); } catch { /* storage unavailable */ }
+function write(key: string, version: string): void {
+  try { localStorage.setItem(key, version); } catch { /* storage unavailable */ }
 }
+
+function remembered(): string | null { return read(NEXT_KEY); }
 
 interface PublishedRelease {
   version: string;
@@ -47,6 +58,9 @@ export async function initLiveUpdates(): Promise<void> {
     const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
     // These screens started: keep them. Without this the plugin rolls back.
     await CapacitorUpdater.notifyAppReady();
+    // Never swap screens when the app goes to the background (see above).
+    await CapacitorUpdater.setMultiDelay({ delayConditions: [{ kind: 'kill' }] }).catch(() => undefined);
+    if (await applyDownloaded(CapacitorUpdater)) return;
     void checkForUpdate(CapacitorUpdater);
   } catch {
     /* plugin missing (older app build) or not ready: nothing to do */
@@ -61,6 +75,24 @@ export function releaseFor(manifest: unknown, platform: string, build: string): 
   }
   const valid = release.files.every((f) => typeof f?.name === 'string' && /^[0-9a-f]{64}$/.test(f?.sha256 ?? ''));
   return valid ? release : null;
+}
+
+/** At launch: switch to a version downloaded in an earlier session. True if switching. */
+async function applyDownloaded(updater: CapacitorUpdaterPlugin): Promise<boolean> {
+  try {
+    const ready = read(READY_KEY);
+    if (!ready) return false;
+    const { bundle: current } = await updater.current();
+    const { bundles } = await updater.list();
+    // A version that failed to start is marked "error" by the plugin: not taken.
+    const target = bundles.find((b) => b.version === ready && b.status === 'success');
+    if (!target || current.version === ready) return false;
+    write(NEXT_KEY, ready);
+    await updater.set({ id: target.id });  // reloads into the new screens
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function checkForUpdate(updater: CapacitorUpdaterPlugin): Promise<void> {
@@ -83,9 +115,8 @@ async function checkForUpdate(updater: CapacitorUpdaterPlugin): Promise<void> {
       await updater.delete({ id: known.id }).catch(() => undefined);
       known = undefined;
     }
-    const target = known?.status === 'success' || known?.status === 'pending'
-      ? known
-      : await updater.download({
+    if (known?.status !== 'success' && known?.status !== 'pending') {
+      await updater.download({
           url: `${BASE}/files`,
           version: release.version,
           manifest: release.files.map((f) => ({
@@ -94,8 +125,9 @@ async function checkForUpdate(updater: CapacitorUpdaterPlugin): Promise<void> {
             download_url: `${BASE}/files/${f.sha256}`,
           })),
         });
-    await updater.next({ id: target.id });
-    remember(release.version);
+    }
+    // Applied by applyDownloaded() on the next launch.
+    write(READY_KEY, release.version);
   } catch {
     /* offline, server unreachable or download failed: keep the current screens */
   }

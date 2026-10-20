@@ -59,3 +59,34 @@ test('sign-up starts with WhatsApp; email is the alternative and firm questions 
   assert.match(whatsapp, /Email \(optional\)/);
   assert.match(whatsapp, /email: this\.email\.trim\(\) \|\| null/);
 });
+
+test('a WhatsApp code in progress survives the app restarting, and expires with the code', async () => {
+  const { loadPending, savePending, clearPending, PENDING_KEY } = await import('../src/app/features/auth/whatsapp-pending.ts');
+  const mem = new Map();
+  const s = { getItem: k => mem.get(k) ?? null, setItem: (k, v) => mem.set(k, v), removeItem: k => mem.delete(k) };
+  const now = 1_000_000;
+  savePending({ phone: '+919876543210', challenge: 'c1', expiresAt: now + 300_000, resendAt: now + 60_000 }, s);
+  assert.equal(loadPending(now + 120_000, s)?.challenge, 'c1');
+  assert.equal(loadPending(now + 301_000, s), null, 'gone once the code has expired');
+  assert.ok(!mem.has(PENDING_KEY));
+  // A sign-up pass outlives the code it came from, until its own deadline.
+  savePending({ phone: '+919876543210', challenge: null, expiresAt: 0, resendAt: 0, signup: { signup_id: 'i', signup_token: 't', expiresAt: now + 900_000 } }, s);
+  assert.equal(loadPending(now + 600_000, s)?.signup?.signup_id, 'i');
+  clearPending(s);
+  assert.equal(loadPending(now, s), null);
+  mem.set(PENDING_KEY, '{not json');
+  assert.equal(loadPending(now, s), null);
+
+  const ts = readFileSync(new URL('../src/app/features/auth/whatsapp-login.component.ts', import.meta.url), 'utf8');
+  assert.match(ts, /const pending = loadPending\(\)/, 'the form restores a saved code');
+  assert.match(ts, /savePending\(\{ phone, challenge: result\.challenge_id/);
+  const login = readFileSync(new URL('../src/app/features/auth/login/login.component.ts', import.meta.url), 'utf8');
+  assert.match(login, /signal\(loadPending\(\) !== null/, 'sign-in reopens on WhatsApp while a code is waiting');
+});
+
+test('app updates are applied at launch, never when the app goes to the background', () => {
+  const src = readFileSync(new URL('../src/app/core/platform/live-update.ts', import.meta.url), 'utf8');
+  assert.ok(!/updater\.next\(/.test(src), 'next() installs on backgrounding (e.g. while reading a WhatsApp code)');
+  assert.match(src, /setMultiDelay\(\{ delayConditions: \[\{ kind: 'kill' \}\] \}\)/);
+  assert.match(src, /updater\.set\(\{ id: target\.id \}\)/);
+});

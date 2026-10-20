@@ -14,6 +14,12 @@ import { ApiProblem, SsoProvider } from '@core/models/auth.models';
 
 import { WhatsappLoginComponent } from '../whatsapp-login.component';
 import { isNativeApp } from '@core/platform/platform';
+import { loadPending } from '../whatsapp-pending';
+
+const METHOD_KEY = 'vs_login_method';
+function lastMethod(): string | null {
+  try { return typeof localStorage === 'undefined' ? null : localStorage.getItem(METHOD_KEY); } catch { return null; }
+}
 
 
 /** In-app paths only: must start with "/" (not "//"), no backslash, no scheme (A-33). */
@@ -40,7 +46,13 @@ export class LoginComponent implements OnInit {
 
   protected readonly submitting = signal(false);
   protected readonly whatsappAvailable = signal(false);
-  protected readonly whatsappMode = signal(false);
+  /** Opens on WhatsApp when a code is waiting or WhatsApp was used last time. */
+  protected readonly whatsappMode = signal(loadPending() !== null || lastMethod() === 'whatsapp');
+
+  protected toggleWhatsapp(): void {
+    this.whatsappMode.set(!this.whatsappMode());
+    try { localStorage.setItem(METHOD_KEY, this.whatsappMode() ? 'whatsapp' : 'email'); } catch { /* storage unavailable */ }
+  }
   protected async resendVerification(): Promise<void> {
     if (this.form.controls.email.invalid || this.submitting()) return;
     this.submitting.set(true);

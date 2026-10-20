@@ -19,7 +19,7 @@
 
   <!-- Always offered: a wrong password, a slow network or a rate-limited
        options check must never take the WhatsApp route away. -->
-  <button mat-stroked-button type="button" class="w-full h-11 mb-4" (click)="whatsappMode.set(!whatsappMode())">
+  <button mat-stroked-button type="button" class="w-full h-11 mb-4" (click)="toggleWhatsapp()">
     <mat-icon class="material-icons-outlined">{{ whatsappMode() ? 'mail' : 'chat' }}</mat-icon>
     {{ whatsappMode() ? 'Use email and password' : 'Sign in with WhatsApp code' }}
   </button>

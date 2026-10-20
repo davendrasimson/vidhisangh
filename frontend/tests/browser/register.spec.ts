@@ -158,6 +158,38 @@ test('WhatsApp alternative login sends the entered code and displays errors', as
   await expect(page.getByRole('alert')).toContainText('Incorrect WhatsApp code');
 });
 
+test('leaving to read the WhatsApp code and coming back keeps the code form, no new code needed', async ({ page }) => {
+  let requests = 0;
+  await page.route('**/api/v1/auth/whatsapp/request', route => {
+    requests += 1;
+    return route.fulfill({ json: { challenge_id: '7c401e3a-54b0-4d46-8d43-f8ee493fb060', expires_in: 300, detail: 'Code sent on WhatsApp.' } });
+  });
+  await page.route('**/api/v1/auth/whatsapp/login', async route => {
+    expect(route.request().postDataJSON()['challenge_id']).toBe('7c401e3a-54b0-4d46-8d43-f8ee493fb060');
+    await route.fulfill({ status: 401, json: { detail: 'Checked the restored challenge.' } });
+  });
+  await page.goto('/auth/login');
+  await page.getByRole('button', { name: 'Sign in with WhatsApp code' }).click();
+  await page.getByLabel('Mobile number', { exact: true }).fill('+919876543210');
+  await page.getByRole('button', { name: 'Send WhatsApp login code' }).click();
+  await expect(page.getByLabel('WhatsApp code', { exact: true })).toBeVisible();
+
+  // The phone restarts the app's screens while the person is in WhatsApp.
+  await page.reload();
+  await expect(page.getByLabel('WhatsApp code', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Resend code in \d+s/ })).toBeDisabled();
+  await page.getByLabel('WhatsApp code', { exact: true }).fill('123456');
+  await page.getByRole('button', { name: 'Verify and sign in' }).click();
+  await expect(page.getByRole('alert')).toContainText('Checked the restored challenge.');
+  expect(requests).toBe(1);
+
+  // A different number starts over.
+  await page.getByLabel('Mobile number', { exact: true }).fill('+919812345678');
+  await expect(page.getByLabel('WhatsApp code', { exact: true })).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByLabel('WhatsApp code', { exact: true })).toHaveCount(0);
+});
+
 test('email verification link confirms the address and offers sign-in', async ({ page }) => {
   await page.route('**/api/v1/auth/verify-email/test-token', route => route.fulfill({ json: { verified: true } }));
   await page.goto('/auth/verify-email/test-token');

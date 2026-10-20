@@ -4,6 +4,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { problemMessage } from '@core/interceptors/error.interceptor';
 import { SendCodeCooldown } from './send-code-cooldown';
+import { clearPending, loadPending, savePending } from './whatsapp-pending';
 import { PROFESSIONAL_ROLES } from './professional-roles';
 import { firstValueFrom } from 'rxjs';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -115,7 +116,31 @@ export class WhatsappLoginComponent {
   protected visibility: RoleVisibility = 'everyone';
   protected acceptTerms = false;
   protected readonly roles = PROFESSIONAL_ROLES;
-  protected reset(): void { this.challenge.set(null); this.code = ''; this.info.set(null); this.cooldown.seconds.set(0); }
+
+  constructor() {
+    // Back from reading the code in WhatsApp, possibly after the app restarted:
+    // carry on where the person left off instead of asking for a new code.
+    const pending = loadPending();
+    if (!pending) return;
+    const now = Date.now();
+    this.phone = pending.phone;
+    if (pending.signup) {
+      this.signup.set({
+        signup_required: true, signup_id: pending.signup.signup_id, signup_token: pending.signup.signup_token,
+        expires_in: Math.round((pending.signup.expiresAt - now) / 1000),
+      });
+      return;
+    }
+    if (pending.challenge && pending.expiresAt > now) {
+      this.challenge.set(pending.challenge);
+      this.info.set('Enter the 6-digit code we sent you on WhatsApp.');
+    }
+    if (pending.resendAt > now) this.cooldown.start(Math.ceil((pending.resendAt - now) / 1000));
+  }
+
+  /** The number was changed: a code for the old one no longer applies. */
+  protected reset(): void { this.challenge.set(null); this.code = ''; this.info.set(null); this.cooldown.seconds.set(0); clearPending(); }
+
   protected async send(): Promise<void> {
     if (this.busy() || this.cooldown.seconds()) return;
     this.busy.set(true); this.error.set(null);
@@ -125,7 +150,23 @@ export class WhatsappLoginComponent {
       if (this.phone !== phone) return;
       this.challenge.set(result.challenge_id); this.code = ''; this.info.set(result.detail);
       this.cooldown.start();
-    } catch (err) { this.cooldown.fromError(err); this.error.set(problemMessage(err, 'Could not send code.')); }
+      const now = Date.now();
+      savePending({ phone, challenge: result.challenge_id, expiresAt: now + result.expires_in * 1000, resendAt: now + 60_000 });
+    } catch (err) {
+      this.cooldown.fromError(err);
+      this.error.set(problemMessage(err, 'Could not send code.'));
+      // Remember the wait too, so reopening the app shows the countdown
+      // (and any code already sent) rather than another refused request.
+      if (this.cooldown.seconds() && this.phone === phone) {
+        const now = Date.now();
+        const earlier = loadPending(now);
+        savePending({
+          phone, challenge: earlier?.phone === phone ? earlier.challenge : null,
+          expiresAt: earlier?.phone === phone ? earlier.expiresAt : 0,
+          resendAt: now + this.cooldown.seconds() * 1000,
+        });
+      }
+    }
     finally { this.busy.set(false); }
   }
   protected async login(): Promise<void> {
@@ -133,7 +174,15 @@ export class WhatsappLoginComponent {
     this.busy.set(true); this.error.set(null);
     try {
       const result = await firstValueFrom(this.auth.whatsappLogin(this.challenge()!, this.code, this.mfa));
-      if ('signup_required' in result) { this.signup.set(result); return; }
+      if ('signup_required' in result) {
+        this.signup.set(result);
+        savePending({
+          phone: this.phone, challenge: null, expiresAt: 0, resendAt: 0,
+          signup: { signup_id: result.signup_id, signup_token: result.signup_token, expiresAt: Date.now() + result.expires_in * 1000 },
+        });
+        return;
+      }
+      clearPending();
       if (result.password_must_change) { await this.router.navigateByUrl('/auth/change-password'); return; }
       await this.enterApp();
     } catch (err) {
@@ -152,11 +201,12 @@ export class WhatsappLoginComponent {
         signup_id: pass.signup_id, signup_token: pass.signup_token, full_name: this.fullName.trim(),
         email: this.email.trim() || null, accept_terms: true, professional_role: this.role, role_visibility: this.visibility,
       }));
+      clearPending();
       await this.enterApp();
     } catch (err) {
       if ((err as HttpErrorResponse).status === 401) {
         // The pass expired (15 minutes) or was used: start again with a new code.
-        this.signup.set(null); this.reset();
+        this.signup.set(null); this.reset();  // also clears the saved pass
         this.error.set('That took a little long. Request a new WhatsApp code to continue.');
       } else {
         this.error.set(problemMessage(err, 'Could not create your account. Please try again.'));
