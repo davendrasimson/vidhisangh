@@ -745,8 +745,14 @@ verifies the address; the user then signs in. Mobile-only signup proves phone
 ownership with a WhatsApp code and can immediately create a session. When both
 contacts are supplied, both must be verified. Existing users are not locked out.
 
-WhatsApp OTP reuses the Simsondesk `simsondeskotp` template, including its four
-extra body parameters and Copy-code URL button. Codes expire after five minutes,
+WhatsApp OTP is sent from VidhiSangh's own number, +91 73411 00692 (display
+name "VidhiSangh", phone-number ID 1414403508414088, WhatsApp account
+1631376525208862), with its approved authentication template `vidhisangh_otp`:
+one body parameter (the code) and a Copy-code URL button
+(`VS_WA_OTP_TEMPLATE_PARAMS=code`). Until 20 Oct 2026 codes went from the
+Simsondesk number +91 73411 00734 with `simsondeskotp`, whose body also took app
+name, validity, call and contact numbers
+(`VS_WA_OTP_TEMPLATE_PARAMS=code,app,expiry,call,contact`). Codes expire after five minutes,
 are hashed with the link-token key, are consumed once, and allow five guesses.
 Resends invalidate prior codes; per-phone limits are one per minute/five per hour,
 in addition to the auth IP limiter. Redis failures fail closed. MFA still applies
@@ -754,7 +760,8 @@ to WhatsApp login. Expired challenge records are removed after 24 hours.
 
 Configuration: `VS_WA_PHONE_NUMBER_ID`, `VS_WA_ACCESS_TOKEN_FILE` (prefer a systemd
 runtime credential), `VS_WA_API_VERSION=v25.0`, `VS_WA_OTP_TEMPLATE`,
-`VS_WA_OTP_TEMPLATE_LANG`, `VS_WA_OTP_CALL_NUMBER`, `VS_WA_OTP_CONTACT`.
+`VS_WA_OTP_TEMPLATE_LANG`, `VS_WA_OTP_TEMPLATE_PARAMS`, `VS_WA_OTP_CALL_NUMBER`,
+`VS_WA_OTP_CONTACT`.
 `GET /api/v1/auth/options` exposes only whether WhatsApp is configured. The UI
 keeps mobile signup/login disabled until the credentials are configured, while
 email signup remains available. No secrets are returned to the browser.

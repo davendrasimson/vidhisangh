@@ -47,9 +47,16 @@ async def send_whatsapp_code(phone: str, code: str) -> None:
             raise ServiceUnavailableError("WhatsApp sign-in is temporarily unavailable.") from exc
     if not token or not settings.WA_PHONE_NUMBER_ID or not settings.WA_OTP_TEMPLATE:
         raise ServiceUnavailableError("WhatsApp sign-in is temporarily unavailable.")
-    # Same approved Simsondesk template, including its four body parameters
-    # and Copy-code button. Never log codes, tokens, payloads or provider bodies.
-    values = [code, "VidhiSangh", "5 minutes", settings.WA_OTP_CALL_NUMBER, settings.WA_OTP_CONTACT]
+    # The template's body parameters, in order (VS_WA_OTP_TEMPLATE_PARAMS): the
+    # VidhiSangh authentication template takes just the code; the older
+    # Simsondesk one also took app name, validity, call and contact numbers.
+    # Both end in a Copy-code button. Never log codes, tokens, payloads or
+    # provider bodies.
+    known = {
+        "code": code, "app": "VidhiSangh", "expiry": "5 minutes",
+        "call": settings.WA_OTP_CALL_NUMBER, "contact": settings.WA_OTP_CONTACT,
+    }
+    values = [known[name.strip()] for name in settings.WA_OTP_TEMPLATE_PARAMS.split(",") if name.strip() in known]
     payload = {
         "messaging_product": "whatsapp",
         "to": phone.lstrip("+"),

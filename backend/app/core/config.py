@@ -202,10 +202,13 @@ class Settings(BaseSettings):
     WA_ACCESS_TOKEN: str = ""
     WA_ACCESS_TOKEN_FILE: str = ""
     WA_API_VERSION: str = "v25.0"
-    WA_OTP_TEMPLATE: str = "simsondeskotp"
+    # VidhiSangh's own number (+91 73411 00692) and its approved authentication
+    # template; see phone_otp.send_whatsapp_code for the parameter names.
+    WA_OTP_TEMPLATE: str = "vidhisangh_otp"
     WA_OTP_TEMPLATE_LANG: str = "en_US"
-    WA_OTP_CALL_NUMBER: str = "+917341100734"
-    WA_OTP_CONTACT: str = "+917341100734"
+    WA_OTP_TEMPLATE_PARAMS: str = "code"
+    WA_OTP_CALL_NUMBER: str = "+917341100692"
+    WA_OTP_CONTACT: str = "+917341100692"
     SMTP_HOST: str | None = None
     SMTP_PORT: int = 587
     SMTP_USER: str | None = None
