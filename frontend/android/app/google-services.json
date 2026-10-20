@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "374278746231",
+    "project_id": "vidhisangh-2c038",
+    "storage_bucket": "vidhisangh-2c038.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:374278746231:android:5464876af697f31890d672",
+        "android_client_info": {
+          "package_name": "com.vidhisangh.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCX1lC6nsQVCqBP3Ts2t7OSJt9Y4i_ogAs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

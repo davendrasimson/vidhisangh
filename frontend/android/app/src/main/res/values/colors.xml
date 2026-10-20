@@ -3,4 +3,5 @@
     <!-- Shows behind the status and navigation bars (the WebView is padded clear
          of them). Matches the app header: white in light mode. -->
     <color name="vs_window">#FFFFFF</color>
+    <color name="notification_brand">#215DCC</color>
 </resources>

@@ -2,6 +2,7 @@ import { ApplicationRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { isNativeApp } from './platform';
 import { initLiveUpdates } from './live-update';
+import { initPush } from './push';
 
 /** Screens where the Android back button leaves the app instead of going back. */
 const ROOT_PATHS = new Set(['/', '/app', '/app/dashboard', '/auth/login']);
@@ -20,6 +21,7 @@ const ROOT_PATHS = new Set(['/', '/app', '/app/dashboard', '/auth/login']);
  *   can report "nothing to go back to" while the app has screens behind it.
  * - Hide the splash screen once Angular has rendered.
  * - Live screen updates from vidhisangh.com (live-update.ts).
+ * - Push notifications after sign-in (push.ts).
  */
 export async function initNativeShell(appRef: ApplicationRef): Promise<void> {
   if (!isNativeApp()) return;
@@ -43,4 +45,5 @@ export async function initNativeShell(appRef: ApplicationRef): Promise<void> {
   // Angular has started: confirm these screens before anything else can fail.
   await initLiveUpdates();
   await SplashScreen.hide({ fadeOutDuration: 200 });
+  await initPush(appRef);
 }

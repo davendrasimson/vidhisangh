@@ -88,6 +88,7 @@ from app.modules.notifications.models import (
     Notification,
     NotificationDelivery,
     NotificationPreference,
+    PushDevice,
 )
 from app.modules.payments.models import Payment
 from app.modules.privacy.models import ClientConsentEvent, PrivacyRequest
@@ -156,6 +157,7 @@ __all__ = [
     "NotificationPreference",
     "NotificationDelivery",
     "HearingReminderSend",
+    "PushDevice",
     "Matter",
     "MatterAdvocate",
     "MatterAuthority",

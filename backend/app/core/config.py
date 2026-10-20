@@ -211,6 +211,9 @@ class Settings(BaseSettings):
     WA_OTP_CONTACT: str = "+917341100692"
     # Evening WhatsApp list of tomorrow's hearings (utility template; members
     # opt in under Settings → Notifications). Empty disables the job.
+    # Firebase service-account key for push notifications (systemd credential
+    # in production). Empty: no push is sent.
+    FCM_CREDENTIALS_FILE: str = ""
     WA_REMINDER_TEMPLATE: str = "hearing_reminder"
     WA_REMINDER_TEMPLATE_LANG: str = "en"
     SMTP_HOST: str | None = None

@@ -105,3 +105,19 @@ class HearingReminderSend(AuditedBase):
     hearing_count: Mapped[int] = mapped_column(Integer, nullable=False)
     status: Mapped[str] = mapped_column(String(10), nullable=False)  # sending | sent | failed
     detail: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
+
+class PushDevice(AuditedBase):
+    """A phone that receives push notifications (Firebase token), per member.
+
+    Registered by the app after sign-in (the OS permission prompt is the
+    consent); removed at sign-out or when Firebase reports the token gone.
+    A token moves to whoever signs in on that phone last.
+    """
+
+    __tablename__ = "push_devices"
+    __table_args__ = (UniqueConstraint("token", name="uq_push_devices_token"),)
+
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, index=True)
+    token: Mapped[str] = mapped_column(String(512), nullable=False)
+    platform: Mapped[str] = mapped_column(String(10), nullable=False)

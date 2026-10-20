@@ -235,6 +235,9 @@ export class AuthService {
   }
 
   async logout(allDevices = false): Promise<void> {
+    // While still signed in: this phone stops receiving the member's pushes.
+    const { forgetPushDevice } = await import('@core/platform/push');
+    await forgetPushDevice(this.http);
     try {
       await firstValueFrom(
         this.http.post(

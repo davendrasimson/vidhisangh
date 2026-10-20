@@ -43,7 +43,7 @@ export class NotificationSettingsComponent implements OnInit {
     { channel: 'email', label: 'Email', icon: 'mail', hint: 'Delivered to your account email.', live: true },
     { channel: 'slack', label: 'Slack', icon: 'tag', hint: 'Posts to your firm’s Slack webhook.', live: true },
     { channel: 'sms', label: 'SMS', icon: 'sms', hint: 'Coming soon — awaits an SMS gateway.', live: false },
-    { channel: 'push', label: 'Push', icon: 'notifications_active', hint: 'Coming soon — mobile push.', live: false },
+    { channel: 'push', label: 'Push (mobile app)', icon: 'notifications_active', hint: 'On your phone when the VidhiSangh app is allowed to send notifications.', live: true },
     { channel: 'teams', label: 'Microsoft Teams', icon: 'groups', hint: 'Coming soon — Teams connector.', live: false },
   ];
 
@@ -64,7 +64,8 @@ export class NotificationSettingsComponent implements OnInit {
   }
 
   protected enabled(channel: NotificationChannel): boolean {
-    return this.prefs()[channel]?.enabled ?? false;
+    // Push is on unless switched off: the phone's own permission prompt is the opt-in.
+    return this.prefs()[channel]?.enabled ?? channel === 'push';
   }
 
   protected async toggle(meta: ChannelMeta, value: boolean): Promise<void> {

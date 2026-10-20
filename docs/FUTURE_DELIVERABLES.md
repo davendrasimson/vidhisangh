@@ -129,7 +129,7 @@ Still open:
 - **Passkeys in the app** — WebAuthn is bound to vidhisangh.com; the app runs on localhost. Needs Android Digital Asset Links (`/.well-known/assetlinks.json`) + Apple associated domains and a native passkey plugin. Hidden in the app until then.
 - **SSO in the app** — the OAuth redirect returns to `location.origin`, which the app cannot receive. Needs deep links (custom scheme or App Links / Universal Links) and a backend allow-list entry. Hidden in the app until then.
 - **Deep links** — open KYC, portal, payment and signing links in the app when installed (same App Links / Universal Links work).
-- **Push notifications** — needs Firebase Cloud Messaging + APNs keys and a `push` channel provider in `app/core/channels.py`. Also helps App Store review (guideline 4.2).
+- ✅ **Push notifications (Android)** — built 21 Oct 2026 (Firebase). Still open: the server's Firebase service-account key (owner to download; then `VS_FCM_CREDENTIALS_FILE` as a systemd credential and an end-to-end test on a phone); iOS needs APNs (Apple Developer account) and `GoogleService-Info.plist`; hearing reminders could also go by push.
 - **Biometric unlock, document scanner, camera upload, QR scanner, offline data** — native plugins on top of the existing app; offline would need a local cache and sync rules.
 
 ---

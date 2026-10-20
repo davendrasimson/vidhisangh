@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Response, status
+from pydantic import BaseModel, Field
 
 from app.core.deps import CurrentUserDep, TenantSessionDep, require_permission
 from app.core.pagination import PageParams, page_params
@@ -106,4 +107,36 @@ async def mark_read(
     notification_id: uuid.UUID, current: CurrentUserDep, session: TenantSessionDep
 ) -> Response:
     await _svc(current, session).mark_read(notification_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+class PushDeviceIn(BaseModel):
+    token: str = Field(min_length=20, max_length=512)
+    platform: Literal["android", "ios"]
+
+
+@router.post("/devices", status_code=status.HTTP_204_NO_CONTENT, summary="Register this phone for push notifications")
+async def register_device(data: PushDeviceIn, current: CurrentUserDep, session: TenantSessionDep) -> Response:
+    """Called by the app after sign-in. A token already registered moves to
+    whoever signed in on that phone last."""
+    from sqlalchemy import select
+
+    from app.modules.notifications.models import PushDevice
+
+    device = await session.scalar(select(PushDevice).where(PushDevice.token == data.token))
+    if device is None:
+        session.add(PushDevice(user_id=current.id, token=data.token, platform=data.platform))
+    else:
+        device.user_id, device.platform = current.id, data.platform
+    await session.flush()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/devices/remove", status_code=status.HTTP_204_NO_CONTENT, summary="Stop push to this phone (sign-out)")
+async def remove_device(data: PushDeviceIn, current: CurrentUserDep, session: TenantSessionDep) -> Response:
+    from sqlalchemy import delete
+
+    from app.modules.notifications.models import PushDevice
+
+    await session.execute(delete(PushDevice).where(PushDevice.token == data.token, PushDevice.user_id == current.id))
     return Response(status_code=status.HTTP_204_NO_CONTENT)

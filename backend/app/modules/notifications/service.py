@@ -20,6 +20,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.channels import ChannelMessage, get_channels
+from app.core.push import PushMessage, get_push_sender
 from app.core.exceptions import NotFoundError, PermissionDeniedError
 from app.core.link_preview import assert_public_http_url, http_client
 from app.modules.identity.repository import UserRepository
@@ -29,6 +30,7 @@ from app.modules.notifications.models import (
     NotificationChannel,
     NotificationDelivery,
     NotificationType,
+    PushDevice,
 )
 from app.modules.notifications.repository import (
     DeliveryRepository,
@@ -145,10 +147,13 @@ async def _dispatch_channels(
     _record(session, user_id=user_id, type=type, channel=NotificationChannel.IN_APP, status=DeliveryStatus.SENT)
 
     prefs = {p.channel: p for p in await PreferenceRepository(session).for_user(user_id)}
+    push_pref = prefs.get(NotificationChannel.PUSH)
+    if push_pref is None or (push_pref.enabled and (not push_pref.types or type.value in push_pref.types)):
+        await _dispatch_push(session, user_id=user_id, type=type, message=message, link=link)
     active = [
         channel
         for channel in NotificationChannel
-        if channel != NotificationChannel.IN_APP
+        if channel not in (NotificationChannel.IN_APP, NotificationChannel.PUSH)
         and (p := prefs.get(channel)) is not None
         and p.enabled
         and (not p.types or type.value in p.types)
@@ -187,6 +192,31 @@ async def _dispatch_channels(
             # Only the exception class is logged: provider messages can echo the address.
             _record(session, user_id=user_id, type=type, channel=channel,
                     status=DeliveryStatus.FAILED, detail=f"failed: {type(exc).__name__}")
+
+
+async def _dispatch_push(
+    session: AsyncSession, *, user_id: uuid.UUID, type: NotificationType, message: str, link: str | None,
+) -> None:
+    """To every phone the member registered (on unless they switched push off).
+    A token Firebase no longer knows is deleted."""
+    devices = (await session.scalars(select(PushDevice).where(PushDevice.user_id == user_id))).all()
+    if not devices:
+        return
+    sender = get_push_sender()
+    if sender is None:
+        _record(session, user_id=user_id, type=type, channel=NotificationChannel.PUSH,
+                status=DeliveryStatus.SKIPPED, detail="push not configured")
+        return
+    sent = 0
+    for device in devices:
+        result = await sender.send(device.token, PushMessage(title="VidhiSangh", body=message, link=link))
+        if result == "sent":
+            sent += 1
+        elif result == "unregistered":
+            await session.delete(device)
+    _record(session, user_id=user_id, type=type, channel=NotificationChannel.PUSH,
+            status=DeliveryStatus.SENT if sent else DeliveryStatus.FAILED,
+            detail=f"{sent} of {len(devices)} device(s)")
 
 
 async def _dispatch_tenant_slack(
