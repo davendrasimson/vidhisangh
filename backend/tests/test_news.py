@@ -112,3 +112,43 @@ async def test_official_update_category_classification() -> None:
     assert "legislation" in image_for(Entry(source="India Code", category="legislation", **base))
     assert "official-notice" in image_for(Entry(source="Supreme Court of India", category="circular", **base))
     assert "justice-editorial" in image_for(Entry(source="Supreme Court of India", category="judgment", **base))
+
+
+def test_more_official_sources_read_their_dated_notices() -> None:
+    from datetime import UTC, datetime, timedelta
+
+    from app.scripts.ingest_official_news import (
+        AllahabadHighCourtParser,
+        LawCommissionParser,
+        NalsaParser,
+        PunjabHaryanaHighCourtParser,
+    )
+
+    recent = datetime.now(UTC) - timedelta(days=10)
+    dmy, ymd = recent.strftime("%d-%m-%Y"), recent.strftime("%Y%m%d")
+
+    p = AllahabadHighCourtParser()
+    p.feed(f'<a href="/event/event_26322_{dmy}.pdf">Publication of Revised Advocates\' Chambers Rules, 2026</a>'
+           '<a href="/event/event_9302_16-04-2021.pdf">Video Conferencing guidelines of 2021</a>'
+           f'<a href="/event/event_1_{dmy}.pdf">Tender for supply of furniture to the court</a>')
+    assert [(e.title, e.url) for e in p.entries] == [
+        ("Publication of Revised Advocates' Chambers Rules, 2026", f"https://www.allahabadhighcourt.in/event/event_26322_{dmy}.pdf")]
+    assert p.entries[0].published_at.date() == recent.date()  # old and tender notices left out
+
+    p = PunjabHaryanaHighCourtParser()
+    p.feed(f'<a href="https://highcourtchd.gov.in/sub_pages/left_menu/publish/announce/announce_pdf/gowns_{recent:%d%m%Y}_ab12.pdf">'
+           'Notice regarding wearing of gowns w.e.f. 02.11.2026</a><a href="./sub_pages/x/Roster_crnt.pdf">Judges Roster</a>')
+    assert [e.title for e in p.entries] == ["Notice regarding wearing of gowns w.e.f. 02.11.2026"]
+    assert p.entries[0].source == "High Court of Punjab and Haryana" and p.entries[0].category == "circular"
+
+    p = NalsaParser()
+    p.feed(f'<a href="https://cdnbbsr.s3waas.gov.in/s32e45/uploads/{ymd[:4]}/{ymd[4:6]}/{ymd}1181865580.pdf">Digital Media Internship - 2026  New</a>')
+    assert [e.title for e in p.entries] == ["Digital Media Internship - 2026"]
+
+    p = LawCommissionParser()
+    p.feed('<table><tr><th>Sr. No.</th><th>Title</th><th>Description</th><th>Start Date</th><th>End Date</th><th>File</th></tr>'
+           f'<tr><td>1</td><td>JUDGEMENTS AND GENDER (Sensitivity and compassion in writing judgments)</td><td></td><td>{recent:%d/%m/%Y}</td>'
+           '<td>31/08/2027</td><td><a href="https://cdnbbsr.s3waas.gov.in/s3ca/uploads/2026/08/2026081930.pdf">View</a></td></tr></table>')
+    assert [(e.title, e.source) for e in p.entries] == [
+        ("JUDGEMENTS AND GENDER (Sensitivity and compassion in writing judgments)", "Law Commission of India")]
+    assert p.entries[0].published_at.date() == recent.date()

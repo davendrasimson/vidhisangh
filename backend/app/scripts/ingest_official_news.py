@@ -211,6 +211,170 @@ class DelhiHighCourtParser(HTMLParser):
             f"The High Court of Delhi lists this judgment pronouncement dated {published:%d %B %Y}. Open the official document for details.", ["Official source", "Delhi High Court", "Judgment pronouncement"]))
 
 
+ALLAHABAD = "https://www.allahabadhighcourt.in/"
+PUNJAB_HARYANA = "https://highcourtchd.gov.in/"
+LAW_COMMISSION = "https://lawcommissionofindia.nic.in/"
+NALSA = "https://nalsa.gov.in/"
+MAX_AGE_DAYS = 365
+SKIP_TITLES = re.compile(r"(?i)\b(tender|corrigendum|recruitment|result for engagement|e-?auction|quotation)\b")
+
+
+class LinkParser(HTMLParser):
+    """Every anchor on a page as (absolute href, text): the dated-file sources
+    below need nothing more, because their file names carry the date."""
+
+    def __init__(self, base: str):
+        super().__init__(convert_charrefs=True)
+        self.base = base
+        self.links: list[tuple[str, str]] = []
+        self.href: str | None = None
+        self.parts: list[str] = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            self.href, self.parts = urljoin(self.base, dict(attrs).get("href") or ""), []
+
+    def handle_data(self, data):
+        if self.href:
+            self.parts.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self.href:
+            self.links.append((self.href, clean(self.parts)))
+            self.href = None
+
+
+def _recent(published: datetime) -> bool:
+    return (datetime.now(UTC) - published).days <= MAX_AGE_DAYS
+
+
+class DatedLinksParser:
+    """A page whose notices link to files with the date in the name.
+
+    Subclasses set ``base``, ``source``, ``tags`` and ``date_of(href)``."""
+
+    base = source = summary = ""
+    tags: list[str] = []
+
+    def __init__(self):
+        self.entries: list[Entry] = []
+
+    def date_of(self, href: str) -> datetime | None:  # pragma: no cover - overridden
+        return None
+
+    def feed(self, text: str) -> None:
+        links = LinkParser(self.base)
+        links.feed(text)
+        seen = set()
+        for href, title in links.links:
+            title = re.sub(r"\s*\bNew\b\s*$", "", title).strip()[:400]
+            published = self.date_of(href)
+            if not published or not title or len(title) < 12 or href in seen or not _recent(published) or SKIP_TITLES.search(title):
+                continue
+            seen.add(href)
+            category = classify(title)
+            self.entries.append(Entry(title, self.source, category, href, published,
+                f"{self.summary} Open the source document for the complete text.", ["Official source", *self.tags]))
+        self.entries.sort(key=lambda e: e.published_at, reverse=True)
+
+
+class AllahabadHighCourtParser(DatedLinksParser):
+    base, source, tags = ALLAHABAD, "High Court of Judicature at Allahabad", ["Allahabad High Court"]
+    summary = "Official notice published by the High Court of Judicature at Allahabad."
+
+    def date_of(self, href):
+        m = re.search(r"/event/event_\d+_(\d{2}-\d{2}-\d{4})\.pdf$", href)
+        try:
+            return datetime.strptime(m.group(1), "%d-%m-%Y").replace(tzinfo=UTC) if m else None
+        except ValueError:
+            return None
+
+
+class PunjabHaryanaHighCourtParser(DatedLinksParser):
+    base, source, tags = PUNJAB_HARYANA, "High Court of Punjab and Haryana", ["Punjab and Haryana High Court"]
+    summary = "Official announcement published by the High Court of Punjab and Haryana."
+
+    def date_of(self, href):
+        m = re.search(r"/announce_pdf/[^/]*?_(\d{8})_[^/]*\.pdf$", href)
+        try:
+            return datetime.strptime(m.group(1), "%d%m%Y").replace(tzinfo=UTC) if m else None
+        except ValueError:
+            return None
+
+
+class S3WaasParser(DatedLinksParser):
+    """Government sites on the S3WaaS platform (as sci.gov.in): uploads carry the date."""
+
+    def date_of(self, href):
+        return date_from_cdn(href) if href.startswith("https://cdnbbsr.s3waas.gov.in/") else None
+
+
+class TableRowsParser(HTMLParser):
+    """A table of notices: one row per item with its title in ``title_cell``,
+    a dd/mm/yyyy date in some cell and a link to the document."""
+
+    base = source = summary = ""
+    tags: list[str] = []
+    title_cell = 1
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.entries: list[Entry] = []
+        self.in_row = self.in_cell = False
+        self.cells: list[str] = []
+        self.parts: list[str] = []
+        self.href: str | None = None
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "tr":
+            self.in_row, self.cells, self.href = True, [], None
+        elif tag in ("td", "th") and self.in_row:
+            self.in_cell, self.parts = True, []
+        elif tag == "a" and self.in_row and not self.href:
+            href = dict(attrs).get("href") or ""
+            if href.lower().endswith(".pdf"):
+                self.href = urljoin(self.base, href)
+
+    def handle_data(self, data):
+        if self.in_cell:
+            self.parts.append(data)
+
+    def handle_endtag(self, tag):
+        if tag in ("td", "th") and self.in_cell:
+            self.in_cell = False
+            self.cells.append(clean(self.parts))
+        if tag != "tr" or not self.in_row:
+            return
+        self.in_row = False
+        if len(self.cells) <= self.title_cell or not self.href:
+            return
+        title = self.cells[self.title_cell][:400]
+        published = None
+        for cell in self.cells:
+            m = re.fullmatch(r"(\d{2})/(\d{2})/(\d{4})", cell)
+            if m:
+                try:
+                    published = datetime.strptime(cell, "%d/%m/%Y").replace(tzinfo=UTC)
+                except ValueError:
+                    pass
+                break
+        if not published or len(title) < 12 or not _recent(published) or SKIP_TITLES.search(title):
+            return
+        category = classify(title)
+        self.entries.append(Entry(title, self.source, category, self.href, published,
+            f"{self.summary} Open the source document for the complete text.", ["Official source", *self.tags]))
+
+
+class LawCommissionParser(TableRowsParser):
+    base, source, tags = LAW_COMMISSION, "Law Commission of India", ["Law Commission"]
+    summary = "Published by the Law Commission of India."
+
+
+class NalsaParser(S3WaasParser):
+    base, source, tags = NALSA, "National Legal Services Authority", ["NALSA", "Legal aid"]
+    summary = "Official update from the National Legal Services Authority (NALSA)."
+
+
 def legislation_entries() -> list[Entry]:
     """Verified recent official texts; update this list when India Code publishes newer Acts."""
     return [
@@ -227,9 +391,13 @@ def legislation_entries() -> list[Entry]:
 
 
 async def ingest(*, dry_run: bool = False, archive_competitor: bool = False) -> None:
-    specs = [(SCI, SupremeCourtParser), (f"{SCI}notices-and-circulars/", SupremeCourtNoticesParser), (DHC, DelhiHighCourtParser)]
+    specs = [
+        (SCI, SupremeCourtParser), (f"{SCI}notices-and-circulars/", SupremeCourtNoticesParser), (DHC, DelhiHighCourtParser),
+        (ALLAHABAD, AllahabadHighCourtParser), (f"{PUNJAB_HARYANA}?mod=announce", PunjabHaryanaHighCourtParser),
+        (f"{LAW_COMMISSION}notice-category/whats-new/", LawCommissionParser), (NALSA, NalsaParser),
+    ]
     entries, errors = legislation_entries(), []
-    async with httpx.AsyncClient(timeout=30, follow_redirects=False) as client:
+    async with httpx.AsyncClient(timeout=30, follow_redirects=False, headers={"User-Agent": "Mozilla/5.0 (VidhiSangh legal updates)"}) as client:
         for url, parser_type in specs:
             try:
                 response = await client.get(url)
