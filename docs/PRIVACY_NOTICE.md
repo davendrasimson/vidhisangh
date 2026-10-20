@@ -41,6 +41,7 @@ We do **not** collect biometric data, location, contacts or anything from your d
 | Creating and securing your account; signing you in; MFA; detecting attacks | Consent given at sign-up (s.6); and legitimate use — it is necessary to provide what you asked for (s.7(a)) |
 | Running the practice-management features your firm uses | Consent / s.7(a) |
 | Publishing your professional profile in the cross-tenant directory and network | Consent. **You can opt out** in Settings → Privacy & data → "Directory listing" at any time; your profile then disappears from discovery |
+| Sending **push notifications** to the mobile app | Consent, given through your phone's notification permission. We store the app's Firebase device token (Google Firebase Cloud Messaging delivers the message); it is deleted when you sign out or Firebase reports it invalid. Switch off in Settings → Notifications or in your phone's settings |
 | Publishing a **public profile page** at vidhisangh.com/in/your-name, open to anyone and to search engines | Consent, given separately and only if you switch it on in Settings → Privacy & data → "Public profile page". It shows your name, photo, headline and the profile sections you set to "Everyone"; never your contact details. Withdraw by switching it off; the page is removed at once (search engines may take a few days to drop it) |
 | Sending notifications you turned on (e-mail, Slack) | Consent, per channel, in Settings → Notifications |
 | Billing your organisation | Performance of the contract; legal obligation (GST) |
@@ -90,6 +91,9 @@ All production data is hosted on servers in **India (ap-south-1 / Mumbai region)
 | Slack (your firm's own webhook, configured by your administrator) | Firm notifications | Notification text only; goes to your firm's workspace |
 | Razorpay | Subscription and invoice payments | Name, e-mail, amount |
 | Google / Microsoft / LinkedIn | Single sign-on, only when you choose it | E-mail, name, subject identifier |
+| Google Firebase Cloud Messaging | Push notifications to the mobile app, only if you allow them | Device token, notification text |
+| Meta Platforms (WhatsApp Business) | WhatsApp sign-in codes, and hearing reminders if you turn them on | Mobile number, the code or the list of next-day hearings |
+| Brevo (Sendinblue SAS) | Invitation e-mails to people not yet on VidhiSangh, from public professional listings | E-mail address, name, the listing it came from |
 | Hosting provider (India) | Servers, database, document storage | All platform data, encrypted at rest |
 
 Firms may also configure outbound webhooks to their own systems; those are the firm's processors, not ours. We will update this table before adding a sub-processor.
