@@ -800,3 +800,20 @@ webhook subscription, template change or source credential rotation was performe
 The credential was validated with a read-only Meta request. Both sites remain up.
 If the shared source token is intentionally rotated later, update this encrypted
 copy too; do not rotate or migrate the shared account as part of a VidhiSangh deploy.
+
+## Push notifications (Firebase)
+
+Firebase project `vidhisangh-2c038`, service account
+`firebase-adminsdk-fbsvc@vidhisangh-2c038.iam.gserviceaccount.com`. Its key is
+an encrypted systemd credential, `/etc/credstore.encrypted/vidhisangh.fcm_key`
+(`systemd-creds encrypt --name=fcm_key key.json …`), loaded by the drop-in
+`/etc/systemd/system/vidhisangh-api.service.d/push.conf`:
+
+    LoadCredentialEncrypted=fcm_key:/etc/credstore.encrypted/vidhisangh.fcm_key
+    Environment=VS_FCM_CREDENTIALS_FILE=%d/fcm_key
+
+Changing it needs `daemon-reload` and `restart` (not reload). To rotate:
+generate a new key in Firebase → Project settings → Service accounts, encrypt it
+over the old file, restart, then delete the old key in Google Cloud → IAM →
+Service accounts. Check: sending to a made-up token must return `unregistered`
+(signed in, device unknown), not `failed`.
