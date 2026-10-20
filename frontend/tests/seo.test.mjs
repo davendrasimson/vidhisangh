@@ -65,9 +65,36 @@ test('bare-act pages are generated for every section of every Act', () => {
     assert.match(sitemap, new RegExp(`/acts/${id}/</loc>`));
   }
   assert.ok(untitled <= 30, `${untitled} of ${sections} sections have no heading`);
-  assert.match(read('public/acts/bns/section-103/index.html'), /Indian Penal Code, 1860 \(IPC\), section 302/);
+  assert.match(read('public/acts/bns/section-103/index.html'), /BNS 103\(1\)<\/b> ← <a href="\/acts\/ipc-to-bns\/section-302\/">IPC 302<\/a>/);
   assert.match(read('public/acts/ipc/section-302/index.html'), /href="\/acts\/bns\/section-103\/"/);
   assert.match(read('public/acts/ipc/section-302/index.html'), /class="repealed"/);
+});
+
+test('old law to new law: every new-law section is in the BPRD table, with a page per old section', () => {
+  const sizes = { bns: 358, bnss: 531, bsa: 170 };
+  for (const [id, count] of Object.entries(sizes)) {
+    const table = JSON.parse(read(`content/correspondence/${id}.json`));
+    const covered = new Set(table.entries.map((e) => e.new.match(/^\d+/)[0]));
+    assert.equal(covered.size, count, `${id}: every section is in the table`);
+    assert.ok(table.entries.every((e) => !('summary' in e)), 'the compiler\'s commentary is not copied');
+  }
+  const p420 = read('public/acts/ipc-to-bns/section-420/index.html');
+  assert.match(p420, /<h1>IPC Section 420 is now BNS Section 318\(4\)<\/h1>/);
+  assert.match(p420, /href="https:\/\/wa\.me\/\?text=IPC%20Section%20420/);
+  assert.match(p420, /bprd\.mha\.gov\.in/);
+  assert.match(read('public/acts/crpc-to-bnss/section-438/index.html'), /CrPC Section 438 is now BNSS Section 482/);
+  assert.match(read('public/acts/evidence-to-bsa/section-65b/index.html'), /Evidence Act Section 65B is now BSA Section 63/);
+  // Dropped from the new law: said plainly, without claiming more than the table does.
+  assert.match(read('public/acts/ipc-to-bns/section-377/index.html'), /lists no BNS provision for IPC section 377/);
+  // Amended IPC sections take the table's subject, not the outdated bundled heading.
+  assert.match(read('public/acts/ipc-to-bns/section-376a/index.html'), /persistent vegetative state/);
+  const index = read('public/acts/ipc-to-bns/index.html');
+  assert.match(index, /<script src="\/acts\/converter\.js" defer><\/script>/);
+  assert.ok((index.match(/<tr data-q=/g) ?? []).length > 500);
+  assert.match(read('public/acts/converter.js'), /convert-q/);
+  const sitemap = read('public/sitemap.xml');
+  for (const u of ['/acts/ipc-to-bns/', '/acts/crpc-to-bnss/section-438/', '/acts/evidence-to-bsa/']) assert.ok(sitemap.includes(`https://vidhisangh.com${u}<`), u);
+  assert.match(read('public/acts/index.html'), /href="\/acts\/ipc-to-bns\/"/);
 });
 
 test('the service worker leaves the static bare-act pages to the network', () => {

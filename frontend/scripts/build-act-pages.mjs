@@ -20,6 +20,25 @@ const OLD_ACTS = {
   evidence: 'Indian Evidence Act, 1872',
 };
 const JOIN = '/auth/register?utm_source=bare_acts';
+// Old <-> new law tables (BPRD), see scripts/law_correspondence.py.
+const CORRESPONDENCE = ['bns', 'bnss', 'bsa'].map((id) => JSON.parse(readFileSync(join(ROOT, `content/correspondence/${id}.json`), 'utf8')));
+const NEW_SHORT = { bns: 'BNS', bnss: 'BNSS', bsa: 'BSA' };
+const OLD_SHORT = { ipc: 'IPC', crpc: 'CrPC', evidence: 'Evidence Act' };
+const BPRD = 'https://bprd.mha.gov.in/page/documents_by_bprd';
+// The converter's search box (pages allow scripts from this site only).
+const CONVERTER_JS = `document.addEventListener('DOMContentLoaded', () => {
+  const q = document.getElementById('convert-q');
+  const rows = [...document.querySelectorAll('#convert-table tbody tr')];
+  if (!q) return;
+  const run = () => {
+    const words = q.value.toLowerCase().trim().split(/\\s+/).filter(Boolean);
+    for (const r of rows) r.hidden = !words.every((w) => r.dataset.q.includes(w));
+  };
+  q.addEventListener('input', run);
+  const pre = new URLSearchParams(location.search).get('q');
+  if (pre) { q.value = pre; run(); }
+});
+`;
 // nginx caches .css for a year, so the link carries a content fingerprint.
 const CSS = readFileSync(join(ROOT, 'scripts/acts.css'), 'utf8');
 const CSS_URL = `/acts/acts.css?v=${createHash('sha256').update(CSS).digest('hex').slice(0, 10)}`;
@@ -27,16 +46,30 @@ const CSS_URL = `/acts/acts.css?v=${createHash('sha256').update(CSS).digest('hex
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const base = (section) => section.toUpperCase().replace(/^SECTION\s*/, '').replace(/[\s(–-].*$/, '');
 
-/** Old-law <-> new-law equivalents curated in the app (section-intelligence.ts),
- *  keyed both ways: 'bns:103' -> IPC 302, and 'ipc:302' -> BNS 103. */
+/** Old-law <-> new-law equivalents, keyed both ways ('bns:103' -> IPC 302,
+ *  'ipc:302' -> BNS 103(1)): the full BPRD correspondence tables
+ *  (content/correspondence/*.json, from scripts/law_correspondence.py), with
+ *  the notes curated in the app (section-intelligence.ts) where they exist. */
 function crossReferences() {
   const src = readFileSync(join(ROOT, 'src/app/features/knowledge/data/section-intelligence.ts'), 'utf8');
-  const refs = {};
+  const notes = {};
   const row = /\{ actId: '(\w+)', section: '([^']+)', correspondingActId: '(\w+)', correspondingSection: '([^']+)', subject: '([^']+)'(?:, note: '([^']+)')? \}/g;
-  for (const m of src.matchAll(row)) {
-    const [, oldAct, oldSection, act, section, subject, note] = m;
-    (refs[`${act}:${base(section)}`] ??= []).push({ oldAct, oldSection, section, subject, note });
-    (refs[`${oldAct}:${base(oldSection)}`] ??= []).push({ newAct: act, newSection: section, oldSection, subject, note });
+  for (const m of src.matchAll(row)) if (m[6]) notes[`${m[1]}:${base(m[2])}`] = m[6];
+  const refs = {};
+  for (const table of CORRESPONDENCE) {
+    for (const e of table.entries) {
+      const key = `${table.new_act}:${base(e.new)}`;
+      if (!e.old.length) {
+        (refs[key] ??= []).push({ isNew: true, section: e.new, subject: e.subject });
+        continue;
+      }
+      (refs[key] ??= []).push({ oldAct: table.old_act, oldSection: e.old_raw || e.old.join(', '), section: e.new, subject: e.subject });
+      for (const o of e.old) {
+        (refs[`${table.old_act}:${o}`] ??= []).push({
+          newAct: table.new_act, newSection: e.new, oldSection: o, subject: e.subject, note: notes[`${table.old_act}:${o}`],
+        });
+      }
+    }
   }
   return refs;
 }
@@ -102,6 +135,112 @@ function cta(act, number) {
 </aside>`;
 }
 
+const CONVERTERS = { ipc: 'ipc-to-bns', crpc: 'crpc-to-bnss', evidence: 'evidence-to-bsa' };
+const natural = (a, b) => parseInt(a, 10) - parseInt(b, 10) || a.localeCompare(b);
+const converterUrl = (oldAct, o) => `/acts/${CONVERTERS[oldAct]}/section-${o.toLowerCase()}/`;
+const newLink = (newAct, section) => `<a href="/acts/${newAct}/section-${base(section).toLowerCase()}/">${esc(NEW_SHORT[newAct])} ${esc(section)}</a>`;
+const SOURCE_NOTE = `Correspondence from the <a href="${BPRD}" rel="nofollow noopener" target="_blank">BPRD correspondence tables</a> (Ministry of Home Affairs). It shows where a provision went; wording, punishment and procedure may have changed, so read both sections.`;
+
+/** On a BNS / BNSS / BSA section: the IPC / CrPC / Evidence Act provisions it replaces. */
+function oldLawSection(act, sec, links) {
+  const rows = links.filter((r) => r.oldAct || r.isNew);
+  if (!rows.length) return '';
+  const oldAct = CORRESPONDENCE.find((t) => t.new_act === act.id)?.old_act;
+  const items = rows.map((r) => r.isNew
+    ? `<li><b>${esc(act.short)} ${esc(r.section)}</b> — new provision, no ${esc(OLD_SHORT[oldAct])} equivalent.</li>`
+    : `<li><b>${esc(act.short)} ${esc(r.section)}</b> ← ${r.oldSection.split(/,\s*|\s+and\s+/).map((o) => /^\d+[A-Z]*$/.test(o) ? `<a href="${converterUrl(r.oldAct, o)}">${esc(OLD_SHORT[r.oldAct])} ${esc(o)}</a>` : esc(`${OLD_SHORT[r.oldAct]} ${o}`)).join(', ')} — ${esc(r.subject)}</li>`);
+  return `<section class="old-law"><h2>Old law equivalent</h2><ul>${items.join('')}</ul><p class="small">${SOURCE_NOTE} <a href="/acts/${CONVERTERS[oldAct]}/">${esc(OLD_SHORT[oldAct])} to ${esc(act.short)} converter</a>.</p></section>`;
+}
+
+/** On an IPC / Evidence Act section: where it is in the new law. */
+function nowSection(act, sec, now) {
+  if (!CONVERTERS[act.id]) return '';
+  if (!now.length) {
+    return `<section class="old-law"><h2>In the new law</h2><p>The BPRD correspondence table lists no ${esc(NEW_SHORT[CORRESPONDENCE.find((t) => t.old_act === act.id).new_act])} provision for this section.</p></section>`;
+  }
+  return `<section class="old-law"><h2>Now in the new law</h2><ul>${now.map((r) => `<li>${newLink(r.newAct, r.newSection)} — ${esc(r.subject)}${r.note ? `<br /><span class="small">${esc(r.note)}</span>` : ''}</li>`).join('')}</ul><p class="small"><a href="${converterUrl(act.id, base(sec.number))}">${esc(OLD_SHORT[act.id])} ${esc(sec.number)} in the ${esc(NEW_SHORT[now[0].newAct])}</a> · ${SOURCE_NOTE}</p></section>`;
+}
+
+function whatsappShare(text, url) {
+  return `<a class="wa" href="https://wa.me/?text=${encodeURIComponent(`${text} ${SITE}${url}`)}" rel="noopener" target="_blank">Share on WhatsApp</a>`;
+}
+
+/** /acts/ipc-to-bns/ and one page per IPC section; same for CrPC and the Evidence Act. */
+function converterPages(acts, refs, urls) {
+  for (const table of CORRESPONDENCE) {
+    const oldId = table.old_act, newId = table.new_act;
+    const oldShort = OLD_SHORT[oldId], newShort = NEW_SHORT[newId];
+    const slug = CONVERTERS[oldId];
+    const oldAct = acts.find((a) => a.id === oldId);
+    const oldHeadings = Object.fromEntries((oldAct?.sections ?? []).map((s) => [s.number, s.heading]));
+    const numbers = new Set(table.entries.flatMap((e) => e.old));
+    for (const s of oldAct?.sections ?? []) numbers.add(s.number);
+    const sorted = [...numbers].sort(natural);
+    const rowsFor = (o) => table.entries.filter((e) => e.old.includes(o));
+    const listing = [];
+    sorted.forEach((o, i) => {
+      const rows = rowsFor(o);
+      const url = `/acts/${slug}/section-${o.toLowerCase()}/`;
+      // The table's subject first: the bundled IPC text predates the 2013
+      // amendments, so some of its headings (e.g. 376A) are out of date.
+      const heading = rows[0]?.subject || oldHeadings[o] || '';
+      const targets = rows.map((e) => e.new);
+      const targetText = targets.length > 1 ? `${newShort} Sections ${targets.slice(0, -1).join(', ')} and ${targets.at(-1)}` : targets.length ? `${newShort} Section ${targets[0]}` : '';
+      listing.push({ o, url, heading, targets });
+      const h1 = targets.length ? `${oldShort} Section ${o} is now ${targetText}` : `${oldShort} Section ${o} in the ${newShort}`;
+      const share = targets.length ? `${oldShort} Section ${o}${heading ? ` (${heading})` : ''} is now ${targetText}.` : `${oldShort} Section ${o}: no ${newShort} equivalent listed.`;
+      const prev = sorted[i - 1], next = sorted[i + 1];
+      const body = `<main>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/acts/">Bare Acts</a> › <a href="/acts/${slug}/">${esc(oldShort)} to ${esc(newShort)}</a> › <span>Section ${esc(o)}</span></nav>
+<p class="eyebrow">${esc(oldShort)} to ${esc(newShort)} converter</p>
+<h1>${esc(h1)}</h1>
+${heading ? `<p class="lede">${esc(oldShort)} ${esc(o)}: ${esc(heading)}</p>` : ''}
+${targets.length ? `<table class="convert"><thead><tr><th>${esc(newShort)}</th><th>Subject</th><th>${esc(oldShort)}</th></tr></thead><tbody>${rows.map((e) => `<tr><td>${newLink(newId, e.new)}</td><td>${esc(e.subject)}</td><td>${esc(e.old_raw || o)}</td></tr>`).join('')}</tbody></table>`
+    : `<p>The BPRD correspondence table lists no ${esc(newShort)} provision for ${esc(oldShort)} section ${esc(o)}.</p>`}
+<p class="actions">${whatsappShare(share, url)}${oldAct?.sections.some((s) => s.number === o) ? `<a class="ghost" href="/acts/${oldId}/section-${o.toLowerCase()}/">Read ${esc(oldShort)} ${esc(o)}</a>` : ''}${targets[0] ? `<a class="ghost" href="/acts/${newId}/section-${base(targets[0]).toLowerCase()}/">Read ${esc(newShort)} ${esc(base(targets[0]))}</a>` : ''}</p>
+<p class="small">${SOURCE_NOTE}</p>
+${cta({ id: newId, short: newShort }, targets[0] ? base(targets[0]) : '')}
+<nav class="pager">${prev ? `<a href="/acts/${slug}/section-${prev.toLowerCase()}/">← ${esc(oldShort)} ${esc(prev)}</a>` : '<span></span>'}${next ? `<a class="next" href="/acts/${slug}/section-${next.toLowerCase()}/">${esc(oldShort)} ${esc(next)} →</a>` : ''}</nav>
+</main>`;
+      const description = targets.length
+        ? `${oldShort} Section ${o}${heading ? ` (${heading})` : ''} corresponds to ${targetText} under the new criminal law. See the new section, compare both and share on WhatsApp.`
+        : `${oldShort} Section ${o}${heading ? ` (${heading})` : ''}: the BPRD correspondence table lists no ${newShort} equivalent.`;
+      mkdirSync(join(ROOT, 'public', url), { recursive: true });
+      writeFileSync(join(ROOT, 'public', url, 'index.html'), page({
+        title: targets.length ? `${oldShort} ${o} in ${newShort}: ${targetText.replace(`${newShort} `, '')}${heading ? ` — ${heading}` : ''} | VidhiSangh` : `${oldShort} ${o} in the ${newShort} | VidhiSangh`,
+        description: description.slice(0, 158).replace(/\s+\S*$/, '') + (description.length > 158 ? '…' : ''),
+        canonical: SITE + url,
+        body,
+        jsonLd: { '@context': 'https://schema.org', ...breadcrumbs([['Bare Acts', '/acts/'], [`${oldShort} to ${newShort}`, `/acts/${slug}/`], [`Section ${o}`, url]]) },
+      }));
+      urls.push([url, 'yearly', '0.6']);
+    });
+
+    const body = `<main>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/acts/">Bare Acts</a> › <span>${esc(oldShort)} to ${esc(newShort)}</span></nav>
+<p class="eyebrow">Old law to new law</p>
+<h1>${esc(oldShort)} to ${esc(newShort)} converter</h1>
+<p class="lede">Find the ${esc(newShort)} section for any ${esc(OLD_ACTS[oldId] || oldShort)} section: all ${sorted.length} sections, from the official BPRD correspondence table.</p>
+<label class="search"><span>Search by section number or subject</span><input id="convert-q" type="search" inputmode="search" placeholder="e.g. 420 or cheating" autocomplete="off" /></label>
+<table class="convert" id="convert-table"><thead><tr><th>${esc(oldShort)}</th><th>${esc(newShort)}</th><th>Subject</th></tr></thead><tbody>
+${listing.map((r) => `<tr data-q="${esc(`${oldShort} ${r.o} ${r.targets.join(' ')} ${r.heading}`.toLowerCase())}"><td><a href="${r.url}">${esc(r.o)}</a></td><td>${r.targets.length ? r.targets.map((t) => newLink(newId, t)).join(', ') : '—'}</td><td>${esc(r.heading)}</td></tr>`).join('\n')}
+</tbody></table>
+<p class="small">${SOURCE_NOTE}</p>
+${cta({ id: newId, short: newShort }, '')}
+</main>
+<script src="/acts/converter.js" defer></script>`;
+    mkdirSync(join(OUT, slug), { recursive: true });
+    writeFileSync(join(OUT, slug, 'index.html'), page({
+      title: `${oldShort} to ${newShort} converter — find the new section for every ${oldShort} section | VidhiSangh`,
+      description: `${oldShort} to ${newShort}: the new-law section for each of ${sorted.length} ${oldShort} sections, searchable, from the official BPRD correspondence table. Free on VidhiSangh.`,
+      canonical: `${SITE}/acts/${slug}/`,
+      body,
+      jsonLd: { '@context': 'https://schema.org', ...breadcrumbs([['Bare Acts', '/acts/'], [`${oldShort} to ${newShort}`, `/acts/${slug}/`]]) },
+    }));
+    urls.push([`/acts/${slug}/`, 'monthly', '0.9']);
+  }
+}
+
 function build() {
   const refs = crossReferences();
   rmSync(OUT, { recursive: true, force: true });
@@ -123,7 +262,6 @@ function build() {
       const prev = act.sections[i - 1];
       const next = act.sections[i + 1];
       const links = refs[`${act.id}:${base(sec.number)}`] ?? [];
-      const old = links.filter((r) => r.oldAct);
       const now = links.filter((r) => r.newAct);
       const first = sec.paragraphs.join(' ').replace(/^\d+[A-Z]*\.\s*/, '');
       const description = `Section ${sec.number}, ${act.title} (${act.short})${sec.heading ? `: ${sec.heading}` : ''}. ${first}`.slice(0, 158).replace(/\s+\S*$/, '') + '…';
@@ -140,8 +278,8 @@ ${chapterNo ? `<p class="chapter">${esc(chapterNo.replace('CHAPTER', 'Chapter').
 <article class="text">
 ${paragraphs(sec.paragraphs)}
 </article>
-${old.map((r) => `<section class="old-law"><h2>Old law equivalent</h2><p>${esc(OLD_ACTS[r.oldAct] ?? r.oldAct)}, section ${esc(r.oldSection)} — ${esc(r.subject)}${r.section !== sec.number ? ` (now ${esc(act.short)} ${esc(r.section)})` : ''}.</p>${r.note ? `<p class="small">${esc(r.note)}</p>` : ''}</section>`).join('\n')}
-${now.map((r) => `<section class="old-law"><h2>Now in the new law</h2><p><a href="/acts/${r.newAct}/section-${base(r.newSection).toLowerCase()}/">${esc(r.newAct.toUpperCase())} section ${esc(r.newSection)}</a> — ${esc(r.subject)}.</p>${r.note ? `<p class="small">${esc(r.note)}</p>` : ''}</section>`).join('\n')}
+${oldLawSection(act, sec, links)}
+${nowSection(act, sec, now)}
 ${cta(act, sec.number)}
 <nav class="pager">${prev ? `<a href="${actUrl}section-${prev.number.toLowerCase()}/">← ${esc(label(prev))}</a>` : '<span></span>'}${next ? `<a class="next" href="${actUrl}section-${next.number.toLowerCase()}/">${esc(label(next))} →</a>` : ''}</nav>
 <p class="source">Source: <a href="${act.source}" rel="nofollow noopener" target="_blank">official text of the ${esc(act.title)}</a>.</p>
@@ -196,6 +334,9 @@ ${chapters.map((c) => `<section class="toc"><h2>${esc((c.name || 'Sections').rep
     }));
   }
 
+  converterPages(acts, refs, urls);
+  writeFileSync(join(OUT, 'converter.js'), CONVERTER_JS);
+
   // Bare Acts landing, grouped by area of law.
   const groups = [
     ['New criminal laws (from 1 July 2024)', (a) => FIRST.includes(a.id)],
@@ -208,6 +349,7 @@ ${chapters.map((c) => `<section class="toc"><h2>${esc((c.name || 'Sections').rep
 <p class="eyebrow">Bare Acts</p>
 <h1>India's central Acts, section by section</h1>
 <p class="lede">Read ${acts.length} central Acts as clear text, one section per page: the new criminal laws (BNS, BNSS, BSA), the Companies Act, CPC, Contract Act, IBC, IT Act and more, with old-law equivalents where they exist.</p>
+<h2 class="group">Old law to new law</h2><div class="acts">${CORRESPONDENCE.map((t) => `<a class="act" href="/acts/${CONVERTERS[t.old_act]}/"><b>${esc(OLD_SHORT[t.old_act])} → ${esc(NEW_SHORT[t.new_act])}</b><span>Find the ${esc(NEW_SHORT[t.new_act])} section for any ${esc(OLD_SHORT[t.old_act])} section</span><small>Converter</small></a>`).join('')}</div>
 ${groups.map(([name, test]) => { const list = acts.filter(test); return list.length ? `<h2 class="group">${esc(name)}</h2><div class="acts">${list.map(card).join('')}</div>` : ''; }).join('\n')}
 ${cta({ id: 'bns', short: 'Acts' }, '')}
 </main>`;

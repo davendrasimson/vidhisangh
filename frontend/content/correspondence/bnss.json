@@ -1,0 +1,4445 @@
+{
+ "new_act": "bnss",
+ "old_act": "crpc",
+ "source": "https://bprd.mha.gov.in/page/documents_by_bprd",
+ "entries": [
+  {
+   "new": "1",
+   "subject": "Short title, extent and commencement",
+   "old": [
+    "1"
+   ],
+   "old_raw": "1"
+  },
+  {
+   "new": "2",
+   "subject": "Definitions",
+   "old": [
+    "2"
+   ],
+   "old_raw": "2"
+  },
+  {
+   "new": "2(1)(a)",
+   "subject": "\"audio-video electronic means\" ",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "2(1)(b)",
+   "subject": "\"bail\"",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "2(1)(c)",
+   "subject": "\"bailable offence\"",
+   "old": [
+    "2"
+   ],
+   "old_raw": "2(a)]"
+  },
+  {
+   "new": "2(1)(d)",
+   "subject": "\"bail bond\"",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "2(1)(e)",
+   "subject": "\"bond\"",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "2(1)(f)",
+   "subject": "\"charge\"",
+   "old": [
+    "2"
+   ],
+   "old_raw": "2(b)]"
+  },
+  {
+   "new": "2(1)(g)",
+   "subject": "\"cognizable offence\"",
+   "old": [
+    "2"
+   ],
+   "old_raw": "2(c )"
+  },
+  {
+   "new": "2(1)(h)",
+   "subject": "\"complaint\"",
+   "old": [
+    "2"
+   ],
+   "old_raw": "2(d)"
+  },
+  {
+   "new": "2(1)(i)",
+   "subject": "\"electronic communication\"",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "2(1)(j)",
+   "subject": "\"High Court\"",
+   "old": [
+    "2"
+   ],
+   "old_raw": "2(e )"
+  },
+  {
+   "new": "2(1)(k)",
+   "subject": "\"inquiry\"",
+   "old": [
+    "2"
+   ],
+   "old_raw": "2(g)"
+  },
+  {
+   "new": "2(1)(l)",
+   "subject": "\"investigation\"",
+   "old": [
+    "2"
+   ],
+   "old_raw": "2(h)"
+  },
+  {
+   "new": "2(1)(m)",
+   "subject": "\"judicial proceeding\"",
+   "old": [
+    "2"
+   ],
+   "old_raw": "2(i)"
+  },
+  {
+   "new": "2(1)(n)",
+   "subject": "\"local jurisdiction\"",
+   "old": [
+    "2"
+   ],
+   "old_raw": "2(j)"
+  },
+  {
+   "new": "2(1)(o)",
+   "subject": "\"non-cognizable offence\"",
+   "old": [
+    "2"
+   ],
+   "old_raw": "2(l)"
+  },
+  {
+   "new": "2(1)(p)",
+   "subject": "\"notification\"",
+   "old": [
+    "2"
+   ],
+   "old_raw": "2(m)"
+  },
+  {
+   "new": "2(1)(q)",
+   "subject": "\"offence\"",
+   "old": [
+    "2"
+   ],
+   "old_raw": "2(n)"
+  },
+  {
+   "new": "2(1)(r)",
+   "subject": "\"officer in charge of a police station\"",
+   "old": [
+    "2"
+   ],
+   "old_raw": "2(o)"
+  },
+  {
+   "new": "2(1)(s)",
+   "subject": "\"place\"",
+   "old": [
+    "2"
+   ],
+   "old_raw": "2(p)"
+  },
+  {
+   "new": "2(1)(t)",
+   "subject": "\"police report\"",
+   "old": [
+    "2"
+   ],
+   "old_raw": "2(r )"
+  },
+  {
+   "new": "2(1)(u)",
+   "subject": "\"police station\"",
+   "old": [
+    "2"
+   ],
+   "old_raw": "2(s)"
+  },
+  {
+   "new": "2(1)(v)",
+   "subject": "\"Public Prosecutor\"",
+   "old": [
+    "2"
+   ],
+   "old_raw": "2(u)"
+  },
+  {
+   "new": "2(1)(w)",
+   "subject": "\"sub-division\"",
+   "old": [
+    "2"
+   ],
+   "old_raw": "2(v)"
+  },
+  {
+   "new": "2(1)(x)",
+   "subject": "\"summons-case\"",
+   "old": [
+    "2"
+   ],
+   "old_raw": "2(w)"
+  },
+  {
+   "new": "2(1)(y)",
+   "subject": "\"victim\"",
+   "old": [
+    "2"
+   ],
+   "old_raw": "2 (wa)"
+  },
+  {
+   "new": "2(1)(z)",
+   "subject": "\"warrant-case\"",
+   "old": [
+    "2"
+   ],
+   "old_raw": "2(x)"
+  },
+  {
+   "new": "2(2)",
+   "subject": "Words and expressions used",
+   "old": [
+    "2"
+   ],
+   "old_raw": "2(y)"
+  },
+  {
+   "new": "3",
+   "subject": "Construction of references",
+   "old": [
+    "3"
+   ],
+   "old_raw": "3"
+  },
+  {
+   "new": "4",
+   "subject": "Trial of offences under Bharatiya Nyaya Sanhita and other laws",
+   "old": [
+    "4"
+   ],
+   "old_raw": "4"
+  },
+  {
+   "new": "5",
+   "subject": "Saving",
+   "old": [
+    "5"
+   ],
+   "old_raw": "5"
+  },
+  {
+   "new": "6",
+   "subject": "Classes of Criminal Courts",
+   "old": [
+    "6"
+   ],
+   "old_raw": "6"
+  },
+  {
+   "new": "7",
+   "subject": "Territorial divisions",
+   "old": [
+    "7"
+   ],
+   "old_raw": "7"
+  },
+  {
+   "new": "8",
+   "subject": "Court of Session",
+   "old": [
+    "9"
+   ],
+   "old_raw": "9"
+  },
+  {
+   "new": "9",
+   "subject": "Courts of Judicial Magistrates",
+   "old": [
+    "11"
+   ],
+   "old_raw": "11"
+  },
+  {
+   "new": "10",
+   "subject": "Chief Judicial Magistrate and Additional Chief Judicial Magistrate, etc",
+   "old": [
+    "12"
+   ],
+   "old_raw": "12"
+  },
+  {
+   "new": "11",
+   "subject": "Special Judicial Magistrates",
+   "old": [
+    "13"
+   ],
+   "old_raw": "13"
+  },
+  {
+   "new": "12",
+   "subject": "Local jurisdiction of Judicial Magistrates",
+   "old": [
+    "14"
+   ],
+   "old_raw": "14"
+  },
+  {
+   "new": "13",
+   "subject": "Subordination of Judicial Magistrates",
+   "old": [
+    "15"
+   ],
+   "old_raw": "15"
+  },
+  {
+   "new": "14",
+   "subject": "Executive Magistrates",
+   "old": [
+    "20"
+   ],
+   "old_raw": "20"
+  },
+  {
+   "new": "15",
+   "subject": "Special Executive Magistrates",
+   "old": [
+    "21"
+   ],
+   "old_raw": "21"
+  },
+  {
+   "new": "16",
+   "subject": "Local Jurisdiction of Executive Magistrates",
+   "old": [
+    "22"
+   ],
+   "old_raw": "22"
+  },
+  {
+   "new": "17",
+   "subject": "Subordination of Executive Magistrates",
+   "old": [
+    "23"
+   ],
+   "old_raw": "23"
+  },
+  {
+   "new": "18",
+   "subject": "Public Prosecutors",
+   "old": [
+    "24"
+   ],
+   "old_raw": "24"
+  },
+  {
+   "new": "19",
+   "subject": "Assistant Public Prosecutors",
+   "old": [
+    "25"
+   ],
+   "old_raw": "25"
+  },
+  {
+   "new": "20",
+   "subject": "Directorate of Prosecution",
+   "old": [
+    "25A"
+   ],
+   "old_raw": "25A"
+  },
+  {
+   "new": "21",
+   "subject": "Courts by which offences are triable",
+   "old": [
+    "26"
+   ],
+   "old_raw": "26"
+  },
+  {
+   "new": "22",
+   "subject": "Sentences which High Courts and Sessions Judges may pass",
+   "old": [
+    "28"
+   ],
+   "old_raw": "28"
+  },
+  {
+   "new": "23",
+   "subject": "Sentences which Magistrates may pass",
+   "old": [
+    "29"
+   ],
+   "old_raw": "29"
+  },
+  {
+   "new": "24",
+   "subject": "Sentence of imprisonment in default of fine",
+   "old": [
+    "30"
+   ],
+   "old_raw": "30"
+  },
+  {
+   "new": "25",
+   "subject": "Sentence in cases of conviction of several offences at one trial",
+   "old": [
+    "31"
+   ],
+   "old_raw": "31"
+  },
+  {
+   "new": "26",
+   "subject": "Mode of conferring powers",
+   "old": [
+    "32"
+   ],
+   "old_raw": "32"
+  },
+  {
+   "new": "27",
+   "subject": "Powers of officers appointed",
+   "old": [
+    "33"
+   ],
+   "old_raw": "33"
+  },
+  {
+   "new": "28",
+   "subject": "Withdrawal of powers",
+   "old": [
+    "34"
+   ],
+   "old_raw": "34"
+  },
+  {
+   "new": "29",
+   "subject": "Powers of Judges and Magistrates exercisable by their successors-in-office",
+   "old": [
+    "35"
+   ],
+   "old_raw": "35"
+  },
+  {
+   "new": "30",
+   "subject": "Powers of superior officers of police",
+   "old": [
+    "36"
+   ],
+   "old_raw": "36"
+  },
+  {
+   "new": "31",
+   "subject": "Public when to assist Magistrates and police",
+   "old": [
+    "37"
+   ],
+   "old_raw": "37"
+  },
+  {
+   "new": "32",
+   "subject": "Aid to person, other than police officer, executing warrant",
+   "old": [
+    "38"
+   ],
+   "old_raw": "38"
+  },
+  {
+   "new": "33",
+   "subject": "Public to give information of certain offences",
+   "old": [
+    "39"
+   ],
+   "old_raw": "39"
+  },
+  {
+   "new": "34",
+   "subject": "Duty of officers employed in connection with the affairs of a village to make certain report",
+   "old": [
+    "40"
+   ],
+   "old_raw": "40"
+  },
+  {
+   "new": "35",
+   "subject": "When police may arrest without warrant",
+   "old": [
+    "41",
+    "41A"
+   ],
+   "old_raw": "41 & 41A"
+  },
+  {
+   "new": "36",
+   "subject": "Procedure of arrest and duties of officer making arrest",
+   "old": [
+    "41B"
+   ],
+   "old_raw": "41B"
+  },
+  {
+   "new": "37",
+   "subject": "Designated Police Officer",
+   "old": [
+    "41C"
+   ],
+   "old_raw": "41C"
+  },
+  {
+   "new": "38",
+   "subject": "Right of arrested person to meet an advocate of his choice during interrogation",
+   "old": [
+    "41D"
+   ],
+   "old_raw": "41D"
+  },
+  {
+   "new": "39",
+   "subject": "Arrest on refusal to give name and residence",
+   "old": [
+    "42"
+   ],
+   "old_raw": "42"
+  },
+  {
+   "new": "40",
+   "subject": "Arrest by private person and procedure on such arrest",
+   "old": [
+    "43"
+   ],
+   "old_raw": "43"
+  },
+  {
+   "new": "41",
+   "subject": "Arrest by Magistrate",
+   "old": [
+    "44"
+   ],
+   "old_raw": "44"
+  },
+  {
+   "new": "42",
+   "subject": "Protection of members of the Armed Forces from arrest",
+   "old": [
+    "45"
+   ],
+   "old_raw": "45"
+  },
+  {
+   "new": "43",
+   "subject": "Arrest how made",
+   "old": [
+    "46"
+   ],
+   "old_raw": "46"
+  },
+  {
+   "new": "44",
+   "subject": "Search of place entered by person sought to be arrested",
+   "old": [
+    "47"
+   ],
+   "old_raw": "47"
+  },
+  {
+   "new": "45",
+   "subject": "Pursuit of offenders into other jurisdictions",
+   "old": [
+    "48"
+   ],
+   "old_raw": "48"
+  },
+  {
+   "new": "46",
+   "subject": "No unnecessary restraint",
+   "old": [
+    "49"
+   ],
+   "old_raw": "49"
+  },
+  {
+   "new": "47",
+   "subject": "Person arrested to be informed of grounds of arrest and of right to bail",
+   "old": [
+    "50"
+   ],
+   "old_raw": "50"
+  },
+  {
+   "new": "48",
+   "subject": "Obligation of person making arrest to inform about the arrest, etc , to relative or friend",
+   "old": [
+    "50A"
+   ],
+   "old_raw": "50A"
+  },
+  {
+   "new": "49",
+   "subject": "Search of arrested person",
+   "old": [
+    "51"
+   ],
+   "old_raw": "51"
+  },
+  {
+   "new": "50",
+   "subject": "Power to seize offensive weapons",
+   "old": [
+    "52"
+   ],
+   "old_raw": "52"
+  },
+  {
+   "new": "51",
+   "subject": "Examination of accused by medical practitioner at the request of police officer",
+   "old": [
+    "53"
+   ],
+   "old_raw": "53"
+  },
+  {
+   "new": "52",
+   "subject": "Examination of person accused of rape by medical practitioner",
+   "old": [
+    "53A"
+   ],
+   "old_raw": "53A"
+  },
+  {
+   "new": "53",
+   "subject": "Examination of arrested person by medical officer",
+   "old": [
+    "54"
+   ],
+   "old_raw": "54"
+  },
+  {
+   "new": "54",
+   "subject": "Identification of person arrested",
+   "old": [
+    "54A"
+   ],
+   "old_raw": "54A"
+  },
+  {
+   "new": "55",
+   "subject": "Procedure when police officer deputes subordinate to arrest without warrant",
+   "old": [
+    "55"
+   ],
+   "old_raw": "55"
+  },
+  {
+   "new": "56",
+   "subject": "Health and safety of arrested person",
+   "old": [
+    "55A"
+   ],
+   "old_raw": "55A"
+  },
+  {
+   "new": "57",
+   "subject": "Person arrested to be taken before Magistrate or officer in charge of police station",
+   "old": [
+    "56"
+   ],
+   "old_raw": "56"
+  },
+  {
+   "new": "58",
+   "subject": "Person arrested not to be detained more than twenty- four hours",
+   "old": [
+    "57"
+   ],
+   "old_raw": "57"
+  },
+  {
+   "new": "59",
+   "subject": "Police to report apprehensions",
+   "old": [
+    "58"
+   ],
+   "old_raw": "58"
+  },
+  {
+   "new": "60",
+   "subject": "Discharge of person apprehended",
+   "old": [
+    "59"
+   ],
+   "old_raw": "59"
+  },
+  {
+   "new": "61",
+   "subject": "Power, on escape, to pursue and retake",
+   "old": [
+    "60"
+   ],
+   "old_raw": "60"
+  },
+  {
+   "new": "62",
+   "subject": "Arrest to be made strictly according to the Sanhita",
+   "old": [
+    "60A"
+   ],
+   "old_raw": "60A"
+  },
+  {
+   "new": "63",
+   "subject": "Form of summons",
+   "old": [
+    "61"
+   ],
+   "old_raw": "61"
+  },
+  {
+   "new": "64",
+   "subject": "Summons how served",
+   "old": [
+    "62"
+   ],
+   "old_raw": "62"
+  },
+  {
+   "new": "65",
+   "subject": "Service of summons on corporate bodies, firms, and societies",
+   "old": [
+    "63"
+   ],
+   "old_raw": "63"
+  },
+  {
+   "new": "66",
+   "subject": "Service when persons summoned cannot be found",
+   "old": [
+    "64"
+   ],
+   "old_raw": "64"
+  },
+  {
+   "new": "67",
+   "subject": "Procedure when service cannot be effected as before provided",
+   "old": [
+    "65"
+   ],
+   "old_raw": "65"
+  },
+  {
+   "new": "68",
+   "subject": "Service on Government servant",
+   "old": [
+    "66"
+   ],
+   "old_raw": "66"
+  },
+  {
+   "new": "69",
+   "subject": "Service of summons outside local limits",
+   "old": [
+    "67"
+   ],
+   "old_raw": "67"
+  },
+  {
+   "new": "70",
+   "subject": "Proof of service in such cases and when serving officer not present",
+   "old": [
+    "68"
+   ],
+   "old_raw": "68"
+  },
+  {
+   "new": "71",
+   "subject": "Service of summons on witness by post",
+   "old": [
+    "69"
+   ],
+   "old_raw": "69"
+  },
+  {
+   "new": "72",
+   "subject": "Form of warrant of arrest and duration",
+   "old": [
+    "70"
+   ],
+   "old_raw": "70"
+  },
+  {
+   "new": "73",
+   "subject": "Power to direct security to be taken",
+   "old": [
+    "71"
+   ],
+   "old_raw": "71"
+  },
+  {
+   "new": "74",
+   "subject": "Warrants to whom directed",
+   "old": [
+    "72"
+   ],
+   "old_raw": "72"
+  },
+  {
+   "new": "75",
+   "subject": "Warrant may be directed to any person",
+   "old": [
+    "73"
+   ],
+   "old_raw": "73"
+  },
+  {
+   "new": "76",
+   "subject": "Warrant directed to police officer",
+   "old": [
+    "74"
+   ],
+   "old_raw": "74"
+  },
+  {
+   "new": "77",
+   "subject": "Notification of substance of warrant",
+   "old": [
+    "75"
+   ],
+   "old_raw": "75"
+  },
+  {
+   "new": "78",
+   "subject": "Person arrested to be brought before court without delay",
+   "old": [
+    "76"
+   ],
+   "old_raw": "76"
+  },
+  {
+   "new": "79",
+   "subject": "Where warrant may be executed",
+   "old": [
+    "77"
+   ],
+   "old_raw": "77"
+  },
+  {
+   "new": "80",
+   "subject": "Warrant forwarded for execution outside jurisdiction",
+   "old": [
+    "78"
+   ],
+   "old_raw": "78"
+  },
+  {
+   "new": "81",
+   "subject": "Warrant directed to police officer for execution outside jurisdiction",
+   "old": [
+    "79"
+   ],
+   "old_raw": "79"
+  },
+  {
+   "new": "82",
+   "subject": "Procedure on arrest of person against whom warrant issued",
+   "old": [
+    "80"
+   ],
+   "old_raw": "80"
+  },
+  {
+   "new": "83",
+   "subject": "Procedure by Magistrate before whom such person arrested is brought",
+   "old": [
+    "81"
+   ],
+   "old_raw": "81"
+  },
+  {
+   "new": "84",
+   "subject": "Proclamation for person absconding",
+   "old": [
+    "82"
+   ],
+   "old_raw": "82"
+  },
+  {
+   "new": "85",
+   "subject": "Attachment of property of person absconding",
+   "old": [
+    "83"
+   ],
+   "old_raw": "83"
+  },
+  {
+   "new": "86",
+   "subject": "Identification and attachment of property of proclaimed person",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "87",
+   "subject": "Claims and objections to attachment",
+   "old": [
+    "84"
+   ],
+   "old_raw": "84"
+  },
+  {
+   "new": "88",
+   "subject": "Release, sale and restoration of attached property",
+   "old": [
+    "85"
+   ],
+   "old_raw": "85"
+  },
+  {
+   "new": "89",
+   "subject": "Appeal from order rejecting application for restoration of attached property",
+   "old": [
+    "86"
+   ],
+   "old_raw": "86"
+  },
+  {
+   "new": "90",
+   "subject": "Issue of warrant in lieu of, or in addition to, summons",
+   "old": [
+    "87"
+   ],
+   "old_raw": "87"
+  },
+  {
+   "new": "91",
+   "subject": "Power to take bond or bail bond for appearance",
+   "old": [
+    "88"
+   ],
+   "old_raw": "88"
+  },
+  {
+   "new": "92",
+   "subject": "Arrest on breach of bond or bail bond for appearance",
+   "old": [
+    "89"
+   ],
+   "old_raw": "89"
+  },
+  {
+   "new": "93",
+   "subject": "Provisions of this Chapter generally applicable to summonses and warrants of arrest",
+   "old": [
+    "90"
+   ],
+   "old_raw": "90"
+  },
+  {
+   "new": "94",
+   "subject": "Summons to produce document or other thing",
+   "old": [
+    "91"
+   ],
+   "old_raw": "91"
+  },
+  {
+   "new": "95",
+   "subject": "Procedure as to letters",
+   "old": [
+    "92"
+   ],
+   "old_raw": "92"
+  },
+  {
+   "new": "96",
+   "subject": "When search-warrant may be issued",
+   "old": [
+    "93"
+   ],
+   "old_raw": "93"
+  },
+  {
+   "new": "97",
+   "subject": "Search of place suspected to contain stolen property, forged documents, etc",
+   "old": [
+    "94"
+   ],
+   "old_raw": "94"
+  },
+  {
+   "new": "98",
+   "subject": "Power to declare certain publications forfeited and to issue search-warrants for the same",
+   "old": [
+    "95"
+   ],
+   "old_raw": "95"
+  },
+  {
+   "new": "99",
+   "subject": "Application to High Court to set aside declaration of forfeiture",
+   "old": [
+    "96"
+   ],
+   "old_raw": "96"
+  },
+  {
+   "new": "100",
+   "subject": "Search for persons wrongfully confined",
+   "old": [
+    "97"
+   ],
+   "old_raw": "97"
+  },
+  {
+   "new": "101",
+   "subject": "Power to compel restoration of abducted females",
+   "old": [
+    "98"
+   ],
+   "old_raw": "98"
+  },
+  {
+   "new": "102",
+   "subject": "Direction, etc, of search- warrants",
+   "old": [
+    "99"
+   ],
+   "old_raw": "99"
+  },
+  {
+   "new": "103",
+   "subject": "Persons in charge of closed place to allow search",
+   "old": [
+    "100"
+   ],
+   "old_raw": "100"
+  },
+  {
+   "new": "104",
+   "subject": "Disposal of things found in search beyond jurisdiction",
+   "old": [
+    "101"
+   ],
+   "old_raw": "101"
+  },
+  {
+   "new": "105",
+   "subject": "Recording of search and seizure through audio-video electronic means",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "106",
+   "subject": "Power of police officer to seize certain property",
+   "old": [
+    "102"
+   ],
+   "old_raw": "102"
+  },
+  {
+   "new": "107",
+   "subject": "Attachment, forfeiture or restoration of property",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "108",
+   "subject": "Magistrate may direct search in his presence",
+   "old": [
+    "103"
+   ],
+   "old_raw": "103"
+  },
+  {
+   "new": "109",
+   "subject": "Power to impound document, etc , produced",
+   "old": [
+    "104"
+   ],
+   "old_raw": "104"
+  },
+  {
+   "new": "110",
+   "subject": "Reciprocal arrangements regarding processes",
+   "old": [
+    "105"
+   ],
+   "old_raw": "105"
+  },
+  {
+   "new": "111",
+   "subject": "Definitions",
+   "old": [
+    "105A"
+   ],
+   "old_raw": "105A"
+  },
+  {
+   "new": "112",
+   "subject": "Letter of request to competent authority for investigation in a country or place outside India",
+   "old": [
+    "166A"
+   ],
+   "old_raw": "166A"
+  },
+  {
+   "new": "113",
+   "subject": "Letter of request from a country or place outside India to a Court or an authority for investigation in India",
+   "old": [
+    "166B"
+   ],
+   "old_raw": "166B"
+  },
+  {
+   "new": "114",
+   "subject": "Assistance in securing transfer of persons",
+   "old": [
+    "105B"
+   ],
+   "old_raw": "105B"
+  },
+  {
+   "new": "115",
+   "subject": "Assistance in relation to orders of attachment or forfeiture of property",
+   "old": [
+    "105C"
+   ],
+   "old_raw": "105C"
+  },
+  {
+   "new": "116",
+   "subject": "Identifying unlawfully acquired property",
+   "old": [
+    "105D"
+   ],
+   "old_raw": "105D"
+  },
+  {
+   "new": "117",
+   "subject": "Seizure or attachment of property",
+   "old": [
+    "105E"
+   ],
+   "old_raw": "105E"
+  },
+  {
+   "new": "118",
+   "subject": "Management of properties seized or forfeited under this Chapter",
+   "old": [
+    "105F"
+   ],
+   "old_raw": "105F"
+  },
+  {
+   "new": "119",
+   "subject": "Notice of forfeiture of property",
+   "old": [
+    "105G"
+   ],
+   "old_raw": "105G"
+  },
+  {
+   "new": "120",
+   "subject": "Forfeiture of property in certain cases",
+   "old": [
+    "105H"
+   ],
+   "old_raw": "105H"
+  },
+  {
+   "new": "121",
+   "subject": "Fine in lieu of forfeiture",
+   "old": [
+    "105I"
+   ],
+   "old_raw": "105I"
+  },
+  {
+   "new": "122",
+   "subject": "Certain transfers to be null and void",
+   "old": [
+    "105J"
+   ],
+   "old_raw": "105J"
+  },
+  {
+   "new": "123",
+   "subject": "Procedure in respect of letter of request",
+   "old": [
+    "105K"
+   ],
+   "old_raw": "105K"
+  },
+  {
+   "new": "124",
+   "subject": "Application of this Chapter",
+   "old": [
+    "105L"
+   ],
+   "old_raw": "105L"
+  },
+  {
+   "new": "125",
+   "subject": "Security for keeping the peace on conviction",
+   "old": [
+    "106"
+   ],
+   "old_raw": "106"
+  },
+  {
+   "new": "126",
+   "subject": "Security for keeping the peace in other cases",
+   "old": [
+    "107"
+   ],
+   "old_raw": "107"
+  },
+  {
+   "new": "127",
+   "subject": "Security for good behaviour from persons disseminating seditious matters",
+   "old": [
+    "108"
+   ],
+   "old_raw": "108"
+  },
+  {
+   "new": "128",
+   "subject": "Security for good behaviour from suspected persons",
+   "old": [
+    "109"
+   ],
+   "old_raw": "109"
+  },
+  {
+   "new": "129",
+   "subject": "Security for good behaviour from habitual offenders",
+   "old": [
+    "110"
+   ],
+   "old_raw": "110"
+  },
+  {
+   "new": "130",
+   "subject": "Order to be made",
+   "old": [
+    "111"
+   ],
+   "old_raw": "111"
+  },
+  {
+   "new": "131",
+   "subject": "Procedure in respect of person present in Court",
+   "old": [
+    "112"
+   ],
+   "old_raw": "112"
+  },
+  {
+   "new": "132",
+   "subject": "Summons or warrant in case of person not so present",
+   "old": [
+    "113"
+   ],
+   "old_raw": "113"
+  },
+  {
+   "new": "133",
+   "subject": "Copy of order to accompany summons or warrant",
+   "old": [
+    "114"
+   ],
+   "old_raw": "114"
+  },
+  {
+   "new": "134",
+   "subject": "Power to dispense with personal attendance",
+   "old": [
+    "115"
+   ],
+   "old_raw": "115"
+  },
+  {
+   "new": "135",
+   "subject": "Inquiry as to truth of information",
+   "old": [
+    "116"
+   ],
+   "old_raw": "116"
+  },
+  {
+   "new": "136",
+   "subject": "Order to give security",
+   "old": [
+    "117"
+   ],
+   "old_raw": "117"
+  },
+  {
+   "new": "137",
+   "subject": "Discharge of person informed against",
+   "old": [
+    "118"
+   ],
+   "old_raw": "118"
+  },
+  {
+   "new": "138",
+   "subject": "Commencement of period for which security is required",
+   "old": [
+    "119"
+   ],
+   "old_raw": "119"
+  },
+  {
+   "new": "139",
+   "subject": "Contents of bond",
+   "old": [
+    "120"
+   ],
+   "old_raw": "120"
+  },
+  {
+   "new": "140",
+   "subject": "Power to reject sureties",
+   "old": [
+    "121"
+   ],
+   "old_raw": "121"
+  },
+  {
+   "new": "141",
+   "subject": "Imprisonment in default of security",
+   "old": [
+    "122"
+   ],
+   "old_raw": "122"
+  },
+  {
+   "new": "142",
+   "subject": "Power to release persons imprisoned for failing to give security",
+   "old": [
+    "123"
+   ],
+   "old_raw": "123"
+  },
+  {
+   "new": "143",
+   "subject": "Security for unexpired period of bond",
+   "old": [
+    "124"
+   ],
+   "old_raw": "124"
+  },
+  {
+   "new": "144",
+   "subject": "Order for maintenance of wives, children and parents",
+   "old": [
+    "125"
+   ],
+   "old_raw": "125"
+  },
+  {
+   "new": "145",
+   "subject": "Procedure",
+   "old": [
+    "126"
+   ],
+   "old_raw": "126"
+  },
+  {
+   "new": "146",
+   "subject": "Alteration in allowance",
+   "old": [
+    "127"
+   ],
+   "old_raw": "127"
+  },
+  {
+   "new": "147",
+   "subject": "Enforcement of order of maintenance",
+   "old": [
+    "128"
+   ],
+   "old_raw": "128"
+  },
+  {
+   "new": "148",
+   "subject": "Dispersal of assembly by use of civil force",
+   "old": [
+    "129"
+   ],
+   "old_raw": "129"
+  },
+  {
+   "new": "149",
+   "subject": "Use of armed forces to disperse assembly",
+   "old": [
+    "130"
+   ],
+   "old_raw": "130"
+  },
+  {
+   "new": "150",
+   "subject": "Power of certain armed force officers to disperse assembly",
+   "old": [
+    "131"
+   ],
+   "old_raw": "131"
+  },
+  {
+   "new": "151",
+   "subject": "Protection against prosecution for acts done under sections 148, 149 and 150",
+   "old": [
+    "132"
+   ],
+   "old_raw": "132"
+  },
+  {
+   "new": "152",
+   "subject": "Conditional order for removal of nuisance",
+   "old": [
+    "133"
+   ],
+   "old_raw": "133"
+  },
+  {
+   "new": "153",
+   "subject": "Service or notification of order",
+   "old": [
+    "134"
+   ],
+   "old_raw": "134"
+  },
+  {
+   "new": "154",
+   "subject": "Person to whom order is addressed to obey or show cause",
+   "old": [
+    "135"
+   ],
+   "old_raw": "135"
+  },
+  {
+   "new": "155",
+   "subject": "Penalty for failure to comply with section 154",
+   "old": [
+    "136"
+   ],
+   "old_raw": "136"
+  },
+  {
+   "new": "156",
+   "subject": "Procedure where existence of public right is denied",
+   "old": [
+    "137"
+   ],
+   "old_raw": "137"
+  },
+  {
+   "new": "157",
+   "subject": "Procedure where person against whom order is made under section 152 appears to show cause",
+   "old": [
+    "138"
+   ],
+   "old_raw": "138"
+  },
+  {
+   "new": "158",
+   "subject": "Power of Magistrate to direct local investigation and examination of an expert",
+   "old": [
+    "139"
+   ],
+   "old_raw": "139"
+  },
+  {
+   "new": "159",
+   "subject": "Power of Magistrate to furnish written instructions, etc",
+   "old": [
+    "140"
+   ],
+   "old_raw": "140"
+  },
+  {
+   "new": "160",
+   "subject": "Procedure on order being made absolute and consequences of disobedience",
+   "old": [
+    "141"
+   ],
+   "old_raw": "141"
+  },
+  {
+   "new": "161",
+   "subject": "Injunction pending inquiry",
+   "old": [
+    "142"
+   ],
+   "old_raw": "142"
+  },
+  {
+   "new": "162",
+   "subject": "Magistrate may prohibit repetition or continuance of public nuisance",
+   "old": [
+    "143"
+   ],
+   "old_raw": "143"
+  },
+  {
+   "new": "163",
+   "subject": "Power to issue order in urgent cases of nuisance or apprehended danger",
+   "old": [
+    "144"
+   ],
+   "old_raw": "144"
+  },
+  {
+   "new": "164",
+   "subject": "Procedure where dispute concerning land or water is likely to cause breach of peace",
+   "old": [
+    "145"
+   ],
+   "old_raw": "145"
+  },
+  {
+   "new": "165",
+   "subject": "Power to attach subject of dispute and to appoint receiver",
+   "old": [
+    "146"
+   ],
+   "old_raw": "146"
+  },
+  {
+   "new": "166",
+   "subject": "Dispute concerning right of use of land or water",
+   "old": [
+    "147"
+   ],
+   "old_raw": "147"
+  },
+  {
+   "new": "167",
+   "subject": "Local inquiry",
+   "old": [
+    "148"
+   ],
+   "old_raw": "148"
+  },
+  {
+   "new": "168",
+   "subject": "Police to prevent cognizable offences",
+   "old": [
+    "149"
+   ],
+   "old_raw": "149"
+  },
+  {
+   "new": "169",
+   "subject": "Information of design to commit cognizable offences",
+   "old": [
+    "150"
+   ],
+   "old_raw": "150"
+  },
+  {
+   "new": "170",
+   "subject": "Arrest to prevent the commission of cognizable offences",
+   "old": [
+    "151"
+   ],
+   "old_raw": "151"
+  },
+  {
+   "new": "171",
+   "subject": "Prevention of injury to public property",
+   "old": [
+    "152"
+   ],
+   "old_raw": "152"
+  },
+  {
+   "new": "172",
+   "subject": "Persons bound to conform to lawful directions of police",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "173",
+   "subject": "Information in cognizable cases",
+   "old": [
+    "154"
+   ],
+   "old_raw": "154"
+  },
+  {
+   "new": "174",
+   "subject": "Information as to non- cognizable cases and investigation of such cases",
+   "old": [
+    "155"
+   ],
+   "old_raw": "155"
+  },
+  {
+   "new": "175",
+   "subject": "Police officer's power to investigate cognizable case",
+   "old": [
+    "156"
+   ],
+   "old_raw": "156"
+  },
+  {
+   "new": "176",
+   "subject": "Procedure for investigation",
+   "old": [
+    "157"
+   ],
+   "old_raw": "157"
+  },
+  {
+   "new": "177",
+   "subject": "Report how submitted",
+   "old": [
+    "158"
+   ],
+   "old_raw": "158"
+  },
+  {
+   "new": "178",
+   "subject": "Power to hold investigation or preliminary inquiry",
+   "old": [
+    "159"
+   ],
+   "old_raw": "159"
+  },
+  {
+   "new": "179",
+   "subject": "Police officer's power to require attendance of witnesses",
+   "old": [
+    "160"
+   ],
+   "old_raw": "160"
+  },
+  {
+   "new": "180",
+   "subject": "Examination of witnesses by police",
+   "old": [
+    "161"
+   ],
+   "old_raw": "161"
+  },
+  {
+   "new": "181",
+   "subject": "Statements to police and use thereof",
+   "old": [
+    "162"
+   ],
+   "old_raw": "162"
+  },
+  {
+   "new": "182",
+   "subject": "No inducement to be offered",
+   "old": [
+    "163"
+   ],
+   "old_raw": "163"
+  },
+  {
+   "new": "183",
+   "subject": "Recording of confessions and statements",
+   "old": [
+    "164"
+   ],
+   "old_raw": "164"
+  },
+  {
+   "new": "184",
+   "subject": "Medical examination of the victim of rape",
+   "old": [
+    "164A"
+   ],
+   "old_raw": "164A"
+  },
+  {
+   "new": "185",
+   "subject": "Search by police officer",
+   "old": [
+    "165"
+   ],
+   "old_raw": "165"
+  },
+  {
+   "new": "186",
+   "subject": "When officer in charge of police station may require another to issue search- warrant",
+   "old": [
+    "166"
+   ],
+   "old_raw": "166"
+  },
+  {
+   "new": "187",
+   "subject": "Procedure when investigation cannot be completed in twenty-four hours",
+   "old": [
+    "167"
+   ],
+   "old_raw": "167"
+  },
+  {
+   "new": "188",
+   "subject": "Report of investigation by subordinate police officer",
+   "old": [
+    "168"
+   ],
+   "old_raw": "168"
+  },
+  {
+   "new": "189",
+   "subject": "Release of accused when evidence deficient",
+   "old": [
+    "169"
+   ],
+   "old_raw": "169"
+  },
+  {
+   "new": "190",
+   "subject": "Cases to be sent to Magistrate, when evidence is sufficient",
+   "old": [
+    "170"
+   ],
+   "old_raw": "170"
+  },
+  {
+   "new": "191",
+   "subject": "Complainant and witnesses not to be required to accompany police officer and not to be subjected to restraint",
+   "old": [
+    "171"
+   ],
+   "old_raw": "171"
+  },
+  {
+   "new": "192",
+   "subject": "Diary of proceedings in investigation",
+   "old": [
+    "172"
+   ],
+   "old_raw": "172"
+  },
+  {
+   "new": "193",
+   "subject": "Report of police officer on completion of investigation",
+   "old": [
+    "173"
+   ],
+   "old_raw": "173"
+  },
+  {
+   "new": "194",
+   "subject": "Police to enquire and report on suicide, etc",
+   "old": [
+    "174"
+   ],
+   "old_raw": "174"
+  },
+  {
+   "new": "195",
+   "subject": "Power to summon persons",
+   "old": [
+    "175"
+   ],
+   "old_raw": "175"
+  },
+  {
+   "new": "196",
+   "subject": "Inquiry by Magistrate into cause of death",
+   "old": [
+    "176"
+   ],
+   "old_raw": "176"
+  },
+  {
+   "new": "197",
+   "subject": "Ordinary place of inquiry and trial",
+   "old": [
+    "177"
+   ],
+   "old_raw": "177"
+  },
+  {
+   "new": "198",
+   "subject": "Place of inquiry or trial",
+   "old": [
+    "178"
+   ],
+   "old_raw": "178"
+  },
+  {
+   "new": "199",
+   "subject": "Offence triable where act is done or consequence ensues",
+   "old": [
+    "179"
+   ],
+   "old_raw": "179"
+  },
+  {
+   "new": "200",
+   "subject": "Place of trial where act is an offence by reason of relation to other offence",
+   "old": [
+    "180"
+   ],
+   "old_raw": "180"
+  },
+  {
+   "new": "201",
+   "subject": "Place of trial in case of certain offences",
+   "old": [
+    "181"
+   ],
+   "old_raw": "181"
+  },
+  {
+   "new": "202",
+   "subject": "Offences committed by means of electronic communications, letters, etc",
+   "old": [
+    "182"
+   ],
+   "old_raw": "182"
+  },
+  {
+   "new": "203",
+   "subject": "Offence committed on journey or voyage",
+   "old": [
+    "183"
+   ],
+   "old_raw": "183"
+  },
+  {
+   "new": "204",
+   "subject": "Place of trial for offences triable together",
+   "old": [
+    "184"
+   ],
+   "old_raw": "184"
+  },
+  {
+   "new": "205",
+   "subject": "Power to order cases to be tried in different sessions divisions",
+   "old": [
+    "185"
+   ],
+   "old_raw": "185"
+  },
+  {
+   "new": "206",
+   "subject": "High Court to decide, in case of doubt, district where inquiry or trial shall take place",
+   "old": [
+    "186"
+   ],
+   "old_raw": "186"
+  },
+  {
+   "new": "207",
+   "subject": "Power to issue summons or warrant for offence committed beyond local jurisdiction",
+   "old": [
+    "187"
+   ],
+   "old_raw": "187"
+  },
+  {
+   "new": "208",
+   "subject": "Offence committed outside India",
+   "old": [
+    "188"
+   ],
+   "old_raw": "188"
+  },
+  {
+   "new": "209",
+   "subject": "Receipt of evidence relating to offences committed outside India",
+   "old": [
+    "189"
+   ],
+   "old_raw": "189"
+  },
+  {
+   "new": "210",
+   "subject": "Cognizance of offences by Magistrates",
+   "old": [
+    "190"
+   ],
+   "old_raw": "190"
+  },
+  {
+   "new": "211",
+   "subject": "Transfer on application of the accused",
+   "old": [
+    "191"
+   ],
+   "old_raw": "191"
+  },
+  {
+   "new": "212",
+   "subject": "Making over of cases to Magistrates",
+   "old": [
+    "192"
+   ],
+   "old_raw": "192"
+  },
+  {
+   "new": "213",
+   "subject": "Cognizance of offences by Courts of Session",
+   "old": [
+    "193"
+   ],
+   "old_raw": "193"
+  },
+  {
+   "new": "214",
+   "subject": "Additional Sessions Judges to try cases made over to them",
+   "old": [
+    "194"
+   ],
+   "old_raw": "194"
+  },
+  {
+   "new": "215",
+   "subject": "Prosecution for contempt of lawful authority of public servants, for offences against public justice and for offences relating to documents given in evidence",
+   "old": [
+    "195"
+   ],
+   "old_raw": "195"
+  },
+  {
+   "new": "216",
+   "subject": "Procedure for witnesses in case of threatening, etc",
+   "old": [
+    "195A"
+   ],
+   "old_raw": "195A"
+  },
+  {
+   "new": "217",
+   "subject": "Prosecution for offences against the State and for criminal conspiracy to commit such offence",
+   "old": [
+    "196"
+   ],
+   "old_raw": "196"
+  },
+  {
+   "new": "218",
+   "subject": "Prosecution of Judges and public servants",
+   "old": [
+    "197"
+   ],
+   "old_raw": "197"
+  },
+  {
+   "new": "219",
+   "subject": "Prosecution for offences against marriage",
+   "old": [
+    "198"
+   ],
+   "old_raw": "198"
+  },
+  {
+   "new": "220",
+   "subject": "Prosecution of offences under section 498A of the Bharatiya Nyaya Sanhita, 2023",
+   "old": [
+    "198A"
+   ],
+   "old_raw": "198A"
+  },
+  {
+   "new": "221",
+   "subject": "Cognizance of offence",
+   "old": [
+    "198B"
+   ],
+   "old_raw": "198B"
+  },
+  {
+   "new": "222",
+   "subject": "Prosecution for defamation",
+   "old": [
+    "199"
+   ],
+   "old_raw": "199"
+  },
+  {
+   "new": "223",
+   "subject": "Examination of complainant",
+   "old": [
+    "200"
+   ],
+   "old_raw": "200"
+  },
+  {
+   "new": "224",
+   "subject": "Procedure by Magistrate not competent to take cognizance of the case",
+   "old": [
+    "201"
+   ],
+   "old_raw": "201"
+  },
+  {
+   "new": "225",
+   "subject": "Postponement of issue of process",
+   "old": [
+    "202"
+   ],
+   "old_raw": "202"
+  },
+  {
+   "new": "226",
+   "subject": "Dismissal of complaint",
+   "old": [
+    "203"
+   ],
+   "old_raw": "203"
+  },
+  {
+   "new": "227",
+   "subject": "Issue of process",
+   "old": [
+    "204"
+   ],
+   "old_raw": "204"
+  },
+  {
+   "new": "228",
+   "subject": "Magistrate may dispense with personal attendance of accused",
+   "old": [
+    "205"
+   ],
+   "old_raw": "205"
+  },
+  {
+   "new": "229",
+   "subject": "Special summons in cases of petty offence",
+   "old": [
+    "206"
+   ],
+   "old_raw": "206"
+  },
+  {
+   "new": "230",
+   "subject": "Supply to the accused of copy of police report and other documents",
+   "old": [
+    "207"
+   ],
+   "old_raw": "207"
+  },
+  {
+   "new": "231",
+   "subject": "Supply of copies of statements and documents to accused in other cases triable by Court of Session",
+   "old": [
+    "208"
+   ],
+   "old_raw": "208"
+  },
+  {
+   "new": "232",
+   "subject": "Commitment of case to Court of Session when offence is triable exclusively by it",
+   "old": [
+    "209"
+   ],
+   "old_raw": "209"
+  },
+  {
+   "new": "233",
+   "subject": "Procedure to be followed when there is a complaint case and police investigation in respect of the same offence",
+   "old": [
+    "210"
+   ],
+   "old_raw": "210"
+  },
+  {
+   "new": "234",
+   "subject": "Contents of charge",
+   "old": [
+    "211"
+   ],
+   "old_raw": "211"
+  },
+  {
+   "new": "235",
+   "subject": "Particulars as to time, place and person",
+   "old": [
+    "212"
+   ],
+   "old_raw": "212"
+  },
+  {
+   "new": "236",
+   "subject": "When manner of committing offence must be stated",
+   "old": [
+    "213"
+   ],
+   "old_raw": "213"
+  },
+  {
+   "new": "237",
+   "subject": "Words in charge taken in sense of law under which offence is punishable",
+   "old": [
+    "214"
+   ],
+   "old_raw": "214"
+  },
+  {
+   "new": "238",
+   "subject": "Effect of errors",
+   "old": [
+    "215"
+   ],
+   "old_raw": "215"
+  },
+  {
+   "new": "239",
+   "subject": "Court may alter charge",
+   "old": [
+    "216"
+   ],
+   "old_raw": "216"
+  },
+  {
+   "new": "240",
+   "subject": "Recall of witnesses when charge altered",
+   "old": [
+    "217"
+   ],
+   "old_raw": "217"
+  },
+  {
+   "new": "241",
+   "subject": "Separate charges for distinct offences",
+   "old": [
+    "218"
+   ],
+   "old_raw": "218"
+  },
+  {
+   "new": "242",
+   "subject": "Offences of same kind within year may be charged together",
+   "old": [
+    "219"
+   ],
+   "old_raw": "219"
+  },
+  {
+   "new": "243",
+   "subject": "Trial for more than one offence",
+   "old": [
+    "220"
+   ],
+   "old_raw": "220"
+  },
+  {
+   "new": "244",
+   "subject": "Where it is doubtful what offence has been committed",
+   "old": [
+    "221"
+   ],
+   "old_raw": "221"
+  },
+  {
+   "new": "245",
+   "subject": "When offence proved included in offence charged",
+   "old": [
+    "222"
+   ],
+   "old_raw": "222"
+  },
+  {
+   "new": "246",
+   "subject": "What persons may be charged jointly",
+   "old": [
+    "223"
+   ],
+   "old_raw": "223"
+  },
+  {
+   "new": "247",
+   "subject": "Withdrawal of remaining charges on conviction on one of several charges",
+   "old": [
+    "224"
+   ],
+   "old_raw": "224"
+  },
+  {
+   "new": "248",
+   "subject": "Trial to be conducted by Public Prosecutor",
+   "old": [
+    "225"
+   ],
+   "old_raw": "225"
+  },
+  {
+   "new": "249",
+   "subject": "Opening case for prosecution",
+   "old": [
+    "226"
+   ],
+   "old_raw": "226"
+  },
+  {
+   "new": "250",
+   "subject": "Discharge",
+   "old": [
+    "227"
+   ],
+   "old_raw": "227"
+  },
+  {
+   "new": "251",
+   "subject": "Framing of charge",
+   "old": [
+    "228"
+   ],
+   "old_raw": "228"
+  },
+  {
+   "new": "252",
+   "subject": "Conviction on plea of guilty",
+   "old": [
+    "229"
+   ],
+   "old_raw": "229"
+  },
+  {
+   "new": "253",
+   "subject": "Date for prosecution evidence",
+   "old": [
+    "230"
+   ],
+   "old_raw": "230"
+  },
+  {
+   "new": "254",
+   "subject": "Evidence for prosecution",
+   "old": [
+    "231"
+   ],
+   "old_raw": "231"
+  },
+  {
+   "new": "255",
+   "subject": "Acquittal",
+   "old": [
+    "232"
+   ],
+   "old_raw": "232"
+  },
+  {
+   "new": "256",
+   "subject": "Entering upon defence",
+   "old": [
+    "233"
+   ],
+   "old_raw": "233"
+  },
+  {
+   "new": "257",
+   "subject": "Arguments",
+   "old": [
+    "234"
+   ],
+   "old_raw": "234"
+  },
+  {
+   "new": "258",
+   "subject": "Judgment of acquittal or conviction",
+   "old": [
+    "235"
+   ],
+   "old_raw": "235"
+  },
+  {
+   "new": "259",
+   "subject": "Previous conviction",
+   "old": [
+    "236"
+   ],
+   "old_raw": "236"
+  },
+  {
+   "new": "260",
+   "subject": "Procedure in cases instituted under sib-section 2 of section 222",
+   "old": [
+    "237"
+   ],
+   "old_raw": "237"
+  },
+  {
+   "new": "261",
+   "subject": "Compliance with section 230",
+   "old": [
+    "238"
+   ],
+   "old_raw": "238"
+  },
+  {
+   "new": "262",
+   "subject": "When accused shall be discharged",
+   "old": [
+    "239"
+   ],
+   "old_raw": "239"
+  },
+  {
+   "new": "263",
+   "subject": "Framing of charge",
+   "old": [
+    "240"
+   ],
+   "old_raw": "240"
+  },
+  {
+   "new": "264",
+   "subject": "Conviction on plea of guilty",
+   "old": [
+    "241"
+   ],
+   "old_raw": "241"
+  },
+  {
+   "new": "265",
+   "subject": "Evidence for prosecution",
+   "old": [
+    "242"
+   ],
+   "old_raw": "242"
+  },
+  {
+   "new": "266",
+   "subject": "Evidence for defence",
+   "old": [
+    "243"
+   ],
+   "old_raw": "243"
+  },
+  {
+   "new": "267",
+   "subject": "Evidence for prosecution",
+   "old": [
+    "244"
+   ],
+   "old_raw": "244"
+  },
+  {
+   "new": "268",
+   "subject": "When accused shall be discharged",
+   "old": [
+    "245"
+   ],
+   "old_raw": "245"
+  },
+  {
+   "new": "269",
+   "subject": "Procedure where accused is not discharged",
+   "old": [
+    "246"
+   ],
+   "old_raw": "246"
+  },
+  {
+   "new": "270",
+   "subject": "Evidence for defence",
+   "old": [
+    "247"
+   ],
+   "old_raw": "247"
+  },
+  {
+   "new": "271",
+   "subject": "Acquittal or conviction",
+   "old": [
+    "248"
+   ],
+   "old_raw": "248"
+  },
+  {
+   "new": "272",
+   "subject": "Absence of complainant",
+   "old": [
+    "249"
+   ],
+   "old_raw": "249"
+  },
+  {
+   "new": "273",
+   "subject": "Compensation for accusation without reasonable cause",
+   "old": [
+    "250"
+   ],
+   "old_raw": "250"
+  },
+  {
+   "new": "274",
+   "subject": "Substance of accusation to be stated",
+   "old": [
+    "251"
+   ],
+   "old_raw": "251"
+  },
+  {
+   "new": "275",
+   "subject": "Conviction on plea of guilty",
+   "old": [
+    "252"
+   ],
+   "old_raw": "252"
+  },
+  {
+   "new": "276",
+   "subject": "Conviction on plea of guilty in absence of accused in petty cases",
+   "old": [
+    "253"
+   ],
+   "old_raw": "253"
+  },
+  {
+   "new": "277",
+   "subject": "Procedure when not convicted",
+   "old": [
+    "254"
+   ],
+   "old_raw": "254"
+  },
+  {
+   "new": "278",
+   "subject": "Acquittal or conviction",
+   "old": [
+    "255"
+   ],
+   "old_raw": "255"
+  },
+  {
+   "new": "279",
+   "subject": "Non-appearance or death of complainant",
+   "old": [
+    "256"
+   ],
+   "old_raw": "256"
+  },
+  {
+   "new": "280",
+   "subject": "Withdrawal of complaint",
+   "old": [
+    "257"
+   ],
+   "old_raw": "257"
+  },
+  {
+   "new": "281",
+   "subject": "Power to stop proceedings in certain cases",
+   "old": [
+    "258"
+   ],
+   "old_raw": "258"
+  },
+  {
+   "new": "282",
+   "subject": "Power of Court to convert summons-cases into warrant- cases",
+   "old": [
+    "259"
+   ],
+   "old_raw": "259"
+  },
+  {
+   "new": "283",
+   "subject": "Power to try summarily",
+   "old": [
+    "260"
+   ],
+   "old_raw": "260"
+  },
+  {
+   "new": "284",
+   "subject": "Summary trial by Magistrate of the second class",
+   "old": [
+    "261"
+   ],
+   "old_raw": "261"
+  },
+  {
+   "new": "285",
+   "subject": "Procedure for summary trials",
+   "old": [
+    "262"
+   ],
+   "old_raw": "262"
+  },
+  {
+   "new": "286",
+   "subject": "Record in summary trials",
+   "old": [
+    "263"
+   ],
+   "old_raw": "263"
+  },
+  {
+   "new": "287",
+   "subject": "Judgment in cases tried summarily",
+   "old": [
+    "264"
+   ],
+   "old_raw": "264"
+  },
+  {
+   "new": "288",
+   "subject": "Language of record and judgment",
+   "old": [
+    "265"
+   ],
+   "old_raw": "265"
+  },
+  {
+   "new": "289",
+   "subject": "Application of the Chapter",
+   "old": [
+    "265A"
+   ],
+   "old_raw": "265A"
+  },
+  {
+   "new": "290",
+   "subject": "Application for plea bargaining",
+   "old": [
+    "265B"
+   ],
+   "old_raw": "265B"
+  },
+  {
+   "new": "291",
+   "subject": "Guidelines for mutually satisfactory disposition",
+   "old": [
+    "265C"
+   ],
+   "old_raw": "265C"
+  },
+  {
+   "new": "292",
+   "subject": "Report of the mutually satisfactory disposition to be submitted before the Court",
+   "old": [
+    "265D"
+   ],
+   "old_raw": "265D"
+  },
+  {
+   "new": "293",
+   "subject": "Disposal of the case",
+   "old": [
+    "265E"
+   ],
+   "old_raw": "265E"
+  },
+  {
+   "new": "294",
+   "subject": "Judgment of the Court",
+   "old": [
+    "265F"
+   ],
+   "old_raw": "265F"
+  },
+  {
+   "new": "295",
+   "subject": "Finality of the judgment",
+   "old": [
+    "265G"
+   ],
+   "old_raw": "265G"
+  },
+  {
+   "new": "296",
+   "subject": "Power of the Court in plea bargaining",
+   "old": [
+    "265H"
+   ],
+   "old_raw": "265H"
+  },
+  {
+   "new": "297",
+   "subject": "Period of detention undergone by the accused to be set off against the sentence of imprisonment",
+   "old": [
+    "265"
+   ],
+   "old_raw": "265-I"
+  },
+  {
+   "new": "298",
+   "subject": "Savings",
+   "old": [
+    "265J"
+   ],
+   "old_raw": "265J"
+  },
+  {
+   "new": "299",
+   "subject": "Statements of accused not to be used",
+   "old": [
+    "265K"
+   ],
+   "old_raw": "265K"
+  },
+  {
+   "new": "300",
+   "subject": "Non-application of the Chapter",
+   "old": [
+    "265L"
+   ],
+   "old_raw": "265L"
+  },
+  {
+   "new": "301",
+   "subject": "Definitions",
+   "old": [
+    "266"
+   ],
+   "old_raw": "266"
+  },
+  {
+   "new": "302",
+   "subject": "Power to require attendance of prisoners",
+   "old": [
+    "267"
+   ],
+   "old_raw": "267"
+  },
+  {
+   "new": "303",
+   "subject": "Power of State Government or Central Government to exclude certain persons from operation of section 302",
+   "old": [
+    "268"
+   ],
+   "old_raw": "268"
+  },
+  {
+   "new": "304",
+   "subject": "Officer in charge of prison to abstain from carrying out order in certain contingencies",
+   "old": [
+    "269"
+   ],
+   "old_raw": "269"
+  },
+  {
+   "new": "305",
+   "subject": "Prisoner to be brought to Court in custody",
+   "old": [
+    "270"
+   ],
+   "old_raw": "270"
+  },
+  {
+   "new": "306",
+   "subject": "Power to issue commission for examination of witness in prison",
+   "old": [
+    "271"
+   ],
+   "old_raw": "271"
+  },
+  {
+   "new": "307",
+   "subject": "Language of Courts",
+   "old": [
+    "272"
+   ],
+   "old_raw": "272"
+  },
+  {
+   "new": "308",
+   "subject": "Evidence to be taken in presence of accused",
+   "old": [
+    "273"
+   ],
+   "old_raw": "273"
+  },
+  {
+   "new": "309",
+   "subject": "Record in summons-cases and inquiries",
+   "old": [
+    "274"
+   ],
+   "old_raw": "274"
+  },
+  {
+   "new": "310",
+   "subject": "Record in warrant-cases",
+   "old": [
+    "275"
+   ],
+   "old_raw": "275"
+  },
+  {
+   "new": "311",
+   "subject": "Record in trial before Court of Session",
+   "old": [
+    "276"
+   ],
+   "old_raw": "276"
+  },
+  {
+   "new": "312",
+   "subject": "Language of record of evidence",
+   "old": [
+    "277"
+   ],
+   "old_raw": "277"
+  },
+  {
+   "new": "313",
+   "subject": "Procedure in regard to such evidence when completed",
+   "old": [
+    "278"
+   ],
+   "old_raw": "278"
+  },
+  {
+   "new": "314",
+   "subject": "Interpretation of evidence to accused or his pleader",
+   "old": [
+    "279"
+   ],
+   "old_raw": "279"
+  },
+  {
+   "new": "315",
+   "subject": "Remarks respecting demeanour of witness",
+   "old": [
+    "280"
+   ],
+   "old_raw": "280"
+  },
+  {
+   "new": "316",
+   "subject": "Record of examination of accused",
+   "old": [
+    "281"
+   ],
+   "old_raw": "281"
+  },
+  {
+   "new": "317",
+   "subject": "Interpreter to be bound to interpret truthfully",
+   "old": [
+    "282"
+   ],
+   "old_raw": "282"
+  },
+  {
+   "new": "318",
+   "subject": "Record in High Court",
+   "old": [
+    "283"
+   ],
+   "old_raw": "283"
+  },
+  {
+   "new": "319",
+   "subject": "When attendance of witness may be dispensed with and commission issued",
+   "old": [
+    "284"
+   ],
+   "old_raw": "284"
+  },
+  {
+   "new": "320",
+   "subject": "Commission to whom to be issued",
+   "old": [
+    "285"
+   ],
+   "old_raw": "285"
+  },
+  {
+   "new": "321",
+   "subject": "Execution of commissions",
+   "old": [
+    "286"
+   ],
+   "old_raw": "286"
+  },
+  {
+   "new": "322",
+   "subject": "Parties may examine witnesses",
+   "old": [
+    "287"
+   ],
+   "old_raw": "287"
+  },
+  {
+   "new": "323",
+   "subject": "Return of commission",
+   "old": [
+    "288"
+   ],
+   "old_raw": "288"
+  },
+  {
+   "new": "324",
+   "subject": "Adjournment of proceeding",
+   "old": [
+    "289"
+   ],
+   "old_raw": "289"
+  },
+  {
+   "new": "325",
+   "subject": "Execution of foreign commissions",
+   "old": [
+    "290"
+   ],
+   "old_raw": "290"
+  },
+  {
+   "new": "326",
+   "subject": "Deposition of medical witness",
+   "old": [
+    "291"
+   ],
+   "old_raw": "291"
+  },
+  {
+   "new": "327",
+   "subject": "Identification report of Magistrate",
+   "old": [
+    "291A"
+   ],
+   "old_raw": "291A"
+  },
+  {
+   "new": "328",
+   "subject": "Evidence of officers of the Mint",
+   "old": [
+    "292"
+   ],
+   "old_raw": "292"
+  },
+  {
+   "new": "329",
+   "subject": "Reports of certain Government scientific experts",
+   "old": [
+    "293"
+   ],
+   "old_raw": "293"
+  },
+  {
+   "new": "330",
+   "subject": "No formal proof of certain documents",
+   "old": [
+    "294"
+   ],
+   "old_raw": "294"
+  },
+  {
+   "new": "331",
+   "subject": "Affidavit in proof of conduct of public servants",
+   "old": [
+    "295"
+   ],
+   "old_raw": "295"
+  },
+  {
+   "new": "332",
+   "subject": "Evidence of formal character on affidavit",
+   "old": [
+    "296"
+   ],
+   "old_raw": "296"
+  },
+  {
+   "new": "333",
+   "subject": "Authorities before whom affidavits may be sworn",
+   "old": [
+    "297"
+   ],
+   "old_raw": "297"
+  },
+  {
+   "new": "334",
+   "subject": "Previous conviction or acquittal how proved",
+   "old": [
+    "298"
+   ],
+   "old_raw": "298"
+  },
+  {
+   "new": "335",
+   "subject": "Record of evidence in absence of accused",
+   "old": [
+    "299"
+   ],
+   "old_raw": "299"
+  },
+  {
+   "new": "336",
+   "subject": "Evidence of public servants, experts, police officers in certain cases",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "337",
+   "subject": "Person once convicted or acquitted not to be tried for same offence",
+   "old": [
+    "300"
+   ],
+   "old_raw": "300"
+  },
+  {
+   "new": "338",
+   "subject": "Appearance by Public Prosecutors",
+   "old": [
+    "301"
+   ],
+   "old_raw": "301"
+  },
+  {
+   "new": "339",
+   "subject": "Permission to conduct prosecution",
+   "old": [
+    "302"
+   ],
+   "old_raw": "302"
+  },
+  {
+   "new": "340",
+   "subject": "Right of person against whom proceedings are instituted to be defended",
+   "old": [
+    "303"
+   ],
+   "old_raw": "303"
+  },
+  {
+   "new": "341",
+   "subject": "Legal aid to accused at State expense in certain cases",
+   "old": [
+    "304"
+   ],
+   "old_raw": "304"
+  },
+  {
+   "new": "342",
+   "subject": "Procedure when corporation or registered society is an accused",
+   "old": [
+    "305"
+   ],
+   "old_raw": "305"
+  },
+  {
+   "new": "343",
+   "subject": "Tender of pardon to accomplice",
+   "old": [
+    "306"
+   ],
+   "old_raw": "306"
+  },
+  {
+   "new": "344",
+   "subject": "Power to direct tender of pardon",
+   "old": [
+    "307"
+   ],
+   "old_raw": "307"
+  },
+  {
+   "new": "345",
+   "subject": "Trial of person not complying with conditions of pardon",
+   "old": [
+    "308"
+   ],
+   "old_raw": "308"
+  },
+  {
+   "new": "346",
+   "subject": "Power to postpone or adjourn proceedings",
+   "old": [
+    "309"
+   ],
+   "old_raw": "309"
+  },
+  {
+   "new": "347",
+   "subject": "Local inspection",
+   "old": [
+    "310"
+   ],
+   "old_raw": "310"
+  },
+  {
+   "new": "348",
+   "subject": "Power to summon material witness, or examine person present",
+   "old": [
+    "311"
+   ],
+   "old_raw": "311"
+  },
+  {
+   "new": "349",
+   "subject": "Power of Magistrate to order person to give specimen signatures or handwriting",
+   "old": [
+    "311A"
+   ],
+   "old_raw": "311A"
+  },
+  {
+   "new": "350",
+   "subject": "Expenses of complainants and witnesses",
+   "old": [
+    "312"
+   ],
+   "old_raw": "312"
+  },
+  {
+   "new": "351",
+   "subject": "Power to examine the accused",
+   "old": [
+    "313"
+   ],
+   "old_raw": "313"
+  },
+  {
+   "new": "352",
+   "subject": "Oral arguments and memorandum of arguments",
+   "old": [
+    "314"
+   ],
+   "old_raw": "314"
+  },
+  {
+   "new": "353",
+   "subject": "Accused person to be competent witness",
+   "old": [
+    "315"
+   ],
+   "old_raw": "315"
+  },
+  {
+   "new": "354",
+   "subject": "No influence to be used to induce disclosure",
+   "old": [
+    "316"
+   ],
+   "old_raw": "316"
+  },
+  {
+   "new": "355",
+   "subject": "Provision for inquiries and trial being held in the absence of accused in certain cases",
+   "old": [
+    "317"
+   ],
+   "old_raw": "317"
+  },
+  {
+   "new": "356",
+   "subject": "Inquiry, trial or judgment in absentia of proclaimed offender",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "357",
+   "subject": "Procedure where accused does not understand proceedings",
+   "old": [
+    "318"
+   ],
+   "old_raw": "318"
+  },
+  {
+   "new": "358",
+   "subject": "Power to proceed against other persons appearing to be guilty of offence",
+   "old": [
+    "319"
+   ],
+   "old_raw": "319"
+  },
+  {
+   "new": "359",
+   "subject": "Compounding of offences",
+   "old": [
+    "320"
+   ],
+   "old_raw": "320"
+  },
+  {
+   "new": "360",
+   "subject": "Withdrawal from prosecution",
+   "old": [
+    "321"
+   ],
+   "old_raw": "321"
+  },
+  {
+   "new": "361",
+   "subject": "Procedure in cases which Magistrate cannot dispose of",
+   "old": [
+    "322"
+   ],
+   "old_raw": "322"
+  },
+  {
+   "new": "362",
+   "subject": "Procedure when, after commencement of inquiry or trial, Magistrate finds case should be committed",
+   "old": [
+    "323"
+   ],
+   "old_raw": "323"
+  },
+  {
+   "new": "363",
+   "subject": "Trial of persons previously convicted of offences against coinage, stamp-law or property",
+   "old": [
+    "324"
+   ],
+   "old_raw": "324"
+  },
+  {
+   "new": "364",
+   "subject": "Procedure when Magistrate cannot pass sentence sufficiently severe",
+   "old": [
+    "325"
+   ],
+   "old_raw": "325"
+  },
+  {
+   "new": "365",
+   "subject": "Conviction or commitment on evidence partly recorded by one Magistrate and partly by another",
+   "old": [
+    "326"
+   ],
+   "old_raw": "326"
+  },
+  {
+   "new": "366",
+   "subject": "Court to be open",
+   "old": [
+    "327"
+   ],
+   "old_raw": "327"
+  },
+  {
+   "new": "367",
+   "subject": "Procedure in case of accused being person of unsound mind",
+   "old": [
+    "328"
+   ],
+   "old_raw": "328"
+  },
+  {
+   "new": "368",
+   "subject": "Procedure in case of person of unsound mind tried before Court",
+   "old": [
+    "329"
+   ],
+   "old_raw": "329"
+  },
+  {
+   "new": "369",
+   "subject": "Release of person with mental illness pending investigation or trial",
+   "old": [
+    "330"
+   ],
+   "old_raw": "330"
+  },
+  {
+   "new": "370",
+   "subject": "Resumption of inquiry or trial",
+   "old": [
+    "331"
+   ],
+   "old_raw": "331"
+  },
+  {
+   "new": "371",
+   "subject": "Procedure on accused appearing before Magistrate or Court",
+   "old": [
+    "332"
+   ],
+   "old_raw": "332"
+  },
+  {
+   "new": "372",
+   "subject": "When accused appears to have been of sound mind",
+   "old": [
+    "333"
+   ],
+   "old_raw": "333"
+  },
+  {
+   "new": "373",
+   "subject": "Judgment of acquittal on ground of unsoundness of mind",
+   "old": [
+    "334"
+   ],
+   "old_raw": "334"
+  },
+  {
+   "new": "374",
+   "subject": "Person acquitted on ground of unsoundness of mind to be detained in safe custody",
+   "old": [
+    "335"
+   ],
+   "old_raw": "335"
+  },
+  {
+   "new": "375",
+   "subject": "Power of State Government to empower officer-in-charge to discharge",
+   "old": [
+    "336"
+   ],
+   "old_raw": "336"
+  },
+  {
+   "new": "376",
+   "subject": "Procedure where prisoner of unsound mind is reported capable of making his defence",
+   "old": [
+    "337"
+   ],
+   "old_raw": "337"
+  },
+  {
+   "new": "377",
+   "subject": "Procedure where person of unsound mind detained is declared fit to be released",
+   "old": [
+    "338"
+   ],
+   "old_raw": "338"
+  },
+  {
+   "new": "378",
+   "subject": "Delivery of person of unsound mind to care of relative or friend",
+   "old": [
+    "339"
+   ],
+   "old_raw": "339"
+  },
+  {
+   "new": "379",
+   "subject": "Procedure in cases mentioned in section 215",
+   "old": [
+    "340"
+   ],
+   "old_raw": "340"
+  },
+  {
+   "new": "380",
+   "subject": "Appeal",
+   "old": [
+    "341"
+   ],
+   "old_raw": "341"
+  },
+  {
+   "new": "381",
+   "subject": "Power to order costs",
+   "old": [
+    "342"
+   ],
+   "old_raw": "342"
+  },
+  {
+   "new": "382",
+   "subject": "Procedure of Magistrate taking cognizance",
+   "old": [
+    "343"
+   ],
+   "old_raw": "343"
+  },
+  {
+   "new": "383",
+   "subject": "Summary procedure for trial for giving false evidence",
+   "old": [
+    "344"
+   ],
+   "old_raw": "344"
+  },
+  {
+   "new": "384",
+   "subject": "Procedure in certain cases of contempt",
+   "old": [
+    "345"
+   ],
+   "old_raw": "345"
+  },
+  {
+   "new": "385",
+   "subject": "Procedure where Court considers that case should not be dealt with under section 384",
+   "old": [
+    "346"
+   ],
+   "old_raw": "346"
+  },
+  {
+   "new": "386",
+   "subject": "When Registrar or Sub- Registrar to be deemed a Civil Court",
+   "old": [
+    "347"
+   ],
+   "old_raw": "347"
+  },
+  {
+   "new": "387",
+   "subject": "Discharge of offender on submission of apology",
+   "old": [
+    "348"
+   ],
+   "old_raw": "348"
+  },
+  {
+   "new": "388",
+   "subject": "Imprisonment or committal of person refusing to answer or produce document",
+   "old": [
+    "349"
+   ],
+   "old_raw": "349"
+  },
+  {
+   "new": "389",
+   "subject": "Summary procedure for punishment for non- attendance by a witness in obedience to summons",
+   "old": [
+    "350"
+   ],
+   "old_raw": "350"
+  },
+  {
+   "new": "390",
+   "subject": "Appeals from convictions under sections 383, 384, 388 and 389",
+   "old": [
+    "351"
+   ],
+   "old_raw": "351"
+  },
+  {
+   "new": "391",
+   "subject": "Certain Judges and Magistrates not to try certain offences when committed before themselves",
+   "old": [
+    "352"
+   ],
+   "old_raw": "352"
+  },
+  {
+   "new": "392",
+   "subject": "Judgment",
+   "old": [
+    "353"
+   ],
+   "old_raw": "353"
+  },
+  {
+   "new": "393",
+   "subject": "Language and contents of judgment",
+   "old": [
+    "354"
+   ],
+   "old_raw": "354"
+  },
+  {
+   "new": "394",
+   "subject": "Order for notifying address of previously convicted offender",
+   "old": [
+    "356"
+   ],
+   "old_raw": "356"
+  },
+  {
+   "new": "395",
+   "subject": "Order to pay compensation",
+   "old": [
+    "357"
+   ],
+   "old_raw": "357"
+  },
+  {
+   "new": "396",
+   "subject": "Victim compensation scheme. Compensation to be in addition to fine under section 65, section 70 and sub- section (1) of section 124 of the Bharatiya Nyaya Sanhita, 2023 [under section 326A or section 376D of Indian Penal Code]",
+   "old": [
+    "357A",
+    "357B"
+   ],
+   "old_raw": "357A & 357B"
+  },
+  {
+   "new": "397",
+   "subject": "Treatment of victims",
+   "old": [
+    "357C"
+   ],
+   "old_raw": "357C"
+  },
+  {
+   "new": "398",
+   "subject": "Witness protection scheme",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "399",
+   "subject": "Compensation to persons groundlessly arrested",
+   "old": [
+    "358"
+   ],
+   "old_raw": "358"
+  },
+  {
+   "new": "400",
+   "subject": "Order to pay costs in non- cognizable cases",
+   "old": [
+    "359"
+   ],
+   "old_raw": "359"
+  },
+  {
+   "new": "401",
+   "subject": "Order to release on probation of good conduct or after admonition",
+   "old": [
+    "360"
+   ],
+   "old_raw": "360"
+  },
+  {
+   "new": "402",
+   "subject": "Special reasons to be recorded in certain cases",
+   "old": [
+    "361"
+   ],
+   "old_raw": "361"
+  },
+  {
+   "new": "403",
+   "subject": "Court not to alter judgment",
+   "old": [
+    "362"
+   ],
+   "old_raw": "362"
+  },
+  {
+   "new": "404",
+   "subject": "Copy of judgment to be given to the accused and other persons",
+   "old": [
+    "363"
+   ],
+   "old_raw": "363"
+  },
+  {
+   "new": "405",
+   "subject": "Judgment when to be translated",
+   "old": [
+    "364"
+   ],
+   "old_raw": "364"
+  },
+  {
+   "new": "406",
+   "subject": "Court of Session to send copy of finding and sentence to District Magistrate",
+   "old": [
+    "365"
+   ],
+   "old_raw": "365"
+  },
+  {
+   "new": "407",
+   "subject": "Sentence of death to be submitted by Court of Session for confirmation",
+   "old": [
+    "366"
+   ],
+   "old_raw": "366"
+  },
+  {
+   "new": "408",
+   "subject": "Power to direct further inquiry to be made or additional evidence to be taken",
+   "old": [
+    "367"
+   ],
+   "old_raw": "367"
+  },
+  {
+   "new": "409",
+   "subject": "Power of High Court to confirm sentence or annul conviction",
+   "old": [
+    "368"
+   ],
+   "old_raw": "368"
+  },
+  {
+   "new": "410",
+   "subject": "Confirmation or new sentence to be signed by two Judges",
+   "old": [
+    "369"
+   ],
+   "old_raw": "369"
+  },
+  {
+   "new": "411",
+   "subject": "Procedure in case of difference of opinion",
+   "old": [
+    "370"
+   ],
+   "old_raw": "370"
+  },
+  {
+   "new": "412",
+   "subject": "Procedure in cases submitted to High Court for confirmation",
+   "old": [
+    "371"
+   ],
+   "old_raw": "371"
+  },
+  {
+   "new": "413",
+   "subject": "No appeal to lie unless otherwise provided",
+   "old": [
+    "372"
+   ],
+   "old_raw": "372"
+  },
+  {
+   "new": "414",
+   "subject": "Appeal from orders requiring security or refusal to accept or rejecting surety for keeping peace or good behaviour",
+   "old": [
+    "373"
+   ],
+   "old_raw": "373"
+  },
+  {
+   "new": "415",
+   "subject": "Appeals from convictions",
+   "old": [
+    "374"
+   ],
+   "old_raw": "374"
+  },
+  {
+   "new": "416",
+   "subject": "No appeal in certain cases when accused pleads guilty",
+   "old": [
+    "375"
+   ],
+   "old_raw": "375"
+  },
+  {
+   "new": "417",
+   "subject": "No appeal in petty cases",
+   "old": [
+    "376"
+   ],
+   "old_raw": "376"
+  },
+  {
+   "new": "418",
+   "subject": "Appeal by the State Government against sentence",
+   "old": [
+    "377"
+   ],
+   "old_raw": "377"
+  },
+  {
+   "new": "419",
+   "subject": "Appeal in case of acquittal",
+   "old": [
+    "378"
+   ],
+   "old_raw": "378"
+  },
+  {
+   "new": "420",
+   "subject": "Appeal against conviction by High Court in certain cases",
+   "old": [
+    "379"
+   ],
+   "old_raw": "379"
+  },
+  {
+   "new": "421",
+   "subject": "Special right of appeal in certain cases",
+   "old": [
+    "380"
+   ],
+   "old_raw": "380"
+  },
+  {
+   "new": "422",
+   "subject": "Appeal to Court of Session how heard",
+   "old": [
+    "381"
+   ],
+   "old_raw": "381"
+  },
+  {
+   "new": "423",
+   "subject": "Petition of appeal",
+   "old": [
+    "382"
+   ],
+   "old_raw": "382"
+  },
+  {
+   "new": "424",
+   "subject": "Procedure when appellant in jail",
+   "old": [
+    "383"
+   ],
+   "old_raw": "383"
+  },
+  {
+   "new": "425",
+   "subject": "Summary dismissal of appeal",
+   "old": [
+    "384"
+   ],
+   "old_raw": "384"
+  },
+  {
+   "new": "426",
+   "subject": "Procedure for hearing appeals not dismissed summarily",
+   "old": [
+    "385"
+   ],
+   "old_raw": "385"
+  },
+  {
+   "new": "427",
+   "subject": "Powers of the Appellate Court",
+   "old": [
+    "386"
+   ],
+   "old_raw": "386"
+  },
+  {
+   "new": "428",
+   "subject": "Judgments of Subordinate Appellate Court",
+   "old": [
+    "387"
+   ],
+   "old_raw": "387"
+  },
+  {
+   "new": "429",
+   "subject": "Order of High Court on appeal to be certified to lower Court",
+   "old": [
+    "388"
+   ],
+   "old_raw": "388"
+  },
+  {
+   "new": "430",
+   "subject": "Suspension of sentence pending the appeal; release of appellant on bail",
+   "old": [
+    "389"
+   ],
+   "old_raw": "389"
+  },
+  {
+   "new": "431",
+   "subject": "Arrest of accused in appeal from acquittal",
+   "old": [
+    "390"
+   ],
+   "old_raw": "390"
+  },
+  {
+   "new": "432",
+   "subject": "Appellate Court may take further evidence or direct it to be taken",
+   "old": [
+    "391"
+   ],
+   "old_raw": "391"
+  },
+  {
+   "new": "433",
+   "subject": "Procedure where Judges of Court of Appeal are equally divided",
+   "old": [
+    "392"
+   ],
+   "old_raw": "392"
+  },
+  {
+   "new": "434",
+   "subject": "Finality of judgments and orders on appeal",
+   "old": [
+    "393"
+   ],
+   "old_raw": "393"
+  },
+  {
+   "new": "435",
+   "subject": "Abatement of appeals",
+   "old": [
+    "394"
+   ],
+   "old_raw": "394"
+  },
+  {
+   "new": "436",
+   "subject": "Reference to High Court",
+   "old": [
+    "395"
+   ],
+   "old_raw": "395"
+  },
+  {
+   "new": "437",
+   "subject": "Disposal of case according to decision of High Court",
+   "old": [
+    "396"
+   ],
+   "old_raw": "396"
+  },
+  {
+   "new": "438",
+   "subject": "Calling for records to exercise powers of revision",
+   "old": [
+    "397"
+   ],
+   "old_raw": "397"
+  },
+  {
+   "new": "439",
+   "subject": "Power to order inquiry",
+   "old": [
+    "398"
+   ],
+   "old_raw": "398"
+  },
+  {
+   "new": "440",
+   "subject": "Sessions Judge's powers of revision",
+   "old": [
+    "399"
+   ],
+   "old_raw": "399"
+  },
+  {
+   "new": "441",
+   "subject": "Power of Additional Sessions Judge",
+   "old": [
+    "400"
+   ],
+   "old_raw": "400"
+  },
+  {
+   "new": "442",
+   "subject": "High Court's powers of revision",
+   "old": [
+    "401"
+   ],
+   "old_raw": "401"
+  },
+  {
+   "new": "443",
+   "subject": "Power of High Court to withdraw or transfer revision cases",
+   "old": [
+    "402"
+   ],
+   "old_raw": "402"
+  },
+  {
+   "new": "444",
+   "subject": "Option of Court to hear parties",
+   "old": [
+    "403"
+   ],
+   "old_raw": "403"
+  },
+  {
+   "new": "445",
+   "subject": "High Court's order to be certified to lower Court",
+   "old": [
+    "405"
+   ],
+   "old_raw": "405"
+  },
+  {
+   "new": "446",
+   "subject": "Power of Supreme Court to transfer cases and appeals",
+   "old": [
+    "406"
+   ],
+   "old_raw": "406"
+  },
+  {
+   "new": "447",
+   "subject": "Power of High Court to transfer cases and appeals",
+   "old": [
+    "407"
+   ],
+   "old_raw": "407"
+  },
+  {
+   "new": "448",
+   "subject": "Power of Sessions Judge to transfer cases and appeals",
+   "old": [
+    "408"
+   ],
+   "old_raw": "408"
+  },
+  {
+   "new": "449",
+   "subject": "Withdrawal of cases and appeals by Session Judge",
+   "old": [
+    "409"
+   ],
+   "old_raw": "409"
+  },
+  {
+   "new": "450",
+   "subject": "Withdrawal of cases by Judicial Magistrate",
+   "old": [
+    "410"
+   ],
+   "old_raw": "410"
+  },
+  {
+   "new": "451",
+   "subject": "Making over or withdrawal of cases by Executive Magistrates",
+   "old": [
+    "411"
+   ],
+   "old_raw": "411"
+  },
+  {
+   "new": "452",
+   "subject": "Reasons to be recorded",
+   "old": [
+    "412"
+   ],
+   "old_raw": "412"
+  },
+  {
+   "new": "453",
+   "subject": "Execution of order passed under section 409",
+   "old": [
+    "413"
+   ],
+   "old_raw": "413"
+  },
+  {
+   "new": "454",
+   "subject": "Execution of sentence of death passed by High Court",
+   "old": [
+    "414"
+   ],
+   "old_raw": "414"
+  },
+  {
+   "new": "455",
+   "subject": "Commutation of sentence of death in case of appeal to Supreme Court",
+   "old": [
+    "415"
+   ],
+   "old_raw": "415"
+  },
+  {
+   "new": "456",
+   "subject": "Postponement of capital sentence on pregnant woman",
+   "old": [
+    "416"
+   ],
+   "old_raw": "416"
+  },
+  {
+   "new": "457",
+   "subject": "Power to appoint place of imprisonment",
+   "old": [
+    "417"
+   ],
+   "old_raw": "417"
+  },
+  {
+   "new": "458",
+   "subject": "Execution of sentence of imprisonment",
+   "old": [
+    "418"
+   ],
+   "old_raw": "418"
+  },
+  {
+   "new": "459",
+   "subject": "Direction of warrant for execution",
+   "old": [
+    "419"
+   ],
+   "old_raw": "419"
+  },
+  {
+   "new": "460",
+   "subject": "Warrant with whom to be lodged",
+   "old": [
+    "420"
+   ],
+   "old_raw": "420"
+  },
+  {
+   "new": "461",
+   "subject": "Warrant for levy of fine",
+   "old": [
+    "421"
+   ],
+   "old_raw": "421"
+  },
+  {
+   "new": "462",
+   "subject": "Effect of such warrant",
+   "old": [
+    "422"
+   ],
+   "old_raw": "422"
+  },
+  {
+   "new": "463",
+   "subject": "Warrant for levy of fine issued by a Court in any territory to which this Sanhita does not extend",
+   "old": [
+    "423"
+   ],
+   "old_raw": "423"
+  },
+  {
+   "new": "464",
+   "subject": "Suspension of execution of sentence of imprisonment",
+   "old": [
+    "424"
+   ],
+   "old_raw": "424"
+  },
+  {
+   "new": "465",
+   "subject": "Who may issue warrant",
+   "old": [
+    "425"
+   ],
+   "old_raw": "425"
+  },
+  {
+   "new": "466",
+   "subject": "Sentence on escaped convict when to take effect",
+   "old": [
+    "426"
+   ],
+   "old_raw": "426"
+  },
+  {
+   "new": "467",
+   "subject": "Sentence on offender already sentenced for another offence",
+   "old": [
+    "427"
+   ],
+   "old_raw": "427"
+  },
+  {
+   "new": "468",
+   "subject": "Period of detention undergone by the accused to be set off against the sentence of imprisonment",
+   "old": [
+    "428"
+   ],
+   "old_raw": "428"
+  },
+  {
+   "new": "469",
+   "subject": "Saving",
+   "old": [
+    "429"
+   ],
+   "old_raw": "429"
+  },
+  {
+   "new": "470",
+   "subject": "Return of warrant on execution of sentence",
+   "old": [
+    "430"
+   ],
+   "old_raw": "430"
+  },
+  {
+   "new": "471",
+   "subject": "Money ordered to be paid recoverable as a fine",
+   "old": [
+    "431"
+   ],
+   "old_raw": "431"
+  },
+  {
+   "new": "472",
+   "subject": "Mercy Petition in death sentence cases",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "473",
+   "subject": "Power to suspend or remit sentences",
+   "old": [
+    "432"
+   ],
+   "old_raw": "432"
+  },
+  {
+   "new": "474",
+   "subject": "Power to commute sentence",
+   "old": [
+    "433"
+   ],
+   "old_raw": "433"
+  },
+  {
+   "new": "475",
+   "subject": "Restriction on powers of remission or commutation in certain cases",
+   "old": [
+    "433A"
+   ],
+   "old_raw": "433A"
+  },
+  {
+   "new": "476",
+   "subject": "Concurrent power of Central Government in case of death sentences",
+   "old": [
+    "434"
+   ],
+   "old_raw": "434"
+  },
+  {
+   "new": "477",
+   "subject": "State Government to act after concurrence with Central Government in certain cases",
+   "old": [
+    "435"
+   ],
+   "old_raw": "435"
+  },
+  {
+   "new": "478",
+   "subject": "In what cases bail to be taken",
+   "old": [
+    "436"
+   ],
+   "old_raw": "436"
+  },
+  {
+   "new": "479",
+   "subject": "Maximum period for which an undertrial prisoner can be detained",
+   "old": [
+    "436A"
+   ],
+   "old_raw": "436A"
+  },
+  {
+   "new": "480",
+   "subject": "When bail may be taken in case of non-bailable offence",
+   "old": [
+    "437"
+   ],
+   "old_raw": "437"
+  },
+  {
+   "new": "481",
+   "subject": "Bail to require accused to appear before next appellate Court",
+   "old": [
+    "437A"
+   ],
+   "old_raw": "437A"
+  },
+  {
+   "new": "482",
+   "subject": "Direction for grant of bail to person apprehending arrest",
+   "old": [
+    "438"
+   ],
+   "old_raw": "438"
+  },
+  {
+   "new": "483",
+   "subject": "Special powers of High Court or Court of Session regarding bail",
+   "old": [
+    "439"
+   ],
+   "old_raw": "439"
+  },
+  {
+   "new": "484",
+   "subject": "Amount of bond and reduction thereof",
+   "old": [
+    "440"
+   ],
+   "old_raw": "440"
+  },
+  {
+   "new": "485",
+   "subject": "Bond of accused and sureties",
+   "old": [
+    "441"
+   ],
+   "old_raw": "441"
+  },
+  {
+   "new": "486",
+   "subject": "Declaration by sureties",
+   "old": [
+    "441A"
+   ],
+   "old_raw": "441A"
+  },
+  {
+   "new": "487",
+   "subject": "Discharge from custody",
+   "old": [
+    "442"
+   ],
+   "old_raw": "442"
+  },
+  {
+   "new": "488",
+   "subject": "Power to order sufficient bail when that first taken is insufficient",
+   "old": [
+    "443"
+   ],
+   "old_raw": "443"
+  },
+  {
+   "new": "489",
+   "subject": "Discharge of sureties",
+   "old": [
+    "444"
+   ],
+   "old_raw": "444"
+  },
+  {
+   "new": "490",
+   "subject": "Deposit instead of recognizance",
+   "old": [
+    "445"
+   ],
+   "old_raw": "445"
+  },
+  {
+   "new": "491",
+   "subject": "Procedure when bond has been forfeited",
+   "old": [
+    "446"
+   ],
+   "old_raw": "446"
+  },
+  {
+   "new": "492",
+   "subject": "Cancellation of bond and bail bond",
+   "old": [
+    "446A"
+   ],
+   "old_raw": "446A"
+  },
+  {
+   "new": "493",
+   "subject": "Procedure in case of insolvency of death of surety or when a bond is forfeited",
+   "old": [
+    "447"
+   ],
+   "old_raw": "447"
+  },
+  {
+   "new": "494",
+   "subject": "Bond required from child",
+   "old": [
+    "448"
+   ],
+   "old_raw": "448"
+  },
+  {
+   "new": "495",
+   "subject": "Appeal from orders under section 491",
+   "old": [
+    "449"
+   ],
+   "old_raw": "449"
+  },
+  {
+   "new": "496",
+   "subject": "Power to direct levy of amount due on certain recognizances",
+   "old": [
+    "450"
+   ],
+   "old_raw": "450"
+  },
+  {
+   "new": "497",
+   "subject": "Order for custody and disposal of property pending trial in certain cases",
+   "old": [
+    "451"
+   ],
+   "old_raw": "451"
+  },
+  {
+   "new": "498",
+   "subject": "Order for disposal of property at conclusion of trial",
+   "old": [
+    "452"
+   ],
+   "old_raw": "452"
+  },
+  {
+   "new": "499",
+   "subject": "Payment to innocent purchaser of money found on accused",
+   "old": [
+    "453"
+   ],
+   "old_raw": "453"
+  },
+  {
+   "new": "500",
+   "subject": "Appeal against orders under section 498 or section 499",
+   "old": [
+    "454"
+   ],
+   "old_raw": "454"
+  },
+  {
+   "new": "501",
+   "subject": "Destruction of libellous and other matter",
+   "old": [
+    "455"
+   ],
+   "old_raw": "455"
+  },
+  {
+   "new": "502",
+   "subject": "Power to restore possession of immovable property",
+   "old": [
+    "456"
+   ],
+   "old_raw": "456"
+  },
+  {
+   "new": "503",
+   "subject": "Procedure by police upon seizure of property",
+   "old": [
+    "457"
+   ],
+   "old_raw": "457"
+  },
+  {
+   "new": "504",
+   "subject": "Procedure where no claimant appears within six months",
+   "old": [
+    "458"
+   ],
+   "old_raw": "458"
+  },
+  {
+   "new": "505",
+   "subject": "Power to sell perishable property",
+   "old": [
+    "459"
+   ],
+   "old_raw": "459"
+  },
+  {
+   "new": "506",
+   "subject": "Irregularities which do not vitiate proceedings",
+   "old": [
+    "460"
+   ],
+   "old_raw": "460"
+  },
+  {
+   "new": "507",
+   "subject": "Irregularities which vitiate proceedings",
+   "old": [
+    "461"
+   ],
+   "old_raw": "461"
+  },
+  {
+   "new": "508",
+   "subject": "Proceedings in wrong place",
+   "old": [
+    "462"
+   ],
+   "old_raw": "462"
+  },
+  {
+   "new": "509",
+   "subject": "Non-compliance with provisions of section 183 or section 316",
+   "old": [
+    "463"
+   ],
+   "old_raw": "463"
+  },
+  {
+   "new": "510",
+   "subject": "Effect of omission to frame, or absence of, or error in, charge",
+   "old": [
+    "464"
+   ],
+   "old_raw": "464"
+  },
+  {
+   "new": "511",
+   "subject": "Finding or sentence when reversible by reason of error, omission or irregularity",
+   "old": [
+    "465"
+   ],
+   "old_raw": "465"
+  },
+  {
+   "new": "512",
+   "subject": "Defect or error not to make attachment unlawful",
+   "old": [
+    "466"
+   ],
+   "old_raw": "466"
+  },
+  {
+   "new": "513",
+   "subject": "Definitions",
+   "old": [
+    "467"
+   ],
+   "old_raw": "467"
+  },
+  {
+   "new": "514",
+   "subject": "Bar to taking cognizance after lapse of the period of limitation",
+   "old": [
+    "468"
+   ],
+   "old_raw": "468"
+  },
+  {
+   "new": "515",
+   "subject": "Commencement of the period of limitation",
+   "old": [
+    "469"
+   ],
+   "old_raw": "469"
+  },
+  {
+   "new": "516",
+   "subject": "Exclusion of time in certain cases",
+   "old": [
+    "470"
+   ],
+   "old_raw": "470"
+  },
+  {
+   "new": "517",
+   "subject": "Exclusion of date on which Court is closed",
+   "old": [
+    "471"
+   ],
+   "old_raw": "471"
+  },
+  {
+   "new": "518",
+   "subject": "Continuing offence",
+   "old": [
+    "472"
+   ],
+   "old_raw": "472"
+  },
+  {
+   "new": "519",
+   "subject": "Extension of period of limitation in certain cases",
+   "old": [
+    "473"
+   ],
+   "old_raw": "473"
+  },
+  {
+   "new": "520",
+   "subject": "Trials before High Courts",
+   "old": [
+    "474"
+   ],
+   "old_raw": "474"
+  },
+  {
+   "new": "521",
+   "subject": "Delivery to commanding officers of persons liable to be tried by Court-martial",
+   "old": [
+    "475"
+   ],
+   "old_raw": "475"
+  },
+  {
+   "new": "522",
+   "subject": "Forms",
+   "old": [
+    "476"
+   ],
+   "old_raw": "476"
+  },
+  {
+   "new": "523",
+   "subject": "Power of High Court to make rules",
+   "old": [
+    "477"
+   ],
+   "old_raw": "477"
+  },
+  {
+   "new": "524",
+   "subject": "Power to alter functions allocated to Executive Magistrate in certain cases",
+   "old": [
+    "478"
+   ],
+   "old_raw": "478"
+  },
+  {
+   "new": "525",
+   "subject": "Case in which Judge or Magistrate is personally interested",
+   "old": [
+    "479"
+   ],
+   "old_raw": "479"
+  },
+  {
+   "new": "526",
+   "subject": "Practicing advocate not to sit as Magistrate in certain Courts",
+   "old": [
+    "480"
+   ],
+   "old_raw": "480"
+  },
+  {
+   "new": "527",
+   "subject": "Public servant concerned in sale not to purchase or bid for property",
+   "old": [
+    "481"
+   ],
+   "old_raw": "481"
+  },
+  {
+   "new": "528",
+   "subject": "Saving of inherent powers of High Court",
+   "old": [
+    "482"
+   ],
+   "old_raw": "482"
+  },
+  {
+   "new": "529",
+   "subject": "Duty of High Court to exercise continuous superintendence over Courts",
+   "old": [
+    "483"
+   ],
+   "old_raw": "483"
+  },
+  {
+   "new": "530",
+   "subject": "Trial and proceedings to be held in electronic mode",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "531",
+   "subject": "Repeal and savings",
+   "old": [
+    "484"
+   ],
+   "old_raw": "484"
+  }
+ ]
+}
