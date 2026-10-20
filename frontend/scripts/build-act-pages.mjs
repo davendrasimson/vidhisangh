@@ -103,7 +103,7 @@ function page({ title, description, canonical, body, jsonLd }) {
 </header>
 ${body}
 <footer>
-  <p><a href="/acts/">Bare Acts</a> · <a href="/">VidhiSangh</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></p>
+  <p><a href="/acts/">Bare Acts</a> · <a href="/tools/">Free tools</a> · <a href="/">VidhiSangh</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></p>
   <p>VidhiSangh is developed and managed by <a href="/about">Simson Softwares Private Limited</a>. WhatsApp: <a href="https://wa.me/917341100692" rel="noopener">+91 73411 00692</a></p>
   <p>Text reproduced from the official publication for reference. Check the official source and later amendments before relying on it.</p>
 </footer>
@@ -241,6 +241,142 @@ ${cta({ id: newId, short: newShort }, '')}
   }
 }
 
+const TOOLS_OUT = join(ROOT, 'public/tools');
+const SCHEDULE = JSON.parse(readFileSync(join(ROOT, 'content/limitation-schedule.json'), 'utf8'));
+const TOOLS_JS = readFileSync(join(ROOT, 'scripts/tools.js'), 'utf8');
+const TOOLS_JS_URL = `/tools/tools.js?v=${createHash('sha256').update(TOOLS_JS).digest('hex').slice(0, 10)}`;
+
+function shortSubject(a) {
+  const text = a.description.replace(/\s*Explanation\.?—.*$/, '').replace(/[,;:—–-]+$/, '');
+  return text.length > 90 ? text.slice(0, 90).replace(/\s+\S*$/, '') + '…' : text.replace(/\.$/, '');
+}
+
+function limitationForm(selected) {
+  const groups = [];
+  for (const a of SCHEDULE) {
+    const label = a.part || a.division;
+    if (!groups.length || groups.at(-1).label !== label) groups.push({ label, items: [] });
+    groups.at(-1).items.push(a);
+  }
+  return `<form class="tool" data-tool="limitation">
+<label>Article of the Schedule<select name="article"><option value="">My own period (not listed)</option>${groups.map((g) => `<optgroup label="${esc(g.label)}">${g.items.map((a) => `<option value="${a.article}"${a.article === selected ? ' selected' : ''}>${a.article}. ${esc(shortSubject(a))} — ${esc(a.period)}</option>`).join('')}</optgroup>`).join('')}</select></label>
+<p class="article-info small"></p>
+<div class="clause-row" hidden><label>Which clause<select name="clause"></select></label></div>
+<div class="custom-row row" hidden><label>Period<input name="n" inputmode="numeric" placeholder="e.g. 3" /></label><label>Unit<select name="unit"><option value="year">years</option><option value="month">months</option><option value="day">days</option></select></label></div>
+<div class="row"><label>Period starts on (dd/mm/yyyy)<input name="start" inputmode="numeric" placeholder="dd/mm/yyyy" autocomplete="off" required /></label>
+<label>Days to exclude (certified copy, s. 12)<input name="excluded" inputmode="numeric" placeholder="0" /></label></div>
+<button type="submit">Calculate the last date</button>
+</form>
+<div class="tool-result" aria-live="polite"></div>
+<script type="application/json" id="limitation-data">${JSON.stringify(SCHEDULE).replace(/</g, '\\u003c')}</script>
+<script src="${TOOLS_JS_URL}" defer></script>`;
+}
+
+const TOOL_NOTE = '<p class="small">A calculator for quick reference, not legal advice. Check the Act, holidays of your court and any special law that sets its own period before relying on a date.</p>';
+
+/** /tools/: limitation calculator (+ one page per Article) and default bail calculator. */
+function toolPages(urls) {
+  rmSync(TOOLS_OUT, { recursive: true, force: true });
+  mkdirSync(TOOLS_OUT, { recursive: true });
+  writeFileSync(join(TOOLS_OUT, 'tools.js'), TOOLS_JS);
+  const write = (url, { title, description, body, crumbs }) => {
+    mkdirSync(join(ROOT, 'public', url), { recursive: true });
+    writeFileSync(join(ROOT, 'public', url, 'index.html'), page({
+      title, description, canonical: SITE + url, body,
+      jsonLd: { '@context': 'https://schema.org', ...breadcrumbs(crumbs) },
+    }));
+  };
+  const crumbsBase = [['Free tools', '/tools/']];
+  const limUrl = '/tools/limitation-calculator/';
+  write(limUrl, {
+    title: 'Limitation period calculator — Limitation Act, 1963, all 137 Articles | VidhiSangh',
+    description: 'Find the last date to file a suit, appeal or application: pick the Article of the Limitation Act Schedule and the start date. Section 12 exclusions, Section 4 and the COVID period noted. Free.',
+    crumbs: [...crumbsBase, ['Limitation calculator', limUrl]],
+    body: `<main>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/tools/">Free tools</a> › <span>Limitation calculator</span></nav>
+<p class="eyebrow">Free tool</p>
+<h1>Limitation period calculator</h1>
+<p class="lede">The last date to file a suit, appeal or application under the Limitation Act, 1963: choose the Article of the Schedule and the date the period begins.</p>
+${limitationForm(0)}
+${TOOL_NOTE}
+<section class="toc"><h2>Periods of limitation, Article by Article</h2><ol>${SCHEDULE.map((a) => `<li><a href="${limUrl}article-${a.article}/"><b>${a.article}.</b> ${esc(shortSubject(a))} — ${esc(a.period)}</a></li>`).join('')}</ol></section>
+${cta({ id: 'limitation', short: 'Limitation Act' }, '')}
+</main>`,
+  });
+  urls.push([limUrl, 'monthly', '0.9']);
+  for (const a of SCHEDULE) {
+    const url = `${limUrl}article-${a.article}/`;
+    const subject = shortSubject(a);
+    const kind = /Appeals/.test(a.division) ? 'appeal' : /Applications/.test(a.division) ? 'application' : 'suit';
+    write(url, {
+      title: `Limitation for ${subject.charAt(0).toLowerCase() + subject.slice(1)}: ${a.period.replace(/\.$/, '').toLowerCase()} (Article ${a.article}) | VidhiSangh`.slice(0, 170),
+      description: `Article ${a.article}, Limitation Act, 1963: ${subject}. Period: ${a.period} Time runs from: ${a.from}`.slice(0, 158).replace(/\s+\S*$/, '') + '…',
+      crumbs: [...crumbsBase, ['Limitation calculator', limUrl], [`Article ${a.article}`, url]],
+      body: `<main>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/tools/">Free tools</a> › <a href="${limUrl}">Limitation calculator</a> › <span>Article ${a.article}</span></nav>
+<p class="eyebrow">Limitation Act, 1963 · ${esc(a.division)}${a.part ? ` · ${esc(a.part)}` : ''}</p>
+<h1>Article ${a.article}: ${esc(subject)}</h1>
+<table class="convert facts"><tbody>
+<tr><th>Description of ${kind}</th><td>${esc(a.description)}</td></tr>
+<tr><th>Period of limitation</th><td><strong>${esc(a.period)}</strong></td></tr>
+<tr><th>Time from which period begins to run</th><td>${esc(a.from)}</td></tr>
+</tbody></table>
+<h2>Calculate the last date</h2>
+${limitationForm(a.article)}
+${TOOL_NOTE}
+<p class="actions">${whatsappShare(`Limitation for ${subject}: ${a.period} (Article ${a.article}, Limitation Act).`, url)}<a class="ghost" href="/acts/limitation/">Read the Limitation Act</a></p>
+${cta({ id: 'limitation', short: 'Limitation Act' }, '')}
+<nav class="pager">${a.article > 1 ? `<a href="${limUrl}article-${a.article - 1}/">← Article ${a.article - 1}</a>` : '<span></span>'}${a.article < SCHEDULE.length ? `<a class="next" href="${limUrl}article-${a.article + 1}/">Article ${a.article + 1} →</a>` : ''}</nav>
+<p class="source">Source: <a href="/bare-acts/limitation.pdf" rel="nofollow">official text of the Limitation Act, 1963</a> (India Code).</p>
+</main>`,
+    });
+    urls.push([url, 'yearly', '0.6']);
+  }
+
+  const bailUrl = '/tools/default-bail-calculator/';
+  write(bailUrl, {
+    title: 'Default bail calculator — Section 187(3) BNSS (167(2) CrPC), 60 and 90 days | VidhiSangh',
+    description: 'When is the charge sheet due and when does the right to default bail arise? Enter the date of first remand: 60 or 90 days under Section 187(3) BNSS, counted as the Supreme Court held. Free.',
+    crumbs: [...crumbsBase, ['Default bail calculator', bailUrl]],
+    body: `<main>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/tools/">Free tools</a> › <span>Default bail calculator</span></nav>
+<p class="eyebrow">Free tool</p>
+<h1>Default bail calculator (Section 187(3) BNSS)</h1>
+<p class="lede">The date the charge sheet is due, and the day the right to default bail arises if it is not filed.</p>
+<form class="tool" data-tool="default-bail">
+<label>Date of first remand to custody (dd/mm/yyyy)<input name="remand" inputmode="numeric" placeholder="dd/mm/yyyy" autocomplete="off" required /></label>
+<fieldset><legend>The offence is punishable with</legend>
+<label class="radio"><input type="radio" name="offence" value="90" checked /> death, imprisonment for life, or imprisonment of ten years or more — 90 days</label>
+<label class="radio"><input type="radio" name="offence" value="60" /> any other punishment — 60 days</label></fieldset>
+<button type="submit">Calculate</button>
+</form>
+<div class="tool-result" aria-live="polite"></div>
+<script src="${TOOLS_JS_URL}" defer></script>
+${TOOL_NOTE}
+<p class="actions">${whatsappShare('Default bail calculator: 60/90 days under Section 187(3) BNSS.', bailUrl)}<a class="ghost" href="/acts/bnss/section-187/">Read Section 187 BNSS</a></p>
+${cta({ id: 'bnss', short: 'BNSS' }, '187')}
+</main>`,
+  });
+  urls.push([bailUrl, 'monthly', '0.8']);
+
+  write('/tools/', {
+    title: 'Free legal tools — limitation calculator, default bail calculator, IPC to BNS | VidhiSangh',
+    description: 'Free tools for advocates: limitation period calculator for all 137 Articles, default bail calculator under BNSS, and IPC to BNS, CrPC to BNSS and Evidence Act to BSA converters.',
+    crumbs: crumbsBase,
+    body: `<main>
+<p class="eyebrow">Free tools</p>
+<h1>Free tools for advocates</h1>
+<div class="acts">
+<a class="act" href="${limUrl}"><b>Limitation</b><span>Last date to file a suit, appeal or application, all 137 Articles</span><small>Calculator</small></a>
+<a class="act" href="${bailUrl}"><b>Default bail</b><span>60 / 90 days under Section 187(3) BNSS</span><small>Calculator</small></a>
+${CORRESPONDENCE.map((t) => `<a class="act" href="/acts/${CONVERTERS[t.old_act]}/"><b>${esc(OLD_SHORT[t.old_act])} → ${esc(NEW_SHORT[t.new_act])}</b><span>Find the new section for any old one</span><small>Converter</small></a>`).join('')}
+</div>
+${cta({ id: 'bns', short: 'Acts' }, '')}
+</main>`,
+  });
+  urls.push(['/tools/', 'monthly', '0.9']);
+}
+
 function build() {
   const refs = crossReferences();
   rmSync(OUT, { recursive: true, force: true });
@@ -335,6 +471,7 @@ ${chapters.map((c) => `<section class="toc"><h2>${esc((c.name || 'Sections').rep
   }
 
   converterPages(acts, refs, urls);
+  toolPages(urls);
   writeFileSync(join(OUT, 'converter.js'), CONVERTER_JS);
 
   // Bare Acts landing, grouped by area of law.
