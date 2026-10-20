@@ -56,3 +56,30 @@ test('rich composer: grows with a pasted article, formats text, posts photos', a
   await expect(page.getByAltText('Photo in the post')).toBeVisible();
   await expect(editor).not.toContainText('Paragraph');
 });
+
+test('official VidhiSangh posts show the logo, an Official mark and the link card', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('vs.session', '1'));
+  await page.route('**/api/v1/auth/refresh', r => r.fulfill({ json: { access_token: 'eyJhbGciOiAiSFMyNTYifQ.eyJzdWIiOiAidTEiLCAidGlkIjogInQiLCAiZXhwIjogOTk5OTk5OTk5OSwgInNjb3BlcyI6IFsiKiJdfQ.sig', refresh_token: null, token_type: 'bearer', expires_in: 900 } }));
+  await page.route('**/api/v1/auth/me', r => r.fulfill({ json: USER }));
+  const base = { author_avatar_url: null, images: [], visibility: 'public', like_count: 0, comment_count: 0, share_count: 0,
+    created_at: new Date().toISOString(), link_description: null, link_image: null, my_reaction: null, bookmarked: false,
+    shared_from_id: null, shared_author_name: null, shared_author_avatar_url: null, shared_content: null, shared_created_at: null, mentions: [] };
+  await page.route('**/api/v1/network/feed**', r => r.fulfill({ json: [
+    { ...base, id: 'o1', author_id: '5e1d0f00-7a1d-4e5a-9c0b-000000000001', author_name: 'VidhiSangh',
+      author_headline: 'Official · Section of the day, Supreme Court judgments and legal news', post_type: 'announcement',
+      title: 'Section of the day', content: 'Section of the day: BNS 318 — Cheating',
+      content_html: '<p><strong>Section of the day: BNS 318 — Cheating</strong></p><p>Earlier: IPC 415, 417, 418, 420.</p>',
+      hashtags: ['SectionOfTheDay', 'BNS'], link_url: 'https://vidhisangh.com/acts/bns/section-318/',
+      link_title: 'Section 318 BNS — Cheating', link_site_name: 'VidhiSangh Bare Acts' },
+    { ...base, id: 'p2', author_id: 'u9', author_name: 'Adv. Member', author_headline: null, post_type: 'text', title: null,
+      content: 'Hello', content_html: '<p>Hello</p>', hashtags: [], link_url: null, link_title: null, link_site_name: null },
+  ] }));
+  await page.goto('/app/network');
+  const official = page.locator('article', { hasText: 'Section of the day: BNS 318' });
+  await expect(official.getByText('Official', { exact: true })).toBeVisible();
+  await expect(official.locator('img[src="/brand-mark.svg"]')).toBeVisible();
+  await expect(official.getByText('Section 318 BNS — Cheating')).toBeVisible();
+  const member = page.locator('article', { hasText: 'Adv. Member' });
+  await expect(member.getByText('Official', { exact: true })).toHaveCount(0);
+  await expect(member.getByText('AM', { exact: true })).toBeVisible();
+});

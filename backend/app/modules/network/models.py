@@ -250,3 +250,18 @@ class Comment(AuditedBase):
     body: Mapped[str] = mapped_column(Text, nullable=False)
 
     post: Mapped[Post] = relationship(back_populates="comments")
+
+
+class OfficialPost(AuditedBase):
+    """What the official VidhiSangh account has posted, so nothing repeats.
+
+    ``kind`` is section / judgment / news; ``ref`` the section ("bns:318"),
+    judgment id or news item id.
+    """
+
+    __tablename__ = "official_posts"
+    __table_args__ = (UniqueConstraint("kind", "ref", name="uq_official_posts_kind_ref"),)
+
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    ref: Mapped[str] = mapped_column(String(100), nullable=False)
+    post_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)

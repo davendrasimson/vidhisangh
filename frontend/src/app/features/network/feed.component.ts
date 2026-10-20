@@ -19,6 +19,9 @@ import {
   TrendingTag,
 } from '@core/models/network.models';
 
+/** backend app/modules/network/official.py OFFICIAL_AUTHOR_ID */
+export const OFFICIAL_AUTHOR_ID = '5e1d0f00-7a1d-4e5a-9c0b-000000000001';
+
 @Component({
   selector: 'app-feed',
   standalone: true,
@@ -156,6 +159,11 @@ export class FeedComponent implements OnInit {
     } catch {
       this.patch(post.id, { bookmarked: saved });
     }
+  }
+
+  /** Posts by the official VidhiSangh account (Section of the day, judgments, news). */
+  protected isOfficial(post: { author_id: string }): boolean {
+    return post.author_id === OFFICIAL_AUTHOR_ID;
   }
 
   protected initials(name: string): string {

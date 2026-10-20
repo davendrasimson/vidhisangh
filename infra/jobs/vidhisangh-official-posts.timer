@@ -1,0 +1,12 @@
+[Unit]
+Description=Official VidhiSangh feed posts every morning at about 8 am India time
+
+[Timer]
+OnCalendar=*-*-* 02:30:00 UTC
+RandomizedDelaySec=600
+# A run missed while the server was down still posts that day; each kind
+# goes out once a day, so catching up never doubles.
+Persistent=true
+
+[Install]
+WantedBy=timers.target
