@@ -1,3 +1,5 @@
+import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 
 const USER = { id: 'u', tenant_id: 't', email: 'adv@example.com', full_name: 'Adv. Rao', is_active: true,
@@ -64,4 +66,50 @@ test('the diary says nothing once reminders are on', async ({ page }) => {
   await page.goto('/app/calendar');
   await expect(page.getByRole('heading', { name: 'Calendar' })).toBeVisible();
   await expect(page.getByRole('heading', { name: /WhatsApp reminders/ })).toHaveCount(0);
+});
+
+test.describe('hearings in India time', () => {
+  test.use({ timezoneId: 'Asia/Kolkata' });
+
+  test('court number and item number on a hearing, and the next date after an adjournment', async ({ page }) => {
+    const fixture = JSON.parse(readFileSync(join(__dirname, 'fixtures', 'matter.json'), 'utf8'));
+    const matter = fixture.matter;
+    const hearing = matter.hearings[0];
+    await signedIn(page);
+    await page.route('**/api/v1/matters/**', route => route.fulfill({ json: [] }));
+    await page.route(`**/api/v1/matters/${matter.id}`, route => route.fulfill({ json: matter }));
+    await page.route(`**/api/v1/matters/${matter.id}/timeline`, route => route.fulfill({ json: fixture.timeline }));
+    let patched: Record<string, unknown> | undefined;
+    await page.route(`**/api/v1/matters/hearings/${hearing.id}`, async route => {
+      patched = route.request().postDataJSON();
+      const updated = { ...hearing, ...patched };
+      if (patched?.['status']) matter.hearings = [updated];
+      await route.fulfill({ json: updated });
+    });
+    let created: Record<string, unknown> | undefined;
+    await page.route(`**/api/v1/matters/${matter.id}/hearings`, async route => {
+      created = route.request().postDataJSON();
+      await route.fulfill({ status: 201, json: { ...hearing, id: '33333333-3333-4333-8333-333333333333', status: 'scheduled', purpose: null, item_number: null, ...created } });
+    });
+
+    await page.goto(`/app/matters/${matter.id}`);
+    // Saved as 05:00 UTC: shown as 10:30 am in India.
+    await expect(page.getByText('Wed, 21/10/2026 · 10:30 AM')).toBeVisible();
+    await expect(page.getByText(/Arguments\s*·\s*Delhi High Court\s*·\s*Court 12/)).toBeVisible();
+
+    await page.getByRole('button', { name: 'Add item no.' }).click();
+    await page.getByRole('textbox', { name: 'Item number' }).first().fill('34');
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect.poll(() => patched).toEqual({ court_room: '12', item_number: '34' });
+    await expect(page.getByText(/Court 12\s*·\s*Item 34/)).toBeVisible();
+
+    await page.getByRole('button', { name: 'Adjourned' }).click();
+    await expect(page.getByText('Next date given?')).toBeVisible();
+    await page.getByRole('textbox', { name: 'Next date' }).fill('04/11/2026');
+    await page.getByRole('textbox', { name: 'Next date' }).press('Tab');
+    await page.locator('form', { hasText: 'Next date given?' }).getByLabel('Time').fill('10:30');
+    await page.getByRole('button', { name: 'Add to diary' }).click();
+    await expect(page.getByText('Next date added to the diary.')).toBeVisible();
+    await expect.poll(() => created).toEqual({ scheduled_on: '2026-11-04T10:30+05:30', court: 'Delhi High Court', court_room: '12' });
+  });
 });

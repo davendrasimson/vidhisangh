@@ -462,6 +462,10 @@ class Hearing(TenantScopedBase):
         DateTime(timezone=True), nullable=False, index=True
     )
     court: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # Courtroom ("12", "VIP-1") and cause-list item ("34", "34A"): the item is
+    # usually known only when the list comes out the evening before.
+    court_room: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    item_number: Mapped[str | None] = mapped_column(String(20), nullable=True)
     judge: Mapped[str | None] = mapped_column(String(200), nullable=True)
     purpose: Mapped[str | None] = mapped_column(String(300), nullable=True)
     status: Mapped[HearingStatus] = mapped_column(

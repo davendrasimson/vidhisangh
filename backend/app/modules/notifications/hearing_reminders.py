@@ -59,6 +59,12 @@ def describe(n: int, matter: Matter, hearing: Hearing) -> str:
     court = _clean(hearing.court or matter.court)
     if court:
         parts.append(court)
+    room = _clean(hearing.court_room)
+    if room:
+        parts.append(room if room.lower().startswith(("court", "room", "hall")) else f"Court {room}")
+    item = _clean(hearing.item_number)
+    if item:
+        parts.append(item if item.lower().startswith("item") else f"item {item}")
     local = hearing.scheduled_on.astimezone(IST) if hearing.scheduled_on.tzinfo else hearing.scheduled_on.replace(tzinfo=UTC).astimezone(IST)
     if local.time() != time(0, 0):
         parts.append(local.strftime("%I:%M %p").lstrip("0").lower())

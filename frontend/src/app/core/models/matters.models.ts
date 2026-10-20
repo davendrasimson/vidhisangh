@@ -465,6 +465,9 @@ export interface Hearing {
   matter_id: string;
   scheduled_on: string;
   court: string | null;
+  /** Courtroom ("12") and cause-list item ("34"). */
+  court_room?: string | null;
+  item_number?: string | null;
   judge: string | null;
   purpose: string | null;
   status: HearingStatus;

@@ -108,8 +108,14 @@ async def test_one_evening_message_lists_tomorrows_hearings(
     for matter, when, purpose in ((mid, _at(day, 10, 30), "Arguments"), (other, _at(day, 0), None),
                                   (mid, _at(day + timedelta(days=1), 10, 30), "Not tomorrow")):
         resp = await client.post(f"{API}/matters/{matter}/hearings", headers=h,
-                                 json={"scheduled_on": when, **({"purpose": purpose} if purpose else {})})
+                                 json={"scheduled_on": when, **({"purpose": purpose, "court_room": "12"} if purpose else {})})
         assert resp.status_code == 201, resp.text
+        if purpose == "Arguments":
+            first = resp.json()
+    assert first["court_room"] == "12" and first["item_number"] is None
+    # The cause list comes out the evening before: the item number is added then.
+    resp = await client.patch(f"{API}/matters/hearings/{first['id']}", headers=h, json={"item_number": " 34 "})
+    assert resp.status_code == 200 and resp.json()["item_number"] == "34", resp.text
 
     # Another firm's member with a hearing tomorrow who has not opted in gets nothing.
     h2, _ = await _user(client, "Other Firm", "other@example.com", strong_password)
@@ -127,7 +133,7 @@ async def test_one_evening_message_lists_tomorrows_hearings(
     assert body[0] == "Adv. Rao"
     assert body[1] == f"{day.strftime('%a')} {day.strftime('%d/%m/%Y')}"
     assert body[2].startswith("1. Gupta v. Gupta")  # no time given: listed first, without a time
-    assert "2. Sharma v. State (CRL.A. 12/2026), Delhi High Court, 10:30 am, for Arguments" in body[2]
+    assert "2. Sharma v. State (CRL.A. 12/2026), Delhi High Court, Court 12, item 34, 10:30 am, for Arguments" in body[2]
     assert "Not tomorrow" not in body[2] and "\n" not in body[2]
 
     # A rerun the same evening sends nothing more.

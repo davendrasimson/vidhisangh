@@ -177,7 +177,13 @@ export class MatterDetailComponent {
     bar_enrolment_number: '',
     firm: '',
   };
-  protected hearing = { scheduled_on: '', court: '', purpose: '' };
+  protected hearing = { scheduled_on: '', court: '', court_room: '', item_number: '', purpose: '' };
+  /** Hearing whose courtroom / item is being edited (cause list out the evening before). */
+  protected readonly editingSlot = signal<string | null>(null);
+  protected slot = { court_room: '', item_number: '' };
+  /** After "Mark held" / "Adjourned": ask for the next date, same court. */
+  protected readonly nextFor = signal<Hearing | null>(null);
+  protected nextDate = '';
   protected task = { title: '', due_on: '' };
   protected noteBody = signal('');
 
@@ -702,11 +708,13 @@ export class MatterDetailComponent {
         this.matters.addHearing(this.id, {
           scheduled_on: this.hearing.scheduled_on,
           court: this.hearing.court.trim() || null,
+          court_room: this.hearing.court_room.trim() || null,
+          item_number: this.hearing.item_number.trim() || null,
           purpose: this.hearing.purpose.trim() || null,
         }),
       );
       this.patch({ hearings: [...(this.matter()?.hearings ?? []), created] });
-      this.hearing = { scheduled_on: '', court: '', purpose: '' };
+      this.hearing = { scheduled_on: '', court: '', court_room: '', item_number: '', purpose: '' };
     } catch {
       /* handled */
     }
@@ -717,6 +725,46 @@ export class MatterDetailComponent {
       await firstValueFrom(this.matters.updateHearing(h.id, { status }));
       // A held/adjourned hearing may raise a per-hearing fee event.
       await this.refresh();
+      this.nextDate = '';
+      this.nextFor.set(h);
+    } catch {
+      /* handled */
+    }
+  }
+
+  /** The next date given in court: a new hearing in the same court and courtroom. */
+  protected async addNextDate(): Promise<void> {
+    const prev = this.nextFor();
+    if (!prev || !this.nextDate) return;
+    try {
+      const created = await firstValueFrom(
+        this.matters.addHearing(this.id, {
+          scheduled_on: this.nextDate,
+          court: prev.court,
+          court_room: prev.court_room ?? null,
+        }),
+      );
+      this.patch({ hearings: [...(this.matter()?.hearings ?? []), created] });
+      this.nextFor.set(null);
+      this.notify.success('Next date added to the diary.');
+    } catch {
+      /* handled */
+    }
+  }
+
+  protected editSlot(h: Hearing): void {
+    this.slot = { court_room: h.court_room ?? '', item_number: h.item_number ?? '' };
+    this.editingSlot.set(h.id);
+  }
+
+  protected async saveSlot(h: Hearing): Promise<void> {
+    try {
+      const updated = await firstValueFrom(this.matters.updateHearing(h.id, {
+        court_room: this.slot.court_room.trim() || null,
+        item_number: this.slot.item_number.trim() || null,
+      }));
+      this.patch({ hearings: (this.matter()?.hearings ?? []).map((x) => (x.id === h.id ? updated : x)) });
+      this.editingSlot.set(null);
     } catch {
       /* handled */
     }

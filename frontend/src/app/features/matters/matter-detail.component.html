@@ -693,22 +693,41 @@
             <div class="flex-1 min-w-0">
               <p class="text-sm font-medium">{{ h.scheduled_on | date: 'EEE, dd/MM/yyyy · h:mm a' }}</p>
               <p class="text-xs text-content-muted truncate">
-                {{ h.purpose || 'Hearing' }}@if (h.court) { · {{ h.court }} }
+                {{ h.purpose || 'Hearing' }}@if (h.court) { · {{ h.court }} }@if (h.court_room) { · Court {{ h.court_room }} }@if (h.item_number) { · Item {{ h.item_number }} }
                 @if (h.outcome) { · <span class="text-content">{{ h.outcome }}</span> }
               </p>
             </div>
             <span class="vs-chip capitalize">{{ h.status }}</span>
             @if (h.status === 'scheduled') {
+              <button mat-button (click)="editSlot(h)">{{ h.item_number ? 'Court / item' : 'Add item no.' }}</button>
               <button mat-button (click)="prepareHearing(h)">Prepare</button>
               <button mat-button (click)="setHearingStatus(h, 'held')">Mark held</button>
               <button mat-button (click)="setHearingStatus(h, 'adjourned')">Adjourned</button>
             }
           </div>
+          @if (editingSlot() === h.id) {
+            <form class="flex flex-wrap items-center gap-2 py-2 pl-9" (ngSubmit)="saveSlot(h)">
+              <input class="vs-input w-28" name="court_room" placeholder="Court no." aria-label="Court number" maxlength="40" [(ngModel)]="slot.court_room" />
+              <input class="vs-input w-28" name="item_number" placeholder="Item no." aria-label="Item number" maxlength="20" [(ngModel)]="slot.item_number" />
+              <button mat-flat-button color="primary" type="submit">Save</button>
+              <button mat-button type="button" (click)="editingSlot.set(null)">Cancel</button>
+            </form>
+          }
+          @if (nextFor()?.id === h.id) {
+            <form class="flex flex-wrap items-center gap-2 py-2 pl-9" (ngSubmit)="addNextDate()">
+              <span class="text-sm">Next date given?</span>
+              <vs-date-input withTime name="next_date" label="Next date" [(ngModel)]="nextDate" />
+              <button mat-flat-button color="primary" type="submit" [disabled]="!nextDate">Add to diary</button>
+              <button mat-button type="button" (click)="nextFor.set(null)">Not now</button>
+            </form>
+          }
         } @empty { <p class="text-sm text-content-muted">No hearings scheduled.</p> }
         <div class="flex flex-wrap gap-2 mt-3">
           <vs-date-input withTime [(ngModel)]="hearing.scheduled_on" />
           <input class="vs-input flex-1 min-w-[8rem]" placeholder="Purpose" [(ngModel)]="hearing.purpose" />
           <input class="vs-input w-40" placeholder="Court" [(ngModel)]="hearing.court" />
+          <input class="vs-input w-28" placeholder="Court no." aria-label="Court number" maxlength="40" [(ngModel)]="hearing.court_room" />
+          <input class="vs-input w-28" placeholder="Item no." aria-label="Item number" maxlength="20" [(ngModel)]="hearing.item_number" />
           <button mat-flat-button color="primary" (click)="addHearing()">Schedule</button>
         </div>
       </section>

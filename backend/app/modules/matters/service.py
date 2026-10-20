@@ -565,6 +565,8 @@ class MatterService:
             matter_id=matter_id,
             scheduled_on=data.scheduled_on,
             court=data.court,
+            court_room=_blank_to_none(data.court_room),
+            item_number=_blank_to_none(data.item_number),
             judge=data.judge,
             purpose=data.purpose,
         )
@@ -579,6 +581,10 @@ class MatterService:
             raise NotFoundError("Hearing not found.")
         old_status = hearing.status
         for field, value in data.model_dump(exclude_unset=True).items():
+            if field == "scheduled_on" and value is None:
+                continue
+            if field in ("court", "court_room", "item_number", "purpose"):
+                value = _blank_to_none(value)
             setattr(hearing, field, value)
         await self.session.flush()
         if hearing.status != old_status and hearing.status in (HearingStatus.HELD, HearingStatus.ADJOURNED):
@@ -1025,3 +1031,7 @@ class MatterService:
             invoiced_total=totals[FeeEventStatus.INVOICED], waived_total=totals[FeeEventStatus.WAIVED],
             currency=currency,
         )
+
+
+def _blank_to_none(value: str | None) -> str | None:
+    return (value.strip() or None) if isinstance(value, str) else value

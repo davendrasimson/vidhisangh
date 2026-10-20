@@ -516,11 +516,18 @@ class ECourtsImportRequest(ECourtsLookupRequest):
 class HearingCreate(BaseModel):
     scheduled_on: datetime
     court: str | None = Field(default=None, max_length=200)
+    court_room: str | None = Field(default=None, max_length=40)
+    item_number: str | None = Field(default=None, max_length=20)
     judge: str | None = Field(default=None, max_length=200)
     purpose: str | None = Field(default=None, max_length=300)
 
 
 class HearingUpdate(BaseModel):
+    scheduled_on: datetime | None = None
+    court: str | None = Field(default=None, max_length=200)
+    court_room: str | None = Field(default=None, max_length=40)
+    item_number: str | None = Field(default=None, max_length=20)
+    purpose: str | None = Field(default=None, max_length=300)
     status: HearingStatus | None = None
     notes: str | None = Field(default=None, max_length=5000)
     outcome: str | None = Field(default=None, max_length=5000)
@@ -533,6 +540,8 @@ class HearingRead(BaseModel):
     matter_id: uuid.UUID
     scheduled_on: datetime
     court: str | None
+    court_room: str | None = None
+    item_number: str | None = None
     judge: str | None
     purpose: str | None
     status: HearingStatus
