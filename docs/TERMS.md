@@ -26,7 +26,7 @@ You will not: use the Service to break the law or the Bar Council of India Rules
 
 - **You own** what you and your Firm put into the Service. You grant us a licence to host, process, back up and display it only as needed to run the Service for you.
 - **Client and matter data is the Firm's.** We are a Data Processor for it (Schedule A). We do not use it to train models, for marketing, or for any purpose of our own.
-- **Professional-network content** (posts, comments, profile) is visible to other users as you choose (public / connections) and across Firms. You can opt out of the directory at any time.
+- **Professional-network content** (posts, comments, profile) is visible to other users as you choose (public / connections) and across Firms. You can opt out of the directory at any time. If you switch on a public profile page, the parts of your profile you set to "Everyone" are also published on the open web at vidhisangh.com/in/your-name; you can switch it off at any time.
 - **Public judgments** in the research library are court records reproduced for legal research. If you believe a record is inaccurate or should be redacted under a court order, write to the Grievance Officer.
 
 ## 6. Confidentiality and professional obligations

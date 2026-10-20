@@ -153,6 +153,11 @@ export class JudgmentDetailComponent {
     );
   }
 
+  /** Straight to WhatsApp: the commonest way advocates pass a judgment on. */
+  protected whatsappHeadnote(j: Judgment): string {
+    return `https://wa.me/?text=${encodeURIComponent(`${j.case_name} — AI-generated headnote, free on VidhiSangh: ${publicOrigin()}/judgments/${j.id}/`)}`;
+  }
+
   protected async copyCitation(): Promise<void> {
     await navigator.clipboard.writeText(this.citationLine());
     this.notify.success('Citation copied.');

@@ -98,8 +98,10 @@ test.describe('hearings in India time', () => {
     await expect(page.getByText(/Arguments\s*·\s*Delhi High Court\s*·\s*Court 12/)).toBeVisible();
 
     await page.getByRole('button', { name: 'Add item no.' }).click();
-    await page.getByRole('textbox', { name: 'Item number' }).first().fill('34');
-    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    // The edit row under the hearing (not the new-hearing form's "Item no.").
+    const slotForm = page.locator('form', { has: page.getByRole('button', { name: 'Save', exact: true }) });
+    await slotForm.getByRole('textbox', { name: 'Item number' }).fill('34');
+    await slotForm.getByRole('button', { name: 'Save', exact: true }).click();
     await expect.poll(() => patched).toEqual({ court_room: '12', item_number: '34' });
     await expect(page.getByText(/Court 12\s*·\s*Item 34/)).toBeVisible();
 

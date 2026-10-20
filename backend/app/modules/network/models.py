@@ -61,7 +61,10 @@ class NetworkIdentity(AuditedBase):
     edits their profile."""
 
     __tablename__ = "network_identities"
-    __table_args__ = (UniqueConstraint("user_id", name="network_identities_user"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", name="network_identities_user"),
+        UniqueConstraint("public_handle", name="uq_network_identities_public_handle"),
+    )
 
     user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), index=True)
     # Home tenant (informational only — no isolation applied to this layer).
@@ -75,6 +78,13 @@ class NetworkIdentity(AuditedBase):
     # via PATCH /network/me/visibility. Existing rows were grandfathered to true
     # by migration 0048. Connections, mentions and posts work regardless.
     discoverable: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    # Public profile page at vidhisangh.com/in/<public_handle>/, open to search
+    # engines: a separate, explicit opt-in (migration 0071), off by default and
+    # only while the professional profile is public. Shows only the groups the
+    # member set to "everyone"; never contact details.
+    public_page: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    public_handle: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    public_page_consented_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class Connection(AuditedBase):

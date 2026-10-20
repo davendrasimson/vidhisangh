@@ -7,10 +7,12 @@ comments, so feeds render across tenants without cross-tenant RLS joins.
 
 from __future__ import annotations
 
+import re
 import uuid
 from collections import Counter
 from datetime import UTC, datetime
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import (
@@ -64,6 +66,9 @@ AnnotatedPosts = tuple[
     set[uuid.UUID],
     dict[uuid.UUID, list[PostMention]],
 ]
+
+
+RESERVED_HANDLES = frozenset({"app", "api", "admin", "vidhisangh", "official", "support", "help", "about", "acts", "tools", "judgments", "in"})
 
 
 class NetworkService:
@@ -120,7 +125,47 @@ class NetworkService:
         # enforced here — at sync time — rather than in the cross-tenant query).
         if profile is not None and profile.visibility != ProfileVisibility.PUBLIC and identity.discoverable:
             identity.discoverable = False
+        if profile is not None and profile.visibility != ProfileVisibility.PUBLIC and identity.public_page:
+            identity.public_page = False
         return identity
+
+    async def set_public_page(self, enabled: bool, handle: str | None = None) -> NetworkIdentity:
+        """The public profile page at /in/<handle>/ (open web, search engines).
+
+        A separate consent from the in-app directory, recorded with its time.
+        Needs a public professional profile. The handle is kept when the page
+        is turned off, so turning it back on gives the same address."""
+        identity = await self.ensure_my_identity()
+        if enabled:
+            profile = await ProfileRepository(self.session).get_by_user(self.user_id)
+            if profile is not None and profile.visibility != ProfileVisibility.PUBLIC:
+                raise ValidationError("Set your professional profile to public before publishing a public page.")
+            if handle and handle != identity.public_handle:
+                if handle in RESERVED_HANDLES or await self._handle_taken(handle):
+                    raise ConflictError("That address is taken. Try another.")
+                identity.public_handle = handle
+            elif not identity.public_handle:
+                identity.public_handle = await self._free_handle(identity.display_name)
+            identity.public_page_consented_at = datetime.now(UTC)
+        identity.public_page = enabled
+        await self.session.flush()
+        return identity
+
+    async def _handle_taken(self, handle: str) -> bool:
+        return await self.session.scalar(
+            select(NetworkIdentity.id).where(NetworkIdentity.public_handle == handle, NetworkIdentity.user_id != self.user_id)
+        ) is not None
+
+    async def _free_handle(self, name: str) -> str:
+        base = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:34].strip("-") or "member"
+        base = re.sub(r"^(adv|advocate|dr|mr|mrs|ms)-", "", base) or base
+        if len(base) < 3:
+            base = f"{base}-adv"
+        candidate, n = base, 1
+        while candidate in RESERVED_HANDLES or await self._handle_taken(candidate):
+            n += 1
+            candidate = f"{base}-{n}"
+        return candidate
 
     async def set_discoverable(self, discoverable: bool) -> NetworkIdentity:
         """Directory opt-in / opt-out (audit P-10). Opting in requires a public

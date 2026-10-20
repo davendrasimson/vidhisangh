@@ -35,6 +35,8 @@ from app.modules.network.schemas import (
     ReactionCreate,
     ShareCreate,
     TrendingTag,
+    PublicPageRead,
+    PublicPageUpdate,
     VisibilityUpdate,
 )
 from app.modules.network.service import NetworkService
@@ -522,6 +524,22 @@ async def set_visibility(
 ) -> MyIdentityRead:
     identity = await _svc(current, session).set_discoverable(data.discoverable)
     return MyIdentityRead.model_validate(identity)
+
+
+def _public_page_read(identity) -> "PublicPageRead":
+    from app.modules.network.public_profiles import profile_url
+    return PublicPageRead(enabled=identity.public_page, handle=identity.public_handle,
+                          url=profile_url(identity.public_handle) if identity.public_handle else None)
+
+
+@router.get("/me/public-page", response_model=PublicPageRead, summary="My public profile page (open web)")
+async def get_public_page(current: CurrentUserDep, session: TenantSessionDep) -> PublicPageRead:
+    return _public_page_read(await _svc(current, session).ensure_my_identity())
+
+
+@router.put("/me/public-page", response_model=PublicPageRead, summary="Publish or withdraw my public profile page")
+async def put_public_page(data: PublicPageUpdate, current: CurrentUserDep, session: TenantSessionDep) -> PublicPageRead:
+    return _public_page_read(await _svc(current, session).set_public_page(data.enabled, data.handle))
 
 
 @router.delete(

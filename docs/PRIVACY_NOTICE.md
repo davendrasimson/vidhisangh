@@ -41,6 +41,7 @@ We do **not** collect biometric data, location, contacts or anything from your d
 | Creating and securing your account; signing you in; MFA; detecting attacks | Consent given at sign-up (s.6); and legitimate use — it is necessary to provide what you asked for (s.7(a)) |
 | Running the practice-management features your firm uses | Consent / s.7(a) |
 | Publishing your professional profile in the cross-tenant directory and network | Consent. **You can opt out** in Settings → Privacy & data → "Directory listing" at any time; your profile then disappears from discovery |
+| Publishing a **public profile page** at vidhisangh.com/in/your-name, open to anyone and to search engines | Consent, given separately and only if you switch it on in Settings → Privacy & data → "Public profile page". It shows your name, photo, headline and the profile sections you set to "Everyone"; never your contact details. Withdraw by switching it off; the page is removed at once (search engines may take a few days to drop it) |
 | Sending notifications you turned on (e-mail, Slack) | Consent, per channel, in Settings → Notifications |
 | Billing your organisation | Performance of the contract; legal obligation (GST) |
 | Security logging and the audit trail | Legal obligation and legitimate use (s.7) — this is why audit entries are kept even after an account is erased |
@@ -72,7 +73,7 @@ The retention job runs nightly (`infra/jobs/vidhisangh-retention.timer`). Period
 | **Access** (s.11) — a copy of everything we hold about you | Settings → Privacy & data → *Download my data* (JSON), or `GET /api/v1/privacy/me/export` |
 | **Correction and completion** (s.12) | Edit your profile and account directly; ask the Grievance Officer for anything you cannot edit |
 | **Erasure** (s.12) | Settings → Privacy & data → *Delete my account* (password required). Your account is anonymised at once and your sessions revoked. If you are the only administrator of your firm, transfer that role first or delete the organisation instead. Audit entries naming you are retained under s.17(1)(a) |
-| **Withdraw consent** (s.6(4)) | Untick a notification channel, opt out of the directory, or delete the account. Withdrawal is as easy as giving consent and does not affect processing done before it |
+| **Withdraw consent** (s.6(4)) | Untick a notification channel, opt out of the directory, switch off your public profile page, or delete the account. Withdrawal is as easy as giving consent and does not affect processing done before it |
 | **Grievance redressal** (s.13) | Write to the Grievance Officer (section 10). We acknowledge within 7 days and respond within 30 days |
 | **Nominate** (s.14) | E-mail the Grievance Officer with the nominee's details; we will record them against your account |
 | **Complain to the Board** | If you are not satisfied with our response, you may complain to the **Data Protection Board of India** (https://www.dpb.gov.in/) |

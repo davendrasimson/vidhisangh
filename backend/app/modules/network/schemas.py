@@ -38,6 +38,19 @@ class VisibilityUpdate(BaseModel):
     discoverable: bool
 
 
+class PublicPageUpdate(BaseModel):
+    """Public profile page on the open web (opt-in). ``handle``: 3-40 of a-z, 0-9 and hyphens."""
+
+    enabled: bool
+    handle: str | None = Field(default=None, min_length=3, max_length=40, pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+
+
+class PublicPageRead(BaseModel):
+    enabled: bool
+    handle: str | None
+    url: str | None
+
+
 class DirectoryPerson(IdentityRead):
     """A person in the directory with the viewer's relationship to them."""
 

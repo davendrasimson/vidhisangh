@@ -22,6 +22,8 @@ import {
 } from '@core/models/profile.models';
 
 import { saveBlob } from '@core/platform/save-file';
+import { PublicPageCardComponent } from '@shared/public-page/public-page-card.component';
+
 const csv = (v: string | null | undefined): string[] =>
   (v ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 
@@ -31,7 +33,7 @@ const csv = (v: string | null | undefined): string[] =>
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ReactiveFormsModule, FormsModule, MatIconModule, MatButtonModule, MatFormFieldModule,
-    MatInputModule, MatSlideToggleModule, MatChipsModule,
+    MatInputModule, MatSlideToggleModule, MatChipsModule, PublicPageCardComponent,
   ],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.scss',

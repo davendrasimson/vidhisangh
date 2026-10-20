@@ -159,6 +159,10 @@ def create_app() -> FastAPI:
     from app.modules.research.public_pages import router as public_judgments_router
 
     app.include_router(public_judgments_router)
+    # ... and /in/<handle>/ public profile pages (members who opted in).
+    from app.modules.network.public_profiles import router as public_profiles_router
+
+    app.include_router(public_profiles_router)
 
     # ── Metrics (Prometheus scrape target) ──────────────────────────
     app.mount("/metrics", _metrics_app())

@@ -11,6 +11,7 @@ import { AuthService } from '@core/auth/auth.service';
 import { NotificationService } from '@core/services/notification.service';
 import { saveBlob } from '@features/clients/client-privacy.service';
 import { PrivacyNoticeFacts } from '@features/legal/legal-page.component';
+import { PublicPageCardComponent } from '@shared/public-page/public-page-card.component';
 
 interface TenantPrivacySettings {
   data_protection_contact_name: string | null;
@@ -32,7 +33,7 @@ interface TenantPrivacySettings {
   selector: 'app-privacy-settings',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, MatButtonModule, MatIconModule, MatSlideToggleModule],
+  imports: [FormsModule, RouterLink, MatButtonModule, MatIconModule, MatSlideToggleModule, PublicPageCardComponent],
   templateUrl: './privacy-settings.component.html',
 })
 export class PrivacySettingsComponent implements OnInit {
