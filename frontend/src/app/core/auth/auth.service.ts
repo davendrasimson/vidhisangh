@@ -217,6 +217,17 @@ export class AuthService {
       }));
   }
 
+  /** Add a mobile number to my account: a WhatsApp code is sent to it. */
+  requestMyPhoneCode(phone: string): Observable<PhoneOtpResponse> {
+    return this.http.post<PhoneOtpResponse>(`${this.api}/auth/me/phone/request`, { phone });
+  }
+
+  verifyMyPhone(challenge_id: string, code: string): Observable<User> {
+    return this.http
+      .post<User>(`${this.api}/auth/me/phone/verify`, { challenge_id, code })
+      .pipe(tap((user) => this._user.set(user)));
+  }
+
   acceptCurrentTerms(): Observable<User> {
     return this.http
       .post<User>(`${this.api}/auth/me/accept-terms`, { accept_terms: true })

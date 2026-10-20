@@ -83,6 +83,7 @@ from app.modules.news.models import NewsItem
 from app.modules.outreach.models import OutreachContact, OutreachSettings, OutreachSuppression
 from app.modules.referrals.models import Referral, ReferralCode
 from app.modules.notifications.models import (
+    HearingReminderSend,
     Notification,
     NotificationDelivery,
     NotificationPreference,
@@ -152,6 +153,7 @@ __all__ = [
     "Notification",
     "NotificationPreference",
     "NotificationDelivery",
+    "HearingReminderSend",
     "Matter",
     "MatterAdvocate",
     "MatterAuthority",

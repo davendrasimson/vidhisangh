@@ -4,6 +4,8 @@
     <button mat-flat-button color="primary" (click)="showForm.set(!showForm())"><mat-icon class="material-icons-outlined">{{ showForm() ? 'close' : 'add' }}</mat-icon>{{ showForm() ? 'Cancel' : 'New event' }}</button>
   </header>
 
+  <vs-whatsapp-reminders prompt class="block mb-5" />
+
   @if (showForm()) {
     <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-5">
       <div class="grid gap-3 sm:grid-cols-2">

@@ -40,6 +40,8 @@ from app.modules.identity.oauth_service import OAuthService
 from app.modules.identity.passkey_service import PasskeyService
 from app.modules.identity.repository import UserRepository
 from app.modules.identity.schemas import (
+    MyPhoneRequest,
+    MyPhoneVerify,
     WhatsAppSignupRequest,
     WhatsAppSignupRequired,
     ChangePasswordRequest,
@@ -571,6 +573,45 @@ async def whatsapp_login(
         device_id=data.device_id,
     )
     return deliver_tokens(pair, response)
+
+
+@router.post("/me/phone/request", response_model=PhoneOtpResponse,
+             summary="Send a WhatsApp code to add a mobile number to my account",
+             dependencies=[Depends(auth_rate_limit)])
+async def my_phone_request(data: MyPhoneRequest, current: CurrentUserDep, session: AuthSessionDep) -> PhoneOtpResponse:
+    from app.core.exceptions import ConflictError
+    from app.modules.identity.phone_otp import phone_user, request_code
+    owner = await phone_user(session, data.phone)
+    if owner is not None:
+        raise ConflictError(
+            "This number is already verified on your account." if owner.id == current.id
+            else "This mobile number is already linked to another VidhiSangh account."
+        )
+    row = await request_code(session, data.phone, "verify", requester_id=current.id)
+    return PhoneOtpResponse(challenge_id=row.id, detail="We sent a 6-digit code on WhatsApp.")
+
+
+@router.post("/me/phone/verify", response_model=UserRead,
+             summary="Confirm the WhatsApp code: the number is saved as verified",
+             dependencies=[Depends(auth_rate_limit)])
+async def my_phone_verify(data: MyPhoneVerify, current: CurrentUserDep, session: AuthSessionDep) -> UserRead:
+    from app.core.exceptions import ConflictError
+    from app.modules.identity.models import PhoneOtpChallenge
+    from app.modules.identity.phone_otp import consume_code, phone_user
+    pending = await session.get(PhoneOtpChallenge, data.challenge_id)
+    if pending is None or pending.user_id != current.id:
+        raise AuthenticationError("This WhatsApp code is invalid or expired. Request a new code.")
+    row = await consume_code(session, data.challenge_id, data.code, purpose="verify")
+    owner = await phone_user(session, row.phone)
+    if owner is not None and owner.id != current.id:
+        raise ConflictError("This mobile number is already linked to another VidhiSangh account.")
+    user = await UserRepository(session).get_for_tenant(current.tenant_id, current.id)
+    if user is None:
+        raise AuthenticationError("Account is no longer active.")
+    user.phone, user.is_phone_verified = row.phone, True
+    await session.flush()
+    await session.refresh(user)
+    return UserRead.model_validate(user)
 
 
 @router.post("/whatsapp/signup", response_model=TokenPair, status_code=status.HTTP_201_CREATED,

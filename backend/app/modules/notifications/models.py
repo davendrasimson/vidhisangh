@@ -8,9 +8,10 @@ log recording every routing decision.
 from __future__ import annotations
 
 import uuid
+from datetime import date
 from enum import StrEnum
 
-from sqlalchemy import JSON, Boolean, String, UniqueConstraint, Uuid
+from sqlalchemy import JSON, Boolean, Date, Integer, String, UniqueConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base_class import AuditedBase
@@ -86,3 +87,21 @@ class NotificationDelivery(AuditedBase):
     channel: Mapped[NotificationChannel] = mapped_column(String(20), nullable=False)
     status: Mapped[DeliveryStatus] = mapped_column(String(10), nullable=False)
     detail: Mapped[str | None] = mapped_column(String(400), nullable=True)
+
+
+class HearingReminderSend(AuditedBase):
+    """One evening WhatsApp reminder: a member's hearings for one day.
+
+    The unique (user, day) row is written before the message goes out, so a
+    rerun of the job never sends the same day twice. Holds counts and the
+    outcome only, never the hearings or the number.
+    """
+
+    __tablename__ = "hearing_reminder_sends"
+    __table_args__ = (UniqueConstraint("user_id", "for_date", name="uq_hearing_reminder_user_day"),)
+
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, index=True)
+    for_date: Mapped[date] = mapped_column(Date, nullable=False)
+    hearing_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(String(10), nullable=False)  # sending | sent | failed
+    detail: Mapped[str | None] = mapped_column(String(200), nullable=True)

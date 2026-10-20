@@ -90,6 +90,16 @@ Funnel from the nginx log for 13–14 Oct: 22 `POST /auth/register`, of which 6 
   6. **A first-party sign-up funnel count** (page → form opened → code sent → account created), stored in our own database with no third-party tracker, so each change above can be measured. ✅ Part done 14 Oct 2026: **Platform admin → Growth** (`GET /platform-admin/growth`) shows registrations by day / week / month in India time, period comparisons, running total, next milestone, sign-up method, role, invites, verified and returning share, and the latest sign-ups. Still to add: the steps before an account exists (visits, form opened, code sent).
   7. **In-app review prompt** (Play In-App Review API) after a good moment, such as a first connection accepted.
 
+## 🚀 Making the app popular with advocates (plan agreed 20 Oct 2026)
+Usage on 13–20 Oct: bare-act pages 2,743 views from 107 people (BNSS, IPC, BNS, Companies, BSA lead), 37 visits from Google, 15 members, **1 feed post and 2 connections**. People come for the Acts; the network is empty. In order:
+1. ✅ **WhatsApp hearing reminders** — built 20 Oct 2026 (see PROJECT_STATUS). Waiting on Meta's approval of the `hearing_reminder` template. Follow-ups: court number and cause-list item on hearings (no fields today, so the message cannot say "Court 12, item 34"); a one-tap "next date" update after a hearing; optional morning-of reminder; handle replies (needs a webhook on the VidhiSangh number).
+2. **IPC ↔ BNS / CrPC ↔ BNSS / Evidence ↔ BSA converter** — complete the old↔new table (32 rows today) from the official comparative tables; one public page per old section ("Section 420 IPC is now Section 318 BNS") with Save and Share on WhatsApp.
+3. **A feed that is never empty** — daily Supreme Court judgments with AI headnotes, legal news and "Section of the day" posted by a VidhiSangh account; default groups by court/city and "Ask a senior".
+4. **Share on WhatsApp everywhere** (judgments, sections, visiting card) + **public profiles** `vidhisangh.com/in/<name>` (Registrations item 3).
+5. **Free calculators**: limitation period (Limitation Act + BNSS timelines), court fee, interest — public pages with a join prompt.
+6. **Hindi interface**, starting with sign-up, bare acts and the diary.
+7. **Push notifications** (see Mobile).
+
 ## 📝 Feed posts with formatting and photos (16 Oct 2026)
 Built (migration 0066): rich composer (bold, italic, underline, heading, lists, quote, link) that grows with its content; up to 4 photos per post (JPEG/PNG ≤ 5 MB, re-drawn to ≤ 2000 px JPEG in the app, EXIF/GPS stripped on the server, virus-scanned); server-side allow-list HTML cleaning (`app/core/html_clean.py`); own posts can be deleted from the feed. Still open:
 - **Purge unused uploads**: photos uploaded but never posted (`post_images.post_id IS NULL` older than a day) and photos of deleted posts stay in storage. Add to `app/scripts/retention_purge.py` with the storage delete.

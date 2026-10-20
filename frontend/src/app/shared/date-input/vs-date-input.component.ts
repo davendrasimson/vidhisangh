@@ -9,6 +9,7 @@ import {
   fromIsoDate,
   toIsoDate,
 } from '@core/dates/indian-date-adapter';
+import { utcOffset } from './utc-offset';
 
 /**
  * The product's date field: typed or picked as dd/mm/yyyy, whatever the
@@ -16,8 +17,10 @@ import {
  * many users and cannot be told otherwise).
  *
  * Model value is what the API stores: "yyyy-mm-dd", or with `withTime`
- * "yyyy-mm-ddTHH:mm" — the same strings the native inputs produced, so no
- * caller or endpoint changes.
+ * "yyyy-mm-ddTHH:mm+05:30" — the time as typed, with this device's UTC offset.
+ * Without the offset the server read 10:30 as UTC, so a 10:30 hearing showed
+ * (and was reminded) as 4:00 pm in India. Values from the API ("…Z") are shown
+ * in local time.
  *
  *   <vs-date-input [(ngModel)]="form.next_hearing_date" />
  *   <vs-date-input withTime [(ngModel)]="form.start_at" />
@@ -85,6 +88,15 @@ export class VsDateInputComponent implements ControlValueAccessor {
   protected onTouched: () => void = () => {};
 
   writeValue(value: string | null): void {
+    // A stored date-time ("…Z" or "…+05:30") is shown in this device's time.
+    if (value && /T\d{2}:\d{2}.*(Z|[+-]\d{2}:?\d{2})$/.test(value)) {
+      const d = new Date(value);
+      if (!isNaN(d.getTime())) {
+        this.date.set(new Date(d.getFullYear(), d.getMonth(), d.getDate()));
+        this.time.set(`${pad(d.getHours())}:${pad(d.getMinutes())}`);
+        return;
+      }
+    }
     this.date.set(fromIsoDate(value));
     const t = value?.match(/T(\d{2}:\d{2})/);
     this.time.set(t ? t[1] : '');
@@ -113,6 +125,12 @@ export class VsDateInputComponent implements ControlValueAccessor {
       return;
     }
     // A date without a time is still a value: default to the start of the day.
-    this.onChange(`${iso}T${this.time() || '00:00'}`);
+    const time = this.time() || '00:00';
+    this.onChange(`${iso}T${time}${utcOffset(new Date(`${iso}T${time}`))}`);
   }
 }
+
+function pad(n: number): string {
+  return String(n).padStart(2, '0');
+}
+

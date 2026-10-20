@@ -90,3 +90,21 @@ test('app updates are applied at launch, never when the app goes to the backgrou
   assert.match(src, /setMultiDelay\(\{ delayConditions: \[\{ kind: 'kill' \}\] \}\)/);
   assert.match(src, /updater\.set\(\{ id: target\.id \}\)/);
 });
+
+test('date-times are sent with the device time zone, so 10:30 in India is not saved as 10:30 UTC', async () => {
+  const { utcOffset } = await import('../src/app/shared/date-input/utc-offset.ts');
+  const before = process.env.TZ;
+  try {
+    process.env.TZ = 'Asia/Kolkata';
+    assert.equal(utcOffset(new Date('2026-10-21T10:30')), '+05:30');
+    process.env.TZ = 'UTC';
+    assert.equal(utcOffset(new Date('2026-10-21T10:30')), '+00:00');
+    process.env.TZ = 'America/New_York';
+    assert.equal(utcOffset(new Date('2026-07-01T10:30')), '-04:00');
+  } finally {
+    process.env.TZ = before;
+  }
+  const src = readFileSync(new URL('../src/app/shared/date-input/vs-date-input.component.ts', import.meta.url), 'utf8');
+  assert.match(src, /\$\{iso\}T\$\{time\}\$\{utcOffset\(/, 'the model carries the offset');
+  assert.match(src, /new Date\(value\)/, 'a stored UTC value is shown in local time');
+});

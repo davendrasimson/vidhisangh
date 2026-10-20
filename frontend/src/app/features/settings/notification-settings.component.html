@@ -5,6 +5,7 @@
   @if (loading()) {
     <p class="text-content-muted">Loading…</p>
   } @else {
+    <vs-whatsapp-reminders class="block mb-6" />
     <section class="rounded-card bg-surface-raised border border-line shadow-card divide-y divide-line mb-8">
       @for (c of channels; track c.channel) {
         <div class="flex items-center gap-3 p-4">

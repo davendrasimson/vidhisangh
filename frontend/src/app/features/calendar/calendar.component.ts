@@ -9,6 +9,7 @@ import { CalendarService } from '@core/services/calendar.service';
 import { NotificationService } from '@core/services/notification.service';
 import { AgendaItem, EventType } from '@core/models/calendar.models';
 import { VsDateInputComponent } from '@shared/date-input/vs-date-input.component';
+import { WhatsappRemindersComponent } from '@shared/whatsapp-reminders/whatsapp-reminders.component';
 
 interface DayGroup {
   dateIso: string;
@@ -22,7 +23,7 @@ interface CalendarDay extends DayGroup { date: Date; inMonth: boolean; isToday: 
   selector: 'app-calendar',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [VsDateInputComponent, FormsModule, DatePipe, RouterLink, MatIconModule, MatButtonModule],
+  imports: [VsDateInputComponent, FormsModule, DatePipe, RouterLink, MatIconModule, MatButtonModule, WhatsappRemindersComponent],
   templateUrl: './calendar.component.html',
   styleUrl: './calendar.component.scss',
 })

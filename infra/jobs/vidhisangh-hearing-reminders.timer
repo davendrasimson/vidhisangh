@@ -1,0 +1,12 @@
+[Unit]
+Description=Send tomorrow's hearing reminders on WhatsApp at about 7 pm India time
+
+[Timer]
+# 19:00 IST every day (Sunday evening covers Monday's board).
+OnCalendar=*-*-* 13:30:00 UTC
+RandomizedDelaySec=300
+# Not Persistent: a run missed while the server was down must not send at night.
+Persistent=false
+
+[Install]
+WantedBy=timers.target

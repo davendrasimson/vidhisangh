@@ -209,6 +209,10 @@ class Settings(BaseSettings):
     WA_OTP_TEMPLATE_PARAMS: str = "code"
     WA_OTP_CALL_NUMBER: str = "+917341100692"
     WA_OTP_CONTACT: str = "+917341100692"
+    # Evening WhatsApp list of tomorrow's hearings (utility template; members
+    # opt in under Settings → Notifications). Empty disables the job.
+    WA_REMINDER_TEMPLATE: str = "hearing_reminder"
+    WA_REMINDER_TEMPLATE_LANG: str = "en"
     SMTP_HOST: str | None = None
     SMTP_PORT: int = 587
     SMTP_USER: str | None = None

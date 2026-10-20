@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { NotificationFeedService } from '@core/services/notification-feed.service';
+import { WhatsappRemindersComponent } from '@shared/whatsapp-reminders/whatsapp-reminders.component';
 import { NotificationService } from '@core/services/notification.service';
 import {
   ChannelPreference,
@@ -23,7 +24,7 @@ interface ChannelMeta {
   selector: 'app-notification-settings',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, MatIconModule, MatSlideToggleModule],
+  imports: [DatePipe, MatIconModule, MatSlideToggleModule, WhatsappRemindersComponent],
   templateUrl: './notification-settings.component.html',
 })
 export class NotificationSettingsComponent implements OnInit {
@@ -42,7 +43,6 @@ export class NotificationSettingsComponent implements OnInit {
     { channel: 'email', label: 'Email', icon: 'mail', hint: 'Delivered to your account email.', live: true },
     { channel: 'slack', label: 'Slack', icon: 'tag', hint: 'Posts to your firm’s Slack webhook.', live: true },
     { channel: 'sms', label: 'SMS', icon: 'sms', hint: 'Coming soon — awaits an SMS gateway.', live: false },
-    { channel: 'whatsapp', label: 'WhatsApp', icon: 'chat', hint: 'Coming soon — awaits WhatsApp Business.', live: false },
     { channel: 'push', label: 'Push', icon: 'notifications_active', hint: 'Coming soon — mobile push.', live: false },
     { channel: 'teams', label: 'Microsoft Teams', icon: 'groups', hint: 'Coming soon — Teams connector.', live: false },
   ];

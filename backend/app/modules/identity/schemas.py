@@ -359,6 +359,23 @@ class PhoneOtpRequest(BaseModel):
         return normalize_phone(value)
 
 
+class MyPhoneRequest(BaseModel):
+    """Add a mobile number to the signed-in account: a WhatsApp code proves it."""
+
+    phone: str
+
+    @field_validator("phone")
+    @classmethod
+    def _phone(cls, value: str) -> str:
+        from app.modules.identity.phone_otp import normalize_phone
+        return normalize_phone(value)
+
+
+class MyPhoneVerify(BaseModel):
+    challenge_id: uuid.UUID
+    code: str = Field(min_length=6, max_length=6)
+
+
 class PhoneOtpResponse(BaseModel):
     challenge_id: uuid.UUID
     expires_in: int = 300

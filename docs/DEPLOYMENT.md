@@ -762,6 +762,16 @@ Configuration: `VS_WA_PHONE_NUMBER_ID`, `VS_WA_ACCESS_TOKEN_FILE` (prefer a syst
 runtime credential), `VS_WA_API_VERSION=v25.0`, `VS_WA_OTP_TEMPLATE`,
 `VS_WA_OTP_TEMPLATE_LANG`, `VS_WA_OTP_TEMPLATE_PARAMS`, `VS_WA_OTP_CALL_NUMBER`,
 `VS_WA_OTP_CONTACT`.
+
+**Hearing reminders** use the same number and token with the utility template
+`hearing_reminder` (`VS_WA_REMINDER_TEMPLATE`, `VS_WA_REMINDER_TEMPLATE_LANG=en`;
+body parameters: name, date, one-line hearing list; static "Open diary" button to
+`/app/calendar`). Install `infra/jobs/vidhisangh-hearing-reminders.{service,timer}`
+into `/etc/systemd/system/` and `systemctl enable --now vidhisangh-hearing-reminders.timer`;
+the unit loads the `wa_access_token` credential itself. Check with
+`python -m app.scripts.hearing_reminders --dry-run` (counts only). Until Meta
+approves the template, sends fail and are recorded as `failed` in
+`hearing_reminder_sends` (no retry for that day).
 `GET /api/v1/auth/options` exposes only whether WhatsApp is configured. The UI
 keeps mobile signup/login disabled until the credentials are configured, while
 email signup remains available. No secrets are returned to the browser.

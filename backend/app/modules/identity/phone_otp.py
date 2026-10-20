@@ -105,7 +105,10 @@ async def phone_user(session: AsyncSession, phone: str) -> User | None:
     return user
 
 
-async def request_code(session: AsyncSession, phone: str, purpose: str) -> PhoneOtpChallenge:
+async def request_code(
+    session: AsyncSession, phone: str, purpose: str, *, requester_id: uuid.UUID | None = None,
+) -> PhoneOtpChallenge:
+    """``verify``: a signed-in member (``requester_id``) adding this number."""
     from app.core.ratelimit import RateLimiter
 
     subject = security.hash_link_token(phone)
@@ -122,7 +125,7 @@ async def request_code(session: AsyncSession, phone: str, purpose: str) -> Phone
         # instead of "Create an account"). The response is the same either way,
         # so the screen still does not reveal which numbers have accounts.
         purpose = "signup"
-    eligible = (purpose in ("register", "signup") and user is None) or (
+    eligible = (purpose in ("register", "signup", "verify") and user is None) or (
         purpose == "login" and user is not None and user.is_active
     )
     await session.execute(
@@ -142,7 +145,7 @@ async def request_code(session: AsyncSession, phone: str, purpose: str) -> Phone
         purpose=purpose,
         code_hash=_hash(challenge_id, code),
         expires_at=datetime.now(UTC) + timedelta(minutes=5),
-        user_id=user.id if purpose == "login" and user else None,
+        user_id=requester_id if purpose == "verify" else user.id if purpose == "login" and user else None,
         # Ineligible requests look identical but can never authenticate.
         consumed=not eligible,
     )
