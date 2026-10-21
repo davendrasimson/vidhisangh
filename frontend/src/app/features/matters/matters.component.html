@@ -12,7 +12,7 @@
           <mat-icon class="material-icons-outlined">tune</mat-icon>
         </button>
       }
-      <button mat-stroked-button (click)="showTransfer.set(!showTransfer()); showImport.set(false); showForm.set(false)" title="Move all of one person's matters to another">
+      <button mat-stroked-button (click)="toggleTransfer()" title="Who carries what, and move all of one person's matters to another">
         <mat-icon class="material-icons-outlined">swap_horiz</mat-icon>
         Reassign matters
       </button>
@@ -92,14 +92,46 @@
         The earlier stint stays on each matter's team history with the reason — nothing is overwritten.
         For a single matter, use <em>Hand over</em> on that matter's team instead.
       </p>
+      @if (workload(); as rows) {
+        <div class="mb-4 overflow-x-auto">
+          <table class="w-full text-sm" aria-label="Team workload">
+            <caption class="text-left font-medium text-content mb-1">Who carries what</caption>
+            <thead><tr class="text-left text-content-muted border-b border-line">
+              <th class="py-1 pr-3 font-normal">Colleague</th>
+              <th class="py-1 pr-3 font-normal text-right">Open matters</th>
+              <th class="py-1 pr-3 font-normal text-right">Leading</th>
+              <th class="py-1 pr-3 font-normal text-right">Hearings, next 14 days</th>
+              <th class="py-1 pr-3 font-normal hidden sm:table-cell">Roles</th>
+              <th class="py-1 font-normal"><span class="sr-only">Use in the form</span></th>
+            </tr></thead>
+            <tbody>
+              @for (r of rows; track r.user_id) {
+                <tr class="border-b border-line/60">
+                  <td class="py-1.5 pr-3 text-content">{{ r.full_name }}</td>
+                  <td class="py-1.5 pr-3 text-right tabular-nums">{{ r.open_matters }}</td>
+                  <td class="py-1.5 pr-3 text-right tabular-nums">{{ r.lead_matters }}</td>
+                  <td class="py-1.5 pr-3 text-right tabular-nums">{{ r.hearings_next_14_days }}</td>
+                  <td class="py-1.5 pr-3 text-content-muted hidden sm:table-cell">{{ roleSummary(r) || '—' }}</td>
+                  <td class="py-1.5 whitespace-nowrap text-right">
+                    @if (r.open_matters) {
+                      <button mat-button type="button" (click)="transfer.from_user_id = r.user_id" [attr.aria-label]="'Move matters from ' + r.full_name">From</button>
+                    }
+                    <button mat-button type="button" (click)="transfer.to_user_id = r.user_id" [attr.aria-label]="'Move matters to ' + r.full_name">To</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
       <div class="grid gap-3 sm:grid-cols-4">
         <label class="flex flex-col gap-1"><span class="text-sm text-content-muted">From</span>
-          <select class="vs-input" [(ngModel)]="transfer.from_user_id">
+          <select class="vs-input" [(ngModel)]="transfer.from_user_id" aria-label="Move from">
             <option value="">Select…</option>
             @for (p of people(); track p.id) { <option [value]="p.id">{{ p.full_name }}</option> }
           </select></label>
         <label class="flex flex-col gap-1"><span class="text-sm text-content-muted">To</span>
-          <select class="vs-input" [(ngModel)]="transfer.to_user_id">
+          <select class="vs-input" [(ngModel)]="transfer.to_user_id" aria-label="Move to">
             <option value="">Select…</option>
             @for (p of people(); track p.id) { <option [value]="p.id">{{ p.full_name }}</option> }
           </select></label>

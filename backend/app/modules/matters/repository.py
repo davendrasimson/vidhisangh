@@ -5,6 +5,7 @@ too)."""
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +14,7 @@ from sqlalchemy.orm import selectinload
 from app.modules.identity.models import User
 from app.modules.matters.models import (
     Hearing,
+    HearingStatus,
     Matter,
     MatterAdvocate,
     MatterAuthority,
@@ -157,6 +159,40 @@ class MatterRepository:
             stmt = stmt.where(Matter.id.in_(matter_ids))
         res = await self.session.execute(stmt.order_by(Matter.matter_number))
         return [(m, mt) for m, mt in res.all()]
+
+    async def open_stints(self, tenant_id: uuid.UUID) -> list[tuple[uuid.UUID, str, uuid.UUID]]:
+        """(user, role, matter) for every current stint on a matter that is not closed."""
+        res = await self.session.execute(
+            select(MatterTeamMember.user_id, MatterTeamMember.role, MatterTeamMember.matter_id)
+            .join(Matter, Matter.id == MatterTeamMember.matter_id)
+            .where(
+                MatterTeamMember.tenant_id == tenant_id,
+                MatterTeamMember.to_date.is_(None),
+                MatterTeamMember.deleted_at.is_(None),
+                Matter.deleted_at.is_(None),
+                Matter.status != MatterStatus.CLOSED,
+            )
+        )
+        return [(u, r, m) for u, r, m in res.all()]
+
+    async def hearings_per_matter(
+        self, tenant_id: uuid.UUID, matter_ids: set[uuid.UUID], start: datetime, end: datetime
+    ) -> dict[uuid.UUID, int]:
+        if not matter_ids:
+            return {}
+        res = await self.session.execute(
+            select(Hearing.matter_id, func.count())
+            .where(
+                Hearing.tenant_id == tenant_id,
+                Hearing.matter_id.in_(matter_ids),
+                Hearing.deleted_at.is_(None),
+                Hearing.status == HearingStatus.SCHEDULED,
+                Hearing.scheduled_on >= start,
+                Hearing.scheduled_on < end,
+            )
+            .group_by(Hearing.matter_id)
+        )
+        return {m: n for m, n in res.all()}
 
     # ── Fees ───────────────────────────────────────────────────────
     async def get_arrangement(

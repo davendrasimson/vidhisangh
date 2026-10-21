@@ -47,6 +47,7 @@ from app.modules.matters.schemas import (
     TeamMemberUpdate,
     TeamTransfer,
     TeamTransferResult,
+    WorkloadRow,
     TimelineEntry,
 )
 from app.modules.matters.service import MatterService
@@ -105,6 +106,21 @@ async def list_matters(
 )
 async def team_people(current: CurrentUserDep, session: TenantSessionDep) -> list[PersonRead]:
     return await _svc(current, session).people()
+
+
+@router.get(
+    "/team/workload",
+    response_model=list[WorkloadRow],
+    summary="Open matters and coming hearings per colleague",
+    description=(
+        "Every active member of the organisation with the open matters they are on now "
+        "(by role, and how many they lead) and the scheduled hearings on those matters "
+        "in the next 14 days. Busiest first, for deciding who takes the next brief."
+    ),
+    dependencies=[require_permission("matter:manage")],
+)
+async def team_workload(current: CurrentUserDep, session: TenantSessionDep) -> list[WorkloadRow]:
+    return await _svc(current, session).workload()
 
 
 @router.post(

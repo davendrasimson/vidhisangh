@@ -29,6 +29,7 @@ import {
   TeamMemberCreate,
   TeamTransfer,
   TeamTransferResult,
+  WorkloadRow,
   TimelineEntry,
   MatterAuthority,
   MatterCustomField,
@@ -117,6 +118,11 @@ export class MattersService {
   /** Move every active stint of one person to another (they left, etc.). */
   transfer(payload: TeamTransfer): Observable<TeamTransferResult> {
     return this.http.post<TeamTransferResult>(`${this.api}/team/transfer`, payload);
+  }
+
+  /** Open matters (by role) and hearings in the next 14 days, per colleague. */
+  workload(): Observable<WorkloadRow[]> {
+    return this.http.get<WorkloadRow[]>(`${this.api}/team/workload`);
   }
 
   // ─── Fees ─────────────────────────────────────────────────────────

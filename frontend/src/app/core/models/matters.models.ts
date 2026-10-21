@@ -198,6 +198,16 @@ export interface TeamTransferResult {
   matter_numbers: string[];
 }
 
+/** One colleague's load: open matters they are on now, by role. */
+export interface WorkloadRow {
+  user_id: string;
+  full_name: string;
+  open_matters: number;
+  lead_matters: number;
+  roles: Partial<Record<TeamRole, number>>;
+  hearings_next_14_days: number;
+}
+
 // ─── Fees ───────────────────────────────────────────────────────────
 export type FeeBasis = 'fixed' | 'per_hearing' | 'hourly' | 'retainer' | 'milestone' | 'hybrid' | 'pro_bono';
 

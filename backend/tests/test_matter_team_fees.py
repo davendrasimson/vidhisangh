@@ -280,3 +280,36 @@ async def test_counsel_rate_cards(client: AsyncClient, strong_password: str) -> 
 
     # Delete.
     assert (await client.delete(f"{API}/rates/{r2.json()['id']}", headers=h)).status_code == 204
+
+
+async def test_team_workload(client: AsyncClient, strong_password: str) -> None:
+    from datetime import UTC, datetime
+    h, me = await _admin(client, "Load LLP", "load@firm.co", strong_password)
+    x = await _colleague(client, h, "Adv. Busy", "busy@firm.co", strong_password)
+    await _colleague(client, h, "Adv. Free", "free@firm.co", strong_password)
+    soon = (datetime.now(UTC) + timedelta(days=3)).isoformat()
+    later = (datetime.now(UTC) + timedelta(days=40)).isoformat()
+    ids = []
+    for title in ("A v. B", "C v. D", "E v. F"):
+        m = (await client.post(f"{API}/matters", headers=h, json={
+            "title": title, "client_name": "Client", "lead_counsel_id": x["id"]})).json()
+        ids.append(m["id"])
+    await client.post(f"{API}/matters/{ids[0]}/team", headers=h, json={"user_id": me["id"], "role": "associate"})
+    await client.post(f"{API}/matters/{ids[0]}/hearings", headers=h, json={"scheduled_on": soon})
+    await client.post(f"{API}/matters/{ids[1]}/hearings", headers=h, json={"scheduled_on": later})
+    # A closed matter no longer counts.
+    await client.patch(f"{API}/matters/{ids[2]}", headers=h, json={"status": "closed"})
+
+    resp = await client.get(f"{API}/matters/team/workload", headers=h)
+    assert resp.status_code == 200, resp.text
+    rows = {r["full_name"]: r for r in resp.json()}
+    assert resp.json()[0]["full_name"] == "Adv. Busy"
+    busy = rows["Adv. Busy"]
+    assert (busy["open_matters"], busy["lead_matters"], busy["roles"], busy["hearings_next_14_days"]) == (2, 2, {"lead_counsel": 2}, 1)
+    mine = rows[me["full_name"]]
+    assert (mine["open_matters"], mine["roles"], mine["hearings_next_14_days"]) == (1, {"associate": 1}, 1)
+    assert rows["Adv. Free"]["open_matters"] == 0
+
+    # Another organisation sees only its own people.
+    h2, _ = await _admin(client, "Other LLP", "other@firm.co", strong_password)
+    assert [r["full_name"] for r in (await client.get(f"{API}/matters/team/workload", headers=h2)).json()] == ["Adv. Other"]

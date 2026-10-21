@@ -18,7 +18,10 @@ import {
   MatterType,
   Person,
   TEAM_END_REASON_LABELS,
+  TEAM_ROLE_LABELS,
   TeamEndReason,
+  TeamRole,
+  WorkloadRow,
 } from '@core/models/matters.models';
 import { AuthService } from '@core/auth/auth.service';
 import { VsDateInputComponent } from '@shared/date-input/vs-date-input.component';
@@ -360,6 +363,25 @@ export class MattersComponent implements OnInit {
   }
 
   // ─── Reassign all of one person's matters ─────────────────────────
+  /** Who carries what, shown above the reassign form (absent without matter:manage). */
+  protected readonly workload = signal<WorkloadRow[] | null>(null);
+
+  protected toggleTransfer(): void {
+    const open = !this.showTransfer();
+    this.showTransfer.set(open); this.showImport.set(false); this.showForm.set(false);
+    if (open) void this.loadWorkload();
+  }
+
+  private async loadWorkload(): Promise<void> {
+    try { this.workload.set(await firstValueFrom(this.matters.workload())); } catch { this.workload.set(null); }
+  }
+
+  protected roleSummary(row: WorkloadRow): string {
+    return Object.entries(row.roles)
+      .map(([role, n]) => `${TEAM_ROLE_LABELS[role as TeamRole]?.replace(/ \(.*\)$/, '') ?? role} ${n}`)
+      .join(' · ');
+  }
+
   protected async runTransfer(): Promise<void> {
     const t = this.transfer;
     if (!t.from_user_id || !t.to_user_id || t.from_user_id === t.to_user_id || this.transferring()) return;
@@ -375,6 +397,7 @@ export class MattersComponent implements OnInit {
       this.showTransfer.set(false);
       this.transfer = { from_user_id: '', to_user_id: '', effective_from: '', reason: 'left_firm', notes: '' };
       await this.reload();
+      void this.loadWorkload();
     } catch {
       /* surfaced by the interceptor */
     } finally {

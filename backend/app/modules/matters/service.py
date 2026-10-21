@@ -79,6 +79,7 @@ from app.modules.matters.schemas import (
     TeamTransfer,
     TeamTransferResult,
     TimelineEntry,
+    WorkloadRow,
     AuthorityCreate,
 )
 
@@ -668,6 +669,32 @@ class MatterService:
     # ── Team ────────────────────────────────────────────────────────
     async def people(self) -> list[PersonRead]:
         return [PersonRead.model_validate(u) for u in await self.repo.people(self.tenant_id)]
+
+    async def workload(self, days: int = 14) -> list[WorkloadRow]:
+        """Who carries what: every active colleague, busiest first (people with nothing too)."""
+        stints = await self.repo.open_stints(self.tenant_id)
+        start = datetime.combine(datetime.now(_IST).date(), datetime.min.time(), _IST)
+        hearings = await self.repo.hearings_per_matter(
+            self.tenant_id, {m for _, _, m in stints}, start, start + timedelta(days=days))
+        matters: dict[uuid.UUID, set[uuid.UUID]] = {}
+        led: dict[uuid.UUID, set[uuid.UUID]] = {}
+        roles: dict[uuid.UUID, dict[str, int]] = {}
+        for user, role, matter in stints:
+            matters.setdefault(user, set()).add(matter)
+            if role == TeamRole.LEAD_COUNSEL:
+                led.setdefault(user, set()).add(matter)
+            per = roles.setdefault(user, {})
+            per[str(role)] = per.get(str(role), 0) + 1
+        rows = [
+            WorkloadRow(
+                user_id=u.id, full_name=u.full_name,
+                open_matters=len(matters.get(u.id, ())), lead_matters=len(led.get(u.id, ())),
+                roles=roles.get(u.id, {}),
+                hearings_next_14_days=sum(hearings.get(m, 0) for m in matters.get(u.id, ())),
+            )
+            for u in await self.repo.people(self.tenant_id)
+        ]
+        return sorted(rows, key=lambda r: (-r.open_matters, -r.hearings_next_14_days, r.full_name.lower()))
 
     async def _require_person(self, user_id: uuid.UUID) -> None:
         users = await self.repo.names(self.tenant_id, {user_id})

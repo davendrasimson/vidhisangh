@@ -204,6 +204,17 @@ class TeamTransferResult(BaseModel):
     matter_numbers: list[str]
 
 
+class WorkloadRow(BaseModel):
+    """One colleague's load: open matters they are on now, by role."""
+
+    user_id: uuid.UUID
+    full_name: str
+    open_matters: int
+    lead_matters: int
+    roles: dict[str, int]
+    hearings_next_14_days: int
+
+
 class TeamMemberRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
