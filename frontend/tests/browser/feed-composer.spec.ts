@@ -83,3 +83,35 @@ test('official VidhiSangh posts show the logo, an Official mark and the link car
   await expect(member.getByText('Official', { exact: true })).toHaveCount(0);
   await expect(member.getByText('AM', { exact: true })).toBeVisible();
 });
+
+test('photos open full screen: next, previous, Esc; a repost shows the original photos', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('vs.session', '1'));
+  await page.route('**/api/v1/auth/refresh', r => r.fulfill({ json: { access_token: 'eyJhbGciOiAiSFMyNTYifQ.eyJzdWIiOiAidTEiLCAidGlkIjogInQiLCAiZXhwIjogOTk5OTk5OTk5OSwgInNjb3BlcyI6IFsiKiJdfQ.sig', refresh_token: null, token_type: 'bearer', expires_in: 900 } }));
+  await page.route('**/api/v1/auth/me', r => r.fulfill({ json: USER }));
+  await page.route('**/api/v1/network/post-images/**', r => r.fulfill({ body: PNG, contentType: 'image/png' }));
+  const base = { author_avatar_url: null, visibility: 'public', like_count: 0, comment_count: 0, share_count: 0, created_at: new Date().toISOString(),
+    link_url: null, link_title: null, link_description: null, link_image: null, link_site_name: null, my_reaction: null, bookmarked: false,
+    shared_author_avatar_url: null, shared_created_at: null, mentions: [], hashtags: [], post_type: 'text', title: null, content_html: null, author_headline: null };
+  await page.route('**/api/v1/network/feed**', r => r.fulfill({ json: [
+    { ...base, id: 'p1', author_id: 'u9', author_name: 'Adv. Photo', content: 'Two photos', images: [{ id: 'i1', width: 1, height: 1 }, { id: 'i2', width: 1, height: 1 }],
+      shared_from_id: null, shared_author_name: null, shared_content: null },
+    { ...base, id: 'p2', author_id: 'u8', author_name: 'Adv. Sharer', content: 'Congratulations!', images: [],
+      shared_from_id: 'p0', shared_author_name: 'Adv. Origin', shared_content: 'Election day', shared_images: [{ id: 'i3', width: 1, height: 1 }] },
+  ] }));
+  await page.goto('/app/network');
+  await page.getByRole('button', { name: 'Open photo 1 of 2' }).click();
+  const viewer = page.getByRole('dialog', { name: 'Photo viewer' });
+  await expect(viewer.getByText('1 of 2')).toBeVisible();
+  await viewer.getByRole('button', { name: 'Next photo' }).click();
+  await expect(viewer.getByText('2 of 2')).toBeVisible();
+  await expect(viewer.getByRole('button', { name: 'Next photo' })).toBeDisabled();
+  await page.keyboard.press('ArrowLeft');
+  await expect(viewer.getByText('1 of 2')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(viewer).toHaveCount(0);
+
+  await page.locator('article', { hasText: 'Election day' }).getByRole('button', { name: 'Open photo 1 of 1' }).click();
+  await expect(page.getByRole('dialog', { name: 'Photo viewer' }).getByRole('img', { name: 'Photo 1 of 1' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close photo viewer' }).click();
+  await expect(page.getByRole('dialog', { name: 'Photo viewer' })).toHaveCount(0);
+});

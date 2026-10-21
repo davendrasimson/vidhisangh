@@ -10,6 +10,7 @@ import { publicOrigin } from '@core/platform/platform';
 import { NetworkService } from '@core/services/network.service';
 import { NotificationService } from '@core/services/notification.service';
 import { ComposerValue, PostComposerComponent } from './post-composer.component';
+import { PhotoViewerService } from '@shared/photo-viewer/photo-viewer.service';
 import {
   Comment,
   DirectoryPerson,
@@ -238,6 +239,15 @@ export class FeedComponent implements OnInit {
   }
 
   protected imageUrl(id: string): string { return this.net.postImageUrl(id); }
+
+  /** Full-screen viewer for a post's (or a repost's original) photos. */
+  private readonly photoViewer = inject(PhotoViewerService);
+  protected openPhotos(post: FeedItem, start: number): void {
+    this.photoViewer.open((post.images ?? []).map((i) => this.imageUrl(i.id)), start);
+  }
+  protected openShared(post: FeedItem, start: number): void {
+    this.photoViewer.open((post.shared_images ?? []).map((i) => this.imageUrl(i.id)), start);
+  }
 
   protected async deletePost(post: FeedItem): Promise<void> {
     if (!window.confirm('Delete this post? It is removed from every feed.')) return;

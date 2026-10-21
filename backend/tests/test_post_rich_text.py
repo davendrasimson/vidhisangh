@@ -114,3 +114,21 @@ async def test_post_with_formatted_text_and_photos(client: AsyncClient, strong_p
     # Deleting the post takes the photo offline.
     assert (await client.delete(f"{API}/posts/{post['id']}", headers=me)).status_code == 204
     assert (await client.get(f"{API}/post-images/{image['id']}")).status_code == 404
+
+
+async def test_a_repost_shows_the_original_photos(client: AsyncClient, strong_password: str) -> None:
+    me = await _member(client, "photog@firm.co", strong_password)
+    other = await _member(client, "sharer@firm.co", strong_password)
+    image = (await client.post(f"{API}/post-images", headers=me, files={"file": ("p.jpg", _jpeg_with_gps(), "image/jpeg")})).json()
+    original = (await client.post(f"{API}/posts", headers=me, json={"content": "Bar council election day", "image_ids": [image["id"]]})).json()
+    repost = await client.post(f"{API}/posts/{original['id']}/share", headers=other, json={"content": "Congratulations!"})
+    assert repost.status_code == 201, repost.text
+
+    feed = (await client.get(f"{API}/feed", headers=other)).json()
+    item = next(p for p in feed if p["id"] == repost.json()["id"])
+    assert item["images"] == [] and [i["id"] for i in item["shared_images"]] == [image["id"]]
+
+    # The original deleted: its photos go from the repost too.
+    assert (await client.delete(f"{API}/posts/{original['id']}", headers=me)).status_code in (200, 204)
+    feed = (await client.get(f"{API}/feed", headers=other)).json()
+    assert next(p for p in feed if p["id"] == repost.json()["id"])["shared_images"] == []

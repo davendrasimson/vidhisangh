@@ -604,7 +604,7 @@ button[color='primary'].mat-mdc-unelevated-button {
 .vs-post-body a, .vs-pc__editor a { color: rgb(var(--vs-brand)); text-decoration: underline; }
 .vs-post-body > :first-child { margin-top: 0; }
 .vs-post-images { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; border-radius: 12px; overflow: hidden; }
-.vs-post-images a { display: block; background: rgb(var(--vs-surface-sunken)); }
+.vs-post-images a, .vs-post-images > button { display: block; width: 100%; background: rgb(var(--vs-surface-sunken)); }
 .vs-post-images img { display: block; width: 100%; height: 100%; aspect-ratio: 1; object-fit: cover; }
 .vs-post-images--single { grid-template-columns: 1fr; }
 .vs-post-images--single img { aspect-ratio: auto; max-height: 520px; object-fit: contain; }

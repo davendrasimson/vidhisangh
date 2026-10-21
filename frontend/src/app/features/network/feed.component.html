@@ -156,10 +156,10 @@
       } @else if (post.content) { <p class="mt-2 text-content whitespace-pre-line">{{ post.content }}</p> }
       @if (post.images?.length) {
         <div class="vs-post-images mt-3" [class.vs-post-images--single]="post.images!.length === 1">
-          @for (img of post.images; track img.id) {
-            <a [href]="imageUrl(img.id)" target="_blank" rel="noopener">
+          @for (img of post.images; track img.id; let n = $index) {
+            <button type="button" class="block p-0 border-0 bg-transparent cursor-zoom-in" (click)="openPhotos(post, n)" [attr.aria-label]="'Open photo ' + (n + 1) + ' of ' + post.images!.length">
               <img [src]="imageUrl(img.id)" [attr.width]="img.width" [attr.height]="img.height" alt="Photo in the post" loading="lazy" />
-            </a>
+            </button>
           }
         </div>
       }
@@ -191,6 +191,15 @@
             }
           </div>
           <p class="mt-1 text-sm text-content whitespace-pre-line">{{ post.shared_content }}</p>
+          @if (post.shared_images?.length) {
+            <div class="vs-post-images mt-2" [class.vs-post-images--single]="post.shared_images!.length === 1">
+              @for (img of post.shared_images; track img.id; let n = $index) {
+                <button type="button" class="block p-0 border-0 bg-transparent cursor-zoom-in" (click)="openShared(post, n)" [attr.aria-label]="'Open photo ' + (n + 1) + ' of ' + post.shared_images!.length">
+                  <img [src]="imageUrl(img.id)" [attr.width]="img.width" [attr.height]="img.height" alt="Photo in the original post" loading="lazy" />
+                </button>
+              }
+            </div>
+          }
         </div>
       }
 

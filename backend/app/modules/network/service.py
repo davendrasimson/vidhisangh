@@ -59,12 +59,14 @@ from app.modules.notifications.service import create_notification
 from app.modules.profile.models import ProfileVisibility
 from app.modules.profile.repository import ProfileRepository
 
-# Posts plus the viewer's per-post annotations: reactions, bookmarks, mentions.
+# Posts plus the viewer's per-post annotations: reactions, bookmarks, mentions,
+# and the photos of reposted originals.
 AnnotatedPosts = tuple[
     list[Post],
     dict[uuid.UUID, PostReaction],
     set[uuid.UUID],
     dict[uuid.UUID, list[PostMention]],
+    dict[uuid.UUID, list[PostImage]],
 ]
 
 
@@ -400,7 +402,15 @@ class NetworkService:
         my_reactions = await self.reactions.for_posts(self.user_id, post_ids)
         my_bookmarks = await self.bookmarks.for_posts(self.user_id, post_ids)
         mentions = await self.mentions.for_posts(post_ids)
-        return posts, my_reactions, my_bookmarks, mentions
+        origin_ids = {p.shared_from_id for p in posts if p.shared_from_id}
+        shared_images: dict[uuid.UUID, list[PostImage]] = {}
+        if origin_ids:
+            live = select(Post.id).where(Post.id.in_(origin_ids), Post.deleted_at.is_(None))
+            for image in await self.session.scalars(
+                select(PostImage).where(PostImage.post_id.in_(live)).order_by(PostImage.position)
+            ):
+                shared_images.setdefault(image.post_id, []).append(image)
+        return posts, my_reactions, my_bookmarks, mentions, shared_images
 
     # ── Bookmarks ───────────────────────────────────────────────────
     async def bookmark(self, post_id: uuid.UUID) -> None:

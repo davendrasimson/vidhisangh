@@ -59,10 +59,12 @@ def _mention_reads(mentions) -> list[MentionRead]:  # noqa: ANN001
     ]
 
 
-def _feed_items(posts, my_reactions, my_bookmarks, mentions_map) -> list[FeedItem]:  # noqa: ANN001
+def _feed_items(posts, my_reactions, my_bookmarks, mentions_map, shared_images=None) -> list[FeedItem]:  # noqa: ANN001
     items: list[FeedItem] = []
     for post in posts:
         item = FeedItem.model_validate(post)
+        if post.shared_from_id and shared_images:
+            item.shared_images = [PostImageRead.model_validate(i) for i in shared_images.get(post.shared_from_id, [])]
         reaction = my_reactions.get(post.id)
         item.my_reaction = ReactionType(reaction.reaction) if reaction else None
         item.bookmarked = post.id in my_bookmarks

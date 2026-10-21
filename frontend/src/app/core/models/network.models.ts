@@ -43,6 +43,8 @@ export interface FeedItem {
   shared_author_name: string | null;
   shared_author_avatar_url: string | null;
   shared_content: string | null;
+  /** The original's photos on a repost (while the original exists). */
+  shared_images?: PostImage[];
   shared_created_at: string | null;
   mentions: Mention[];
 }

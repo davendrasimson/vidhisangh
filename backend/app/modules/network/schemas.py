@@ -182,6 +182,8 @@ class FeedItem(PostRead):
 
     my_reaction: ReactionType | None = None
     bookmarked: bool = False
+    # A repost shows the original's photos (while the original exists).
+    shared_images: list[PostImageRead] = Field(default_factory=list)
 
 
 # ─── Trending ───────────────────────────────────────────────────────
