@@ -138,3 +138,13 @@ test('the in-app reader uses the full old/new tables, keeping curated notes', as
   assert.match(fullCrossReferences(CORRESPONDENCE, 'ipc', '304A')[0].note ?? '', /106\(2\)/);
   assert.ok(PUBLISHED_ACTS.includes('bns') && !PUBLISHED_ACTS.includes('crpc'));
 });
+
+test('section pages offer save / judgments / discuss, each a sign-up that lands on it', async () => {
+  const html = read('public/acts/bns/section-103/index.html');
+  assert.match(html, /<aside class="section-actions">/);
+  assert.match(html, /returnUrl=%2Fapp%2Fknowledge%2Freader%3Fact%3Dbns%26section%3D103/);
+  assert.match(html, /returnUrl=%2Fapp%2Fresearch%3Fact%3DBharatiya%2520Nyaya%2520Sanhita%26section%3D103/);
+  const { safeNext } = await import('../src/app/core/navigation/after-signup.ts');
+  assert.equal(safeNext('/app/research?act=Penal%20Code&section=420'), '/app/research?act=Penal%20Code&section=420');
+  for (const bad of ['https://evil.example/app/x', '//evil.example', '/auth/login', '/app\\x', 'javascript:alert(1)']) assert.equal(safeNext(bad), null, bad);
+});

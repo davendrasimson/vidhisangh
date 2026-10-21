@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -14,6 +14,7 @@ import { isNativeApp } from '@core/platform/platform';
 import { problemMessage } from '@core/interceptors/error.interceptor';
 import { STRICT_EMAIL } from '../send-code-cooldown';
 import { countStep } from '@core/analytics/funnel';
+import { rememberNext, takeNext } from '@core/navigation/after-signup';
 import { PROFESSIONAL_ROLES } from '../professional-roles';
 import { WhatsappLoginComponent } from '../whatsapp-login.component';
 import {
@@ -67,8 +68,13 @@ export class RegisterComponent implements OnInit {
     accept_terms: [false, [Validators.requiredTrue]],
   });
 
+  private readonly route = inject(ActivatedRoute);
+
   async ngOnInit(): Promise<void> {
     countStep('register_view');
+    // Came from a public page ("save this section"): go there once signed in,
+    // even when sign-in happens later (email verification) or on another screen.
+    rememberNext(this.route.snapshot.queryParamMap.get('returnUrl'));
     if (!isNativeApp()) {
       firstValueFrom(this.auth.ssoProviders())
         .then(list => this.googleAvailable.set(list.some(p => p.name === 'google')))
@@ -154,7 +160,7 @@ export class RegisterComponent implements OnInit {
         return;
       }
       await firstValueFrom(this.auth.loadCurrentUser());
-      await this.router.navigateByUrl('/app/dashboard');
+      await this.router.navigateByUrl(takeNext() ?? '/app/dashboard');
     } catch (err) {
       this.errorMsg.set(problemMessage(err, 'Registration failed. Please try again.'));
     } finally {

@@ -99,3 +99,11 @@ h2.group { margin: 2rem 0 .25rem; font-size: 1.1rem; }
 .tool select, .tool input:not([type=radio]) { width: 100%; box-sizing: border-box; }
 .tool [hidden] { display: none !important; }
 .tool .article-info { overflow-wrap: anywhere; }
+/* Section page: what members do with this section */
+.section-actions { margin: 1.5rem 0; padding: 1.25rem 1.5rem; border-radius: 16px; color: #fff; background: linear-gradient(160deg, #173b7a, #215dcc 55%, #4934b8); }
+.section-actions h2 { margin: 0 0 .75rem; font-size: 1.1rem; }
+.section-actions ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .6rem; }
+.section-actions a { display: block; padding: .75rem 1rem; border-radius: 12px; background: rgba(255,255,255,.12); color: #fff; text-decoration: none; }
+.section-actions a:hover { background: rgba(255,255,255,.2); }
+.section-actions b { display: block; } .section-actions span { display: block; font-size: .9rem; opacity: .85; }
+.section-actions .small { color: rgba(255,255,255,.8); margin-top: .75rem !important; } .section-actions .small a { display: inline; padding: 0; background: none; text-decoration: underline; }

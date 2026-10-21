@@ -22,6 +22,7 @@ import { NotificationService } from '@core/services/notification.service';
 import { firstValueFrom } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { joinPendingGroup } from '@core/groups/pending-invite';
+import { takeNext } from '@core/navigation/after-signup';
 
 interface NavItem {
   label: string;
@@ -91,9 +92,14 @@ export class ShellComponent implements OnInit {
   /** A group invite link opened before signing up or in: join it now and open the group. */
   private async joinInvitedGroup(): Promise<void> {
     const joined = await joinPendingGroup(this.http);
-    if (!joined) return;
-    this.notify.success(`You joined ${joined.name}.`);
-    await this.shellRouter.navigate(['/app/groups', joined.group_id]);
+    if (joined) {
+      this.notify.success(`You joined ${joined.name}.`);
+      await this.shellRouter.navigate(['/app/groups', joined.group_id]);
+      return;
+    }
+    // Signed up from a public page ("Save this section", "Judgments on …"): go there now.
+    const next = takeNext();
+    if (next && this.shellRouter.url !== next) await this.shellRouter.navigateByUrl(next);
   }
 
   private async loadSampleStatus(): Promise<void> {

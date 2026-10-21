@@ -126,6 +126,19 @@ function breadcrumbs(items) {
   };
 }
 
+/** On a section page: what a member can do with this section, each a sign-up that lands on it. */
+function sectionActions(act, number) {
+  const n = encodeURIComponent(number);
+  const actName = act.title.replace(/^(The )?(Indian )?/, '').replace(/,\s*\d{4}$/, '');
+  const join = (next) => `/auth/register?utm_source=bare_acts_section&returnUrl=${encodeURIComponent(next)}`;
+  const items = [
+    ['Save it to your library', `Keep Section ${esc(number)} with your notes and find it again in one tap.`, join(`/app/knowledge/reader?act=${act.id}&section=${n}`)],
+    ['See the judgments that apply it', `Supreme Court and High Court decisions citing Section ${esc(number)} ${esc(act.short)}.`, join(`/app/research?act=${encodeURIComponent(actName)}&section=${n}`)],
+    ['Ask advocates about it', 'Discuss it in VidhiSangh groups, from Ask a Senior to your own High Court.', join('/app/groups')],
+  ];
+  return `<aside class="section-actions"><h2>Use Section ${esc(number)} ${esc(act.short)} on VidhiSangh — free</h2><ul>${items.map(([t, d, href]) => `<li><a href="${href}"><b>${esc(t)}</b><span>${d}</span></a></li>`).join('')}</ul><p class="small">Already a member? <a href="/app/knowledge/reader?act=${act.id}&amp;section=${n}">Open it in the app</a>.</p></aside>`;
+}
+
 function cta(act, number) {
   const reader = `/app/knowledge/reader?act=${act.id}${number ? `&section=${encodeURIComponent(number)}` : ''}`;
   return `<aside class="cta">
@@ -446,7 +459,7 @@ ${paragraphs(sec.paragraphs)}
 ${oldLawSection(act, sec, links)}
 ${nowSection(act, sec, now)}
 <p class="actions">${whatsappShare(`Section ${sec.number} ${act.short}${sec.heading ? ` — ${sec.heading}` : ''}:`, url)}</p>
-${cta(act, sec.number)}
+${sectionActions(act, sec.number)}
 <nav class="pager">${prev ? `<a href="${actUrl}section-${prev.number.toLowerCase()}/">← ${esc(label(prev))}</a>` : '<span></span>'}${next ? `<a class="next" href="${actUrl}section-${next.number.toLowerCase()}/">${esc(label(next))} →</a>` : ''}</nav>
 <p class="source">Source: <a href="${act.source}" rel="nofollow noopener" target="_blank">official text of the ${esc(act.title)}</a>.</p>
 </main>`;

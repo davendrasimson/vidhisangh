@@ -37,3 +37,19 @@ test('an expired invite link says so', async ({ page }) => {
   await page.goto('/join/old-code');
   await expect(page.getByRole('heading', { name: 'This invite link has expired' })).toBeVisible();
 });
+
+test('signing up from a bare-act section lands on that section once in the app', async ({ page }) => {
+  await page.goto('/auth/register?utm_source=bare_acts_section&returnUrl=%2Fapp%2Fknowledge%2Freader%3Fact%3Dbns%26section%3D103');
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('vs_after_signup') ?? '{}').next)).toBe('/app/knowledge/reader?act=bns&section=103');
+  // Signed in later (e.g. after email verification): the app opens the section.
+  await page.route('**/api/v1/**', r => r.fulfill({ json: [] }));
+  await page.route('**/api/v1/auth/refresh', r => r.fulfill({ json: PAIR }));
+  await page.route('**/api/v1/auth/me', r => r.fulfill({ json: USER }));
+  await page.evaluate((u) => {
+    localStorage.setItem('vs.session', '1');
+    localStorage.setItem('vs.profile-cache', JSON.stringify({ user: u, scopes: ['*'] }));
+  }, USER);
+  await page.goto('/app/dashboard');
+  await expect(page).toHaveURL(/\/app\/knowledge\/reader\?act=bns&section=103/);
+  expect(await page.evaluate(() => localStorage.getItem('vs_after_signup'))).toBeNull();
+});
