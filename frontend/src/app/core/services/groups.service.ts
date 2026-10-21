@@ -101,8 +101,8 @@ export class GroupsService {
     return this.http.get<GroupPost[]>(`${this.api}/${groupId}/posts`, { params: { page, size } });
   }
 
-  createPost(groupId: string, content: string): Observable<GroupPost> {
-    return this.http.post<GroupPost>(`${this.api}/${groupId}/posts`, { content });
+  createPost(groupId: string, post: { content: string; content_html?: string | null; image_ids?: string[] }): Observable<GroupPost> {
+    return this.http.post<GroupPost>(`${this.api}/${groupId}/posts`, post);
   }
 
   deletePost(postId: string): Observable<void> {

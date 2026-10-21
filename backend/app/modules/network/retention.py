@@ -25,10 +25,15 @@ DELETED_POST_AFTER = timedelta(days=30)
 
 async def purge_post_images(session: AsyncSession, now: datetime | None = None) -> int:
     now = now or datetime.now(UTC)
+    from app.modules.groups.models import GroupPost
+
     deleted_posts = select(Post.id).where(Post.deleted_at.is_not(None), Post.deleted_at < now - DELETED_POST_AFTER)
+    deleted_group_posts = select(GroupPost.id).where(
+        GroupPost.deleted_at.is_not(None), GroupPost.deleted_at < now - DELETED_POST_AFTER)
     images = (await session.scalars(select(PostImage).where(or_(
-        (PostImage.post_id.is_(None)) & (PostImage.created_at < now - UNUSED_AFTER),
+        PostImage.post_id.is_(None) & PostImage.group_post_id.is_(None) & (PostImage.created_at < now - UNUSED_AFTER),
         PostImage.post_id.in_(deleted_posts),
+        PostImage.group_post_id.in_(deleted_group_posts),
     )))).all()
     keys = [i.storage_key for i in images]
     for image in images:

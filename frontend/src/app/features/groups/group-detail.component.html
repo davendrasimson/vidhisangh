@@ -70,10 +70,9 @@
       @if (section() === 'feed') {
         <!-- Composer -->
         <div class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-4">
-          <textarea class="vs-input" rows="2" [ngModel]="draft()" (ngModelChange)="draft.set($event)"
-                    placeholder="Share something with the group…"></textarea>
+          <app-post-composer (changed)="composed.set($event)" />
           <div class="mt-2 flex justify-end">
-            <button mat-flat-button color="primary" [disabled]="!draft().trim() || posting()" (click)="publish()">
+            <button mat-flat-button color="primary" [disabled]="!canPost() || posting()" (click)="publish()">
               {{ posting() ? 'Posting…' : 'Post' }}
             </button>
           </div>
@@ -91,7 +90,20 @@
                     <p class="font-medium text-content">{{ post.author_name }}</p>
                     <span class="text-xs text-content-muted">{{ post.created_at | date: 'dd/MM/yyyy, h:mm a' }}</span>
                   </div>
-                  <p class="text-sm text-content whitespace-pre-line mt-1">{{ post.content }}</p>
+                  @if (post.content_html) {
+                    <div class="vs-post-body text-sm text-content mt-1" [innerHTML]="post.content_html"></div>
+                  } @else {
+                    <p class="text-sm text-content whitespace-pre-line mt-1">{{ post.content }}</p>
+                  }
+                  @if (post.images?.length) {
+                    <div class="vs-post-images mt-2" [class.vs-post-images--single]="post.images!.length === 1">
+                      @for (img of post.images; track img.id; let n = $index) {
+                        <button type="button" class="block p-0 border-0 bg-transparent cursor-zoom-in" (click)="openPhotos(post, n)" [attr.aria-label]="'Open photo ' + (n + 1) + ' of ' + post.images!.length">
+                          <img [src]="imageUrl(img.id)" [attr.width]="img.width" [attr.height]="img.height" alt="Photo in the post" loading="lazy" />
+                        </button>
+                      }
+                    </div>
+                  }
                   <div class="flex items-center gap-3 mt-3">
                     <button class="inline-flex items-center gap-1 text-sm" [class.vs-liked]="post.liked" (click)="toggleLike(post)">
                       <mat-icon class="material-icons-outlined text-base">thumb_up</mat-icon>

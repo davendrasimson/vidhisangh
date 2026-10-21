@@ -115,3 +115,38 @@ test('photos open full screen: next, previous, Esc; a repost shows the original 
   await page.getByRole('button', { name: 'Close photo viewer' }).click();
   await expect(page.getByRole('dialog', { name: 'Photo viewer' })).toHaveCount(0);
 });
+
+test('group posts use the formatting composer and show photos', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('vs.session', '1'));
+  await page.route('**/api/v1/**', r => r.fulfill({ json: [] }));
+  await page.route('**/api/v1/auth/refresh', r => r.fulfill({ json: { access_token: 'eyJhbGciOiAiSFMyNTYifQ.eyJzdWIiOiAidTEiLCAidGlkIjogInQiLCAiZXhwIjogOTk5OTk5OTk5OSwgInNjb3BlcyI6IFsiKiJdfQ.sig', refresh_token: null, token_type: 'bearer', expires_in: 900 } }));
+  await page.route('**/api/v1/auth/me', r => r.fulfill({ json: USER }));
+  const GID = '22222222-2222-4222-8222-222222222222';
+  await page.route(`**/api/v1/groups/${GID}`, r => r.fulfill({ json: {
+    id: GID, slug: 'bail', name: 'Bail Practice', description: null, group_type: 'community', visibility: 'public', avatar_url: null, cover_url: null,
+    owner_id: 'u1', tenant_id: null, is_verified: false, member_count: 3, post_count: 0, created_at: new Date().toISOString(), my_role: 'member', my_status: 'active' } }));
+  await page.route('**/api/v1/network/post-images', r => r.fulfill({ status: 201, json: { id: 'img-g1', width: 1, height: 1 } }));
+  await page.route('**/api/v1/network/post-images/img-g1', r => r.fulfill({ body: PNG, contentType: 'image/png' }));
+  let sent: Record<string, unknown> | undefined;
+  await page.route(`**/api/v1/groups/${GID}/posts**`, async r => {
+    if (r.request().method() !== 'POST') return r.fulfill({ json: [] });
+    sent = r.request().postDataJSON();
+    await r.fulfill({ status: 201, json: { id: 'gp1', group_id: GID, author_id: 'u1', author_name: 'Adv. Writer', author_avatar_url: null,
+      content: 'Default bail', content_html: sent!['content_html'], images: [{ id: 'img-g1', width: 1, height: 1 }],
+      like_count: 0, comment_count: 0, created_at: new Date().toISOString(), liked: false } });
+  });
+  await page.goto(`/app/groups/${GID}`);
+  const editor = page.getByRole('textbox', { name: 'Write a post' });
+  await editor.click();
+  await page.keyboard.type('Default bail');
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.getByRole('button', { name: 'Bold' }).click();
+  await page.locator('input[type=file]').setInputFiles({ name: 'p.png', mimeType: 'image/png', buffer: PNG });
+  await expect(page.getByAltText('Photo to post')).toBeVisible();
+  await page.getByRole('button', { name: 'Post', exact: true }).click();
+  await expect.poll(() => sent?.['image_ids']).toEqual(['img-g1']);
+  expect(String(sent?.['content_html'])).toContain('<strong>Default bail</strong>');
+  await expect(page.locator('article strong', { hasText: 'Default bail' })).toBeVisible();
+  await page.getByRole('button', { name: 'Open photo 1 of 1' }).click();
+  await expect(page.getByRole('dialog', { name: 'Photo viewer' })).toBeVisible();
+});

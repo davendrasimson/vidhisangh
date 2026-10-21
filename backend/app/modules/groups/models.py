@@ -24,6 +24,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import AuditedBase
+from app.modules.network.models import PostImage  # noqa: F401  (relationship target)
 
 
 class GroupType(StrEnum):
@@ -120,10 +121,16 @@ class GroupPost(AuditedBase):
     author_name: Mapped[str] = mapped_column(String(200), nullable=False)
     author_avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    # Formatted body (server-cleaned HTML, as feed posts; migration 0075).
+    content_html: Mapped[str | None] = mapped_column(Text, nullable=True)
     like_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     comment_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     group: Mapped[Group] = relationship(back_populates="posts")
+    images: Mapped[list["PostImage"]] = relationship(
+        "PostImage", lazy="selectin", order_by="PostImage.position",
+        primaryjoin="GroupPost.id == foreign(PostImage.group_post_id)", viewonly=True,
+    )
     likes: Mapped[list["GroupPostLike"]] = relationship(
         back_populates="post", cascade="all, delete-orphan"
     )

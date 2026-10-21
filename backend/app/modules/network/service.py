@@ -270,7 +270,7 @@ class NetworkService:
             for img in await self.session.scalars(
                 select(PostImage).where(
                     PostImage.id.in_(ids), PostImage.uploader_id == self.user_id,
-                    PostImage.post_id.is_(None), PostImage.deleted_at.is_(None),
+                    PostImage.post_id.is_(None), PostImage.group_post_id.is_(None), PostImage.deleted_at.is_(None),
                 )
             )
         }

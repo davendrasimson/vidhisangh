@@ -1,8 +1,10 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { ComposerValue, PostComposerComponent } from '../network/post-composer.component';
+import { PhotoViewerService } from '@shared/photo-viewer/photo-viewer.service';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '@env/environment';
 import { MatIconModule } from '@angular/material/icon';
@@ -21,7 +23,7 @@ type Section = 'feed' | 'members';
   selector: 'app-group-detail',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, DatePipe, RouterLink, MatIconModule, MatButtonModule, MatMenuModule],
+  imports: [FormsModule, DatePipe, RouterLink, MatIconModule, MatButtonModule, MatMenuModule, PostComposerComponent],
   templateUrl: './group-detail.component.html',
 })
 export class GroupDetailComponent implements OnInit {
@@ -40,7 +42,6 @@ export class GroupDetailComponent implements OnInit {
   protected readonly posts = signal<GroupPost[]>([]);
   protected readonly loading = signal(true);
   protected readonly section = signal<Section>('feed');
-  protected readonly draft = signal('');
   protected readonly posting = signal(false);
 
   // Per-post comment UI state.
@@ -228,15 +229,30 @@ export class GroupDetailComponent implements OnInit {
   }
 
   // ── Community feed ─────────────────────────────────────────────
+  /** The formatting composer's current value (text, cleaned HTML, uploaded photos). */
+  protected readonly composed = signal<ComposerValue>({ html: '', text: '', imageIds: [], uploading: false });
+  private readonly composer = viewChild(PostComposerComponent);
+  protected readonly canPost = computed(() => {
+    const c = this.composed();
+    return !c.uploading && (!!c.text.trim() || c.imageIds.length > 0);
+  });
+  private readonly photoViewer = inject(PhotoViewerService);
+  protected imageUrl(id: string): string { return this.net.postImageUrl(id); }
+  protected openPhotos(post: GroupPost, start: number): void {
+    this.photoViewer.open((post.images ?? []).map((i) => this.imageUrl(i.id)), start);
+  }
+
   protected async publish(): Promise<void> {
-    const content = this.draft().trim();
-    if (!content || this.posting()) return;
+    const c = this.composed();
+    if (!this.canPost() || this.posting()) return;
     this.posting.set(true);
     try {
-      const post = await firstValueFrom(this.groups.createPost(this.groupId, content));
+      const post = await firstValueFrom(this.groups.createPost(this.groupId, {
+        content: c.text.trim(), content_html: c.html || null, image_ids: c.imageIds,
+      }));
       this.posts.update((list) => [post, ...list]);
       this.patchGroup({ post_count: (this.group()?.post_count ?? 0) + 1 });
-      this.draft.set('');
+      this.composer()?.clear();
     } catch {
       /* handled */
     } finally {

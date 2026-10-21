@@ -59,6 +59,9 @@ export interface GroupPost {
   author_name: string;
   author_avatar_url: string | null;
   content: string;
+  /** Formatted body (server-cleaned HTML); null for plain-text posts. */
+  content_html?: string | null;
+  images?: { id: string; width: number; height: number }[];
   like_count: number;
   comment_count: number;
   created_at: string;

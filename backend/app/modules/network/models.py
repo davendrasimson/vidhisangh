@@ -186,6 +186,10 @@ class PostImage(AuditedBase):
     post_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("posts.id", ondelete="CASCADE"), nullable=True, index=True
     )
+    # Or attached to a group post (migration 0075); never both.
+    group_post_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("group_posts.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     storage_key: Mapped[str] = mapped_column(String(300), nullable=False)
     content_type: Mapped[str] = mapped_column(String(50), nullable=False)
     size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)

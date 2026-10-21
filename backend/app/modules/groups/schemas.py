@@ -7,6 +7,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.modules.network.schemas import PostImageRead
 from app.modules.groups.models import (
     GroupType,
     GroupVisibility,
@@ -105,7 +106,11 @@ class InvitationRead(BaseModel):
 
 # ─── Group posts ────────────────────────────────────────────────────
 class GroupPostCreate(BaseModel):
-    content: str = Field(min_length=1, max_length=8000)
+    # Plain text, or formatted HTML (cleaned on the server; the text is derived
+    # from it), with up to 4 photos uploaded first via POST /network/post-images.
+    content: str = Field(default="", max_length=8000)
+    content_html: str | None = Field(default=None, max_length=60000)
+    image_ids: list[uuid.UUID] = Field(default_factory=list, max_length=4)
 
 
 class GroupPostRead(BaseModel):
@@ -116,6 +121,8 @@ class GroupPostRead(BaseModel):
     author_name: str
     author_avatar_url: str | None
     content: str
+    content_html: str | None = None
+    images: list[PostImageRead] = Field(default_factory=list)
     like_count: int
     comment_count: int
     created_at: datetime

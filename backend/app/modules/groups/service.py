@@ -12,6 +12,7 @@ import secrets
 import uuid
 from datetime import UTC, datetime
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import (
@@ -380,17 +381,49 @@ class GroupService:
         group = await self._get_group(group_id)
         await self._require_active_member(group_id)
         name, _headline, avatar = await self._my_snapshot()
+        content, content_html = data.content.strip(), None
+        if data.content_html:
+            from app.core.html_clean import clean_html, html_to_text
+            content_html = clean_html(data.content_html)
+            content = html_to_text(content_html)
+        if len(content) > 8000:
+            raise ValidationError("A post can be at most 8,000 characters.")
+        images = await self._claim_images(data.image_ids)
+        if not content and not images:
+            raise ValidationError("Write something or add a photo.")
         post = GroupPost(
             group_id=group_id,
             author_id=self.user_id,
             author_name=name,
             author_avatar_url=avatar,
-            content=data.content,
+            content=content,
+            content_html=content_html,
         )
         self.posts.add(post)
         group.post_count += 1
         await self.session.flush()
+        for image in images:
+            image.group_post_id = post.id
+        await self.session.flush()
+        await self.session.refresh(post, ["images"])
         return post
+
+    async def _claim_images(self, image_ids: list[uuid.UUID]) -> list:
+        """The caller's own photos not yet attached to any post, in the order given."""
+        from app.modules.network.models import PostImage
+
+        ids = list(dict.fromkeys(image_ids))
+        if not ids:
+            return []
+        rows = {img.id: img for img in await self.session.scalars(select(PostImage).where(
+            PostImage.id.in_(ids), PostImage.uploader_id == self.user_id, PostImage.post_id.is_(None),
+            PostImage.group_post_id.is_(None), PostImage.deleted_at.is_(None),
+        ))}
+        if len(rows) != len(ids):
+            raise ValidationError("One of the photos is no longer available. Remove it and add it again.")
+        for position, image_id in enumerate(ids):
+            rows[image_id].position = position
+        return [rows[i] for i in ids]
 
     async def list_posts(
         self, group_id: uuid.UUID, limit: int, offset: int

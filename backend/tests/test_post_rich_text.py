@@ -132,3 +132,29 @@ async def test_a_repost_shows_the_original_photos(client: AsyncClient, strong_pa
     assert (await client.delete(f"{API}/posts/{original['id']}", headers=me)).status_code in (200, 204)
     feed = (await client.get(f"{API}/feed", headers=other)).json()
     assert next(p for p in feed if p["id"] == repost.json()["id"])["shared_images"] == []
+
+
+async def test_group_posts_take_formatting_and_photos(client: AsyncClient, strong_password: str) -> None:
+    me = await _member(client, "grouper@firm.co", strong_password)
+    g = (await client.post("/api/v1/groups", headers=me, json={"name": "Bail Practice", "visibility": "public"})).json()
+    image = (await client.post(f"{API}/post-images", headers=me, files={"file": ("p.jpg", _jpeg_with_gps(), "image/jpeg")})).json()
+    r = await client.post(f"/api/v1/groups/{g['id']}/posts", headers=me, json={
+        "content_html": '<p><strong>Default bail</strong> under <em>s. 187(3) BNSS</em></p><script>alert(1)</script>',
+        "image_ids": [image["id"]],
+    })
+    assert r.status_code == 201, r.text
+    post = r.json()
+    assert post["content_html"] == "<p><strong>Default bail</strong> under <em>s. 187(3) BNSS</em></p>"
+    assert post["content"].startswith("Default bail under s. 187(3) BNSS")
+    assert [i["id"] for i in post["images"]] == [image["id"]]
+    listed = (await client.get(f"/api/v1/groups/{g['id']}/posts", headers=me)).json()
+    assert listed[0]["images"][0]["id"] == image["id"]
+    # The photo is served while the group post exists; it cannot be reused for another post.
+    assert (await client.get(f"{API}/post-images/{image['id']}")).status_code == 200
+    again = await client.post(f"{API}/posts", headers=me, json={"content": "reuse", "image_ids": [image["id"]]})
+    assert again.status_code == 422
+    assert (await client.delete(f"/api/v1/groups/posts/{post['id']}", headers=me)).status_code in (200, 204)
+    assert (await client.get(f"{API}/post-images/{image['id']}")).status_code == 404
+    # Plain text still works.
+    plain = await client.post(f"/api/v1/groups/{g['id']}/posts", headers=me, json={"content": "Just text"})
+    assert plain.status_code == 201 and plain.json()["content_html"] is None

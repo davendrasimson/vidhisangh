@@ -197,12 +197,18 @@ async def get_post_image(
 ) -> Response:
     # No sign-in: an <img> cannot send the in-memory access token. The id is a
     # random UUID and only images on a live (not deleted) post are served.
+    from sqlalchemy import or_
+
+    from app.modules.groups.models import GroupPost
     from app.modules.network.models import Post, PostImage
 
+    # Served while attached to a live feed post or a live group post.
+    live_post = select(Post.id).where(Post.deleted_at.is_(None))
+    live_group_post = select(GroupPost.id).where(GroupPost.deleted_at.is_(None))
     row = (await session.execute(
         select(PostImage.storage_key, PostImage.content_type)
-        .join(Post, Post.id == PostImage.post_id)
-        .where(PostImage.id == image_id, PostImage.deleted_at.is_(None), Post.deleted_at.is_(None))
+        .where(PostImage.id == image_id, PostImage.deleted_at.is_(None),
+               or_(PostImage.post_id.in_(live_post), PostImage.group_post_id.in_(live_group_post)))
     )).first()
     if row is None:
         raise HTTPException(status_code=404, detail="Image not found.")

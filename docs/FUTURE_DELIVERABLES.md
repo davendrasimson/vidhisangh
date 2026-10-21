@@ -103,7 +103,7 @@ Usage on 13–20 Oct: bare-act pages 2,743 views from 107 people (BNSS, IPC, BNS
 ## 📝 Feed posts with formatting and photos (16 Oct 2026)
 Built (migration 0066): rich composer (bold, italic, underline, heading, lists, quote, link) that grows with its content; up to 4 photos per post (JPEG/PNG ≤ 5 MB, re-drawn to ≤ 2000 px JPEG in the app, EXIF/GPS stripped on the server, virus-scanned); server-side allow-list HTML cleaning (`app/core/html_clean.py`); own posts can be deleted from the feed. Still open:
 - ✅ **Purge unused uploads** — done 21 Oct 2026 (`network/retention.py`). The deleted-documents purge's dry-run file deletion was fixed the same day.
-- **Group posts** (`/app/groups/:id`) still use the plain text box; reusing `PostComposerComponent` needs `group_posts.content_html` + group post images (migration, cleaning, retention) — not just the UI.
+- ✅ **Group posts** use the formatting composer with photos (21 Oct 2026, migration 0075).
 - ✅ **Reposts** show the original's photos (21 Oct 2026).
 - ✅ **Photo viewer**: full-screen, swipeable (21 Oct 2026).
 
