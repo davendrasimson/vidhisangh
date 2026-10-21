@@ -358,6 +358,9 @@
     <button class="vs-tab" [class.vs-tab-active]="filter() === 'on_hold'" (click)="setFilter('on_hold')">On hold</button>
     <button class="vs-tab" [class.vs-tab-active]="filter() === 'closed'" (click)="setFilter('closed')">Closed</button>
     <span class="flex-1"></span>
+    <label class="flex items-center gap-2 text-sm my-1 mr-2 whitespace-nowrap" title="Matters you lead, are assigned to or are on the team of">
+      <input type="checkbox" [checked]="mineOnly()" (change)="toggleMine($any($event.target).checked)" /> My matters
+    </label>
     <input class="vs-input max-w-xs my-1" [ngModel]="search()" (ngModelChange)="search.set($event)"
            aria-label="Search matters" placeholder="Search case, client, court, details…" />
   </div>

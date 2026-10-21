@@ -26,6 +26,11 @@ import { ClientChoice, VsClientPickerComponent } from '@shared/client-picker/vs-
 
 type Filter = 'all' | MatterStatus | 'hearing_soon';
 
+const MINE_KEY = 'vs_matters_mine_only';
+function readMine(): boolean {
+  try { return typeof localStorage !== 'undefined' && localStorage.getItem(MINE_KEY) === '1'; } catch { return false; }
+}
+
 @Component({
   selector: 'app-matters',
   standalone: true,
@@ -48,6 +53,8 @@ export class MattersComponent implements OnInit {
   protected readonly loading = signal(true);
   protected readonly filter = signal<Filter>('all');
   protected readonly search = signal('');
+  /** Only matters I lead, am assigned to or am on the team of (remembered on this device). */
+  protected readonly mineOnly = signal(readMine());
   /** Colleagues who can be lead counsel / on a team. */
   protected readonly people = signal<Person[]>([]);
 
@@ -213,13 +220,20 @@ export class MattersComponent implements OnInit {
     return Math.round(diff / 86_400_000);
   }
 
+  protected async toggleMine(on: boolean): Promise<void> {
+    this.mineOnly.set(on);
+    try { localStorage.setItem(MINE_KEY, on ? '1' : '0'); } catch { /* storage unavailable */ }
+    await this.reload();
+  }
+
   protected async reload(): Promise<void> {
     this.loading.set(true);
     this.loadError.set(false);
     try {
       const all: Matter[] = [];
       for (let page = 1; ; page++) {
-        const batch = await firstValueFrom(this.matters.list(undefined, page, 50));
+        const mine = this.mineOnly() ? { user_id: this.auth.user()?.id } : {};
+        const batch = await firstValueFrom(this.matters.list(undefined, page, 50, mine));
         all.push(...batch);
         if (batch.length < 50) break;
       }
