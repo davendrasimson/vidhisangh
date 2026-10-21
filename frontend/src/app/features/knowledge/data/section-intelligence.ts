@@ -64,3 +64,45 @@ export function sectionCrossReferences(actId: string, section: string): SectionC
     }));
   return [...forward, ...reverse];
 }
+
+
+type Table = { newAct: string; oldAct: string; rows: [string, string, string[], string][] };
+let tables: Promise<Table[]> | null = null;
+let published: string[] = [];
+
+/** The full BPRD correspondence tables (IPC/CrPC/Evidence Act <-> BNS/BNSS/BSA), loaded once on demand. */
+export function loadCorrespondence(): Promise<Table[]> {
+  tables ??= import('./correspondence-data')
+    .then((m) => { published = m.PUBLISHED_ACTS; return m.CORRESPONDENCE; })
+    .catch(() => { tables = null; return []; });
+  return tables;
+}
+
+/** Every old/new link for a section from the full tables, with the curated notes where they exist. */
+export function fullCrossReferences(all: Table[], actId: string, section: string): SectionCrossReference[] {
+  const sought = normalise(section).replace(/\(.*/, '');
+  const base = (s: string) => normalise(s).replace(/\(.*/, '').replace(/[–-].*/, '').replace(/,.*/, '');
+  const curated = sectionCrossReferences(actId, section);
+  const noteFor = (other: string, otherSection: string) =>
+    curated.find((c) => c.correspondingActId === other && base(c.correspondingSection) === base(otherSection))?.note;
+  const out: SectionCrossReference[] = [];
+  for (const t of all) {
+    if (t.newAct === actId) {
+      for (const [n, subject, olds] of t.rows) {
+        if (base(n) !== sought) continue;
+        for (const o of olds) out.push({ actId, section: n, correspondingActId: t.oldAct, correspondingSection: o, subject, note: noteFor(t.oldAct, o) });
+      }
+    } else if (t.oldAct === actId) {
+      for (const [n, subject, olds] of t.rows) {
+        if (olds.some((o) => o.toUpperCase() === sought)) out.push({ actId, section, correspondingActId: t.newAct, correspondingSection: n, subject, note: noteFor(t.newAct, n) });
+      }
+    }
+  }
+  return out.length ? out : curated;
+}
+
+/** The public page of a section (for sharing), if that Act is published at vidhisangh.com/acts/. */
+export function publicSectionPath(actId: string, section: string): string | null {
+  const n = normalise(section).replace(/\(.*/, '').toLowerCase();
+  return published.includes(actId) && /^\d+[a-z]*$/.test(n) ? `/acts/${actId}/section-${n}/` : null;
+}

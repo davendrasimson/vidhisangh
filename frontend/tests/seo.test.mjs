@@ -124,3 +124,17 @@ test('prerendered pages never carry an error toast from the build', () => {
   assert.match(src, /const browser = isPlatformBrowser\(inject\(PLATFORM_ID\)\)/);
   assert.match(src, /if \(browser && err\.status !== 401/);
 });
+
+test('the in-app reader uses the full old/new tables, keeping curated notes', async () => {
+  const { CORRESPONDENCE, PUBLISHED_ACTS } = await import('../src/app/features/knowledge/data/correspondence-data.ts');
+  const { fullCrossReferences } = await import('../src/app/features/knowledge/data/section-intelligence.ts');
+  const ipc420 = fullCrossReferences(CORRESPONDENCE, 'ipc', '420');
+  assert.deepEqual(ipc420.map((r) => `${r.correspondingActId} ${r.correspondingSection}`), ['bns 318(4)']);
+  const bns318 = fullCrossReferences(CORRESPONDENCE, 'bns', '318');
+  assert.deepEqual(bns318.map((r) => r.correspondingSection).sort(), ['415', '417', '418', '420']);
+  // Not among the curated 32, now found:
+  assert.equal(fullCrossReferences(CORRESPONDENCE, 'crpc', '125')[0]?.correspondingSection, '144');
+  // The curated note on IPC 304A survives.
+  assert.match(fullCrossReferences(CORRESPONDENCE, 'ipc', '304A')[0].note ?? '', /106\(2\)/);
+  assert.ok(PUBLISHED_ACTS.includes('bns') && !PUBLISHED_ACTS.includes('crpc'));
+});

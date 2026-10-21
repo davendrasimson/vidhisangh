@@ -56,3 +56,11 @@ async def test_public_page_is_opt_in_and_shows_only_public_sections(client: Asyn
     assert off["enabled"] is False and off["handle"] == "asha-rao"
     assert (await client.get("/in/asha-rao/")).status_code == 404
     assert "asha-rao/" not in (await client.get("/sitemap-profiles.xml")).text.replace("asha-rao-2/", "")
+
+
+async def test_missing_public_pages_get_a_friendly_404(client: AsyncClient) -> None:
+    for path in ("/in/nobody-here/", "/judgments/not-a-judgment/", "/judgments/1901/"):
+        r = await client.get(path)
+        assert r.status_code == 404, path
+        assert r.headers["content-type"].startswith("text/html")
+        assert "is not available" in r.text and 'content="noindex"' in r.text and 'href="/acts/"' in r.text

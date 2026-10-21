@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 from html import escape
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.deps import get_auth_session
 from app.modules.network.models import NetworkIdentity
 from app.modules.profile.models import DEFAULT_PROFILE_GROUP_VISIBILITY, ProfessionalProfile, ProfileVisibility
-from app.modules.research.public_pages import CSP, CSS_URL, SITE
+from app.modules.research.public_pages import CSP, CSS_URL, SITE, not_found_page
 
 router = APIRouter(tags=["Public profiles"], include_in_schema=False)
 JOIN = "/auth/register?utm_source=public_profile"
@@ -90,7 +90,7 @@ async def profile_no_slash(handle: str) -> RedirectResponse:
 async def public_profile(handle: str, session: AsyncSession = Depends(get_auth_session)) -> HTMLResponse:
     found = await _published(session, handle.lower())
     if found is None:
-        raise HTTPException(status_code=404)
+        return not_found_page("profile")
     identity, profile = found
     groups = _groups(profile)
     name = identity.display_name

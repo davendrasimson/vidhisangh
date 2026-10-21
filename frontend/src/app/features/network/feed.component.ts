@@ -6,6 +6,7 @@ import { firstValueFrom } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { AuthService } from '@core/auth/auth.service';
+import { publicOrigin } from '@core/platform/platform';
 import { NetworkService } from '@core/services/network.service';
 import { NotificationService } from '@core/services/notification.service';
 import { ComposerValue, PostComposerComponent } from './post-composer.component';
@@ -164,6 +165,18 @@ export class FeedComponent implements OnInit {
   /** Posts by the official VidhiSangh account (Section of the day, judgments, news). */
   protected isOfficial(post: { author_id: string }): boolean {
     return post.author_id === OFFICIAL_AUTHOR_ID;
+  }
+
+  /** WhatsApp share: a post's public link when it has one (Section of the day,
+   *  judgments, news); otherwise an excerpt and an invitation to join, since
+   *  posts themselves need sign-in. */
+  protected whatsapp(post: FeedItem): string {
+    const excerpt = (post.content || '').replace(/\s+/g, ' ').trim();
+    const short = excerpt.length > 220 ? `${excerpt.slice(0, 220).replace(/\s+\S*$/, '')}…` : excerpt;
+    const text = post.link_url && /^https:\/\//.test(post.link_url)
+      ? `${post.link_title || short} ${post.link_url}`
+      : `${post.author_name} on VidhiSangh: "${short}" Join India's legal network: ${publicOrigin()}/auth/register?utm_source=post_share`;
+    return `https://wa.me/?text=${encodeURIComponent(text)}`;
   }
 
   protected initials(name: string): string {

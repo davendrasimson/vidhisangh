@@ -7,7 +7,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { ACTS } from './data/acts';
-import { CRIMINAL_LAW_COMPARISON_SOURCE, SectionCrossReference, sectionCrossReferences } from './data/section-intelligence';
+import { publicOrigin } from '@core/platform/platform';
+import { CRIMINAL_LAW_COMPARISON_SOURCE, SectionCrossReference, fullCrossReferences, loadCorrespondence, publicSectionPath, sectionCrossReferences } from './data/section-intelligence';
 import { displayDate, lawApplicability, lawVersionProfile } from './data/law-versions';
 import { ResearchService } from '@core/services/research.service';
 import { MattersService } from '@core/services/matters.service';
@@ -142,15 +143,29 @@ export class ActReaderComponent {
     if (matchId !== undefined) return [...this.sectionEntries()].reverse().find((entry) => entry.blockId <= matchId) ?? null;
     return this.sectionEntries()[0] ?? null;
   });
+  /** The full old/new tables, loaded when the reader first needs them (curated links until then). */
+  private readonly correspondence = signal<Awaited<ReturnType<typeof loadCorrespondence>> | null>(null);
   protected readonly crossReferences = computed(() => {
     const section = this.activeSection();
-    return section ? sectionCrossReferences(this.selected().id, section.reference) : [];
+    if (!section) return [];
+    const all = this.correspondence();
+    return all ? fullCrossReferences(all, this.selected().id, section.reference) : sectionCrossReferences(this.selected().id, section.reference);
+  });
+  /** WhatsApp link to the section's public page (Acts published at /acts/ only). */
+  protected readonly whatsappSection = computed(() => {
+    const section = this.activeSection();
+    if (!section || !this.correspondence()) return null;
+    const path = publicSectionPath(this.selected().id, section.reference);
+    if (!path) return null;
+    const text = `Section ${section.reference}, ${this.selected().title}${section.title ? ` — ${section.title}` : ''}: ${publicOrigin()}${path}`;
+    return `https://wa.me/?text=${encodeURIComponent(text)}`;
   });
   protected readonly versionProfile = computed(() => lawVersionProfile(this.selected().id));
   protected readonly applicability = computed(() => lawApplicability(this.selected().id, this.applicableOn(), this.activeSection()?.reference ?? ''));
   protected readonly wordCount = computed(() => this.actText().trim() ? this.actText().trim().split(/\s+/).length : 0);
 
   constructor() {
+    void loadCorrespondence().then((all) => this.correspondence.set(all));
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
       const requested = params.get('act');
       const index = this.acts.findIndex((act) => act.id === requested);

@@ -238,6 +238,9 @@
         <button mat-button (click)="share(post)">
           <mat-icon class="material-icons-outlined">repeat</mat-icon> Repost
         </button>
+        <a mat-button [href]="whatsapp(post)" target="_blank" rel="noopener" aria-label="Share on WhatsApp">
+          <mat-icon class="material-icons-outlined">chat</mat-icon> WhatsApp
+        </a>
         <button mat-button class="ml-auto" (click)="toggleBookmark(post)" [class.vs-liked]="post.bookmarked">
           <mat-icon class="material-icons-outlined">{{ post.bookmarked ? 'bookmark' : 'bookmark_border' }}</mat-icon>
           {{ post.bookmarked ? 'Saved' : 'Save' }}

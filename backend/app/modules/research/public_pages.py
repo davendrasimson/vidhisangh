@@ -18,7 +18,7 @@ import uuid
 from datetime import date
 from html import escape
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import extract, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,7 +34,7 @@ JOIN = "/auth/register?utm_source=judgments"
 LATEST = 30
 # The bare-act stylesheet is shared; bump the query when acts.css changes
 # (nginx caches .css for a year).
-CSS_URL = "/acts/acts.css?v=j1"
+CSS_URL = "/acts/acts.css?v=j2"
 # These pages carry their own policy: the API default (`default-src 'none'`)
 # would block the stylesheet, fonts and logo.
 CSP = (
@@ -93,7 +93,7 @@ def _page(*, title: str, description: str, path: str, body: str, json_ld: dict, 
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>{escape(title)}</title>
 <meta name="description" content="{escape(description)}" />
-<meta name="robots" content="index, follow" />
+<meta name="robots" content="{"noindex" if status == 404 else "index, follow"}" />
 <link rel="canonical" href="{SITE}{path}" />
 <meta property="og:type" content="article" />
 <meta property="og:site_name" content="VidhiSangh" />
@@ -129,6 +129,24 @@ def _page(*, title: str, description: str, path: str, body: str, json_ld: dict, 
     return response
 
 
+def whatsapp_url(text: str, path: str) -> str:
+    from urllib.parse import quote
+    return f"https://wa.me/?text={quote(f'{text} {SITE}{path}', safe='')}"
+
+
+def not_found_page(what: str = "page") -> HTMLResponse:
+    """A friendly 404 for the public pages (instead of the API's JSON error)."""
+    body = f"""<p class="eyebrow">Not found</p>
+<h1>This {escape(what)} is not available</h1>
+<p class="lede">It may have been removed or the link may be mistyped.</p>
+<p class="actions"><a class="primary" href="/">VidhiSangh home</a><a class="ghost" href="/acts/">Bare Acts</a><a class="ghost" href="/judgments/">Supreme Court headnotes</a><a class="ghost" href="/tools/">Free tools</a></p>
+{_cta()}"""
+    response = _page(title="Not found | VidhiSangh", description="This page is not available.", path="/",
+                     body=body, json_ld={"@context": "https://schema.org", "@type": "WebPage", "name": "Not found"}, status=404)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 def _cta(j: Judgment | None = None) -> str:
     app_link = f'<a class="ghost" href="/app/research/{j.id}">Open in the app</a>' if j else ""
     return f"""<aside class="cta">
@@ -153,7 +171,7 @@ async def year_or_judgment(key: str, session: AsyncSession = Depends(get_auth_se
     try:
         judgment_id = uuid.UUID(key)
     except ValueError:
-        raise HTTPException(status_code=404) from None
+        return not_found_page()
     return await judgment_page(judgment_id, None, session)
 
 
@@ -163,7 +181,7 @@ async def judgment_page(
 ) -> Response:
     j = (await session.execute(select(Judgment).where(Judgment.id == judgment_id, *_published()))).scalar_one_or_none()
     if j is None:
-        raise HTTPException(status_code=404)
+        return not_found_page("judgment")
     path = judgment_path(j)
     if name != path.split("/")[3]:
         return RedirectResponse(path, status_code=301)
@@ -194,6 +212,7 @@ Paragraph numbers refer to the judgment.</p>
 <h2>Held</h2><ul>{held}</ul>
 <h2>Result</h2><p>{escape(hn.result)}</p>
 </article>
+<p class="actions"><a class="wa" href="{escape(whatsapp_url(f"{title}: AI-generated headnote, free on VidhiSangh", path))}" rel="noopener" target="_blank">Share on WhatsApp</a></p>
 {_cta(j)}
 {source}"""
     breadcrumbs = [{"@type": "ListItem", "position": 1, "name": "Supreme Court headnotes", "item": f"{SITE}/judgments/"}]
@@ -250,7 +269,7 @@ async def _year_page(year: int, session: AsyncSession) -> Response:
         .order_by(Judgment.judgment_date.desc(), Judgment.id)
     )).scalars().all()
     if not rows:
-        raise HTTPException(status_code=404)
+        return not_found_page()
     body = f"""<nav class="crumbs" aria-label="Breadcrumb"><a href="/judgments/">Supreme Court headnotes</a> › <span>{year}</span></nav>
 <p class="eyebrow">Supreme Court of India</p>
 <h1>Supreme Court judgments of {year}</h1>

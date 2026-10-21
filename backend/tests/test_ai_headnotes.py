@@ -134,6 +134,7 @@ async def test_public_pages_show_only_headnoted_judgments_with_the_ai_flag(sessi
     assert "AI-generated headnote" in html and "new v. State" in html and "12/08/2026" in html
     assert "Section 16(4), Central Goods and Services Tax Act, 2017" in html and "(¶¶ 12, 14)" in html
     assert f'<link rel="canonical" href="https://vidhisangh.com/judgments/{ids["new"]}/new-v-state/"' in html
+    assert 'class="wa" href="https://wa.me/?text=new%20v.%20State' in html
     assert "EDITORIAL HEADNOTE" not in html and "The appeal is allowed" not in html  # no full text, no reporter text
     assert "style-src 'self'" in page.headers["content-security-policy"]
 
