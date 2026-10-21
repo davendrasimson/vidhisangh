@@ -317,7 +317,7 @@
               <p class="text-sm font-medium mb-2">Hand over {{ t.user_name }}'s role ({{ teamRoles[t.role] }})</p>
               <div class="grid gap-2 sm:grid-cols-4">
                 <label class="flex flex-col gap-1"><span class="text-xs text-content-muted">Successor</span>
-                  <select class="vs-input" [(ngModel)]="handover.successor_user_id">
+                  <select class="vs-input" [(ngModel)]="handover.successor_user_id" (ngModelChange)="checkConflicts($event)" aria-label="Successor">
                     <option value="">Nobody — just end the stint</option>
                     @for (p of people(); track p.id) { @if (p.id !== t.user_id) { <option [value]="p.id">{{ p.full_name }}</option> } }
                   </select></label>
@@ -333,6 +333,17 @@
                     @for (r of endReasonKeys; track r) { <option [value]="r">{{ endReasons[r] }}</option> }
                   </select></label>
                 <input class="vs-input sm:col-span-4" [(ngModel)]="handover.notes" placeholder="Note for the file (optional)" />
+        @if (conflictsFor(handover.successor_user_id); as hits) { @if (hits.length) {
+          <div class="sm:col-span-4 rounded-lg border border-warning/50 bg-warning/10 p-2 text-sm" role="alert" aria-label="Possible conflict">
+            <p class="font-medium">Possible conflict — please check before going ahead:</p>
+            <ul class="list-disc pl-5">
+              @for (c of hits; track c.matter_id + c.kind + c.party_name) {
+                <li>{{ c.kind === 'acted_for_opponent' ? 'Acted for' : 'Acted against' }} <strong>{{ c.party_name }}</strong>
+                  in <a class="text-brand underline" [routerLink]="['/app/matters', c.matter_id]">{{ c.matter_number ? c.matter_number + ' · ' : '' }}{{ c.title }}</a>{{ c.current ? ' (still on it)' : '' }}</li>
+              }
+            </ul>
+          </div>
+        } }
               </div>
               <div class="flex justify-end gap-2 mt-2">
                 <button mat-button (click)="handingOver.set(null)">Cancel</button>
@@ -364,7 +375,7 @@
       }
 
       <div class="grid gap-2 sm:grid-cols-6 mt-4 pt-3 border-t border-line">
-        <select class="vs-input sm:col-span-2" [(ngModel)]="newMember.user_id">
+        <select class="vs-input sm:col-span-2" [(ngModel)]="newMember.user_id" (ngModelChange)="checkConflicts($event)" aria-label="Add a colleague">
           <option value="">Add a colleague…</option>
           @for (p of people(); track p.id) { <option [value]="p.id">{{ p.full_name }}</option> }
         </select>
@@ -380,6 +391,17 @@
             @for (b of rateBasisKeys; track b) { <option [value]="b">{{ rateBases[b] }}</option> }
           </select>
         }
+        @if (conflictsFor(newMember.user_id); as hits) { @if (hits.length) {
+          <div class="sm:col-span-6 rounded-lg border border-warning/50 bg-warning/10 p-2 text-sm" role="alert" aria-label="Possible conflict">
+            <p class="font-medium">Possible conflict — please check before going ahead:</p>
+            <ul class="list-disc pl-5">
+              @for (c of hits; track c.matter_id + c.kind + c.party_name) {
+                <li>{{ c.kind === 'acted_for_opponent' ? 'Acted for' : 'Acted against' }} <strong>{{ c.party_name }}</strong>
+                  in <a class="text-brand underline" [routerLink]="['/app/matters', c.matter_id]">{{ c.matter_number ? c.matter_number + ' · ' : '' }}{{ c.title }}</a>{{ c.current ? ' (still on it)' : '' }}</li>
+              }
+            </ul>
+          </div>
+        } }
       </div>
     </section>
 

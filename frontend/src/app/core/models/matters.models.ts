@@ -198,6 +198,16 @@ export interface TeamTransferResult {
   matter_numbers: string[];
 }
 
+/** Another matter where this person was on the other side of one of our parties. */
+export interface TeamConflict {
+  matter_id: string;
+  matter_number: string | null;
+  title: string;
+  party_name: string;
+  kind: 'acted_against_client' | 'acted_for_opponent';
+  current: boolean;
+}
+
 /** One colleague's load: open matters they are on now, by role. */
 export interface WorkloadRow {
   user_id: string;

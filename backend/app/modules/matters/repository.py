@@ -21,6 +21,7 @@ from app.modules.matters.models import (
     MatterFeeArrangement,
     MatterFeeEvent,
     MatterFeeMilestone,
+    MatterParty,
     MatterStatus,
     MatterTask,
     MatterTeamMember,
@@ -159,6 +160,39 @@ class MatterRepository:
             stmt = stmt.where(Matter.id.in_(matter_ids))
         res = await self.session.execute(stmt.order_by(Matter.matter_number))
         return [(m, mt) for m, mt in res.all()]
+
+    async def stints_with_sides(
+        self, tenant_id: uuid.UUID, user_id: uuid.UUID, exclude_matter: uuid.UUID
+    ) -> list[tuple[Matter, bool, list[MatterParty]]]:
+        """Every other matter this person is or was on: (matter, still on it, its parties)."""
+        res = await self.session.execute(
+            select(Matter, MatterTeamMember.to_date)
+            .join(MatterTeamMember, MatterTeamMember.matter_id == Matter.id)
+            .where(
+                MatterTeamMember.tenant_id == tenant_id,
+                MatterTeamMember.user_id == user_id,
+                MatterTeamMember.deleted_at.is_(None),
+                Matter.deleted_at.is_(None),
+                Matter.id != exclude_matter,
+            )
+        )
+        current: dict[uuid.UUID, tuple[Matter, bool]] = {}
+        for matter, to_date in res.all():
+            prev = current.get(matter.id)
+            current[matter.id] = (matter, (prev[1] if prev else False) or to_date is None)
+        if not current:
+            return []
+        parties = await self.session.execute(
+            select(MatterParty).where(
+                MatterParty.tenant_id == tenant_id,
+                MatterParty.matter_id.in_(current.keys()),
+                MatterParty.deleted_at.is_(None),
+            )
+        )
+        by_matter: dict[uuid.UUID, list[MatterParty]] = {}
+        for p in parties.scalars().all():
+            by_matter.setdefault(p.matter_id, []).append(p)
+        return [(m, now, by_matter.get(mid, [])) for mid, (m, now) in current.items()]
 
     async def open_stints(self, tenant_id: uuid.UUID) -> list[tuple[uuid.UUID, str, uuid.UUID]]:
         """(user, role, matter) for every current stint on a matter that is not closed."""

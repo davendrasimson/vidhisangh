@@ -313,3 +313,42 @@ async def test_team_workload(client: AsyncClient, strong_password: str) -> None:
     # Another organisation sees only its own people.
     h2, _ = await _admin(client, "Other LLP", "other@firm.co", strong_password)
     assert [r["full_name"] for r in (await client.get(f"{API}/matters/team/workload", headers=h2)).json()] == ["Adv. Other"]
+
+
+async def test_team_conflict_check(client: AsyncClient, strong_password: str) -> None:
+    h, me = await _admin(client, "Conflict LLP", "conf@firm.co", strong_password)
+    x = await _colleague(client, h, "Adv. Past", "past@firm.co", strong_password)
+    clean = await _colleague(client, h, "Adv. Clean", "clean@firm.co", strong_password)
+
+    async def matter(title: str, client_name: str, opposing: list[str], lead: str) -> str:
+        m = (await client.post(f"{API}/matters", headers=h, json={
+            "title": title, "client_name": client_name, "lead_counsel_id": lead})).json()
+        for name in opposing:
+            r = await client.post(f"{API}/matters/{m['id']}/parties", headers=h,
+                                  json={"name": name, "role": "respondent", "side": "opposing"})
+            assert r.status_code == 201, r.text
+        return m["id"]
+
+    # Earlier, X acted against Sharma Traders, and for Gupta Builders.
+    old1 = await matter("Kumar v. Sharma Traders", "Ravi Kumar", ["Sharma Traders Pvt. Ltd."], x["id"])
+    await matter("Gupta Builders v. State", "M/s Gupta Builders", ["State of Delhi"], x["id"])
+    # X's stint on the first one has since ended (handed to me).
+    team = (await client.get(f"{API}/matters/{old1}", headers=h)).json()["team"]
+    ended = await client.post(f"{API}/matters/{old1}/team/{team[0]['id']}/handover", headers=h,
+                              json={"successor_user_id": me["id"], "reason": "reassigned"})
+    assert ended.status_code in (200, 201), ended.text
+
+    # Now: we act for Sharma Traders against Gupta Builders.
+    new = await matter("Sharma Traders v. Gupta Builders", "M/s Sharma Traders", ["Gupta Builders Ltd"], me["id"])
+    resp = await client.get(f"{API}/matters/{new}/team/conflicts", headers=h, params={"user_id": x["id"]})
+    assert resp.status_code == 200, resp.text
+    hits = {(c["kind"], c["party_name"], c["current"]) for c in resp.json()}
+    assert hits == {("acted_for_opponent", "Gupta Builders Ltd", True),
+                    ("acted_against_client", "M/s Sharma Traders", False)}
+
+    assert (await client.get(f"{API}/matters/{new}/team/conflicts", headers=h,
+                             params={"user_id": clean["id"]})).json() == []
+    # Another firm cannot probe this matter.
+    h2, _ = await _admin(client, "Else LLP", "else@firm.co", strong_password)
+    assert (await client.get(f"{API}/matters/{new}/team/conflicts", headers=h2,
+                             params={"user_id": x["id"]})).status_code == 404

@@ -39,6 +39,7 @@ import {
   TEAM_END_REASON_LABELS,
   TEAM_ROLE_LABELS,
   Task,
+  TeamConflict,
   TeamEndReason,
   TeamMember,
   TeamRole,
@@ -398,6 +399,24 @@ export class MatterDetailComponent {
     return null;
   }
 
+  /** Conflict check for the colleague being added or handed to (advisory). */
+  protected readonly conflicts = signal<{ userId: string; hits: TeamConflict[] } | null>(null);
+
+  protected async checkConflicts(userId: string): Promise<void> {
+    this.conflicts.set(null);
+    if (!userId) return;
+    try {
+      const hits = await firstValueFrom(this.matters.teamConflicts(this.id, userId));
+      // Only if the choice has not changed while we were asking.
+      if (userId === this.newMember.user_id || userId === this.handover.successor_user_id) this.conflicts.set({ userId, hits });
+    } catch { /* the check is a courtesy; adding still works */ }
+  }
+
+  protected conflictsFor(userId: string): TeamConflict[] {
+    const c = this.conflicts();
+    return c && userId && c.userId === userId ? c.hits : [];
+  }
+
   protected async addMember(): Promise<void> {
     if (!this.newMember.user_id || this.teamBusy()) return;
     this.teamBusy.set(true);
@@ -409,6 +428,7 @@ export class MatterDetailComponent {
         rate_amount: this.newMember.rate_amount ? Number(this.newMember.rate_amount) : null,
       }));
       this.newMember = { user_id: '', role: 'associate', from_date: '', rate_basis: '', rate_amount: '' };
+      this.conflicts.set(null);
       await this.refresh();
     } catch { /* handled */ } finally { this.teamBusy.set(false); }
   }
@@ -423,6 +443,7 @@ export class MatterDetailComponent {
 
   protected startHandover(t: TeamMember): void {
     this.handover = { successor_user_id: '', successor_role: '', effective_from: '', reason: 'reassigned', notes: '' };
+    this.conflicts.set(null);
     this.handingOver.set(t);
   }
 

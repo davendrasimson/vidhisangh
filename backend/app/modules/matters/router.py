@@ -46,6 +46,7 @@ from app.modules.matters.schemas import (
     TeamMemberRead,
     TeamMemberUpdate,
     TeamTransfer,
+    TeamConflict,
     TeamTransferResult,
     WorkloadRow,
     TimelineEntry,
@@ -425,6 +426,24 @@ async def _team_rows(svc: MatterService, matter_id: uuid.UUID, ids: list[uuid.UU
     detail = await svc.to_detail(await svc.get_matter(matter_id))
     by_id = {t.id: t for t in detail.team}
     return [by_id[i] for i in ids if i in by_id]
+
+
+@router.get(
+    "/{matter_id}/team/conflicts",
+    response_model=list[TeamConflict],
+    summary="Check a colleague for conflicts before adding them",
+    description=(
+        "Other matters of the firm the person is or was on where this matter's client "
+        "(or our-side party) was the opposing party, or this matter's opposing party was "
+        "our client. Names are compared after normalising case, punctuation and words such "
+        "as M/s and Pvt Ltd. Advisory: nothing is blocked."
+    ),
+    dependencies=[require_permission("matter:update")],
+)
+async def team_conflicts(
+    matter_id: uuid.UUID, user_id: uuid.UUID, current: CurrentUserDep, session: TenantSessionDep
+) -> list[TeamConflict]:
+    return await _svc(current, session).team_conflicts(matter_id, user_id)
 
 
 @router.post(

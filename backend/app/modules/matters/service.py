@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import uuid
 from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -78,6 +79,7 @@ from app.modules.matters.schemas import (
     TeamMemberUpdate,
     TeamTransfer,
     TeamTransferResult,
+    TeamConflict,
     TimelineEntry,
     WorkloadRow,
     AuthorityCreate,
@@ -107,6 +109,25 @@ def _apply_court_record(matter: Matter, data: object) -> None:
 
 # Hearing days are Indian court days, whatever the server clock's zone.
 _IST = ZoneInfo("Asia/Kolkata")
+
+# Words that do not tell two parties apart ("M/s Sharma Traders Pvt. Ltd." = "Sharma Traders").
+_NAME_NOISE = {"m", "s", "ms", "the", "pvt", "private", "ltd", "limited", "llp", "co", "and", "shri", "sh",
+               "smt", "mr", "mrs", "dr", "kumari", "km", "inc", "corp", "corporation", "company"}
+
+
+def _party_key(name: str | None) -> str:
+    words = re.sub(r"[^\w]+", " ", (name or "").lower()).split()
+    return " ".join(w for w in words if w not in _NAME_NOISE)
+
+
+def _party_names(names: list[str | None]) -> dict[str, str]:
+    """Normalised key → the name as written (first spelling wins); blanks dropped."""
+    out: dict[str, str] = {}
+    for n in names:
+        key = _party_key(n)
+        if len(key) >= 3:
+            out.setdefault(key, (n or "").strip())
+    return out
 
 class MatterService:
     def __init__(self, session: AsyncSession, user_id: uuid.UUID, tenant_id: uuid.UUID) -> None:
@@ -669,6 +690,30 @@ class MatterService:
     # ── Team ────────────────────────────────────────────────────────
     async def people(self) -> list[PersonRead]:
         return [PersonRead.model_validate(u) for u in await self.repo.people(self.tenant_id)]
+
+    async def team_conflicts(self, matter_id: uuid.UUID, user_id: uuid.UUID) -> list[TeamConflict]:
+        """Before putting someone on a matter: were they ever on the other side of its parties?
+
+        Compares names (normalised: case, punctuation, "M/s", "Pvt Ltd"…) between this
+        matter's sides and every other matter of the firm the person is or was on.
+        Advisory: a match is for the partner to look at, not a block.
+        """
+        matter = await self._require_matter(matter_id, detail=True)
+        await self._require_person(user_id)
+        parties = [p for p in matter.parties if p.deleted_at is None]
+        ours = _party_names([matter.client_name] + [p.name for p in parties if p.side == PartySide.OURS])
+        theirs = _party_names([p.name for p in parties if p.side == PartySide.OPPOSING])
+        hits: list[TeamConflict] = []
+        for other, current, other_parties in await self.repo.stints_with_sides(self.tenant_id, user_id, matter.id):
+            their_side = _party_names([p.name for p in other_parties if p.side == PartySide.OPPOSING])
+            our_side = _party_names([other.client_name] + [p.name for p in other_parties if p.side == PartySide.OURS])
+            for key in sorted(ours.keys() & their_side.keys()):
+                hits.append(TeamConflict(matter_id=other.id, matter_number=other.matter_number, title=other.title,
+                                         party_name=ours[key], kind="acted_against_client", current=current))
+            for key in sorted(theirs.keys() & our_side.keys()):
+                hits.append(TeamConflict(matter_id=other.id, matter_number=other.matter_number, title=other.title,
+                                         party_name=theirs[key], kind="acted_for_opponent", current=current))
+        return sorted(hits, key=lambda h: (not h.current, h.matter_number or "", h.party_name))
 
     async def workload(self, days: int = 14) -> list[WorkloadRow]:
         """Who carries what: every active colleague, busiest first (people with nothing too)."""

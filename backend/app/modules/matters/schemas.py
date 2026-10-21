@@ -204,6 +204,19 @@ class TeamTransferResult(BaseModel):
     matter_numbers: list[str]
 
 
+class TeamConflict(BaseModel):
+    """Another matter where this person was on the other side of one of our parties."""
+
+    matter_id: uuid.UUID
+    matter_number: str | None
+    title: str
+    party_name: str
+    # acted_against_client: our client here was the opposing party there.
+    # acted_for_opponent: the opponent here was the client (our side) there.
+    kind: str
+    current: bool
+
+
 class WorkloadRow(BaseModel):
     """One colleague's load: open matters they are on now, by role."""
 
