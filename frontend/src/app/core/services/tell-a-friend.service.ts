@@ -20,6 +20,14 @@ export interface MyReferral {
   code: string;
   link: string;
   joined: number;
+  /** Colleagues who must join through the link for the Founding Member badge. */
+  founding_goal?: number;
+  founding_member?: boolean;
+}
+
+/** The invite as one WhatsApp message (personal link included). */
+export function whatsappInvite(link: string): string {
+  return `https://wa.me/?text=${encodeURIComponent(`${TEXT} ${link}`)}`;
 }
 
 /**

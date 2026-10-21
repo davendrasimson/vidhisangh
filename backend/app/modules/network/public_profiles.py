@@ -93,6 +93,8 @@ async def public_profile(handle: str, session: AsyncSession = Depends(get_auth_s
         return not_found_page("profile")
     identity, profile = found
     groups = _groups(profile)
+    from app.modules.referrals.service import ReferralService
+    founding = await ReferralService(session).is_founding_member(identity.user_id)
     name = identity.display_name
     role = ROLE_LABELS.get(profile.professional_role or "", (profile.professional_role or "").replace("_", " ").title()) if profile and "professional" in groups else ""
     headline = identity.headline or (profile.headline if profile else "") or role
@@ -124,7 +126,7 @@ async def public_profile(handle: str, session: AsyncSession = Depends(get_auth_s
     connect = f"/app/people/{identity.user_id}"
     body = f"""<nav class="crumbs" aria-label="Breadcrumb"><a href="/">VidhiSangh</a> › <span>Members</span></nav>
 <div class="person">{face}<div><h1>{escape(name)}</h1>
-<p>{escape(headline or "")}</p>{f'<p>{escape(place)}</p>' if place else ''}{'<p class="verified">✓ Verified on VidhiSangh</p>' if identity.is_verified else ''}</div></div>
+<p>{escape(headline or "")}</p>{f'<p>{escape(place)}</p>' if place else ''}{'<p class="verified">✓ Verified on VidhiSangh</p>' if identity.is_verified else ''}{'<p class="verified">★ Founding Member</p>' if founding else ''}</div></div>
 {''.join(b for b in blocks if b)}
 <p class="actions"><a class="primary" href="{connect}">Connect on VidhiSangh</a><a class="wa" href="{share}" rel="noopener" target="_blank">Share on WhatsApp</a></p>
 <aside class="cta"><div><strong>Join {escape(name)} on VidhiSangh</strong>

@@ -31,3 +31,19 @@ async def test_invite_link_counts_people_who_joined_through_it(client: AsyncClie
 
     assert (await client.get(f"{API}/referrals/me", headers=headers)).json()["joined"] == 2
     assert (await client.get(f"{API}/referrals/me")).status_code == 401
+
+
+async def test_three_colleagues_make_a_founding_member(client: AsyncClient, strong_password: str) -> None:
+    headers, _ = await _user(client, "Inviter LLP", "inviter@firm.co", strong_password)
+    mine = (await client.get(f"{API}/referrals/me", headers=headers)).json()
+    assert mine["founding_goal"] == 3 and mine["founding_member"] is False
+    for n in range(3):
+        await _register(client, f"colleague{n}@other.co", strong_password, mine["code"])
+    mine = (await client.get(f"{API}/referrals/me", headers=headers)).json()
+    assert mine["joined"] == 3 and mine["founding_member"] is True
+
+    # The badge shows on the member's public page.
+    on = await client.put(f"{API}/network/me/public-page", headers=headers, json={"enabled": True})
+    assert on.status_code == 200, on.text
+    page = await client.get(f"/in/{on.json()['handle']}/")
+    assert page.status_code == 200 and "★ Founding Member" in page.text

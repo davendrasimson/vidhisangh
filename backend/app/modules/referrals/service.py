@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.logging import get_logger
 from app.modules.referrals.models import Referral, ReferralCode
 from app.modules.referrals.repository import ReferralRepository
-from app.modules.referrals.schemas import MyReferral
+from app.modules.referrals.schemas import FOUNDING_MEMBER_INVITES, MyReferral
 
 log = get_logger("app.referrals")
 
@@ -44,11 +44,16 @@ class ReferralService:
 
     async def mine(self, user_id: uuid.UUID) -> MyReferral:
         row = await self.my_code(user_id)
+        joined = await self.repo.joined_count(user_id)
         return MyReferral(
             code=row.code,
             link=f"{SITE}/?ref={row.code}&utm_source=tell_a_friend",
-            joined=await self.repo.joined_count(user_id),
+            joined=joined,
+            founding_member=joined >= FOUNDING_MEMBER_INVITES,
         )
+
+    async def is_founding_member(self, user_id: uuid.UUID) -> bool:
+        return await self.repo.joined_count(user_id) >= FOUNDING_MEMBER_INVITES
 
     async def record_signup(self, code: str | None, new_user_id: uuid.UUID) -> None:
         """Credit the owner of `code` with this sign-up. A bad or unknown code is
