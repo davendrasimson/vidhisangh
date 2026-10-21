@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 import app.db.base  # noqa: F401 — register all models
 from app.core.database import session_scope
+from app.modules.network.retention import DRY_RUN, purge_post_images
 from app.modules.notifications.service import DELIVERY_RETENTION_DAYS, purge_old_deliveries
 from app.modules.privacy.retention import PRIVACY_PURGES
 
@@ -35,6 +36,8 @@ async def purge_notification_deliveries(session: AsyncSession) -> int:
 # Registry — other modules append their purges here (privacy work, P-1/P-14).
 PURGES: list[Purge] = [
     purge_notification_deliveries,
+    # Feed photos never posted (1 day) or of deleted posts (30 days), bytes too.
+    purge_post_images,
     # Privacy agent (P-1/P-14): oauth states, passkey challenges, revoked/expired
     # sessions, used backup codes, soft-deleted documents (+ object-store bytes)
     # and drafts, old notifications, cancelled tenants past `erase_after`.
@@ -45,6 +48,7 @@ PURGES: list[Purge] = [
 async def run_all(*, dry_run: bool = False) -> dict[str, int]:
     """Run every registered purge; returns ``{purge_name: rows_removed}``."""
     results: dict[str, int] = {}
+    DRY_RUN.set(dry_run)  # purges that delete stored files skip that on a dry run
     for purge in PURGES:
         name = purge.__name__
         try:
