@@ -17,7 +17,7 @@ These ship complete and mock/flow-tested; flip them on by setting env in `backen
 
 ## 🟡 Need an external service or library
 - **Async job queue (Celery + Redis)** — move notification channel fan-out AND outbound webhook delivery OFF the inline request path. Both currently send within the caller's transaction (guarded by try/except): `notifications/service.py::_dispatch_channels` and `webhooks/service.py::emit_event`/`_deliver`. Add retries/backoff. Several items below also want Celery.
-- **SMS / WhatsApp / Push / Microsoft-Teams notification channels** — the channels enum + routing exist (recorded as `skipped`, "no provider configured"). Build each provider in `app/core/channels.py` (mirror `EmailSmtpProvider`/`SlackWebhookProvider`). SMS: Twilio/MSG91 (`VS_SMS_PROVIDER_API_KEY`). WhatsApp: WhatsApp Business (`VS_WHATSAPP_API_KEY`). Push: Web-Push/VAPID or FCM. Teams: incoming webhook/connector.
+- **SMS / Microsoft-Teams notification channels** (WhatsApp: hearing reminders + sign-in codes ✅; Push: Firebase ✅ 21 Oct 2026) — the channels enum + routing exist (recorded as `skipped`, "no provider configured"). Build each provider in `app/core/channels.py` (mirror `EmailSmtpProvider`/`SlackWebhookProvider`). SMS: Twilio/MSG91 (`VS_SMS_PROVIDER_API_KEY`). WhatsApp: WhatsApp Business (`VS_WHATSAPP_API_KEY`). Push: Web-Push/VAPID or FCM. Teams: incoming webhook/connector.
 - **Object storage — S3/MinIO prod backend** — implement the `s3` backend in `app/core/storage.py` (boto3/aioboto3) + presigned URLs for large files. Then: group **cover-image upload** (Phase 2), and any avatar/document-heavy flow. (`memory`/`local` backends already exist.)
 - **OCR (Tesseract or a service)** — document OCR (extract text from scanned PDFs/images) for the `documents` module.
 - **Document rendering** — document **preview** (render PDF/DOCX), **version diff/comparison**, **annotations**.
@@ -76,7 +76,7 @@ These ship complete and mock/flow-tested; flip them on by setting env in `backen
 - ✅ **Prerender the public pages** — done 13 Oct 2026 (see PROJECT_STATUS).
 - ✅ **Public bare-act pages for BNS, BNSS, BSA** — done 13 Oct 2026 (1,059 sections).
 - **Remaining Acts not published** — POCSO and RTI (the bundled PDFs are OCR scans with errors; POCSO's holds 13 of 46 sections) and CrPC and the NI Act (their text lost its line structure). Each needs a clean official PDF (India Code) before it can go through `scripts/act_sections.py`.
-- **Judgment pages** — reported judgments (title, citation, bench, AI headnote, link into the app). Extend the curated IPC/CrPC/Evidence ↔ new-law table beyond its 32 rows for richer old-law links.
+- ✅ **Judgment pages** (public `/judgments/`, 14 Oct) and the **full old↔new tables** (BPRD, 20 Oct) are done.
 
 ## 📈 Registrations — the current priority (14 Oct 2026)
 Funnel from the nginx log for 13–14 Oct: 22 `POST /auth/register`, of which 6 created an account, 1 was a duplicate (409) and **15 were rejected with 422**. One Android user tried 13 times over two sessions and never got in. Separately, 76 WhatsApp code requests produced 2 WhatsApp sign-ups, with many 429s from repeat taps on "Send code". 12 users in total; no referral codes created yet (the invite link shipped in 1.0.3).
@@ -84,7 +84,7 @@ Funnel from the nginx log for 13–14 Oct: 22 `POST /auth/register`, of which 6 
 - **Next, in order of expected effect:**
   1. ✅ **Shorter sign-up** — done 14 Oct 2026. `/auth/register` opens on WhatsApp (number → code → name and job profile; email optional, no password). "Sign up with email instead" is a short form (name, email, job profile, password); the firm name and the sample workspace only appear after ticking "I am registering a law firm or chamber". Both routes record the job profile (`professional_role` on `POST /auth/register` too). Measure the effect with item 6.
   2. ✅ **Sign up with Google** — built 14 Oct 2026 (`75cec8d`): a verified Google email with no account creates an individual account (email verified, identity linked, invite code carried, new members land on their profile to add a role). "Continue with Google" shows on the sign-up page once `VS_OAUTH_GOOGLE_CLIENT_ID`/`_CLIENT_SECRET` are set; `VS_OAUTH_SIGNUP_ENABLED=false` makes SSO sign-in-only again. **Waiting on the owner's Google Cloud OAuth client.** Web only until the app has deep links (see Mobile).
-  3. **Public member profiles** (`vidhisangh.com/in/<name>`, only for members who opted into the directory): indexable, with a "Connect on VidhiSangh" call to action. Every member who shares their profile brings in visitors, and people searching for an advocate by name find the page.
+  3. ✅ (done 20 Oct 2026, separate opt-in) **Public member profiles** (`vidhisangh.com/in/<name>`, only for members who opted into the directory): indexable, with a "Connect on VidhiSangh" call to action. Every member who shares their profile brings in visitors, and people searching for an advocate by name find the page.
   4. **Turn bare-act readers into members.** 1,000+ act-page views in two days produced 17 `utm_source=bare_acts` visits to the site. Add an in-context call to action on section pages (save the section, get amendment alerts, discuss with members) instead of only the generic banner.
   5. ✅ **Invite rewards** (profile card + Founding Member badge at 3 joins) — 21 Oct 2026. Group invite links ✅ 21 Oct 2026.
   6. **A first-party sign-up funnel count** (page → form opened → code sent → account created), stored in our own database with no third-party tracker, so each change above can be measured. ✅ Part done 14 Oct 2026: **Platform admin → Growth** (`GET /platform-admin/growth`) shows registrations by day / week / month in India time, period comparisons, running total, next milestone, sign-up method, role, invites, verified and returning share, and the latest sign-ups. ✅ The steps before an account exists (home page, sign-up page, email form, WhatsApp code) — 21 Oct 2026.
@@ -98,7 +98,7 @@ Usage on 13–20 Oct: bare-act pages 2,743 views from 107 people (BNSS, IPC, BNS
 4. ✅ **Share on WhatsApp + public profiles** `vidhisangh.com/in/<name>` — done 20 Oct 2026 (separate opt-in; privacy notice and terms updated — include in the privacy-counsel review). WhatsApp buttons everywhere ✅ 21 Oct. Still open: profile photos uploaded elsewhere (external URLs) are not shown on the public page (CSP), only initials.
 5. ✅ **Free calculators** — limitation (137 Articles, a page each) and default bail (BNSS 187(3)) done 20 Oct 2026. Still open: court fee (differs by State: needs each State's Court Fees Act schedule), interest (Section 34 CPC / contract rate), a COVID-exclusion recalculation in the limitation tool (needs an advocate to settle the counting: "90 days from 01/03/2022" read as ending 29 or 30 May 2022 — the tool only flags the overlap until then), and court holiday calendars for Section 4.
 6. **Hindi interface**, starting with sign-up, bare acts and the diary.
-7. **Push notifications** (see Mobile).
+7. ✅ **Push notifications** — Android, 21 Oct 2026 (see Mobile).
 
 ## 📝 Feed posts with formatting and photos (16 Oct 2026)
 Built (migration 0066): rich composer (bold, italic, underline, heading, lists, quote, link) that grows with its content; up to 4 photos per post (JPEG/PNG ≤ 5 MB, re-drawn to ≤ 2000 px JPEG in the app, EXIF/GPS stripped on the server, virus-scanned); server-side allow-list HTML cleaning (`app/core/html_clean.py`); own posts can be deleted from the feed. Still open:
@@ -114,7 +114,7 @@ Shipped: validation errors no longer echo input; client identity data encrypted 
 - **S3/SSE object storage activation** (P-8/A-13): the backend exists; configure the production bucket and KMS/SSE policy so purge deletes encrypted objects rather than local files.
 
 ## 🧪 Testing & tooling
-- **Browser e2e (Playwright/Cypress)** — backend has an ASGI cross-module smoke (`test_smoke_journey.py`); a real browser e2e is deferred (no browser tooling in the build env).
+- ✅ **Browser e2e** — Playwright suite in `frontend/tests/browser/` (40 tests, `npx playwright test`).
 - **Real WebAuthn verification** — install `webauthn` (+ optionally `soft-webauthn` for tests) to cover the actual attestation/assertion crypto that the mock verifier currently stands in for.
 
 ## 📱 Mobile
@@ -123,7 +123,7 @@ Android and iOS apps exist since 4 October 2026 (Capacitor, see [MOBILE.md](MOBI
 
 Still open:
 - **iOS build and signing** — needs a Mac with Xcode and the Apple Developer account (USD 99/year). The Xcode project is ready; nothing has been compiled yet.
-- **Store publishing** — listing text (network-first, "VidhiSangh: Legal Network"), 18 screenshots and the step-by-step guide are ready in [store/google-play/](store/google-play/PUBLISHING.md) (11 Oct 2026). Still open: the Google Play developer account (USD 25, owner's identity), the data-safety form, and the Play reviewer demo account.
+- **Store publishing** — listing text (network-first, "VidhiSangh: Legal Network"), 18 screenshots and the step-by-step guide are ready in [store/google-play/](store/google-play/PUBLISHING.md) (11 Oct 2026). ✅ Published on Google Play; 1.0.5 (push) submitted 21 Oct 2026. Keep the data-safety form in step with new data (device IDs added for push).
 - ✅ **Timesheets table on phones** — card layout under `md` (21 Oct 2026).
 - **Back up the Android upload keystore** (`~/.vidhisangh-signing/android/` on the dev laptop) somewhere safe, and turn on Play App Signing at first upload.
 - **Passkeys in the app** — WebAuthn is bound to vidhisangh.com; the app runs on localhost. Needs Android Digital Asset Links (`/.well-known/assetlinks.json`) + Apple associated domains and a native passkey plugin. Hidden in the app until then.
