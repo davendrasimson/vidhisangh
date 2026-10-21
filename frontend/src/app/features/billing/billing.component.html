@@ -70,7 +70,31 @@
           </div>
         }
 
-        <div class="rounded-card bg-surface-raised border border-line shadow-card overflow-x-auto">
+        <!-- Phones: one card per entry (the table needs 760px). -->
+        <div class="md:hidden grid gap-3" aria-label="Time entries">
+          @for (entry of timeEntries(); track entry.id) {
+            <article class="rounded-card bg-surface-raised border border-line shadow-card p-4 grid gap-2">
+              <div class="flex items-start gap-3">
+                @if (canManageTime && (entry.status === 'submitted' || entry.status === 'approved')) { <input type="checkbox" class="mt-1" [checked]="selectedTime().has(entry.id)" (change)="toggleTime(entry.id)" [attr.aria-label]="'Select time entry ' + entry.description" /> }
+                <div class="flex-1 min-w-0">
+                  <p class="font-medium text-content">{{ entry.description }}</p>
+                  <p class="text-xs text-content-muted">{{ entry.work_date | date:'dd MMM yyyy' }} · {{ entry.counsel_name || 'My time' }} · {{ entry.matter_number || entry.client_name }}</p>
+                </div>
+                <span class="vs-chip capitalize shrink-0" [class.vs-chip--danger]="entry.status === 'rejected'">{{ entry.status }}</span>
+              </div>
+              <div class="flex flex-wrap items-baseline justify-between gap-2 text-sm">
+                <span class="text-content-muted">{{ entry.activity_type }} · {{ entry.billable ? 'Billable' : 'Non-billable' }} · {{ hours(entry.duration_minutes) }}</span>
+                <span><strong>{{ money(entry.amount) }}</strong>@if (entry.billable && +entry.hourly_rate === 0) { <a class="ml-1 text-xs text-warning hover:underline" routerLink="/app/settings/counsel-rates">Rate needed</a> }</span>
+              </div>
+              @if (entry.rejection_reason) { <p class="text-xs text-danger">{{ entry.rejection_reason }}</p> }
+              @if (((entry.status === 'draft' || entry.status === 'rejected') && entry.user_id === auth.user()?.id) || entry.invoice_id) {
+                <div class="flex flex-wrap gap-1 -ml-2">@if ((entry.status === 'draft' || entry.status === 'rejected') && entry.user_id === auth.user()?.id) { <button mat-button (click)="editTime(entry)">Edit</button><button mat-button class="text-danger" (click)="deleteTime(entry)">Delete</button><button mat-button (click)="submitTime(entry)">Submit</button> } @if (entry.invoice_id) { <a mat-button [routerLink]="['/app/billing', entry.invoice_id]">Invoice</a> }</div>
+              }
+            </article>
+          } @empty { <p class="rounded-card bg-surface-raised border border-line p-6 text-center text-content-muted">No time has been recorded yet.</p> }
+        </div>
+
+        <div class="hidden md:block rounded-card bg-surface-raised border border-line shadow-card overflow-x-auto">
           <table class="w-full text-sm min-w-[760px]">
             <thead class="bg-surface-sunken text-content-muted"><tr><th class="p-3 w-10"></th><th class="p-3 text-left">Date &amp; counsel</th><th class="p-3 text-left">Matter / client</th><th class="p-3 text-left">Work</th><th class="p-3 text-right">Time</th><th class="p-3 text-right">Value</th><th class="p-3 text-left">Status</th><th class="p-3"></th></tr></thead>
             <tbody class="divide-y divide-line">

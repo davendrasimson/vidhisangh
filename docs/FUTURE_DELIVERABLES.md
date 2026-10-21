@@ -86,7 +86,7 @@ Funnel from the nginx log for 13–14 Oct: 22 `POST /auth/register`, of which 6 
   2. ✅ **Sign up with Google** — built 14 Oct 2026 (`75cec8d`): a verified Google email with no account creates an individual account (email verified, identity linked, invite code carried, new members land on their profile to add a role). "Continue with Google" shows on the sign-up page once `VS_OAUTH_GOOGLE_CLIENT_ID`/`_CLIENT_SECRET` are set; `VS_OAUTH_SIGNUP_ENABLED=false` makes SSO sign-in-only again. **Waiting on the owner's Google Cloud OAuth client.** Web only until the app has deep links (see Mobile).
   3. **Public member profiles** (`vidhisangh.com/in/<name>`, only for members who opted into the directory): indexable, with a "Connect on VidhiSangh" call to action. Every member who shares their profile brings in visitors, and people searching for an advocate by name find the page.
   4. **Turn bare-act readers into members.** 1,000+ act-page views in two days produced 17 `utm_source=bare_acts` visits to the site. Add an in-context call to action on section pages (save the section, get amendment alerts, discuss with members) instead of only the generic banner.
-  5. **Invite rewards.** Show "N colleagues joined through you" on the dashboard and profile, and add a founding-member badge for the first invites. Add group invite links for bar associations and law colleges.
+  5. ✅ **Invite rewards** (profile card + Founding Member badge at 3 joins) — 21 Oct 2026. Still open: group invite links for bar associations and law colleges.
   6. **A first-party sign-up funnel count** (page → form opened → code sent → account created), stored in our own database with no third-party tracker, so each change above can be measured. ✅ Part done 14 Oct 2026: **Platform admin → Growth** (`GET /platform-admin/growth`) shows registrations by day / week / month in India time, period comparisons, running total, next milestone, sign-up method, role, invites, verified and returning share, and the latest sign-ups. Still to add: the steps before an account exists (visits, form opened, code sent).
   7. **In-app review prompt** (Play In-App Review API) after a good moment, such as a first connection accepted.
 
@@ -95,14 +95,14 @@ Usage on 13–20 Oct: bare-act pages 2,743 views from 107 people (BNSS, IPC, BNS
 1. ✅ **WhatsApp hearing reminders** — built 20 Oct 2026 (see PROJECT_STATUS). Waiting on Meta's approval of the `hearing_reminder` template. ✅ Court number and item number, and the "next date" prompt after a hearing — done 20 Oct 2026. Still open: optional morning-of reminder; handle replies (needs a webhook on the VidhiSangh number); cause-list import to fill item numbers automatically (needs a court cause-list source).
 2. ✅ **IPC ↔ BNS / CrPC ↔ BNSS / Evidence ↔ BSA converter** — done 20 Oct 2026 (public pages, full BPRD tables). Still open: use the full tables inside the app's bare-act reader (it still shows the 32 curated links); "Save" a section needs the app; a CrPC page per section needs a clean CrPC text (see the bare-acts item).
 3. ✅ **A feed that is never empty** — official daily posts done 20 Oct 2026 (Section of the day, a Supreme Court judgment, legal news). ✅ Default groups (Ask a Senior, new criminal laws, aspirants, students, courts) done 20 Oct 2026; still open: city/district court groups as members ask; four more official news sources added 20 Oct (a gap is usually a court holiday); judgment posts stop when headnoted judgments run out (1,490 today, ~4 years of daily posts).
-4. ✅ **Share on WhatsApp + public profiles** `vidhisangh.com/in/<name>` — done 20 Oct 2026 (separate opt-in; privacy notice and terms updated — include in the privacy-counsel review). Still open: WhatsApp buttons on bare-act section pages, public judgment pages, in-app feed posts and the in-app bare-act reader; profile photos uploaded elsewhere (external URLs) are not shown on the public page (CSP), only initials.
+4. ✅ **Share on WhatsApp + public profiles** `vidhisangh.com/in/<name>` — done 20 Oct 2026 (separate opt-in; privacy notice and terms updated — include in the privacy-counsel review). WhatsApp buttons everywhere ✅ 21 Oct. Still open: profile photos uploaded elsewhere (external URLs) are not shown on the public page (CSP), only initials.
 5. ✅ **Free calculators** — limitation (137 Articles, a page each) and default bail (BNSS 187(3)) done 20 Oct 2026. Still open: court fee (differs by State: needs each State's Court Fees Act schedule), interest (Section 34 CPC / contract rate), a COVID-exclusion recalculation in the limitation tool, and court holiday calendars for Section 4.
 6. **Hindi interface**, starting with sign-up, bare acts and the diary.
 7. **Push notifications** (see Mobile).
 
 ## 📝 Feed posts with formatting and photos (16 Oct 2026)
 Built (migration 0066): rich composer (bold, italic, underline, heading, lists, quote, link) that grows with its content; up to 4 photos per post (JPEG/PNG ≤ 5 MB, re-drawn to ≤ 2000 px JPEG in the app, EXIF/GPS stripped on the server, virus-scanned); server-side allow-list HTML cleaning (`app/core/html_clean.py`); own posts can be deleted from the feed. Still open:
-- **Purge unused uploads**: photos uploaded but never posted (`post_images.post_id IS NULL` older than a day) and photos of deleted posts stay in storage. Add to `app/scripts/retention_purge.py` with the storage delete.
+- ✅ **Purge unused uploads** — done 21 Oct 2026 (`network/retention.py`). Found then: the older soft-deleted-documents purge in `privacy/retention.py` deletes stored bytes even on `--dry-run`; switch it to the `DRY_RUN` flag.
 - **Group posts** (`/app/groups/:id`) still use the plain text box; reuse `PostComposerComponent` there.
 - **Reposts** copy the text only, not the photos.
 - **Photo viewer**: photos open in a new tab; a swipeable full-screen viewer would be nicer on phones.
@@ -124,7 +124,7 @@ Android and iOS apps exist since 4 October 2026 (Capacitor, see [MOBILE.md](MOBI
 Still open:
 - **iOS build and signing** — needs a Mac with Xcode and the Apple Developer account (USD 99/year). The Xcode project is ready; nothing has been compiled yet.
 - **Store publishing** — listing text (network-first, "VidhiSangh: Legal Network"), 18 screenshots and the step-by-step guide are ready in [store/google-play/](store/google-play/PUBLISHING.md) (11 Oct 2026). Still open: the Google Play developer account (USD 25, owner's identity), the data-safety form, and the Play reviewer demo account.
-- **Timesheets table on phones** — the Billing → Timesheets table is too cramped at phone width (columns wrap one word per line). Needs a card layout under `md`, like the invoice list. Not in the store screenshots until then.
+- ✅ **Timesheets table on phones** — card layout under `md` (21 Oct 2026).
 - **Back up the Android upload keystore** (`~/.vidhisangh-signing/android/` on the dev laptop) somewhere safe, and turn on Play App Signing at first upload.
 - **Passkeys in the app** — WebAuthn is bound to vidhisangh.com; the app runs on localhost. Needs Android Digital Asset Links (`/.well-known/assetlinks.json`) + Apple associated domains and a native passkey plugin. Hidden in the app until then.
 - **SSO in the app** — the OAuth redirect returns to `location.origin`, which the app cannot receive. Needs deep links (custom scheme or App Links / Universal Links) and a backend allow-list entry. Hidden in the app until then.
@@ -159,3 +159,6 @@ No source service, account, number, template, webhook or token was changed.
 A real-recipient delivery test remains for the owner's first login/registration;
 no test number was provided. Source token rotations must also update VidhiSangh's
 encrypted copy. See DEPLOYMENT.md for the configuration.
+
+## 🧪 Flaky browser tests (seen 20–21 Oct 2026)
+- `tests/browser/help.spec.ts` "feature tour supports back, next, finish and replay" and "matter help and light-bulb tips preserve an unfinished form" fail on and off (also on unchanged code). Probably timing (the tour's step list read before it settles; focus restore racing). Make them wait on state, as done for `reminders.spec.ts`.
