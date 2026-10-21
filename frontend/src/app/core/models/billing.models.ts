@@ -11,7 +11,21 @@ export interface LineItem {
   amount: string | number;
 }
 
-export interface Invoice {
+/** The client's tax position as it stood when the invoice was made. */
+export interface InvoiceTaxFields {
+  client_gstin?: string | null;
+  gst_treatment?: string | null;
+  place_of_supply_code?: string | null;
+  place_of_supply?: string | null;
+  supplier_state_code?: string | null;
+  reverse_charge?: boolean;
+  tax_split?: { igst?: string | number; cgst?: string | number; sgst?: string | number } | null;
+  tds_section?: string | null;
+  tds_rate?: string | number | null;
+  tds_amount?: string | number | null;
+}
+
+export interface Invoice extends InvoiceTaxFields {
   id: string;
   invoice_number: string;
   document_type: InvoiceDocumentType;
@@ -53,7 +67,8 @@ export interface InvoiceCreate {
   client_name: string;
   client_id?: string | null;
   matter_id?: string | null;
-  tax_rate?: number;
+  /** Left out / null: from the client master. */
+  tax_rate?: number | null;
   due_date?: string | null;
   notes?: string | null;
   line_items?: LineItemCreate[];
@@ -127,7 +142,7 @@ export interface BillingBranding {
   receipt_prefix: string;
 }
 
-export interface PublicInvoice {
+export interface PublicInvoice extends InvoiceTaxFields {
   invoice_number: string;
   document_type: InvoiceDocumentType;
   client_name: string;

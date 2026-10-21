@@ -44,7 +44,9 @@ class InvoiceCreate(BaseModel):
     issue_date: date | None = None
     due_date: date | None = None
     currency: str = Field(default="INR", min_length=3, max_length=3)
-    tax_rate: Decimal = Field(default=Decimal(0), ge=0, le=100)
+    # Left out: from the client master (0 under reverse charge, 18 when the client
+    # is GST-applicable, else 0); 0 without a client.
+    tax_rate: Decimal | None = Field(default=None, ge=0, le=100)
     notes: str | None = Field(default=None, max_length=5000)
     line_items: list[LineItemCreate] = Field(default_factory=list, max_length=100)
     document_type: InvoiceDocumentType = InvoiceDocumentType.TAX_INVOICE
@@ -57,9 +59,28 @@ class InvoiceUpdate(BaseModel):
     due_date: date | None = None
     tax_rate: Decimal | None = Field(default=None, ge=0, le=100)
     notes: str | None = Field(default=None, max_length=5000)
+    reverse_charge: bool | None = None
+    place_of_supply_code: str | None = Field(default=None, pattern="^[0-9]{2}$")
+    tds_section: str | None = Field(default=None, max_length=10)
+    tds_rate: Decimal | None = Field(default=None, ge=0, le=100)
 
 
-class InvoiceRead(BaseModel):
+class InvoiceTaxFields(BaseModel):
+    """The client's tax position as it stood when the invoice was made."""
+
+    client_gstin: str | None = None
+    gst_treatment: str | None = None
+    place_of_supply_code: str | None = None
+    place_of_supply: str | None = None
+    supplier_state_code: str | None = None
+    reverse_charge: bool = False
+    tax_split: dict[str, Decimal] | None = None
+    tds_section: str | None = None
+    tds_rate: Decimal | None = None
+    tds_amount: Decimal | None = None
+
+
+class InvoiceRead(InvoiceTaxFields):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
     invoice_number: str
@@ -161,7 +182,7 @@ class BillingBranding(BaseModel):
     receipt_prefix: str = Field(default="RCT", min_length=1, max_length=10)
 
 
-class PublicInvoiceRead(BaseModel):
+class PublicInvoiceRead(InvoiceTaxFields):
     invoice_number: str
     document_type: InvoiceDocumentType
     client_name: str
@@ -250,7 +271,7 @@ class TimeEntryIds(BaseModel):
 class TimeInvoiceCreate(BaseModel):
     entry_ids: list[uuid.UUID] = Field(min_length=1, max_length=500)
     document_type: InvoiceDocumentType = InvoiceDocumentType.PROFORMA
-    tax_rate: Decimal = Field(default=Decimal(18), ge=0, le=100)
+    tax_rate: Decimal | None = Field(default=None, ge=0, le=100)  # None: from the client master
     due_date: date | None = None
     notes: str | None = Field(default=None, max_length=5000)
 

@@ -61,10 +61,10 @@ export class BillingComponent implements OnInit {
     work_date: new Date().toISOString().slice(0, 10), matter_id: '', client_id: '',
     hours: 1, description: '', activity_type: 'Professional work', billable: true,
   };
-  protected timeInvoice = { document_type: 'proforma' as InvoiceDocumentType, tax_rate: 18, due_date: '', notes: '' };
+  protected timeInvoice = { document_type: 'proforma' as InvoiceDocumentType, tax_rate: null as number | null, due_date: '', notes: '' };
   protected form = {
     client_name: '', client_id: null as string | null, matter_id: null as string | null,
-    tax_rate: 18, due_date: '', notes: '', document_type: 'proforma' as InvoiceDocumentType,
+    tax_rate: null as number | null, due_date: '', notes: '', document_type: 'proforma' as InvoiceDocumentType,
   };
   protected readonly rows = signal<LineItemCreate[]>([{ description: '', quantity: 1, unit_price: 0 }]);
   protected readonly filters: Filter[] = ['all', 'pending', 'draft', 'sent', 'paid', 'overdue', 'cancelled'];
@@ -127,12 +127,12 @@ export class BillingComponent implements OnInit {
         ? await firstValueFrom(this.billing.prepareMatterInvoice(this.form.matter_id))
         : await firstValueFrom(this.billing.create({
           client_name: this.form.client_name.trim(), client_id: this.form.client_id, matter_id: this.form.matter_id,
-          tax_rate: this.form.tax_rate || 0, due_date: this.form.due_date || null,
+          tax_rate: this.form.tax_rate ?? null, due_date: this.form.due_date || null,
           notes: this.form.notes.trim() || null, document_type: this.form.document_type,
           line_items: this.rows().filter((row) => row.description.trim() && row.unit_price > 0),
         }));
       this.notify.success(`${created.invoice_number} created.`);
-      this.form = { client_name: '', client_id: null, matter_id: null, tax_rate: 18, due_date: '', notes: '', document_type: 'proforma' };
+      this.form = { client_name: '', client_id: null, matter_id: null, tax_rate: null, due_date: '', notes: '', document_type: 'proforma' };
       this.rows.set([{ description: '', quantity: 1, unit_price: 0 }]); this.showForm.set(false);
       await this.router.navigate(['/app/billing', created.id]);
     } catch { /* handled centrally */ } finally { this.saving.set(false); }

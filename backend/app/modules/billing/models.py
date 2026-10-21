@@ -21,6 +21,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.crypto import EncryptedString
 from app.db.base_class import TenantScopedBase
 
 
@@ -75,6 +76,17 @@ class Invoice(TenantScopedBase):
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
     currency: Mapped[str] = mapped_column(String(3), default="INR", nullable=False)
     tax_rate: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=0, nullable=False)  # GST %
+    # The client's tax position when the invoice was made (from the client master),
+    # so a later change to the client does not rewrite an issued invoice.
+    client_gstin: Mapped[str | None] = mapped_column(EncryptedString(255), nullable=True)
+    gst_treatment: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    place_of_supply_code: Mapped[str | None] = mapped_column(String(2), nullable=True)
+    # Our GST state (first two digits of the firm's GSTIN): same as the place of
+    # supply → CGST + SGST, otherwise IGST.
+    supplier_state_code: Mapped[str | None] = mapped_column(String(2), nullable=True)
+    reverse_charge: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    tds_section: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    tds_rate: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
     subtotal: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0, nullable=False)
     tax_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0, nullable=False)
     total: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0, nullable=False)
@@ -99,6 +111,29 @@ class Invoice(TenantScopedBase):
     line_items: Mapped[list[InvoiceLineItem]] = relationship(
         back_populates="invoice", cascade="all, delete-orphan"
     )
+
+    @property
+    def place_of_supply(self) -> str | None:
+        from app.modules.clients.kyc import GST_STATE_CODES
+        code = self.place_of_supply_code
+        return f"{code} – {GST_STATE_CODES[code]}" if code in GST_STATE_CODES else code
+
+    @property
+    def tax_split(self) -> dict[str, Decimal] | None:
+        """CGST + SGST within the state, IGST across states; None when we cannot tell."""
+        if not self.tax_amount or not self.place_of_supply_code or not self.supplier_state_code:
+            return None
+        if self.place_of_supply_code != self.supplier_state_code:
+            return {"igst": self.tax_amount}
+        cgst = (self.tax_amount / 2).quantize(Decimal("0.01"))
+        return {"cgst": cgst, "sgst": self.tax_amount - cgst}
+
+    @property
+    def tds_amount(self) -> Decimal | None:
+        """What the client is expected to deduct at source (on the fee, not the GST)."""
+        if not self.tds_rate:
+            return None
+        return (self.subtotal * self.tds_rate / Decimal(100)).quantize(Decimal("0.01"))
     follow_ups: Mapped[list[InvoiceFollowUp]] = relationship(
         back_populates="invoice",
         cascade="all, delete-orphan",

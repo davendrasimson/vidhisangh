@@ -20,7 +20,7 @@
         <label class="grid gap-1"><span class="text-sm text-content-muted">Document type</span><select class="vs-input" [(ngModel)]="form.document_type"><option value="proforma">Proforma invoice</option><option value="tax_invoice">Tax invoice</option><option value="credit_note">Credit note</option></select></label>
         <label class="grid gap-1"><span class="text-sm text-content-muted">Client name</span><input class="vs-input" [(ngModel)]="form.client_name" /></label>
         <label class="grid gap-1"><span class="text-sm text-content-muted">Due date</span><input class="vs-input" type="date" [(ngModel)]="form.due_date" /></label>
-        <label class="grid gap-1"><span class="text-sm text-content-muted">GST / tax rate (%)</span><input class="vs-input" type="number" min="0" max="100" [(ngModel)]="form.tax_rate" /></label>
+        <label class="grid gap-1"><span class="text-sm text-content-muted">GST / tax rate (%)</span><input class="vs-input" type="number" min="0" max="100" [(ngModel)]="form.tax_rate" placeholder="From the client's GST settings" aria-label="GST / tax rate (%)" /></label>
         <label class="grid gap-1 md:col-span-2"><span class="text-sm text-content-muted">Notes / payment terms for this document</span><textarea class="vs-input min-h-16" [(ngModel)]="form.notes"></textarea></label>
       </div>
       <h3 class="font-medium mb-2">Line items</h3>
@@ -64,7 +64,7 @@
             @if (hasSelectedStatus('submitted')) { <button mat-stroked-button (click)="approveSelected()">Approve submitted</button> }
             @if (hasSelectedStatus('approved')) {
               <label class="grid gap-1 text-xs">Invoice type<select class="vs-input py-1" [(ngModel)]="timeInvoice.document_type"><option value="proforma">Proforma</option><option value="tax_invoice">Tax invoice</option></select></label>
-              <label class="grid gap-1 text-xs">GST %<input class="vs-input py-1 w-24" type="number" [(ngModel)]="timeInvoice.tax_rate" /></label>
+              <label class="grid gap-1 text-xs">GST %<input class="vs-input py-1 w-24" type="number" [(ngModel)]="timeInvoice.tax_rate" placeholder="Client" title="Empty: from the client's GST settings" /></label>
               <button mat-flat-button color="primary" (click)="billSelected()">Create invoice</button>
             }
           </div>

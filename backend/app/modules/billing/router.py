@@ -31,6 +31,7 @@ from app.modules.billing.schemas import (
     InvoiceUpdate,
     LineItemCreate,
     MatterInvoicePrepare,
+    InvoiceTaxFields,
     PublicInvoiceRead,
     ReceiptCreate,
     ReceiptRead,
@@ -104,6 +105,7 @@ def _public_read(invoice: Invoice, branding: BillingBranding) -> PublicInvoiceRe
         verification_code=invoice.verification_code,
         line_items=invoice.line_items,
         branding=branding,
+        **InvoiceTaxFields.model_validate(invoice, from_attributes=True).model_dump(),
     )
 
 

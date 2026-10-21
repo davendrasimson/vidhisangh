@@ -12,6 +12,7 @@ import { NotificationService } from '@core/services/notification.service';
 import { BillingBranding, InvoiceDetail, InvoiceStatus } from '@core/models/billing.models';
 
 import { publicOrigin } from '@core/platform/platform';
+import { taxRows } from './invoice-tax';
 @Component({
   selector: 'app-invoice-detail', standalone: true, changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FormsModule, DatePipe, RouterLink, MatIconModule, MatButtonModule],
@@ -24,6 +25,7 @@ import { publicOrigin } from '@core/platform/platform';
   `],
 })
 export class InvoiceDetailComponent {
+  protected readonly taxRows = taxRows;
   private readonly route = inject(ActivatedRoute);
   protected readonly billing = inject(BillingService);
   private readonly payments = inject(PaymentService);

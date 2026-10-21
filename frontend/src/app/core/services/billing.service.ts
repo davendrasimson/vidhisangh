@@ -150,7 +150,7 @@ export class BillingService {
     return this.http.post<void>(`${this.api}/time-entries/approve`, { entry_ids: entryIds });
   }
 
-  invoiceTime(payload: { entry_ids: string[]; document_type: InvoiceDocumentType; tax_rate: number; due_date?: string | null; notes?: string | null }): Observable<InvoiceDetail> {
+  invoiceTime(payload: { entry_ids: string[]; document_type: InvoiceDocumentType; tax_rate: number | null; due_date?: string | null; notes?: string | null }): Observable<InvoiceDetail> {
     return this.http.post<InvoiceDetail>(`${this.api}/time-entries/invoice`, payload);
   }
 

@@ -106,6 +106,27 @@ class BillingService:
         return f"{prefix}-{await self.repo.count_type(self.tenant_id, kind) + 1:04d}"
 
     # ── Invoices ────────────────────────────────────────────────────
+    async def _client(self, client_id: uuid.UUID | None) -> Client | None:
+        if client_id is None:
+            return None
+        return await self.session.scalar(select(Client).where(
+            Client.id == client_id, Client.tenant_id == self.tenant_id, Client.deleted_at.is_(None)))
+
+    async def _tax_position(self, invoice: Invoice, client: Client | None, tax_rate: Decimal | None) -> None:
+        """Copy the client master's tax position onto a new invoice."""
+        gstin = (await self.branding()).gstin.strip()
+        invoice.supplier_state_code = gstin[:2] if gstin[:2].isdigit() else None
+        if client is not None:
+            invoice.client_gstin = client.gstin or None
+            invoice.gst_treatment = str(client.gst_treatment) if client.gst_treatment else None
+            invoice.place_of_supply_code = client.place_of_supply_code or client.state_code
+            invoice.reverse_charge = bool(client.reverse_charge)
+            if client.tds_applicable and client.tds_rate:
+                invoice.tds_section, invoice.tds_rate = client.tds_section, Decimal(str(client.tds_rate)).quantize(_CENTS)
+        if tax_rate is None:
+            tax_rate = Decimal(0) if client is None or client.reverse_charge else Decimal(18 if client.gst_applicable else 0)
+        invoice.tax_rate = Decimal(tax_rate).quantize(_CENTS)
+
     async def create_invoice(self, data: InvoiceCreate) -> Invoice:
         number = await self._number(data.document_type)
         invoice = Invoice(
@@ -118,12 +139,12 @@ class BillingService:
             issue_date=data.issue_date or date.today(),
             due_date=data.due_date,
             currency=data.currency,
-            tax_rate=data.tax_rate,
             notes=data.notes,
             verification_code=_code(),
             payment_token=secrets.token_urlsafe(24),
             created_by=self.user_id,
         )
+        await self._tax_position(invoice, await self._client(data.client_id), data.tax_rate)
         invoice.line_items = [self._line(invoice.id, li) for li in data.line_items]
         self.repo.add(invoice)
         self._apply_totals(invoice, invoice.line_items)
@@ -157,29 +178,13 @@ class BillingService:
         )
         if not events:
             raise ValidationError("This matter has no selected unbilled fee events.")
-        client = None
-        if matter.client_id:
-            client = (
-                await self.session.execute(
-                    select(Client).where(
-                        Client.id == matter.client_id,
-                        Client.tenant_id == self.tenant_id,
-                        Client.deleted_at.is_(None),
-                    )
-                )
-            ).scalar_one_or_none()
-        tax_rate = (
-            Decimal(0)
-            if client and client.reverse_charge
-            else Decimal(18 if client and client.gst_applicable else 0)
-        )
+        client = await self._client(matter.client_id)
         invoice = await self.create_invoice(
             InvoiceCreate(
                 client_id=matter.client_id,
                 client_name=client.display_name if client else matter.client_name,
                 matter_id=matter.id,
                 due_date=data.due_date,
-                tax_rate=tax_rate,
                 notes=data.notes,
                 line_items=[
                     LineItemCreate(
@@ -237,8 +242,14 @@ class BillingService:
     async def update_invoice(self, invoice_id: uuid.UUID, data: InvoiceUpdate) -> Invoice:
         invoice = await self._require(invoice_id, detail=True)
         for field, value in data.model_dump(exclude_unset=True).items():
+            if field == "reverse_charge" and value is None:
+                continue
+            if field in ("tax_rate", "tds_rate") and value is not None:
+                value = Decimal(value).quantize(_CENTS)
             setattr(invoice, field, value)
         if "tax_rate" in data.model_dump(exclude_unset=True):
+            if invoice.tax_rate is None:  # "from the client" again
+                await self._tax_position(invoice, await self._client(invoice.client_id), None)
             self._apply_totals(invoice, invoice.line_items)  # tax changed → recompute
         return await self._require(invoice_id, detail=True)
 

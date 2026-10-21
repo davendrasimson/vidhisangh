@@ -192,3 +192,51 @@ async def test_proforma_follow_up_receipt_and_public_verification(
     verified = await client.get(f"{API}/billing/verify/{proforma['verification_code']}")
     assert verified.status_code == 200
     assert verified.json()["valid"] is True
+
+
+async def test_invoice_takes_tax_position_from_client(client: AsyncClient, strong_password: str) -> None:
+    from app.modules.clients.kyc import gstin_check_digit
+
+    def gstin(state: str, pan: str) -> str:
+        base = f"{state}{pan}1Z"
+        return base + gstin_check_digit(base)
+
+    h, _ = await _user(client, "Tax Chambers", "taxch@firm.co", strong_password)
+    brand = (await client.get(f"{API}/billing/settings/branding", headers=h)).json()
+    assert (await client.put(f"{API}/billing/settings/branding", headers=h,
+                             json={**brand, "gstin": gstin("07", "AAAFT1234K")})).status_code == 200
+
+    async def new_client(**fields) -> str:
+        r = await client.post(f"{API}/clients", headers=h, json={"kind": "business", **fields})
+        assert r.status_code == 201, r.text
+        return r.json()["id"]
+
+    # Mumbai business, GST at our end (reverse charge switched off), TDS 194J @ 10%.
+    mumbai = await new_client(display_name="Bombay Mills Ltd", legal_name="Bombay Mills Ltd", business_type="company",
+                              pan="AAACB1234K", gstin=gstin("27", "AAACB1234K"), state="Maharashtra",
+                              tds_applicable=True, tds_section="194J", tds_rate=10)
+    assert (await client.patch(f"{API}/clients/{mumbai}", headers=h, json={"reverse_charge": False})).status_code == 200
+    line = [{"description": "Opinion", "quantity": "1", "unit_price": "10000.00"}]
+    inv = (await client.post(f"{API}/billing/invoices", headers=h, json={
+        "client_name": "Bombay Mills Ltd", "client_id": mumbai, "line_items": line})).json()
+    assert inv["tax_rate"] == "18.00" and inv["tax_amount"] == "1800.00"
+    assert inv["place_of_supply"] == "27 – Maharashtra" and inv["supplier_state_code"] == "07"
+    assert inv["tax_split"] == {"igst": "1800.00"} and inv["reverse_charge"] is False
+    assert inv["client_gstin"].startswith("27AAACB1234K")
+    assert (inv["tds_section"], inv["tds_rate"], inv["tds_amount"]) == ("194J", "10.00", "1000.00")
+    public = (await client.get(f"{API}/billing/public/invoices/{inv['payment_token']}")).json()
+    assert public["tax_split"] == {"igst": "1800.00"} and public["tds_amount"] == "1000.00"
+
+    # Delhi business under reverse charge (the default for a business): no GST charged by us.
+    delhi = await new_client(display_name="Capital Traders", legal_name="Capital Traders", business_type="partnership",
+                             pan="AAAFC1234K", gstin=gstin("07", "AAAFC1234K"), state="Delhi")
+    rc = (await client.post(f"{API}/billing/invoices", headers=h, json={
+        "client_name": "Capital Traders", "client_id": delhi, "line_items": line})).json()
+    assert rc["reverse_charge"] is True and rc["tax_amount"] == "0.00" and rc["tax_split"] is None
+    # Charging GST by hand within Delhi: CGST + SGST.
+    upd = (await client.patch(f"{API}/billing/invoices/{rc['id']}", headers=h, json={"tax_rate": 18, "reverse_charge": False})).json()
+    assert upd["tax_split"] == {"cgst": "900.00", "sgst": "900.00"}
+
+    # No client: nothing to take, no GST.
+    plain = (await client.post(f"{API}/billing/invoices", headers=h, json={"client_name": "Walk-in", "line_items": line})).json()
+    assert plain["tax_rate"] == "0.00" and plain["place_of_supply"] is None and plain["tds_amount"] is None
