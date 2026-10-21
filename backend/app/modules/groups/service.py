@@ -8,6 +8,7 @@ cross-tenant member lists and community feeds render without RLS joins.
 from __future__ import annotations
 
 import re
+import secrets
 import uuid
 from datetime import UTC, datetime
 
@@ -325,6 +326,39 @@ class GroupService:
         groups = await self.groups.for_member([m.group_id for m in invites])
         by_id = {g.id: g for g in groups}
         return [(m, by_id[m.group_id]) for m in invites if m.group_id in by_id]
+
+    # ── Invite links (vidhisangh.com/join/<code>) ──────────────────
+    async def invite_link(self, group_id: uuid.UUID, *, reset: bool = False) -> Group:
+        """The group's invite code, created on first use; ``reset`` replaces it
+        (the old link stops working). Group admins only."""
+        group = await self._get_group(group_id)
+        await self._require_manager(group_id)
+        if reset or not group.invite_code:
+            group.invite_code = secrets.token_urlsafe(8).replace("-", "x").replace("_", "y")
+            await self.session.flush()
+        return group
+
+    async def join_by_code(self, code: str) -> tuple[Group, GroupMembership]:
+        """Join through an invite link: at once, even for a private group (an
+        admin shared the link). Idempotent for members."""
+        group = await self.groups.get_by_invite_code(code)
+        if group is None:
+            raise NotFoundError("This invite link is not valid any more.")
+        membership = await self.members.get(group.id, self.user_id)
+        if membership is not None:
+            if membership.status != MemberStatus.ACTIVE:
+                membership.status = MemberStatus.ACTIVE
+                group.member_count += 1
+                await self.session.flush()
+            return group, membership
+        name, headline, avatar = await self._my_snapshot()
+        membership = GroupMembership(group_id=group.id, user_id=self.user_id, member_name=name,
+                                     member_headline=headline, member_avatar_url=avatar,
+                                     role=MemberRole.MEMBER, status=MemberStatus.ACTIVE)
+        self.members.add(membership)
+        group.member_count += 1
+        await self.session.flush()
+        return group, membership
 
     async def accept_invite(self, group_id: uuid.UUID) -> GroupMembership:
         group = await self._get_group(group_id)

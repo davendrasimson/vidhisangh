@@ -7,8 +7,9 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Response, status
+from pydantic import BaseModel
 
-from app.core.deps import CurrentUserDep, TenantSessionDep, require_permission
+from app.core.deps import AuthSessionDep, CurrentUserDep, TenantSessionDep, require_permission
 from app.core.exceptions import TenantError
 from app.core.pagination import PageParams, page_params
 from app.modules.groups.models import (
@@ -435,3 +436,49 @@ async def _read_with_membership(
 ) -> GroupRead:
     group, membership = await _svc(current, session).get_group(group_id)
     return _to_read(group, membership)
+
+
+# ─── Invite links (vidhisangh.com/join/<code>) ──────────────────────
+class InviteLink(BaseModel):
+    code: str
+    url: str
+
+
+class InvitePreview(BaseModel):
+    group_id: uuid.UUID
+    name: str
+    description: str | None
+    member_count: int
+    is_verified: bool
+
+
+def _invite(group) -> InviteLink:  # noqa: ANN001
+    return InviteLink(code=group.invite_code, url=f"https://vidhisangh.com/join/{group.invite_code}")
+
+
+@router.post("/{group_id}/invite-link", response_model=InviteLink, summary="The group's invite link (admins)")
+async def get_invite_link(group_id: uuid.UUID, current: CurrentUserDep, session: TenantSessionDep,
+                          reset: bool = False) -> InviteLink:
+    return _invite(await _svc(current, session).invite_link(group_id, reset=reset))
+
+
+@router.get("/invite/{code}", response_model=InvitePreview, summary="What an invite link leads to (no sign-in)")
+async def preview_invite(code: str, session: AuthSessionDep) -> InvitePreview:
+    from sqlalchemy import select
+
+    from app.core.exceptions import NotFoundError
+    from app.modules.groups.models import Group
+
+    group = await session.scalar(select(Group).where(Group.invite_code == code, Group.deleted_at.is_(None)))
+    if group is None:
+        raise NotFoundError("This invite link is not valid any more.")
+    return InvitePreview(group_id=group.id, name=group.name, description=group.description,
+                         member_count=group.member_count, is_verified=group.is_verified)
+
+
+@router.post("/invite/{code}/join", dependencies=[require_permission("post:create")], response_model=InvitePreview,
+             summary="Join through an invite link")
+async def join_by_invite(code: str, current: CurrentUserDep, session: TenantSessionDep) -> InvitePreview:
+    group, _ = await _svc(current, session).join_by_code(code)
+    return InvitePreview(group_id=group.id, name=group.name, description=group.description,
+                         member_count=group.member_count, is_verified=group.is_verified)

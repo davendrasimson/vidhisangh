@@ -3,6 +3,8 @@ import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '@env/environment';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
@@ -29,6 +31,7 @@ export class GroupDetailComponent implements OnInit {
   private readonly net = inject(NetworkService);
   private readonly notify = inject(NotificationService);
   private readonly auth = inject(AuthService);
+  private readonly http = inject(HttpClient);
 
   private groupId = '';
   protected readonly group = signal<Group | null>(null);
@@ -59,6 +62,25 @@ export class GroupDetailComponent implements OnInit {
     return role === 'owner' || role === 'admin';
   });
   protected readonly isOwner = computed(() => this.group()?.my_role === 'owner');
+  protected readonly inviteLink = signal<{ code: string; url: string } | null>(null);
+  protected readonly inviteWhatsApp = computed(() => {
+    const g = this.group(), link = this.inviteLink();
+    return g && link ? `https://wa.me/?text=${encodeURIComponent(`Join ${g.name} on VidhiSangh: ${link.url}`)}` : '';
+  });
+
+  protected async loadInviteLink(reset: boolean): Promise<void> {
+    const g = this.group();
+    if (!g || (reset && !window.confirm('Make a new link? The old one will stop working.'))) return;
+    try {
+      this.inviteLink.set(await firstValueFrom(this.http.post<{ code: string; url: string }>(
+        `${environment.apiBaseUrl}/groups/${g.id}/invite-link${reset ? '?reset=true' : ''}`, {})));
+      if (reset) this.notify.success('New invite link ready; the old one no longer works.');
+    } catch { /* toast shown */ }
+  }
+
+  protected async copyInviteLink(url: string): Promise<void> {
+    try { await navigator.clipboard.writeText(url); this.notify.success('Invite link copied.'); } catch { /* clipboard unavailable */ }
+  }
   protected readonly myId = computed(() => this.auth.user()?.id ?? '');
   protected readonly myInitials = computed(() => this.initials(this.auth.user()?.full_name ?? ''));
 

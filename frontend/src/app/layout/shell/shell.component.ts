@@ -3,7 +3,7 @@ import { TellAFriendService } from '@core/services/tell-a-friend.service';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatListModule } from '@angular/material/list';
@@ -20,6 +20,8 @@ import { SupportDialogComponent } from './support-dialog.component';
 import { SampleDataService } from '@core/services/sample-data.service';
 import { NotificationService } from '@core/services/notification.service';
 import { firstValueFrom } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { joinPendingGroup } from '@core/groups/pending-invite';
 
 interface NavItem {
   label: string;
@@ -61,6 +63,8 @@ export class ShellComponent implements OnInit {
   private readonly realtime = inject(RealtimeService);
   private readonly samples = inject(SampleDataService);
   private readonly notify = inject(NotificationService);
+  private readonly http = inject(HttpClient);
+  private readonly shellRouter = inject(Router);
   protected readonly opened = signal(true);
   protected readonly compact = signal(false);
   protected readonly sampleDataAvailable = signal(false);
@@ -81,6 +85,15 @@ export class ShellComponent implements OnInit {
     // Live messaging socket is app-wide so delivery/presence work everywhere.
     this.realtime.connect();
     void this.loadSampleStatus();
+    void this.joinInvitedGroup();
+  }
+
+  /** A group invite link opened before signing up or in: join it now and open the group. */
+  private async joinInvitedGroup(): Promise<void> {
+    const joined = await joinPendingGroup(this.http);
+    if (!joined) return;
+    this.notify.success(`You joined ${joined.name}.`);
+    await this.shellRouter.navigate(['/app/groups', joined.group_id]);
   }
 
   private async loadSampleStatus(): Promise<void> {

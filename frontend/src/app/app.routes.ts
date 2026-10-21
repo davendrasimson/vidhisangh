@@ -41,6 +41,11 @@ export const routes: Routes = [
     loadComponent: () => import('@features/legal/terms.component').then((m) => m.TermsComponent),
   },
   {
+    path: 'join/:code',
+    data: { seo: { title: 'Join a group on VidhiSangh', description: 'An invitation to a group on VidhiSangh, the professional network for India\'s legal fraternity.' } },
+    loadComponent: () => import('@features/groups/join-group.component').then(m => m.JoinGroupComponent),
+  },
+  {
     path: 'unsubscribe/:token',
     loadComponent: () => import('@features/outreach/unsubscribe.component').then(m => m.UnsubscribeComponent),
   },

@@ -33,6 +33,11 @@ class GroupRepository:
         )
         return res.scalar_one_or_none()
 
+    async def get_by_invite_code(self, code: str) -> Group | None:
+        return await self.session.scalar(
+            select(Group).where(Group.invite_code == code, Group.deleted_at.is_(None))
+        )
+
     async def get_by_slug(self, slug: str) -> Group | None:
         res = await self.session.execute(
             select(Group).where(Group.slug == slug, Group.deleted_at.is_(None))

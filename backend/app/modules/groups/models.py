@@ -50,7 +50,10 @@ class MemberStatus(StrEnum):
 
 class Group(AuditedBase):
     __tablename__ = "groups"
-    __table_args__ = (UniqueConstraint("slug", name="groups_slug"),)
+    __table_args__ = (
+        UniqueConstraint("slug", name="groups_slug"),
+        UniqueConstraint("invite_code", name="uq_groups_invite_code"),
+    )
 
     slug: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(150), nullable=False)
@@ -69,6 +72,9 @@ class Group(AuditedBase):
     tenant_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
+    # Invite link vidhisangh.com/join/<invite_code> (bar associations, law
+    # colleges): anyone with it joins at once; an admin can reset it.
+    invite_code: Mapped[str | None] = mapped_column(String(16), nullable=True)
     member_count: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     post_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 

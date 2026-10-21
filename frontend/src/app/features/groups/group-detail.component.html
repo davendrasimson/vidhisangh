@@ -144,6 +144,20 @@
       } @else {
         <!-- Invite people (managers) -->
         @if (isManager()) {
+          <section class="rounded-card bg-surface-raised border border-line p-4 mb-4 grid gap-2">
+            <h3 class="font-semibold">Invite link</h3>
+            <p class="text-sm text-content-muted">Share one link with your bar association, college or chamber: anyone who opens it joins at once (new people sign up first).</p>
+            @if (inviteLink(); as link) {
+              <a class="text-brand underline break-all text-sm" [href]="link.url" target="_blank" rel="noopener">{{ link.url }}</a>
+              <div class="flex flex-wrap gap-2">
+                <a mat-flat-button class="!bg-[#1f9d55] !text-white" [href]="inviteWhatsApp()" target="_blank" rel="noopener"><mat-icon class="material-icons-outlined">chat</mat-icon> Share on WhatsApp</a>
+                <button mat-stroked-button (click)="copyInviteLink(link.url)"><mat-icon class="material-icons-outlined">content_copy</mat-icon> Copy</button>
+                <button mat-button (click)="loadInviteLink(true)" title="The old link stops working">Reset link</button>
+              </div>
+            } @else {
+              <button mat-stroked-button class="justify-self-start" (click)="loadInviteLink(false)"><mat-icon class="material-icons-outlined">link</mat-icon> Get invite link</button>
+            }
+          </section>
           <div class="mb-4">
             <button mat-stroked-button color="primary" (click)="toggleInvitePanel()">
               <mat-icon class="material-icons-outlined">person_add</mat-icon>

@@ -350,9 +350,10 @@ export const HELP_TOPICS: HelpTopic[] = [
     "summary": "Find professional communities and discussions.",
     "steps": [
       "Browse the groups available to you.",
-      "Open a group to review membership and discussions."
+      "Open a group to review membership and discussions.",
+      "Group admins: use Get invite link and share it on WhatsApp — anyone who opens it joins at once."
     ],
-    "tip": "Groups keep topic-specific discussions separate from your main feed.",
+    "tip": "Groups keep topic-specific discussions separate from your main feed. Reset the invite link if it was shared too widely; the old one stops working.",
     "permission": null,
     "featured": true
   },
@@ -625,6 +626,19 @@ export const HELP_TOPICS: HelpTopic[] = [
       "Your address goes on the do-not-email list and is never emailed again."
     ],
     "tip": "Your mail app's own Unsubscribe button works too, without opening this page.",
+    "permission": null,
+    "featured": false
+  },
+  {
+    "id": "join-group",
+    "title": "Join a group from an invite link",
+    "path": "/join/:code",
+    "summary": "Join a bar association, college or chamber group someone shared with you.",
+    "steps": [
+      "Open the invite link: it shows the group and how many members it has.",
+      "Signed in: tap Join the group. New to VidhiSangh: sign up first and you are added as soon as you are in."
+    ],
+    "tip": "If the link says it has expired, ask the group's admin for a new one.",
     "permission": null,
     "featured": false
   },
