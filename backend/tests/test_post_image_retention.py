@@ -9,7 +9,8 @@ import pytest
 from sqlalchemy import select
 
 from app.modules.network.models import Post, PostImage
-from app.modules.network.retention import DRY_RUN, purge_post_images
+from app.core.retention import DRY_RUN
+from app.modules.network.retention import purge_post_images
 
 pytestmark = pytest.mark.asyncio
 
@@ -54,3 +55,18 @@ async def test_unused_and_deleted_post_photos_are_purged(session_factory, monkey
         left = sorted(i.storage_key for i in await s.scalars(select(PostImage)))
     assert sorted(store.deleted) == ["gone", "unused-old"]
     assert left == ["live", "recent-gone", "unused-new"]
+
+
+async def test_deleted_document_purge_keeps_files_on_a_dry_run(monkeypatch) -> None:
+    from app.core.retention import DRY_RUN
+    from app.modules.privacy import retention
+
+    store = Store()
+    monkeypatch.setattr("app.modules.privacy.retention.get_storage", lambda: store)
+    token = DRY_RUN.set(True)
+    try:
+        assert await retention._delete_storage_keys(["a", "b"]) == 2
+    finally:
+        DRY_RUN.reset(token)
+    assert store.deleted == []
+    assert await retention._delete_storage_keys(["a"]) == 1 and store.deleted == ["a"]

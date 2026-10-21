@@ -19,7 +19,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 import app.db.base  # noqa: F401 — register all models
 from app.core.database import session_scope
-from app.modules.network.retention import DRY_RUN, purge_post_images
+from app.core.retention import DRY_RUN
+from app.modules.network.retention import purge_post_images
 from app.modules.notifications.service import DELIVERY_RETENTION_DAYS, purge_old_deliveries
 from app.modules.privacy.retention import PRIVACY_PURGES
 

@@ -15,6 +15,7 @@ import structlog
 from sqlalchemy import delete, or_, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.retention import DRY_RUN
 from app.core.storage import get_storage
 from app.db.base_class import Base
 from app.modules.documents.models import Document, DocumentVersion
@@ -41,8 +42,11 @@ async def _exec(session: AsyncSession, stmt):  # noqa: ANN001, ANN202
 
 
 async def _delete_storage_keys(keys: list[str]) -> int:
+    """Delete stored objects; on a dry run delete nothing and report the count."""
     if not keys:
         return 0
+    if DRY_RUN.get():
+        return len(keys)
     storage = get_storage()
     removed = 0
     for key in keys:
@@ -88,8 +92,8 @@ async def purge_used_backup_codes(session: AsyncSession) -> int:
 
 
 async def purge_deleted_documents(session: AsyncSession) -> int:
-    """Documents soft-deleted more than N days ago: delete every version's
-    bytes from the object store, then the rows."""
+    """Documents soft-deleted more than N days ago: delete the rows, then every
+    version's bytes from the object store (none on a dry run)."""
     cutoff = _ago(int(privacy_setting("DATA_RETENTION_DAYS_DELETED_DOCUMENTS")))
     doc_ids = list((await session.execute(select(Document.id).where(Document.deleted_at < cutoff))).scalars().all())
     if not doc_ids:
@@ -97,9 +101,13 @@ async def purge_deleted_documents(session: AsyncSession) -> int:
     keys = list((await session.execute(
         select(DocumentVersion.storage_key).where(DocumentVersion.document_id.in_(doc_ids))
     )).scalars().all())
-    await _delete_storage_keys(keys)
+    # Rows first and committed, then the bytes: nothing is left pointing at a
+    # missing file, and a dry run (rolled back) deletes no files.
     await _exec(session, delete(DocumentVersion).where(DocumentVersion.document_id.in_(doc_ids)))
     res = await _exec(session, delete(Document).where(Document.id.in_(doc_ids)))
+    if not DRY_RUN.get():
+        await session.commit()
+    await _delete_storage_keys(keys)
     return int(res.rowcount or 0)
 
 

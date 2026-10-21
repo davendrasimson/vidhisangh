@@ -8,18 +8,17 @@ Rows go first, then the stored bytes — and the bytes only on a real run
 
 from __future__ import annotations
 
-from contextvars import ContextVar
 from datetime import UTC, datetime, timedelta
 
 import structlog
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.retention import DRY_RUN
 from app.core.storage import get_storage
 from app.modules.network.models import Post, PostImage
 
 log = structlog.get_logger("app.retention.post_images")
-DRY_RUN: ContextVar[bool] = ContextVar("retention_dry_run", default=False)
 UNUSED_AFTER = timedelta(days=1)
 DELETED_POST_AFTER = timedelta(days=30)
 
