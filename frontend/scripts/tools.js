@@ -82,6 +82,33 @@
     });
   }
 
+  /** Interest between two dates: simple, or compounded n times a year (365-day year). */
+  function interest(principal, ratePct, from, to, perYear) {
+    const days = Math.round((to - from) / DAY);
+    const t = days / 365, r = ratePct / 100;
+    const total = perYear ? principal * Math.pow(1 + r / perYear, perYear * t) : principal * (1 + r * t);
+    return { days, interest: total - principal, total };
+  }
+  const rupees = (n) => `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  for (const form of forms('form[data-tool="interest"]')) {
+    const out = $(form.parentElement, '.tool-result');
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const principal = parseFloat(String($(form, '[name=principal]').value).replace(/[,₹\s]/g, ''));
+      const rate = parseFloat($(form, '[name=rate]').value);
+      const from = parseDate($(form, '[name=from]').value), to = parseDate($(form, '[name=to]').value);
+      if (!(principal > 0) || !(rate >= 0)) { out.innerHTML = '<p class="error">Enter the amount and the rate.</p>'; return; }
+      if (from === null || to === null) { out.innerHTML = '<p class="error">Enter both dates as dd/mm/yyyy.</p>'; return; }
+      if (to <= from) { out.innerHTML = '<p class="error">The end date must be after the start date.</p>'; return; }
+      const perYear = +$(form, '[name=compound]').value;
+      const r = interest(principal, rate, from, to, perYear);
+      out.innerHTML = `<p class="answer">Interest: <strong>${rupees(r.interest)}</strong></p>
+<p>Total with principal: <strong>${rupees(r.total)}</strong></p>
+<p class="small">${rupees(principal)} at ${rate}% a year, ${perYear ? `compounded ${({ 1: 'yearly', 4: 'quarterly', 12: 'monthly' })[perYear]}` : 'simple interest'}, for ${r.days} days (${fmt(from)} to ${fmt(to)}), 365-day year.</p>`;
+    });
+  }
+
   function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
-  if (typeof module !== 'undefined') module.exports = { parseDate, parsePeriods, addPeriod };
+  if (typeof module !== 'undefined') module.exports = { parseDate, parsePeriods, addPeriod, interest };
 })();

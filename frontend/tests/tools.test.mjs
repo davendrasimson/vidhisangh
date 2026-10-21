@@ -36,3 +36,16 @@ test('the Schedule has all 137 Articles and the tool pages are generated', () =>
   const sitemap = readFileSync(new URL('../public/sitemap.xml', import.meta.url), 'utf8');
   assert.ok(sitemap.includes('https://vidhisangh.com/tools/limitation-calculator/article-137/<'));
 });
+
+test('interest: simple and compound between two dates, 365-day year', async () => {
+  const { interest } = createRequire(import.meta.url)('../scripts/tools.js');
+  const simple = interest(100000, 9, d('01/01/2025'), d('01/01/2026'), 0);
+  assert.equal(simple.days, 365);
+  assert.equal(Math.round(simple.interest * 100) / 100, 9000);
+  const yearly = interest(100000, 10, d('01/01/2024'), d('31/12/2025'), 1);
+  assert.equal(yearly.days, 730);
+  assert.equal(Math.round(yearly.total), 121000);  // 10% a year, twice
+  const html = readFileSync(new URL('../public/tools/interest-calculator/index.html', import.meta.url), 'utf8');
+  assert.match(html, /data-tool="interest"/);
+  assert.match(html, /Section 34 of the Code of Civil Procedure/);
+});

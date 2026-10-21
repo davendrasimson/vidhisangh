@@ -359,8 +359,36 @@ ${cta({ id: 'bnss', short: 'BNSS' }, '187')}
   });
   urls.push([bailUrl, 'monthly', '0.8']);
 
+  const interestUrl = '/tools/interest-calculator/';
+  write(interestUrl, {
+    title: 'Interest calculator — simple and compound interest between two dates (Section 34 CPC) | VidhiSangh',
+    description: 'Interest on a sum between two dates: simple, or compounded monthly, quarterly or yearly. For money suits, decrees and invoices; Section 34 CPC noted. Free.',
+    crumbs: [...crumbsBase, ['Interest calculator', interestUrl]],
+    body: `<main>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/tools/">Free tools</a> › <span>Interest calculator</span></nav>
+<p class="eyebrow">Free tool</p>
+<h1>Interest calculator</h1>
+<p class="lede">Interest on a sum between two dates — for money suits, decrees, cheque and invoice claims.</p>
+<form class="tool" data-tool="interest">
+<div class="row"><label>Amount (₹)<input name="principal" inputmode="decimal" placeholder="e.g. 5,00,000" required /></label>
+<label>Rate (% a year)<input name="rate" inputmode="decimal" placeholder="e.g. 9" required /></label></div>
+<div class="row"><label>From (dd/mm/yyyy)<input name="from" inputmode="numeric" placeholder="dd/mm/yyyy" autocomplete="off" required /></label>
+<label>To (dd/mm/yyyy)<input name="to" inputmode="numeric" placeholder="dd/mm/yyyy" autocomplete="off" required /></label></div>
+<label>Interest<select name="compound"><option value="0">Simple</option><option value="12">Compounded monthly</option><option value="4">Compounded quarterly</option><option value="1">Compounded yearly</option></select></label>
+<button type="submit">Calculate interest</button>
+</form>
+<div class="tool-result" aria-live="polite"></div>
+<script src="${TOOLS_JS_URL}" defer></script>
+<p class="small">Under Section 34 of the Code of Civil Procedure the court decides the rate. From the date of the decree to payment it may not exceed six per cent a year, except where the liability arose out of a commercial transaction, when it may go up to the contractual rate or, if there is none, the rate at which nationalised banks lend for commercial transactions.</p>
+${TOOL_NOTE}
+<p class="actions">${whatsappShare('Interest calculator for advocates (simple and compound, between two dates):', interestUrl)}<a class="ghost" href="/acts/cpc/">Read the CPC</a></p>
+${cta({ id: 'cpc', short: 'CPC' }, '')}
+</main>`,
+  });
+  urls.push([interestUrl, 'monthly', '0.7']);
+
   write('/tools/', {
-    title: 'Free legal tools — limitation calculator, default bail calculator, IPC to BNS | VidhiSangh',
+    title: 'Free legal tools — limitation, default bail and interest calculators, IPC to BNS | VidhiSangh',
     description: 'Free tools for advocates: limitation period calculator for all 137 Articles, default bail calculator under BNSS, and IPC to BNS, CrPC to BNSS and Evidence Act to BSA converters.',
     crumbs: crumbsBase,
     body: `<main>
@@ -369,6 +397,7 @@ ${cta({ id: 'bnss', short: 'BNSS' }, '187')}
 <div class="acts">
 <a class="act" href="${limUrl}"><b>Limitation</b><span>Last date to file a suit, appeal or application, all 137 Articles</span><small>Calculator</small></a>
 <a class="act" href="${bailUrl}"><b>Default bail</b><span>60 / 90 days under Section 187(3) BNSS</span><small>Calculator</small></a>
+<a class="act" href="${interestUrl}"><b>Interest</b><span>Simple or compound interest between two dates</span><small>Calculator</small></a>
 ${CORRESPONDENCE.map((t) => `<a class="act" href="/acts/${CONVERTERS[t.old_act]}/"><b>${esc(OLD_SHORT[t.old_act])} → ${esc(NEW_SHORT[t.new_act])}</b><span>Find the new section for any old one</span><small>Converter</small></a>`).join('')}
 </div>
 ${cta({ id: 'bns', short: 'Acts' }, '')}
