@@ -1,10 +1,11 @@
-"""Send tomorrow's hearing reminders on WhatsApp (systemd timer vidhisangh-hearing-reminders).
+"""Send tomorrow's hearing reminders (systemd timer vidhisangh-hearing-reminders).
 
     python -m app.scripts.hearing_reminders            # send
     python -m app.scripts.hearing_reminders --dry-run  # counts only, nothing sent
 
-Skips everything while VS_WA_REMINDER_TEMPLATE is empty or WhatsApp is not
-configured. Prints counts only: no names, numbers or matters.
+WhatsApp to members who turned it on, push to members with the app (push
+allowed); a channel that is not configured is skipped. Prints counts only:
+no names, numbers or matters.
 """
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ import asyncio
 
 from app.core.config import settings
 from app.core.database import session_scope
+from app.core.push import get_push_sender
 from app.core.whatsapp import get_whatsapp_sender
 from app.modules.notifications import hearing_reminders as reminders
 
@@ -26,10 +28,11 @@ async def run(dry_run: bool) -> dict:
         due = await reminders.collect(session, day)
         if dry_run:
             return {"day": day.isoformat(), "members": len(due), "hearings": sum(len(r.hearings) for r in due)}
-        sender = get_whatsapp_sender()
-        if sender is None or not settings.WA_REMINDER_TEMPLATE:
-            return {"skipped": "WhatsApp or VS_WA_REMINDER_TEMPLATE is not configured", "members": len(due)}
-        return {"day": day.isoformat(), **await reminders.send_reminders(session, sender, day, due)}
+        sender = get_whatsapp_sender() if settings.WA_REMINDER_TEMPLATE else None
+        push = get_push_sender()
+        if sender is None and push is None:
+            return {"skipped": "neither WhatsApp nor push is configured", "members": len(due)}
+        return {"day": day.isoformat(), **await reminders.send_reminders(session, sender, day, due, push=push)}
 
 
 if __name__ == "__main__":

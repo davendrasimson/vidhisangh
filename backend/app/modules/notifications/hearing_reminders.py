@@ -20,6 +20,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.push import PushMessage, PushSender
 from app.core.whatsapp import WhatsAppError, WhatsAppSender
 from app.modules.identity.models import User
 from app.modules.matters.models import Hearing, HearingStatus, Matter, MatterStatus, MatterTeamMember
@@ -27,6 +28,7 @@ from app.modules.notifications.models import (
     HearingReminderSend,
     NotificationChannel,
     NotificationPreference,
+    PushDevice,
 )
 
 log = structlog.get_logger("app.hearing_reminders")
@@ -39,8 +41,9 @@ LIST_LIMIT = 700
 class Reminder:
     user_id: uuid.UUID
     name: str
-    phone: str
+    phone: str | None  # set when the member turned WhatsApp reminders on (verified number)
     hearings: list[str] = field(default_factory=list)
+    push: bool = False  # the member has the app with push allowed
 
 
 def tomorrow_ist(now: datetime | None = None) -> date:
@@ -88,14 +91,23 @@ def hearing_list(items: list[str]) -> str:
 
 
 async def collect(session: AsyncSession, day: date) -> list[Reminder]:
-    """Opted-in members with hearings on ``day`` (India time). Needs RLS bypass."""
-    opted = set(await session.scalars(
+    """Members with hearings on ``day`` (India time) who will hear about them:
+    WhatsApp turned on, or the app with push allowed. Needs RLS bypass."""
+    whatsapp = set(await session.scalars(
         select(NotificationPreference.user_id).where(
             NotificationPreference.channel == NotificationChannel.WHATSAPP,
             NotificationPreference.enabled.is_(True),
             NotificationPreference.deleted_at.is_(None),
         )
     ))
+    push_off = set(await session.scalars(
+        select(NotificationPreference.user_id).where(
+            NotificationPreference.channel == NotificationChannel.PUSH,
+            NotificationPreference.enabled.is_(False),
+        )
+    ))
+    push = set(await session.scalars(select(PushDevice.user_id).distinct())) - push_off
+    opted = whatsapp | push
     if not opted:
         return []
     start = datetime.combine(day, time(0, 0), IST).astimezone(UTC)
@@ -130,27 +142,28 @@ async def collect(session: AsyncSession, day: date) -> list[Reminder]:
     if not per_user:
         return []
     users = {u.id: u for u in await session.scalars(
-        select(User).where(
-            User.id.in_(per_user), User.deleted_at.is_(None), User.is_active.is_(True),
-            User.is_phone_verified.is_(True), User.phone.is_not(None),
-        )
+        select(User).where(User.id.in_(per_user), User.deleted_at.is_(None), User.is_active.is_(True))
     )}
     reminders = []
     for user_id, items in per_user.items():
         user = users.get(user_id)
         if user is None:
             continue
+        phone = user.phone if user_id in whatsapp and user.is_phone_verified and user.phone else None
+        if phone is None and user_id not in push:
+            continue
         reminders.append(Reminder(
-            user_id=user_id, name=_clean(user.full_name) or "Counsel", phone=user.phone,
-            hearings=[describe(i, m, h) for i, (m, h) in enumerate(items, start=1)],
+            user_id=user_id, name=_clean(user.full_name) or "Counsel", phone=phone,
+            hearings=[describe(i, m, h) for i, (m, h) in enumerate(items, start=1)], push=user_id in push,
         ))
     return reminders
 
 
 async def send_reminders(
-    session: AsyncSession, sender: WhatsAppSender, day: date, reminders: list[Reminder],
+    session: AsyncSession, sender: WhatsAppSender | None, day: date, reminders: list[Reminder],
+    *, push: PushSender | None = None,
 ) -> dict[str, int]:
-    """Sends each reminder once per day; commits after every member."""
+    """Sends each reminder once per day (WhatsApp and/or push); commits after every member."""
     report = {"sent": 0, "already": 0, "failed": 0}
     when = f"{day.strftime('%a')} {day.strftime('%d/%m/%Y')}"
     for r in reminders:
@@ -162,17 +175,31 @@ async def send_reminders(
         row = HearingReminderSend(user_id=r.user_id, for_date=day, hearing_count=len(r.hearings), status="sending")
         session.add(row)
         await session.commit()  # claimed before sending: a rerun never sends twice
-        try:
-            await sender.send_template(
-                r.phone, settings.WA_REMINDER_TEMPLATE, settings.WA_REMINDER_TEMPLATE_LANG,
-                [r.name, when, hearing_list(r.hearings)],
-            )
-        except WhatsAppError as exc:
-            row.status, row.detail = "failed", str(exc)[:200]
-            report["failed"] += 1
-        else:
-            row.status = "sent"
-            report["sent"] += 1
+        delivered, problems = [], []
+        if r.phone and sender is not None:
+            try:
+                await sender.send_template(
+                    r.phone, settings.WA_REMINDER_TEMPLATE, settings.WA_REMINDER_TEMPLATE_LANG,
+                    [r.name, when, hearing_list(r.hearings)],
+                )
+                delivered.append("whatsapp")
+            except WhatsAppError as exc:
+                problems.append(f"whatsapp: {exc}")
+        if r.push and push is not None:
+            count = len(r.hearings)
+            first = re.sub(r"^1\. ", "", r.hearings[0]) if r.hearings else ""
+            body = f"{count} hearing{'s' if count != 1 else ''} tomorrow, {when}: {first}" + (f" (+{count - 1} more)" if count > 1 else "")
+            sent = 0
+            for device in (await session.scalars(select(PushDevice).where(PushDevice.user_id == r.user_id))).all():
+                result = await push.send(device.token, PushMessage(title="Tomorrow's hearings", body=body, link="/app/calendar"))
+                if result == "sent":
+                    sent += 1
+                elif result == "unregistered":
+                    await session.delete(device)
+            (delivered if sent else problems).append("push" if sent else "push: not delivered")
+        row.status = "sent" if delivered else "failed"
+        row.detail = (", ".join(delivered) + ("; " if delivered and problems else "") + "; ".join(problems))[:200] or None
+        report["sent" if delivered else "failed"] += 1
         await session.commit()
     log.info("hearing_reminders", day=day.isoformat(), **report)
     return report

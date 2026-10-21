@@ -172,3 +172,43 @@ def test_a_long_board_is_cut_with_a_count() -> None:
     shown = text.count("v. State")
     assert text.endswith(f"; and {30 - shown} more") and shown >= 5
     assert reminders.hearing_list(items[:2]) == "; ".join(items[:2])
+
+
+async def test_members_with_the_app_get_the_reminder_by_push(
+    client: AsyncClient, strong_password: str, session_factory,
+) -> None:
+    from app.core.push import PushMessage
+
+    class PushRecorder:
+        def __init__(self) -> None:
+            self.sent: list[tuple[str, PushMessage]] = []
+
+        async def send(self, device_token, message):
+            self.sent.append((device_token, message))
+            return "sent"
+
+    day = reminders.tomorrow_ist()
+    h, _ = await _user(client, "Rao Chambers", "rao@example.com", strong_password)
+    # No WhatsApp, no mobile number: just the app.
+    token = "fcm-" + "t" * 40
+    await client.post(f"{API}/notifications/devices", headers=h, json={"token": token, "platform": "android"})
+    mid = (await client.post(f"{API}/matters", headers=h, json={"title": "A v. B", "client_name": "A"})).json()["id"]
+    for hour in (10, 11):
+        await client.post(f"{API}/matters/{mid}/hearings", headers=h, json={"scheduled_on": _at(day, hour)})
+
+    wa, push = Recorder(), PushRecorder()
+    async with session_factory() as session:
+        due = await reminders.collect(session, day)
+        assert len(due) == 1 and due[0].phone is None and due[0].push
+        assert await reminders.send_reminders(session, wa, day, due, push=push) == {"sent": 1, "already": 0, "failed": 0}
+        row = await session.scalar(select(HearingReminderSend))
+        assert row.status == "sent" and row.detail == "push"
+    assert wa.sent == []
+    (sent_token, message), = push.sent
+    assert sent_token == token and message.title == "Tomorrow's hearings" and message.link == "/app/calendar"
+    assert message.body.startswith("2 hearings tomorrow, ") and "A v. B" in message.body and "(+1 more)" in message.body
+
+    # Push switched off: this member is no longer due a reminder for that day.
+    await client.put(f"{API}/notifications/preferences/push", headers=h, json={"enabled": False, "types": []})
+    async with session_factory() as session:
+        assert await reminders.collect(session, day) == []
