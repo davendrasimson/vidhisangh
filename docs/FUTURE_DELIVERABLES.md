@@ -161,4 +161,4 @@ no test number was provided. Source token rotations must also update VidhiSangh'
 encrypted copy. See DEPLOYMENT.md for the configuration.
 
 ## 🧪 Flaky browser tests (seen 20–21 Oct 2026)
-- `tests/browser/help.spec.ts` "feature tour supports back, next, finish and replay" and "matter help and light-bulb tips preserve an unfinished form" fail on and off (also on unchanged code). Probably timing (the tour's step list read before it settles; focus restore racing). Make them wait on state, as done for `reminders.spec.ts`.
+- ✅ Fixed 21 Oct 2026: the help tour now steps until "Finish tour" appears (`toPass`), and the matter-help test targets the form's own field; 48/48 repeated runs pass.

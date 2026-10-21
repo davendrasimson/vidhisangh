@@ -47,10 +47,15 @@ test('feature tour supports back, next, finish and replay without leaving the pa
   await expect(dialog.getByRole('heading', { name: 'Matters and custom forms' })).toBeVisible();
   await dialog.getByRole('button', { name: 'Back', exact: true }).click();
   await expect(dialog.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();
-  for (let i = 0; i < 25 && await dialog.getByRole('button', { name: 'Next', exact: true }).count(); i++) {
-    await dialog.getByRole('button', { name: 'Next', exact: true }).click();
-  }
-  await dialog.getByRole('button', { name: 'Finish tour' }).click();
+  // Step until the last card; each step waits for the dialog to settle (a
+  // count() straight after a click could see no "Next" mid-render and stop early).
+  const finish = dialog.getByRole('button', { name: 'Finish tour' });
+  await expect(async () => {
+    if (await finish.isVisible()) return;
+    await dialog.getByRole('button', { name: 'Next', exact: true }).click({ timeout: 2000 });
+    throw new Error('more steps');
+  }).toPass({ timeout: 30_000 });
+  await finish.click();
   await expect(dialog).toHaveCount(0);
   await expect(page).toHaveURL(/\/help$/);
   await page.getByRole('button', { name: 'Take a feature tour' }).click();
@@ -61,7 +66,8 @@ test('matter help and light-bulb tips preserve an unfinished form and restore fo
   await workspace(page);
   await page.goto('/app/matters');
   await page.getByRole('button', { name: 'New matter', exact: true }).click();
-  const input = page.locator('main input').first();
+  // The form's own field (not "the first input", which can be the search box before the form renders).
+  const input = page.getByPlaceholder('Ramesh Kumar vs State of Haryana');
   await input.fill('Unsaved matter example');
   const trigger = page.getByRole('button', { name: 'Help for Matters and custom forms', exact: true });
   await trigger.click();
