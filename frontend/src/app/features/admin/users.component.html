@@ -88,6 +88,24 @@
             }
           </div>
 
+          @if (handover()?.user?.id === u.id) {
+            <div class="mt-3 pl-12 rounded-lg border border-warning/50 bg-warning/10 p-3 grid gap-2" role="group" aria-label="Hand over matters">
+              <p class="text-sm"><strong>{{ u.full_name }}</strong> is on {{ handover()!.open }}{{ handover()!.open >= 50 ? '+' : '' }} open matter{{ handover()!.open === 1 ? '' : 's' }}.
+                Hand them over before deactivating, so no client is left without counsel.</p>
+              <label class="text-sm grid gap-1">Hand over to
+                <select class="vs-input max-w-xs" [ngModel]="handover()!.to" (ngModelChange)="handover.set({ user: handover()!.user, open: handover()!.open, to: $event })" aria-label="Hand over to">
+                  <option value="">Choose a colleague…</option>
+                  @for (c of colleagues(); track c.id) { <option [value]="c.id">{{ c.full_name }}</option> }
+                </select>
+              </label>
+              <div class="flex flex-wrap gap-2">
+                <button mat-flat-button color="primary" [disabled]="!handover()!.to || handingOver()" (click)="confirmHandover(true)">{{ handingOver() ? 'Working…' : 'Hand over and deactivate' }}</button>
+                <button mat-button [disabled]="handingOver()" (click)="confirmHandover(false)">Deactivate without handing over</button>
+                <button mat-button (click)="handover.set(null)">Cancel</button>
+              </div>
+            </div>
+          }
+
           @if (editingId() === u.id) {
             <div class="mt-3 pl-12">
               <div class="flex flex-wrap gap-2">

@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AdminService } from '@core/services/admin.service';
+import { MattersService } from '@core/services/matters.service';
 import { AuthService } from '@core/auth/auth.service';
 import { NotificationService } from '@core/services/notification.service';
 import { Role, User } from '@core/models/auth.models';
@@ -21,6 +22,7 @@ export class UsersComponent implements OnInit {
   private readonly admin = inject(AdminService);
   private readonly auth = inject(AuthService);
   private readonly notify = inject(NotificationService);
+  private readonly matters = inject(MattersService);
 
   protected readonly users = signal<User[]>([]);
   protected readonly roles = signal<Role[]>([]);
@@ -103,15 +105,51 @@ export class UsersComponent implements OnInit {
     this.editRoles.has(code) ? this.editRoles.delete(code) : this.editRoles.add(code);
   }
 
+  /** Deactivating someone still on open matters: hand them over first (same step). */
+  protected readonly handover = signal<{ user: User; open: number; to: string } | null>(null);
+  protected readonly handingOver = signal(false);
+  protected readonly colleagues = computed(() => this.users().filter((x) => x.is_active && x.id !== this.handover()?.user.id));
+
   protected async toggleActive(u: User): Promise<void> {
     const next = !u.is_active;
-    if (!next && !confirm(`Deactivate ${u.full_name}? They'll be signed out and unable to log in.`)) return;
+    if (!next) {
+      let open = 0;
+      try { open = (await firstValueFrom(this.matters.list('open', 1, 50, { user_id: u.id }))).length; } catch { /* no matter access: deactivate as before */ }
+      if (open > 0) {
+        this.handover.set({ user: u, open, to: '' });
+        return;
+      }
+    }
+    await this.setActive(u, next);
+  }
+
+  /** Hand the open matters over (if a colleague is chosen), then deactivate. */
+  protected async confirmHandover(withTransfer: boolean): Promise<void> {
+    const h = this.handover();
+    if (!h || this.handingOver()) return;
+    if (withTransfer && !h.to) return;
+    this.handingOver.set(true);
+    try {
+      if (withTransfer) {
+        const result = await firstValueFrom(this.matters.transfer({
+          from_user_id: h.user.id, to_user_id: h.to, effective_from: new Date().toISOString().slice(0, 10), reason: 'left_firm',
+        }));
+        this.notify.success(`${result.moved} open matter${result.moved === 1 ? '' : 's'} handed over.`);
+      }
+      if (await this.setActive(h.user, false, false)) this.handover.set(null);
+    } catch { /* handled */ } finally { this.handingOver.set(false); }
+  }
+
+  private async setActive(u: User, next: boolean, ask = true): Promise<boolean> {
+    if (!next && ask && !confirm(`Deactivate ${u.full_name}? They'll be signed out and unable to log in.`)) return false;
     try {
       const updated = await firstValueFrom(this.admin.setUserActive(u.id, next));
       this.users.update((list) => list.map((x) => (x.id === u.id ? updated : x)));
       this.notify.success(next ? `${u.full_name} reactivated.` : `${u.full_name} deactivated.`);
+      return true;
     } catch {
       /* handled */
+      return false;
     }
   }
 
