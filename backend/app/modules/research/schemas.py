@@ -209,12 +209,17 @@ class JudgmentSummary(_RegistryFields):
     # How many orders the corpus holds for this row's case (CNR) — so a result
     # can say "1 of 7 orders" and link to the case view.
     order_count: int | None = None
+    # The AI headnote's one-paragraph summary, when the judgment has one
+    # (Supreme Court); always shown labelled as AI-generated.
+    ai_summary: str | None = None
 
     @classmethod
     def from_orm_row(cls, judgment, snippet: str | None = None) -> "JudgmentSummary":  # noqa: ANN001
         summary = cls.model_validate(judgment)
         summary.judge_names = _split_judges(getattr(judgment, "judge_text", None))
         summary.snippet = snippet
+        headnote = getattr(judgment, "ai_headnote", None)
+        summary.ai_summary = headnote.get("summary") if isinstance(headnote, dict) else None
         return summary
 
 

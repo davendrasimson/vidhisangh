@@ -150,6 +150,10 @@
                    [innerHTML]="j.snippet | snippet"></p>
               }
 
+              @if (j.ai_summary) {
+                <p class="research-result__snippet text-sm"><span class="vs-chip text-xs mr-1" title="Written by AI from the judgment text; read the judgment before relying on it">AI headnote</span>{{ j.ai_summary }}</p>
+              }
+
               @if (j.petitioner_advocates.length || j.respondent_advocates.length) {
                 <p class="research-result__counsel">
                   @if (j.petitioner_advocates.length) { For petitioner: {{ j.petitioner_advocates.join(', ') }} }

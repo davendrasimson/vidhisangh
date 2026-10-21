@@ -112,6 +112,11 @@ async def test_api_returns_headnote_flagged_as_ai_generated(session_factory, cli
     other = (await client.get(f"{API}/research/judgments/{ids['old']}", headers=headers)).json()
     assert other["ai_headnote"] is None
 
+    # Search results carry the AI summary (labelled in the UI) for headnoted judgments only.
+    page = (await client.get(f"{API}/research/judgments", headers=headers, params={"court_level": "supreme_court"})).json()
+    by_name = {i["case_name"]: i["ai_summary"] for i in page["items"]}
+    assert by_name["new v. State"] == HEADNOTE["summary"] and by_name["old v. State"] is None
+
 
 async def test_public_pages_show_only_headnoted_judgments_with_the_ai_flag(session_factory, client: AsyncClient, strong_password: str) -> None:
     from app.modules.research.ai_headnotes import apply_ai_headnote

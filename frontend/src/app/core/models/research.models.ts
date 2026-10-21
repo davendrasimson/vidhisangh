@@ -33,6 +33,8 @@ export interface JudgmentSummary {
   respondent_advocates: string[];
   /** Matched fragment with <mark> around hits (full-text search only). */
   snippet?: string | null;
+  /** AI headnote summary (Supreme Court judgments that have one); shown labelled as AI. */
+  ai_summary?: string | null;
   /** Orders the library holds for this row's case (CNR); null without a CNR. */
   order_count?: number | null;
 }
