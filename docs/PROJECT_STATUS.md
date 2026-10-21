@@ -349,3 +349,5 @@ WhatsApp login form opens. These checks did not send a code.
 - **Retention**: feed photos never posted are purged after a day, photos of deleted posts after 30 days, rows then bytes; `--dry-run` deletes no files (`network/retention.py`, `DRY_RUN`).
 - **Interest calculator** at `/tools/interest-calculator/` (simple / monthly / quarterly / yearly compounding, 365-day year, Section 34 CPC note).
 - **Timesheets on phones**: card list under `md`, table from `md` up.
+- **Sign-up funnel** (migration **0073**, `funnel_daily`: day, step, count — nothing about the visitor): the site counts home page seen, sign-up page opened, email form opened and WhatsApp code asked (`POST /api/v1/funnel/{step}`, allow-listed steps, 20/min per address; `core/analytics/funnel.ts`, once per step per tab, never while prerendering). Platform admin → Growth shows the funnel for 7 / 30 days with accounts created as the last step and the share reaching each step (shown once the previous step has 5+).
+- **Retention fix**: the deleted-documents purge now deletes rows first (committed), then the bytes, and never touches storage on `--dry-run` (`app.core.retention.DRY_RUN`).

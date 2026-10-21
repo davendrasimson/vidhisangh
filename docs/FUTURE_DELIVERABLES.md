@@ -87,7 +87,7 @@ Funnel from the nginx log for 13–14 Oct: 22 `POST /auth/register`, of which 6 
   3. **Public member profiles** (`vidhisangh.com/in/<name>`, only for members who opted into the directory): indexable, with a "Connect on VidhiSangh" call to action. Every member who shares their profile brings in visitors, and people searching for an advocate by name find the page.
   4. **Turn bare-act readers into members.** 1,000+ act-page views in two days produced 17 `utm_source=bare_acts` visits to the site. Add an in-context call to action on section pages (save the section, get amendment alerts, discuss with members) instead of only the generic banner.
   5. ✅ **Invite rewards** (profile card + Founding Member badge at 3 joins) — 21 Oct 2026. Still open: group invite links for bar associations and law colleges.
-  6. **A first-party sign-up funnel count** (page → form opened → code sent → account created), stored in our own database with no third-party tracker, so each change above can be measured. ✅ Part done 14 Oct 2026: **Platform admin → Growth** (`GET /platform-admin/growth`) shows registrations by day / week / month in India time, period comparisons, running total, next milestone, sign-up method, role, invites, verified and returning share, and the latest sign-ups. Still to add: the steps before an account exists (visits, form opened, code sent).
+  6. **A first-party sign-up funnel count** (page → form opened → code sent → account created), stored in our own database with no third-party tracker, so each change above can be measured. ✅ Part done 14 Oct 2026: **Platform admin → Growth** (`GET /platform-admin/growth`) shows registrations by day / week / month in India time, period comparisons, running total, next milestone, sign-up method, role, invites, verified and returning share, and the latest sign-ups. ✅ The steps before an account exists (home page, sign-up page, email form, WhatsApp code) — 21 Oct 2026.
   7. **In-app review prompt** (Play In-App Review API) after a good moment, such as a first connection accepted.
 
 ## 🚀 Making the app popular with advocates (plan agreed 20 Oct 2026)
@@ -102,7 +102,7 @@ Usage on 13–20 Oct: bare-act pages 2,743 views from 107 people (BNSS, IPC, BNS
 
 ## 📝 Feed posts with formatting and photos (16 Oct 2026)
 Built (migration 0066): rich composer (bold, italic, underline, heading, lists, quote, link) that grows with its content; up to 4 photos per post (JPEG/PNG ≤ 5 MB, re-drawn to ≤ 2000 px JPEG in the app, EXIF/GPS stripped on the server, virus-scanned); server-side allow-list HTML cleaning (`app/core/html_clean.py`); own posts can be deleted from the feed. Still open:
-- ✅ **Purge unused uploads** — done 21 Oct 2026 (`network/retention.py`). Found then: the older soft-deleted-documents purge in `privacy/retention.py` deletes stored bytes even on `--dry-run`; switch it to the `DRY_RUN` flag.
+- ✅ **Purge unused uploads** — done 21 Oct 2026 (`network/retention.py`). The deleted-documents purge's dry-run file deletion was fixed the same day.
 - **Group posts** (`/app/groups/:id`) still use the plain text box; reuse `PostComposerComponent` there.
 - **Reposts** copy the text only, not the photos.
 - **Photo viewer**: photos open in a new tab; a swipeable full-screen viewer would be nicer on phones.

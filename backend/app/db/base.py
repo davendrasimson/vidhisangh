@@ -80,6 +80,7 @@ from app.modules.network.models import (
     PostMention,
     PostReaction,
 )
+from app.modules.funnel.models import FunnelDaily
 from app.modules.news.models import NewsItem
 from app.modules.outreach.models import OutreachContact, OutreachSettings, OutreachSuppression
 from app.modules.referrals.models import Referral, ReferralCode
@@ -134,6 +135,7 @@ __all__ = [
     "BarVerificationRequest",
     "NetworkIdentity",
     "OfficialPost",
+    "FunnelDaily",
     "Connection",
     "Follow",
     "OutreachContact",

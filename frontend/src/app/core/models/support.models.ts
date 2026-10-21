@@ -28,4 +28,8 @@ export interface RegistrationGrowth {
   next_milestone: number | null; previous_milestone: number;
   daily: GrowthPoint[]; weekly: GrowthPoint[]; monthly: GrowthPoint[];
   by_method: GrowthSlice[]; by_role: GrowthSlice[]; recent: GrowthRecent[];
+  /** Anonymous daily step counters (sign-up funnel), last 7 / 30 days. */
+  funnel?: { last_7_days: GrowthFunnelStep[]; last_30_days: GrowthFunnelStep[]; since: string | null };
 }
+
+export interface GrowthFunnelStep { step: string; count: number; }

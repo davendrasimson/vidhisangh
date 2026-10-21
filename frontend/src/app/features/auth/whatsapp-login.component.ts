@@ -5,6 +5,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { problemMessage } from '@core/interceptors/error.interceptor';
 import { SendCodeCooldown } from './send-code-cooldown';
 import { clearPending, loadPending, savePending } from './whatsapp-pending';
+import { countStep } from '@core/analytics/funnel';
 import { PROFESSIONAL_ROLES } from './professional-roles';
 import { firstValueFrom } from 'rxjs';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -150,6 +151,7 @@ export class WhatsappLoginComponent {
       if (this.phone !== phone) return;
       this.challenge.set(result.challenge_id); this.code = ''; this.info.set(result.detail);
       this.cooldown.start();
+      if (this.mode() === 'join') countStep('whatsapp_code_requested');
       const now = Date.now();
       savePending({ phone, challenge: result.challenge_id, expiresAt: now + result.expires_in * 1000, resendAt: now + 60_000 });
     } catch (err) {

@@ -19,6 +19,7 @@ from app.modules.clients.router import public_router as kyc_public_router
 from app.modules.clients.router import router as clients_router
 from app.modules.crm.router import router as crm_router
 from app.modules.documents.router import router as documents_router
+from app.modules.funnel.router import router as funnel_router
 from app.modules.drafting.router import router as drafting_router
 from app.modules.featureflags.router import router as featureflags_router
 from app.modules.groups.router import router as groups_router
@@ -88,6 +89,7 @@ api_router.include_router(system_router)
 api_router.include_router(webhooks_router)
 api_router.include_router(apikeys_router)
 api_router.include_router(support_router)
+api_router.include_router(funnel_router)
 api_router.include_router(sampledata_router)
 api_router.include_router(ws_router)  # WebSocket: /api/v1/ws
 

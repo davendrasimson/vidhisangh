@@ -21,6 +21,7 @@ const PLAY_URL = 'https://play.google.com/store/apps/details?id=com.vidhisangh.a
  * knowledge tool — never as a way for advocates to win clients (BCI Rule 36).
  */
 import { PublicFooterComponent, PublicHeaderComponent } from '@shared/public-chrome/public-chrome.component';
+import { countStep } from '@core/analytics/funnel';
 
 @Component({
   selector: 'app-landing',
@@ -181,6 +182,10 @@ import { PublicFooterComponent, PublicHeaderComponent } from '@shared/public-chr
 })
 export class LandingComponent {
   protected readonly playUrl = PLAY_URL;
+
+  constructor() {
+    countStep('landing_view');  // a no-op while prerendering
+  }
 
   protected readonly roles = [
     { icon: 'gavel', label: 'Advocates and Senior Advocates' },

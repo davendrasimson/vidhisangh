@@ -10,6 +10,11 @@ type Period = 'daily' | 'weekly' | 'monthly';
 
 const W = 720, H = 260, LEFT = 34, RIGHT = 44, TOP = 22, BOTTOM = 34;
 
+const FUNNEL_LABELS: Record<string, string> = {
+  landing_view: 'Home page seen', register_view: 'Sign-up page opened', email_form_opened: 'Email form opened',
+  whatsapp_code_requested: 'WhatsApp code asked', account_created: 'Account created',
+};
+
 /**
  * Platform admin → Growth. Registrations by day / week / month (India time).
  * Built for small numbers: absolute changes ("+2 vs yesterday"), a percentage
@@ -142,6 +147,29 @@ const W = 720, H = 260, LEFT = 34, RIGHT = 44, TOP = 22, BOTTOM = 34;
         </section>
       </div>
 
+      <!-- Funnel -->
+      @if (d.funnel; as f) {
+        <section class="rounded-card border border-line bg-surface-raised p-5 mt-4">
+          <div class="flex flex-wrap items-center gap-3">
+            <h2 class="font-semibold flex-1">Sign-up funnel</h2>
+            <div class="flex gap-1" role="group" aria-label="Funnel period">
+              <button mat-stroked-button [class.!bg-brand]="funnelDays() === 7" [class.!text-white]="funnelDays() === 7" (click)="funnelDays.set(7)">7 days</button>
+              <button mat-stroked-button [class.!bg-brand]="funnelDays() === 30" [class.!text-white]="funnelDays() === 30" (click)="funnelDays.set(30)">30 days</button>
+            </div>
+          </div>
+          <p class="text-xs text-content-muted mt-1">Anonymous daily counts on our own server (no cookies or trackers), once per visitor tab.@if (f.since) { Counting since {{ f.since | date:'dd/MM/yyyy' }}. }</p>
+          <ol class="grid gap-2 mt-3">
+            @for (s of funnelSteps(); track s.step; let i = $index) {
+              <li class="grid grid-cols-[minmax(0,12rem)_minmax(0,1fr)_auto] items-center gap-3 text-sm">
+                <span>{{ s.label }}</span>
+                <span class="h-3 rounded-full bg-line overflow-hidden"><span class="block h-full bg-brand" [style.width.%]="s.width"></span></span>
+                <span class="whitespace-nowrap"><strong>{{ s.count | number }}</strong>@if (s.rate !== null) { <small class="text-content-muted"> · {{ s.rate }}% of previous</small> }</span>
+              </li>
+            }
+          </ol>
+        </section>
+      }
+
       <!-- Recent -->
       <section class="rounded-card border border-line bg-surface-raised p-5 mt-4">
         <h2 class="font-semibold">Latest sign-ups</h2>
@@ -165,6 +193,17 @@ const W = 720, H = 260, LEFT = 34, RIGHT = 44, TOP = 22, BOTTOM = 34;
   `,
 })
 export class GrowthDashboardComponent implements OnInit {
+  protected readonly funnelDays = signal<7 | 30>(7);
+  /** Steps with a bar scaled to the first step and the share that reached each from the one before. */
+  protected readonly funnelSteps = computed(() => {
+    const f = this.data()?.funnel;
+    const rows = f ? (this.funnelDays() === 7 ? f.last_7_days : f.last_30_days) : [];
+    const top = Math.max(1, ...rows.map((r) => r.count));
+    return rows.map((r, i) => ({
+      ...r, label: FUNNEL_LABELS[r.step] ?? r.step, width: (r.count / top) * 100,
+      rate: i > 0 && rows[i - 1].count >= 5 ? Math.round((r.count / rows[i - 1].count) * 100) : null,
+    }));
+  });
   private readonly support = inject(SupportService);
   protected readonly W = W; protected readonly H = H; protected readonly LEFT = LEFT; protected readonly RIGHT = RIGHT;
   protected readonly data = signal<RegistrationGrowth | null>(null);

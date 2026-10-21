@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.identity.models import OAuthIdentity, User
 from app.modules.profile.masters import PROFILE_MASTERS
 from app.modules.profile.models import ProfessionalProfile
+from app.modules.funnel.router import funnel_summary
 from app.modules.referrals.models import Referral
 from app.modules.tenancy.models import Tenant
 
@@ -137,6 +138,7 @@ async def registration_growth(session: AsyncSession, now: datetime | None = None
                            lambda d: d.strftime("%b %Y")),
         "by_method": breakdown(Counter(m["method"] for m in members), METHOD_LABELS),
         "by_role": breakdown(Counter(m["role"] for m in members), ROLE_LABELS),
+        "funnel": await funnel_summary(session, today, by_day),
         "recent": [
             {"name": m["name"], "joined_at": m["created"].isoformat(), "method": METHOD_LABELS[m["method"]],
              "role": ROLE_LABELS.get(m["role"], "Not given") if m["role"] else "Not given",

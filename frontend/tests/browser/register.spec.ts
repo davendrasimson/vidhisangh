@@ -257,3 +257,22 @@ test('sign-in always offers WhatsApp, even when the options check is refused', a
   await whatsapp.click();
   await expect(page.getByLabel('Mobile number', { exact: true })).toBeVisible();
 });
+
+test('the sign-up funnel counts each step once per visit, anonymously', async ({ page }) => {
+  const counted: string[] = [];
+  await page.route('**/api/v1/funnel/*', async route => {
+    counted.push(new URL(route.request().url()).pathname.split('/').pop()!);
+    expect(route.request().headers()['authorization']).toBeUndefined();
+    await route.fulfill({ status: 204 });
+  });
+  await page.route('**/api/v1/auth/whatsapp/request', route => route.fulfill({ json: { challenge_id: '7c401e3a-54b0-4d46-8d43-f8ee493fb060', expires_in: 300, detail: 'Code sent.' } }));
+  await page.goto('/');
+  await expect.poll(() => counted).toContain('landing_view');
+  await page.goto('/auth/register');
+  await expect.poll(() => counted).toContain('register_view');
+  await page.reload();  // a reload is not a second visit
+  await page.getByLabel('Mobile number', { exact: true }).fill('+919876543210');
+  await page.getByRole('button', { name: 'Send WhatsApp code', exact: true }).click();
+  await page.getByRole('button', { name: /Sign up with email instead/ }).click();
+  await expect.poll(() => counted.slice().sort()).toEqual(['email_form_opened', 'landing_view', 'register_view', 'whatsapp_code_requested']);
+});

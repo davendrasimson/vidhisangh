@@ -13,6 +13,7 @@ import { AuthService } from '@core/auth/auth.service';
 import { isNativeApp } from '@core/platform/platform';
 import { problemMessage } from '@core/interceptors/error.interceptor';
 import { STRICT_EMAIL } from '../send-code-cooldown';
+import { countStep } from '@core/analytics/funnel';
 import { PROFESSIONAL_ROLES } from '../professional-roles';
 import { WhatsappLoginComponent } from '../whatsapp-login.component';
 import {
@@ -67,6 +68,7 @@ export class RegisterComponent implements OnInit {
   });
 
   async ngOnInit(): Promise<void> {
+    countStep('register_view');
     if (!isNativeApp()) {
       firstValueFrom(this.auth.ssoProviders())
         .then(list => this.googleAvailable.set(list.some(p => p.name === 'google')))
@@ -85,6 +87,11 @@ export class RegisterComponent implements OnInit {
     } catch (err) {
       this.errorMsg.set(problemMessage(err, 'Could not open Google sign-in. Please try again.'));
     }
+  }
+
+  protected showEmailForm(): void {
+    this.useEmail.set(true);
+    countStep('email_form_opened');
   }
 
   protected changeFirm(): void {
