@@ -73,7 +73,7 @@ cd frontend/android && ./gradlew bundleRelease assembleRelease
 
 The properties file holds `storeFile`, `storePassword`, `keyAlias`, `keyPassword`.
 Without it, release builds come out unsigned and debug builds are unaffected.
-Upload key certificate SHA-256:
+Upload key certificate SHA-256 (Play app signing key `2E:16:…:43:99` is in `public/.well-known/assetlinks.json` too, added 22 Oct 2026):
 `BD:85:F0:FA:35:6D:22:94:24:FD:06:C2:A0:3B:23:58:12:86:28:93:3E:53:D9:A8:F8:37:3C:6A:44:ED:00:4F`.
 **Back up the keystore and its properties file off this laptop.** With Play App
 Signing turned on, Google holds the real app signing key and a lost upload key can
