@@ -4,11 +4,18 @@
 //   node scripts/publish-app-update.mjs                 (from frontend/; Android)
 //   node scripts/publish-app-update.mjs --platform ios
 //   node scripts/publish-app-update.mjs --dry-run       (build and list, upload nothing)
+//   node scripts/publish-app-update.mjs --also 5=1.0.4  (also to phones on build 5)
 //
 // A release targets the native build in the project (android versionCode or iOS
 // CURRENT_PROJECT_VERSION): only phones running exactly that store build take it.
 // Only for changes to screens, text and styles. Anything that changes native code
 // (a new or upgraded Capacitor plugin, permissions, icons) needs a store update.
+//
+// `--also <build>=<versionName>` (repeatable) gives the same screens to phones
+// still on an older store build, e.g. while a store update is in review. Only
+// when the screens cope with that build's native code: every plugin added since
+// must be optional in the JS (push.ts and review-prompt.ts are). Without it,
+// those phones keep the last screens published for their build.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { copyFileSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
@@ -23,6 +30,11 @@ const OUT = join(ROOT, 'dist-mobile/vidhisangh/browser');
 const args = process.argv.slice(2);
 const platform = args.includes('--platform') ? args[args.indexOf('--platform') + 1] : 'android';
 const dryRun = args.includes('--dry-run');
+const also = args.flatMap((a, i) => (a === '--also' ? [args[i + 1]] : [])).map((spec) => {
+  const m = /^(\d+)=(\S+)$/.exec(spec ?? '');
+  if (!m) throw new Error('--also takes <build>=<versionName>, e.g. --also 5=1.0.4');
+  return { build: m[1], name: m[2] };
+});
 if (!['android', 'ios'].includes(platform)) throw new Error('--platform must be android or ios');
 
 function nativeBuild() {
@@ -67,7 +79,12 @@ sh('rsync', ['-rt', '--chmod=D755,F644', '--ignore-existing', `${stage}/`, `${HO
 let manifest = {};
 try { manifest = JSON.parse(sh('ssh', [HOST, `cat ${REMOTE}/latest 2>/dev/null || echo '{}'`])); } catch { manifest = {}; }
 manifest[platform] ??= {};
-manifest[platform][build] = { version, published_at: new Date().toISOString(), files: list.map(({ name, sha256 }) => ({ name, sha256 })) };
+const publishedAt = new Date().toISOString();
+const entries = list.map(({ name, sha256 }) => ({ name, sha256 }));
+manifest[platform][build] = { version, published_at: publishedAt, files: entries };
+for (const older of also) {
+  manifest[platform][older.build] = { version: `${older.name}-web.${stamp}`, published_at: publishedAt, files: entries };
+}
 const local = join(stage, 'latest');
 writeFileSync(local, JSON.stringify(manifest));
 // Replace `latest` in one step, so a phone never reads a half-written file.
@@ -75,3 +92,4 @@ sh('scp', ['-q', local, `${HOST}:${REMOTE}/latest.new`]);
 sh('ssh', [HOST, `chmod 644 ${REMOTE}/latest.new && mv ${REMOTE}/latest.new ${REMOTE}/latest`]);
 rmSync(stage, { recursive: true, force: true });
 console.log(`Published ${version}. Phones on ${platform} build ${build} switch to it on their next launch after it downloads.`);
+for (const older of also) console.log(`Also published to ${platform} build ${older.build} as ${older.name}-web.${stamp}.`);
