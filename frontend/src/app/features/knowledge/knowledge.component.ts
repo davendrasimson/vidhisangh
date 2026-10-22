@@ -99,7 +99,17 @@ export class KnowledgeComponent implements OnInit {
   async ngOnInit(): Promise<void> { await this.load(); }
 
   protected switchView(view: 'acts' | 'firm'): void {
-    void this.router.navigate([], { relativeTo: this.route, queryParams: { view, act: null }, queryParamsHandling: 'merge' });
+    void this.router.navigate([], { relativeTo: this.route, queryParams: { view, act: null }, queryParamsHandling: 'merge' })
+      .then(() => { if (view === 'acts') this.focusActSearch(); });
+  }
+
+  /** People tap "Bare Acts" to search: take them to the box, ready to type. */
+  private focusActSearch(): void {
+    setTimeout(() => {
+      const input = document.querySelector<HTMLInputElement>('input[name="statuteSearch"]');
+      input?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      input?.focus({ preventScroll: true });
+    });
   }
 
   protected async setCategory(category: KnowledgeCategory | ''): Promise<void> {

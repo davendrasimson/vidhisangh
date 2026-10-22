@@ -3,9 +3,12 @@
     <div><h1 class="vs-display text-3xl font-semibold text-content">Knowledge library</h1><p class="text-sm text-content-muted mt-1">Understand Indian laws. Keep useful work. Put it to use in your matters.</p></div>
     @if (auth.hasPermission('knowledge:create')) { <button mat-flat-button color="primary" [disabled]="saving() || uploading() || applying()" (click)="newItem()"><mat-icon class="material-icons-outlined">add</mat-icon>New firm resource</button> }
   </header>
-  <nav aria-label="Knowledge sections" class="flex flex-wrap gap-2 border-b border-line mb-5">
-    <button class="vs-tab" [class.vs-tab-active]="view() === 'acts'" [attr.aria-current]="view() === 'acts' ? 'page' : null" (click)="switchView('acts')">Bare Acts &amp; statutory search <span class="vs-chip ml-1">{{ actCount }}</span></button>
-    <button class="vs-tab" [class.vs-tab-active]="view() === 'firm'" [attr.aria-current]="view() === 'firm' ? 'page' : null" (click)="switchView('firm')">Firm library <span class="vs-chip ml-1">{{ starterCount }}+</span></button>
+  <!-- Short labels on one row: a long wrapped "…statutory search" tab read as a
+       search box on phones, and tapping it did nothing (user report, 22 Oct 2026).
+       Tapping "Bare Acts" now also puts the cursor in the Acts search. -->
+  <nav aria-label="Knowledge sections" class="flex flex-nowrap gap-5 border-b border-line mb-5">
+    <button class="vs-tab whitespace-nowrap" [class.vs-tab-active]="view() === 'acts'" [attr.aria-current]="view() === 'acts' ? 'page' : null" (click)="switchView('acts')">Bare Acts <span class="vs-chip ml-1">{{ actCount }}</span></button>
+    <button class="vs-tab whitespace-nowrap" [class.vs-tab-active]="view() === 'firm'" [attr.aria-current]="view() === 'firm' ? 'page' : null" (click)="switchView('firm')">Firm library <span class="vs-chip ml-1">{{ starterCount }}+</span></button>
   </nav>
   <div id="knowledge-content" class="scroll-mt-5">
     @if (view() === 'acts') {
