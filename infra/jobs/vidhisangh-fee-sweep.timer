@@ -1,0 +1,11 @@
+[Unit]
+Description=Raise due retainer periods and dated milestones at about 6 am India time
+
+[Timer]
+OnCalendar=*-*-* 00:30:00 UTC
+RandomizedDelaySec=300
+# Idempotent, so a run missed while the server was down can safely catch up.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

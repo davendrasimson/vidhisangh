@@ -772,6 +772,12 @@ the unit loads the `wa_access_token` credential itself. Check with
 `python -m app.scripts.hearing_reminders --dry-run` (counts only). Until Meta
 approves the template, sends fail and are recorded as `failed` in
 `hearing_reminder_sends` (no retry for that day).
+
+**Fee sweep** (retainer periods and dated milestones fall due): install
+`infra/jobs/vidhisangh-fee-sweep.{service,timer}` the same way and
+`systemctl enable --now vidhisangh-fee-sweep.timer` (00:30 UTC daily, catches up
+after downtime; needs no credentials). Check with
+`python -m app.scripts.fee_sweep --dry-run` (counts only, rolled back).
 `GET /api/v1/auth/options` exposes only whether WhatsApp is configured. The UI
 keeps mobile signup/login disabled until the credentials are configured, while
 email signup remains available. No secrets are returned to the browser.

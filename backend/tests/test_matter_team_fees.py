@@ -352,3 +352,55 @@ async def test_team_conflict_check(client: AsyncClient, strong_password: str) ->
     h2, _ = await _admin(client, "Else LLP", "else@firm.co", strong_password)
     assert (await client.get(f"{API}/matters/{new}/team/conflicts", headers=h2,
                              params={"user_id": x["id"]})).status_code == 404
+
+
+def test_retainer_period_starts() -> None:
+    from types import SimpleNamespace
+    from app.modules.matters.fee_sweep import add_months, period_starts
+    assert add_months(date(2026, 1, 31), 1) == date(2026, 2, 28) and add_months(date(2026, 11, 15), 3) == date(2027, 2, 15)
+    arr = SimpleNamespace(retainer_period="quarterly", effective_from=date(2026, 1, 31), effective_to=None)
+    assert period_starts(arr, date(2026, 10, 22)) == [date(2026, 1, 31), date(2026, 4, 30), date(2026, 7, 31)]
+    arr.effective_to = date(2026, 5, 1)
+    assert period_starts(arr, date(2026, 10, 22)) == [date(2026, 1, 31), date(2026, 4, 30)]
+
+
+async def test_fee_sweep_raises_retainer_periods_and_dated_milestones(
+    client: AsyncClient, strong_password: str, session_factory
+) -> None:
+    from app.modules.matters.fee_sweep import sweep
+    h, _ = await _admin(client, "Sweep LLP", "sweep@firm.co", strong_password)
+    today = date.today()
+    start = today - timedelta(days=75)  # three monthly periods so far (or so)
+    mid = (await client.post(f"{API}/matters", headers=h, json={"title": "Retained", "client_name": "R"})).json()["id"]
+    assert (await client.post(f"{API}/matters/{mid}/fees", headers=h, json={
+        "basis": "retainer", "retainer_amount": 20000, "retainer_period": "monthly", "effective_from": start.isoformat(),
+    })).status_code == 201
+    m2 = (await client.post(f"{API}/matters", headers=h, json={"title": "Staged", "client_name": "S"})).json()["id"]
+    assert (await client.post(f"{API}/matters/{m2}/fees", headers=h, json={
+        "basis": "milestone", "fixed_fee": 100000, "milestones": [
+            {"label": "Second instalment", "trigger": "on_date", "due_on": (today - timedelta(days=1)).isoformat(), "percent": 40},
+            {"label": "Final instalment", "trigger": "on_date", "due_on": (today + timedelta(days=30)).isoformat(), "percent": 60},
+        ]})).status_code == 201
+    # A closed matter's retainer stops.
+    m3 = (await client.post(f"{API}/matters", headers=h, json={"title": "Closed", "client_name": "C"})).json()["id"]
+    await client.post(f"{API}/matters/{m3}/fees", headers=h, json={
+        "basis": "retainer", "retainer_amount": 5000, "retainer_period": "monthly", "effective_from": start.isoformat()})
+    await client.patch(f"{API}/matters/{m3}", headers=h, json={"status": "closed"})
+
+    from app.modules.matters.fee_sweep import period_starts
+    from types import SimpleNamespace
+    expected = len(period_starts(SimpleNamespace(retainer_period="monthly", effective_from=start, effective_to=None), today))
+    async with session_factory() as s:
+        first = await sweep(s, today)
+        await s.commit()
+    assert first == {"retainer_periods": expected - 1, "dated_milestones": 1}
+    async with session_factory() as s:
+        assert await sweep(s, today) == {"retainer_periods": 0, "dated_milestones": 0}  # idempotent
+        await s.commit()
+
+    events = (await client.get(f"{API}/matters/{mid}", headers=h)).json()["fee_events"]
+    assert sorted(e["occurred_on"] for e in events) == [d.isoformat() for d in period_starts(
+        SimpleNamespace(retainer_period="monthly", effective_from=start, effective_to=None), today)]
+    staged = (await client.get(f"{API}/matters/{m2}", headers=h)).json()
+    assert [(e["description"], e["amount"]) for e in staged["fee_events"]] == [("Second instalment", "40000.00")]
+    assert len((await client.get(f"{API}/matters/{m3}", headers=h)).json()["fee_events"]) == 1  # only the first period
