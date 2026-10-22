@@ -161,3 +161,18 @@ test('rating request: only after regular use, and not again for months', async (
   assert.equal(countLaunchAndDecide(state, state.lastAsked + (GAP_DAYS - 1) * day).ask, false);
   assert.equal(countLaunchAndDecide(state, state.lastAsked + GAP_DAYS * day).ask, true);
 });
+
+test('live update: a fresh download (pending) is switched to; failed or half-downloaded ones are not', async () => {
+  const { usableBundle } = await import('../src/app/core/platform/live-update.ts');
+  const bundles = [
+    { id: 'a', version: 'v1', status: 'success' },
+    { id: 'b', version: 'v2', status: 'pending' },   // what download() leaves behind
+    { id: 'c', version: 'v3', status: 'error' },
+    { id: 'd', version: 'v4', status: 'downloading' },
+  ];
+  assert.equal(usableBundle(bundles, 'v2')?.id, 'b', 'regression: pending downloads were never applied (20–22 Oct 2026)');
+  assert.equal(usableBundle(bundles, 'v1')?.id, 'a');
+  assert.equal(usableBundle(bundles, 'v3'), undefined);
+  assert.equal(usableBundle(bundles, 'v4'), undefined);
+  assert.equal(usableBundle(bundles, 'v9'), undefined);
+});

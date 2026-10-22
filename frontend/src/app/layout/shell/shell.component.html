@@ -150,7 +150,7 @@
 
       <app-notifications-bell />
 
-      <button mat-button [matMenuTriggerFor]="userMenu" class="vs-userbtn" aria-label="Account menu">
+      <button mat-button [matMenuTriggerFor]="userMenu" (menuOpened)="loadAppVersion()" class="vs-userbtn" aria-label="Account menu">
         <span class="vs-avatar">{{ initials() }}</span>
         <span class="hidden md:inline">{{ user()?.full_name }}</span>
         <mat-icon class="material-icons-outlined">expand_more</mat-icon>
@@ -171,9 +171,16 @@
         <a mat-menu-item routerLink="/app/settings/notifications">
           <mat-icon class="material-icons-outlined">notifications</mat-icon><span>Notifications</span>
         </a>
+        @if (nativeApp) {
+          <button mat-menu-item (click)="updateApp()" [disabled]="updatingApp()">
+            <mat-icon class="material-icons-outlined">system_update</mat-icon>
+            <span>{{ updatingApp() ? 'Updating…' : 'Update app' }}</span>
+          </button>
+        }
         <button mat-menu-item (click)="logout()">
           <mat-icon class="material-icons-outlined">logout</mat-icon><span>Sign out</span>
         </button>
+        @if (appVersion(); as v) { <p class="px-4 pb-2 pt-1 text-xs text-content-muted">App {{ v }}</p> }
       </mat-menu>
     </mat-toolbar>
 

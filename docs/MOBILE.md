@@ -138,6 +138,14 @@ npm run publish:app-update -- --dry-run       # build and count files only
   Which builds are still checking: `grep app-updates/latest` in the nginx log
   (the user agent shows the phone, not the build; the download pattern does).
 - A store update discards downloaded screens (`resetWhenUpdate`).
+- **A fresh download has status `pending`**, not `success` (that comes only after
+  it has started once). From 20 to 22 Oct 2026 the app only switched to `success`
+  bundles, so every phone on 1.0.5, and 1.0.4 after its 21 Oct update, downloaded
+  updates and never used them; only a store update (1.0.6) could fix it. Verified
+  on the emulator 22 Oct: launch 1 downloads (`pending`), launch 2 switches
+  (`success`). `usableBundle()` + a unit test guard it.
+- **Account menu → Update app** (1.0.6+): checks now, downloads, and switches at
+  once; the menu also shows "App 1.0.6 · screens dd/mm/yyyy hh:mm".
 - If new screens fail to start, `notifyAppReady()` is never called and the
   plugin returns to the previous screens; that version is never retried. A
   failed download is retried on the next launch.

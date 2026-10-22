@@ -23,6 +23,8 @@ import { firstValueFrom } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { joinPendingGroup } from '@core/groups/pending-invite';
 import { takeNext } from '@core/navigation/after-signup';
+import { isNativeApp } from '@core/platform/platform';
+import { runningVersion, updateNow } from '@core/platform/live-update';
 
 interface NavItem {
   label: string;
@@ -202,6 +204,26 @@ export class ShellComponent implements OnInit {
 
   protected toggle(): void {
     this.opened.update((v) => !v);
+  }
+
+  /** Account menu in the app: which version is running, and "Update app". */
+  protected readonly nativeApp = isNativeApp();
+  protected readonly appVersion = signal<string | null>(null);
+  protected readonly updatingApp = signal(false);
+
+  protected loadAppVersion(): void {
+    if (this.nativeApp) void runningVersion().then((v) => this.appVersion.set(v));
+  }
+
+  protected async updateApp(): Promise<void> {
+    if (this.updatingApp()) return;
+    this.updatingApp.set(true);
+    this.notify.info('Checking for the latest version…');
+    const result = await updateNow();
+    // 'switching' reloads the screens; nothing more to do here.
+    if (result === 'up-to-date') this.notify.success('You have the latest version.');
+    else if (result === 'failed') this.notify.error('Could not update right now. Check your connection and try again.');
+    if (result !== 'switching') this.updatingApp.set(false);
   }
 
   protected async logout(): Promise<void> {
