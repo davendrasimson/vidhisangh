@@ -10,6 +10,7 @@ public class MainActivity extends BridgeActivity {
         // Draw edge-to-edge on every Android version, not only 15+ (Play
         // requirement). Capacitor's SystemBars pads the WebView clear of the
         // status and navigation bars, so content never sits under them.
+        registerPlugin(InAppReviewPlugin.class);  // the app's own plugin: before super
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
     }

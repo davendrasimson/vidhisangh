@@ -1,8 +1,11 @@
-import { ApplicationRef } from '@angular/core';
+import { ApplicationRef, NgZone } from '@angular/core';
 import { Router } from '@angular/router';
 import { isNativeApp } from './platform';
 import { initLiveUpdates } from './live-update';
 import { initPush } from './push';
+import { appLinkPath } from './app-links';
+import { maybeAskForReview } from './review-prompt';
+import { AuthService } from '@core/auth/auth.service';
 
 /** Screens where the Android back button leaves the app instead of going back. */
 const ROOT_PATHS = new Set(['/', '/app', '/app/dashboard', '/auth/login']);
@@ -22,6 +25,9 @@ const ROOT_PATHS = new Set(['/', '/app', '/app/dashboard', '/auth/login']);
  * - Hide the splash screen once Angular has rendered.
  * - Live screen updates from vidhisangh.com (live-update.ts).
  * - Push notifications after sign-in (push.ts).
+ * - vidhisangh.com links opened from WhatsApp, email etc. (app-links.ts): go to
+ *   that screen, both when they start the app and when it is already running.
+ * - Now and then, a store rating request (review-prompt.ts).
  */
 export async function initNativeShell(appRef: ApplicationRef): Promise<void> {
   if (!isNativeApp()) return;
@@ -42,8 +48,16 @@ export async function initNativeShell(appRef: ApplicationRef): Promise<void> {
       void router.navigateByUrl('/app/dashboard');
     }
   });
+  await App.addListener('appUrlOpen', ({ url }) => {
+    const path = appLinkPath(url);
+    if (path) void appRef.injector.get(NgZone).run(() => router.navigateByUrl(path));
+  });
   // Angular has started: confirm these screens before anything else can fail.
   await initLiveUpdates();
   await SplashScreen.hide({ fadeOutDuration: 200 });
   await initPush(appRef);
+  // Now and then, once the app is in regular use: the store's rating sheet.
+  // Not during start-up, so it never covers the first screen.
+  const auth = appRef.injector.get(AuthService);
+  setTimeout(() => void maybeAskForReview(auth.isAuthenticated()), 20_000);
 }

@@ -27,6 +27,8 @@ API at `https://vidhisangh.com/api/v1`.
 | Act PDFs | shown in a frame | handed to the phone's PDF viewer; Android WebView cannot render PDFs |
 | Passkeys and SSO buttons | shown | hidden: both are bound to the vidhisangh.com origin (see open items) |
 | Android back button | n/a | walks the app's history; exits on the dashboard or login screen |
+| vidhisangh.com links (from 1.0.6) | open the page | `/app/…`, `/join/…`, `/auth/verify-email/…`, `/auth/reset/…` open in the app (App Links, `core/platform/app-links.ts`); everything else stays in the browser |
+| Store rating (from 1.0.6) | n/a | Play's rating sheet now and then (`core/platform/review-prompt.ts`, native `InAppReviewPlugin.java`) |
 
 Use the canonical host **vidhisangh.com**, never www. The www host only proxies
 plain API calls and has no WebSocket route, so real-time updates fail there.
@@ -170,6 +172,22 @@ Apple App Store (USD 99 per year Apple Developer Program):
 1. Register the bundle ID `com.vidhisangh.app` and create the app in App Store Connect.
 2. Same privacy URL, privacy labels, demo account and account-deletion rule (guideline 5.1.1(v)).
 3. Guideline 4.2 rejects apps that are "just a website". This app ships its own interface, offline bare acts and native file sharing; adding push notifications and biometric unlock (open items) further strengthens the case.
+
+## App Links and the rating sheet (1.0.6)
+
+- The manifest claims `https://vidhisangh.com` with the four path prefixes in
+  `app-links.ts` (a unit test keeps the two in step). Android verifies them
+  against `https://vidhisangh.com/.well-known/assetlinks.json`
+  (`frontend/public/.well-known/`), which must list the SHA-256 of **every key
+  that signs installed apps**: the upload key (listed) and Play's app signing key
+  (Play Console → App integrity; add it). Unverified, links simply open in the
+  browser. Check on a phone with `adb shell pm get-app-links com.vidhisangh.app`.
+- Emulator test without verification: `adb shell pm set-app-links-user-selection
+  --user 0 --package com.vidhisangh.app true vidhisangh.com`, then
+  `adb shell am start -a android.intent.action.VIEW -d https://vidhisangh.com/join/CODE`.
+- The rating plugin is app-local (not an npm package: the community plugin's
+  Gradle file is rejected by AGP 9). Live screen updates reach older builds, so
+  the JS checks `Capacitor.isPluginAvailable('InAppReview')` first.
 
 ## Open items
 

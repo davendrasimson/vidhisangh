@@ -119,3 +119,45 @@ test('the app stays signed in when the server cannot be reached', () => {
   assert.match(auth, /if \(status === 401 \|\| status === 403\) \{\s*this\.tokens\.dropAccessToken\(\);[\s\S]*?return false;\s*\}\s*\/\/[^\n]*\n[^\n]*\n\s*return this\.enterOffline\(\);/);
   assert.match(read('layout/shell/shell.component.html'), /auth\.offline\(\)/);
 });
+
+test('app links: only the app\'s own screens on vidhisangh.com open in the app', async () => {
+  const { appLinkPath, APP_LINK_PREFIXES } = await import('../src/app/core/platform/app-links.ts');
+  assert.equal(appLinkPath('https://vidhisangh.com/join/AbC123'), '/join/AbC123');
+  assert.equal(appLinkPath('https://www.vidhisangh.com/app/matters/1?tab=fees#x'), '/app/matters/1?tab=fees#x');
+  assert.equal(appLinkPath('https://vidhisangh.com/auth/reset/tok?invite=1'), '/auth/reset/tok?invite=1');
+  assert.equal(appLinkPath('https://vidhisangh.com/acts/bns/section-1/'), null, 'public pages stay in the browser');
+  assert.equal(appLinkPath('https://vidhisangh.com/in/rao/'), null);
+  assert.equal(appLinkPath('http://vidhisangh.com/app/x'), null);
+  assert.equal(appLinkPath('https://evil.example/app/x'), null);
+  assert.equal(appLinkPath('https://vidhisangh.com.evil.example/app/x'), null);
+  assert.equal(appLinkPath('not a url'), null);
+  // The manifest claims exactly these paths.
+  const manifest = read('android/app/src/main/AndroidManifest.xml');
+  const claimed = [...manifest.matchAll(/android:pathPrefix="([^"]+)"/g)].map((m) => m[1]);
+  assert.deepEqual(claimed.sort(), [...APP_LINK_PREFIXES].sort());
+  assert.match(manifest, /android:autoVerify="true"/);
+});
+
+test('assetlinks.json names the app and at least the upload key', () => {
+  const links = JSON.parse(read('public/.well-known/assetlinks.json'));
+  const target = links[0].target;
+  assert.equal(target.package_name, 'com.vidhisangh.app');
+  assert.ok(target.sha256_cert_fingerprints.every((f) => /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/.test(f)));
+  assert.match(read('android/app/build.gradle'), /applicationId "com\.vidhisangh\.app"/);
+});
+
+test('rating request: only after regular use, and not again for months', async () => {
+  const { countLaunchAndDecide, MIN_LAUNCHES, GAP_DAYS } = await import('../src/app/core/platform/review-rules.ts');
+  const day = 86_400_000;
+  let state = null;
+  let asks = 0;
+  // Opened twice a day for 10 days: asked once, after day 5 and launch 8.
+  for (let i = 0; i < 20; i++) {
+    const r = countLaunchAndDecide(state, i * day / 2);
+    state = r.state;
+    if (r.ask) { asks++; assert.ok(state.launches >= MIN_LAUNCHES && i / 2 >= 5); }
+  }
+  assert.equal(asks, 1);
+  assert.equal(countLaunchAndDecide(state, state.lastAsked + (GAP_DAYS - 1) * day).ask, false);
+  assert.equal(countLaunchAndDecide(state, state.lastAsked + GAP_DAYS * day).ask, true);
+});

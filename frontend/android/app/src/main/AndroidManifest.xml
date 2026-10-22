@@ -27,6 +27,22 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- App Links: these vidhisangh.com paths open in the app (keep in step
+                 with core/platform/app-links.ts and /.well-known/assetlinks.json).
+                 Not www: it redirects to the apex, and Android does not follow a
+                 redirect when it verifies the links. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="vidhisangh.com" />
+                <data android:pathPrefix="/app/" />
+                <data android:pathPrefix="/join/" />
+                <data android:pathPrefix="/auth/verify-email/" />
+                <data android:pathPrefix="/auth/reset/" />
+            </intent-filter>
+
         </activity>
 
         <provider
