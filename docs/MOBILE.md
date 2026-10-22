@@ -129,6 +129,14 @@ npm run publish:app-update -- --dry-run       # build and count files only
   `CURRENT_PROJECT_VERSION`) read from the project, so screens never run on
   native code they were not built with. After a store update, publish again for
   the new build.
+- **While a store update is rolling out or in review, phones on the previous
+  build get nothing new** unless you also publish to it:
+  `npm run publish:app-update -- --also 5=1.0.4` (repeatable). Safe only when
+  every plugin added since that build is optional in the JS (push.ts,
+  review-prompt.ts check for it). Missed on 21–22 Oct 2026: the owner's phone,
+  still on 1.0.4 (build 5), received none of six updates published for build 6.
+  Which builds are still checking: `grep app-updates/latest` in the nginx log
+  (the user agent shows the phone, not the build; the download pattern does).
 - A store update discards downloaded screens (`resetWhenUpdate`).
 - If new screens fail to start, `notifyAppReady()` is never called and the
   plugin returns to the previous screens; that version is never retried. A
