@@ -108,6 +108,8 @@ export interface Connection {
   status: ConnectionStatus;
   message: string | null;
   created_at: string;
+  /** Who sent it: on incoming requests (null if they left the network). */
+  requester?: Pick<DirectoryPerson, 'user_id' | 'display_name' | 'headline' | 'avatar_url' | 'city' | 'is_verified'> | null;
 }
 
 export interface TrendingTag {

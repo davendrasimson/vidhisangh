@@ -79,6 +79,12 @@ class ConnectionRead(BaseModel):
     created_at: datetime
 
 
+class IncomingRequestRead(ConnectionRead):
+    """A pending request with who sent it (home screen, People page)."""
+
+    requester: IdentityRead | None = None
+
+
 class ConnectionWithPerson(BaseModel):
     connection: ConnectionRead
     person: IdentityRead | None = None

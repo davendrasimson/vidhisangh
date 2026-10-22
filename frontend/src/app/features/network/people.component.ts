@@ -49,7 +49,7 @@ export class PeopleComponent implements OnInit {
   }
 
   protected requesterName(c: Connection): string {
-    return this.nameById()[c.requester_id] ?? 'A professional';
+    return c.requester?.display_name ?? this.nameById()[c.requester_id] ?? 'A professional';
   }
 
   protected initials(name: string): string {

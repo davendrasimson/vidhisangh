@@ -176,3 +176,17 @@ test('live update: a fresh download (pending) is switched to; failed or half-dow
   assert.equal(usableBundle(bundles, 'v4'), undefined);
   assert.equal(usableBundle(bundles, 'v9'), undefined);
 });
+
+test('profile progress: counts the right steps per role and names the next one', async () => {
+  const { profileSteps, profilePercent } = await import('../src/app/core/home/profile-progress.ts');
+  const base = { headline: 'Criminal lawyer', bio: '', city: 'Delhi', practice_areas: ['Criminal'], courts: [], education: [],
+    bar_council: null, year_of_enrollment: null };
+  const adv = profileSteps({ ...base, professional_role: 'advocate' });
+  assert.equal(adv.length, 7);
+  assert.equal(adv.find((s) => !s.done)?.label, 'the courts you appear in');
+  assert.equal(profilePercent(adv), 57);
+  const student = profileSteps({ ...base, professional_role: 'law_student' });
+  assert.ok(!student.some((s) => s.key === 'enrolment' || s.key === 'courts'));
+  assert.ok(student.some((s) => s.key === 'education'));
+  assert.equal(profilePercent(profileSteps({ ...base, professional_role: null, headline: null, city: null, practice_areas: [] })), 0);
+});

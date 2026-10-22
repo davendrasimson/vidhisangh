@@ -18,6 +18,8 @@ from app.modules.identity.models import User
 from app.modules.network.models import ConnectionStatus, ReactionType
 from app.modules.network.schemas import (
     DailyRead,
+    IdentityRead,
+    IncomingRequestRead,
     PostImageRead,
     CommentCreate,
     CommentRead,
@@ -452,14 +454,20 @@ async def list_connections(
 @router.get(
     "/connections/requests",
     dependencies=[require_permission("connection:read")],
-    response_model=list[ConnectionRead],
-    summary="Incoming pending connection requests",
+    response_model=list[IncomingRequestRead],
+    summary="Incoming pending connection requests, with who sent them",
 )
 async def incoming_requests(
     current: CurrentUserDep, session: TenantSessionDep
-) -> list[ConnectionRead]:
-    connections = await _svc(current, session).incoming_requests()
-    return [ConnectionRead.model_validate(c) for c in connections]
+) -> list[IncomingRequestRead]:
+    svc = _svc(current, session)
+    connections = await svc.incoming_requests()
+    people = await svc.identities.get_many([c.requester_id for c in connections])
+    return [
+        IncomingRequestRead.model_validate(c, from_attributes=True).model_copy(
+            update={"requester": IdentityRead.model_validate(people[c.requester_id]) if c.requester_id in people else None})
+        for c in connections
+    ]
 
 
 # ─── Follows ────────────────────────────────────────────────────────

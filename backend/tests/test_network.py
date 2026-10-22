@@ -67,7 +67,7 @@ async def test_directory_is_cross_tenant(client: AsyncClient, strong_password: s
 
 
 async def test_connection_request_accept_flow(client: AsyncClient, strong_password: str) -> None:
-    h1, _me1 = await _user(client, "Firm A", "req@firma.co", strong_password)
+    h1, me1 = await _user(client, "Firm A", "req@firma.co", strong_password)
     h2, me2 = await _user(client, "Firm B", "acc@firmb.co", strong_password)
 
     # 1 → 2 request
@@ -83,7 +83,8 @@ async def test_connection_request_accept_flow(client: AsyncClient, strong_passwo
 
     # 2 sees the incoming request and accepts
     incoming = await client.get("/api/v1/network/connections/requests", headers=h2)
-    assert any(c["id"] == conn_id for c in incoming.json())
+    mine = next(c for c in incoming.json() if c["id"] == conn_id)
+    assert mine["requester"]["user_id"] == me1["id"] and mine["requester"]["display_name"]
     accept = await client.post(f"/api/v1/network/connections/{conn_id}/accept", headers=h2)
     assert accept.status_code == 200
     assert accept.json()["status"] == "accepted"

@@ -21,7 +21,15 @@ const DAILY = {
     description: null, url: 'https://example.org/n1', site: 'Supreme Court of India' }],
 };
 
-async function home(page: Page, { matters, agenda }: { matters: number; agenda: unknown[] }) {
+const FULL_PROFILE = { id: 'p', user_id: 'u', headline: 'Criminal lawyer', bio: 'Fifteen years at the Delhi High Court and district courts, mainly bail and trials.',
+  professional_role: 'advocate', bar_council: 'Delhi', year_of_enrollment: 2011, practice_areas: ['Criminal'], courts: ['Delhi High Court'],
+  languages: [], education: [], achievements: [], publications: [], employment_history: [], memberships: [], city: 'Delhi', state: 'Delhi',
+  visibility: 'public', visibility_settings: {}, masked_groups: [], rating_count: 0, avg_rating: null, verification_status: 'unverified',
+  consultation_enabled: false, consultation_fee: null, availability: {}, endorsement_summary: {}, recommendations: [] };
+const FOUNDING = { code: 'PRIYA1', link: 'https://vidhisangh.com/join?ref=PRIYA1', joined: 3, founding_goal: 3, founding_member: true };
+
+async function home(page: Page, { matters, agenda, profile = FULL_PROFILE, referral = FOUNDING, requests = [] as unknown[], conversations = [] as unknown[] }:
+  { matters: number; agenda: unknown[]; profile?: unknown; referral?: unknown; requests?: unknown[]; conversations?: unknown[] }) {
   await page.addInitScript((u) => {
     localStorage.setItem('vs.session', '1');
     localStorage.setItem('vs.profile-cache', JSON.stringify({ user: u, scopes: ['*'] }));
@@ -33,6 +41,10 @@ async function home(page: Page, { matters, agenda }: { matters: number; agenda: 
   await page.route('**/api/v1/analytics/overview**', (r) => r.fulfill({ json: overview(matters) }));
   await page.route('**/api/v1/network/daily', (r) => r.fulfill({ json: DAILY }));
   await page.route(/\/api\/v1\/calendar\/agenda\?/, (r) => r.fulfill({ json: agenda }));
+  await page.route('**/api/v1/profiles/me', (r) => r.fulfill({ json: profile }));
+  await page.route('**/api/v1/referrals/me', (r) => r.fulfill({ json: referral }));
+  await page.route('**/api/v1/network/connections/requests', (r) => r.fulfill({ json: requests }));
+  await page.route('**/api/v1/conversations', (r) => r.fulfill({ json: conversations }));
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/app/dashboard');
 }
@@ -46,6 +58,9 @@ test('a new member sees no wall of zeros: an invitation to add a case, search an
   await expect(page.getByText('Practice overview')).toHaveCount(0);
   await expect(page.getByText('Timesheets awaiting approval')).toHaveCount(0);
   await expect(page.getByText('Revenue trend')).toHaveCount(0);
+  // Profile complete and badge earned, nobody waiting: neither card shows.
+  await expect(page.getByRole('heading', { name: 'Get found' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Your network' })).toHaveCount(0);
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/home-new.png`, fullPage: true });
 
   // The search goes to Bare Acts when that is chosen.
@@ -98,4 +113,33 @@ test('"Fetch a case by CNR" opens the eCourts import on Matters', async ({ page 
   await page.route('**/api/v1/matters/field-settings', (r) => r.fulfill({ json: { fields: [], sections: [], standard_sections: {} } }));
   await page.getByRole('link', { name: /Fetch a case by CNR/ }).click();
   await expect(page.getByRole('heading', { name: 'Fetch a case from eCourts' })).toBeVisible();
+});
+
+test('requests are accepted from home, unread messages are counted, and the profile/invite progress shows what is next', async ({ page }) => {
+  const requests = [{ id: 'c1', requester_id: 'x', addressee_id: 'u', status: 'pending', message: 'Met you at the Saket bar room.', created_at: '2026-10-22T05:00:00Z',
+    requester: { user_id: 'x', display_name: 'Adv. Rohan Mehta', headline: 'Civil litigation, Saket', avatar_url: null, city: 'Delhi', is_verified: true } }];
+  const conversations = [
+    { id: 'v1', type: 'direct', title: null, created_by: 'x', last_message_at: null, last_message_preview: 'Sending the draft', created_at: '', unread_count: 2,
+      participants: [{ user_id: 'u', participant_name: 'Adv. Priya Sharma', participant_avatar_url: null }, { user_id: 'y', participant_name: 'Adv. Neha Rao', participant_avatar_url: null }] },
+    { id: 'v2', type: 'direct', title: null, created_by: 'x', last_message_at: null, last_message_preview: 'ok', created_at: '', unread_count: 0, participants: [] },
+    { id: 'v3', type: 'group', title: 'Bail moot team', created_by: 'x', last_message_at: null, last_message_preview: 'ok', created_at: '', unread_count: 1, participants: [] },
+  ];
+  await home(page, { matters: 0, agenda: [], requests, conversations,
+    profile: { ...FULL_PROFILE, courts: [], bio: '' }, referral: { ...FOUNDING, joined: 1, founding_member: false } });
+  let accepted = false;
+  await page.route('**/api/v1/network/connections/c1/accept', async (r) => { accepted = true; await r.fulfill({ json: { ...requests[0], status: 'accepted' } }); });
+
+  const network = page.getByRole('region', { name: 'Your network' });
+  await expect(network).toContainText('Adv. Rohan Mehta');
+  await expect(network).toContainText('3 unread messages · Adv. Neha Rao and 1 more');
+  await network.getByRole('button', { name: 'Accept' }).click();
+  await expect.poll(() => accepted).toBe(true);
+  await expect(network).not.toContainText('Adv. Rohan Mehta');
+
+  const progress = page.getByRole('region', { name: 'Get found' });
+  await expect(progress).toContainText('71%');
+  await expect(progress).toContainText('Next: add the courts you appear in');
+  await expect(progress).toContainText('1 of 3');
+  await expect(progress.getByRole('link', { name: /Invite on WhatsApp/ })).toHaveAttribute('href', /wa\.me/);
+  if (SHOTS) await page.screenshot({ path: `${SHOTS}/home-network.png`, fullPage: true });
 });

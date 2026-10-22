@@ -11,10 +11,15 @@ import { AnalyticsService } from '@core/services/analytics.service';
 import { CalendarService } from '@core/services/calendar.service';
 import { MattersService } from '@core/services/matters.service';
 import { NetworkService } from '@core/services/network.service';
+import { MessagingService } from '@core/services/messaging.service';
+import { ProfileService } from '@core/services/profile.service';
+import { TellAFriendService, whatsappInvite } from '@core/services/tell-a-friend.service';
 import { NotificationService } from '@core/services/notification.service';
 import { AnalyticsOverview } from '@core/models/analytics.models';
 import { AgendaItem } from '@core/models/calendar.models';
-import { DailyCard, DailyRead } from '@core/models/network.models';
+import { Connection, DailyCard, DailyRead } from '@core/models/network.models';
+import { Conversation } from '@core/models/messaging.models';
+import { profilePercent, profileSteps } from '@core/home/profile-progress';
 import { publicOrigin } from '@core/platform/platform';
 import { VsDateInputComponent } from '@shared/date-input/vs-date-input.component';
 
@@ -63,6 +68,9 @@ export class DashboardComponent implements OnInit {
   private readonly matters = inject(MattersService);
   private readonly network = inject(NetworkService);
   private readonly notify = inject(NotificationService);
+  private readonly messaging = inject(MessagingService);
+  private readonly profile = inject(ProfileService);
+  private readonly invites = inject(TellAFriendService);
   protected readonly tenant = inject(TenantService);
   protected readonly today = new Date();
   protected readonly tools = QUICK_TOOLS;
@@ -91,6 +99,23 @@ export class DashboardComponent implements OnInit {
   protected readonly nextFor = signal<AgendaItem | null>(null);
   protected nextDate = '';
   protected readonly busy = signal<string | null>(null);
+
+  // ── Network: requests to answer, messages to read ─────────────────
+  protected readonly requests = signal<Connection[]>([]);
+  protected readonly unread = signal<Conversation[]>([]);
+  protected readonly unreadTotal = computed(() => this.unread().reduce((n, c) => n + c.unread_count, 0));
+
+  // ── Progress: profile completeness and the invite goal ────────────
+  protected readonly steps = signal<ReturnType<typeof profileSteps> | null>(null);
+  protected readonly percent = computed(() => profilePercent(this.steps() ?? []));
+  protected readonly nextStep = computed(() => this.steps()?.find((s) => !s.done) ?? null);
+  protected readonly referral = this.invites.referral;
+  protected readonly inviteGoal = computed(() => this.referral()?.founding_goal ?? 3);
+  protected readonly inviteRemaining = computed(() => Math.max(0, this.inviteGoal() - (this.referral()?.joined ?? 0)));
+  protected readonly inviteLink = computed(() => whatsappInvite(this.referral()?.link ?? this.origin + '/'));
+  /** Shown while something is still to do: profile incomplete or badge not yet earned. */
+  protected readonly showProgress = computed(() =>
+    (this.steps() !== null && this.percent() < 100) || (this.referral() !== null && !this.referral()!.founding_member));
 
   // ── Search ────────────────────────────────────────────────────────
   protected searchWhere: SearchWhere = 'judgments';
@@ -152,6 +177,27 @@ export class DashboardComponent implements OnInit {
     void this.loadAgenda();
     void firstValueFrom(this.network.daily()).then((d) => this.daily.set(d)).catch(() => undefined);
     void firstValueFrom(this.analytics.overview()).then((o) => this.overview.set(o)).catch(() => undefined);
+    void firstValueFrom(this.network.incomingRequests()).then((r) => this.requests.set(r)).catch(() => undefined);
+    void firstValueFrom(this.messaging.list()).then((c) => this.unread.set(c.filter((x) => x.unread_count > 0))).catch(() => undefined);
+    void firstValueFrom(this.profile.myProfile()).then((p) => this.steps.set(profileSteps(p))).catch(() => undefined);
+    void this.invites.loadReferral();
+  }
+
+  protected async answerRequest(c: Connection, accept: boolean): Promise<void> {
+    if (this.busy()) return;
+    this.busy.set(c.id);
+    try {
+      await firstValueFrom(accept ? this.network.acceptConnection(c.id) : this.network.declineConnection(c.id));
+      this.requests.update((list) => list.filter((x) => x.id !== c.id));
+      if (accept) this.notify.success(`You and ${c.requester?.display_name ?? 'they'} are now connected.`);
+    } catch { /* handled */ } finally { this.busy.set(null); }
+  }
+
+  /** Who the conversation is with (the other participants), for the unread list. */
+  protected withWhom(c: Conversation): string {
+    const me = this.user()?.id;
+    const others = c.participants.filter((p) => p.user_id !== me).map((p) => p.participant_name);
+    return c.title || others.join(', ') || 'Conversation';
   }
 
   private async loadAgenda(): Promise<void> {
