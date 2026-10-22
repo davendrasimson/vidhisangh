@@ -128,3 +128,70 @@
   @media (max-width: 600px) { button { width: 100%; justify-content: center; } }
 }
 
+
+/* ── Home: your day ── */
+.vs-board-time {
+  flex: none;
+  min-width: 4.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgb(var(--vs-brand));
+  padding-top: 0.1rem;
+}
+.vs-board-btn { min-height: 34px; line-height: 1; }
+.vs-board-check {
+  width: 20px;
+  height: 20px;
+  margin-top: 0.15rem;
+  flex: none;
+  accent-color: rgb(var(--vs-brand));
+}
+.vs-empty-board {
+  border: 1px dashed rgb(var(--vs-border));
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+/* ── Home: search ── */
+.vs-seg {
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgb(var(--vs-text-muted));
+  border: 1px solid rgb(var(--vs-border));
+  background: none;
+  cursor: pointer;
+}
+.vs-seg--on {
+  color: #fff;
+  background: rgb(var(--vs-brand));
+  border-color: rgb(var(--vs-brand));
+}
+/* Tools: one scrollable row on phones, wrapped on wider screens. */
+.vs-chips {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+  @media (min-width: 640px) { flex-wrap: wrap; overflow: visible; }
+}
+.vs-tool-chip {
+  flex: none;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: rgb(var(--vs-brand));
+  background: rgb(var(--vs-brand) / 0.08);
+  border: 1px solid rgb(var(--vs-brand) / 0.25);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.vs-clamp-4 {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

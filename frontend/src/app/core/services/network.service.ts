@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '@env/environment';
 import {
+  DailyRead,
   Comment,
   Connection,
   ConnectionStatus,
@@ -24,6 +25,11 @@ export class NetworkService {
   private readonly api = `${environment.apiBaseUrl}/network`;
 
   // ── Feed & posts ──────────────────────────────────────────────
+  /** Today's section, Supreme Court judgment and legal news (home screen). */
+  daily(): Observable<DailyRead> {
+    return this.http.get<DailyRead>(`${this.api}/daily`);
+  }
+
   feed(page = 1, size = 20): Observable<FeedItem[]> {
     return this.http.get<FeedItem[]>(`${this.api}/feed`, { params: { page, size } });
   }

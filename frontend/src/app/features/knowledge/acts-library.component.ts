@@ -62,6 +62,12 @@ export class ActsLibraryComponent {
   constructor() {
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
       this.selected.set(ACTS.find((a) => a.id === params.get('act')) ?? null);
+      // ?q= from the home screen's search: run the statutory search straight away.
+      const q = params.get('q')?.trim() ?? '';
+      if (q.length >= 2 && q !== this.statuteQuery()) {
+        this.statuteQuery.set(q);
+        void this.searchStatutoryText();
+      }
     });
   }
 

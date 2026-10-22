@@ -1,12 +1,22 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
 import { AuthService } from '@core/auth/auth.service';
 import { TenantService } from '@core/services/tenant.service';
 import { AnalyticsService } from '@core/services/analytics.service';
+import { CalendarService } from '@core/services/calendar.service';
+import { MattersService } from '@core/services/matters.service';
+import { NetworkService } from '@core/services/network.service';
+import { NotificationService } from '@core/services/notification.service';
 import { AnalyticsOverview } from '@core/models/analytics.models';
+import { AgendaItem } from '@core/models/calendar.models';
+import { DailyCard, DailyRead } from '@core/models/network.models';
+import { publicOrigin } from '@core/platform/platform';
+import { VsDateInputComponent } from '@shared/date-input/vs-date-input.component';
 
 interface StatTile {
   label: string;
@@ -17,28 +27,87 @@ interface StatTile {
   route: string;
 }
 
+type SearchWhere = 'judgments' | 'acts';
+
+/** Free tools and converters: static pages on vidhisangh.com (open in the browser). */
+export const QUICK_TOOLS = [
+  { label: 'IPC → BNS', path: '/acts/ipc-to-bns/' },
+  { label: 'CrPC → BNSS', path: '/acts/crpc-to-bnss/' },
+  { label: 'Evidence → BSA', path: '/acts/evidence-to-bsa/' },
+  { label: 'Limitation calculator', path: '/tools/limitation-calculator/' },
+  { label: 'Default bail', path: '/tools/default-bail-calculator/' },
+  { label: 'Interest calculator', path: '/tools/interest-calculator/' },
+];
+
+/**
+ * Home: a daily screen for an advocate or law student (22 Oct 2026). Top to
+ * bottom: today's and tomorrow's hearings and deadlines, acted on in place
+ * (held / adjourned → next date, tick a task); one search box for judgments
+ * and Bare Acts with the free tools; the section, judgment and news of the
+ * day. Firm figures (stats, revenue, action centre) only appear once there
+ * is something in them, so a new member never faces a wall of zeros.
+ */
 @Component({
   selector: 'app-dashboard',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatIconModule, DatePipe, RouterLink],
+  imports: [MatIconModule, MatButtonModule, DatePipe, RouterLink, FormsModule, VsDateInputComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
 export class DashboardComponent implements OnInit {
   private readonly auth = inject(AuthService);
-  protected readonly today = new Date();
+  private readonly router = inject(Router);
   private readonly analytics = inject(AnalyticsService);
+  private readonly calendar = inject(CalendarService);
+  private readonly matters = inject(MattersService);
+  private readonly network = inject(NetworkService);
+  private readonly notify = inject(NotificationService);
   protected readonly tenant = inject(TenantService);
+  protected readonly today = new Date();
+  protected readonly tools = QUICK_TOOLS;
+  protected readonly origin = publicOrigin();
 
   protected readonly user = this.auth.user;
   protected readonly greeting = signal(this.timeGreeting());
-  protected readonly overview = signal<AnalyticsOverview | null>(null);
-
-  protected readonly initials = computed(() => {
-    const n = this.user()?.full_name ?? '';
-    return n.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase() || 'U';
+  protected readonly firstName = computed(() => {
+    const parts = (this.user()?.full_name ?? '').replace(/^(adv\.?|advocate|dr\.?|mr\.?|ms\.?|mrs\.?)\s+/i, '').split(/\s+/);
+    return parts[0] || '';
   });
+  protected readonly overview = signal<AnalyticsOverview | null>(null);
+  protected readonly daily = signal<DailyRead | null>(null);
+
+  // ── Today's board ─────────────────────────────────────────────────
+  protected readonly agenda = signal<AgendaItem[] | null>(null);
+  protected readonly board = computed(() => {
+    const items = (this.agenda() ?? []).filter((i) => i.kind === 'hearing' || i.kind === 'deadline');
+    const endOfToday = this.dayStart(1).getTime();
+    return {
+      today: items.filter((i) => new Date(i.start_at).getTime() < endOfToday),
+      tomorrow: items.filter((i) => new Date(i.start_at).getTime() >= endOfToday),
+    };
+  });
+  /** Hearing just marked held/adjourned: ask for the next date right here. */
+  protected readonly nextFor = signal<AgendaItem | null>(null);
+  protected nextDate = '';
+  protected readonly busy = signal<string | null>(null);
+
+  // ── Search ────────────────────────────────────────────────────────
+  protected searchWhere: SearchWhere = 'judgments';
+  protected searchText = '';
+
+  /** Firm figures only once there is something to show. */
+  protected readonly hasPractice = computed(() => {
+    const o = this.overview();
+    return !!o && (o.matters.total > 0 || o.revenue.total_invoiced > 0 || o.pipeline.total_leads > 0);
+  });
+  protected readonly hasOperations = computed(() => {
+    const op = this.overview()?.operations;
+    return !!op && (op.submitted_time_entries + op.pending_signatures + op.follow_ups_due > 0 || op.unbilled_time_value > 0);
+  });
+  protected readonly hasRevenue = computed(() => (this.overview()?.revenue.total_invoiced ?? 0) > 0);
+  /** No matters at all yet: the board invites the first case instead. */
+  protected readonly noMatters = computed(() => this.overview()?.matters.total === 0);
 
   protected readonly stats = computed<StatTile[]>(() => {
     const o = this.overview();
@@ -53,21 +122,6 @@ export class DashboardComponent implements OnInit {
       { label: 'Outstanding', value: o ? this.inr(o.revenue.outstanding) : '—', icon: 'account_balance_wallet',
         hint: o ? `${this.inr(o.revenue.overdue_amount)} overdue` : 'Loading…', tone: 'emerald', route: '/app/billing' },
     ];
-  });
-
-  /** Conversion + revenue quick facts for the insight strip. */
-  protected readonly insights = computed(() => {
-    const o = this.overview();
-    if (!o) return null;
-    return {
-      collected: this.inr(o.revenue.total_collected),
-      invoiced: this.inr(o.revenue.total_invoiced),
-      collectRate: o.revenue.total_invoiced > 0
-        ? Math.round((o.revenue.total_collected / o.revenue.total_invoiced) * 100) : 0,
-      leads: o.pipeline.total_leads,
-      conversion: Math.round(o.pipeline.conversion_rate * 100),
-      wonValue: this.inr(o.pipeline.won_value),
-    };
   });
 
   /** Revenue trend chart geometry (invoiced area + collected line). */
@@ -92,26 +146,95 @@ export class DashboardComponent implements OnInit {
     };
   });
 
-  protected readonly modules = [
-    { name: 'Legal Research', icon: 'gavel', desc: 'Judgments, citations & search.', route: '/app/research' },
-    { name: 'Matters', icon: 'folder_shared', desc: 'Cases, hearings, tasks & timelines.', route: '/app/matters' },
-    { name: 'Documents', icon: 'description', desc: 'Folders, versions & full-text search.', route: '/app/documents' },
-    { name: 'Billing & CRM', icon: 'payments', desc: 'Invoices, GST, leads & pipeline.', route: '/app/billing' },
-    { name: 'Network', icon: 'groups', desc: 'Feed, connections & messaging.', route: '/app/network' },
-    { name: 'Knowledge', icon: 'menu_book', desc: 'Templates, precedents & SOPs.', route: '/app/knowledge' },
-  ];
-
   async ngOnInit(): Promise<void> {
+    // Independent: one failing (e.g. no calendar permission) never blanks the rest.
+    void firstValueFrom(this.tenant.load()).catch(() => undefined);
+    void this.loadAgenda();
+    void firstValueFrom(this.network.daily()).then((d) => this.daily.set(d)).catch(() => undefined);
+    void firstValueFrom(this.analytics.overview()).then((o) => this.overview.set(o)).catch(() => undefined);
+  }
+
+  private async loadAgenda(): Promise<void> {
     try {
-      await firstValueFrom(this.tenant.load());
+      const items = await firstValueFrom(this.calendar.agenda(this.dayStart(0).toISOString(), this.dayStart(2).toISOString()));
+      this.agenda.set(items);
     } catch {
-      /* handled */
+      this.agenda.set([]);
     }
+  }
+
+  /** Midnight `days` from today, on this device's clock. */
+  private dayStart(days: number): Date {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + days);
+    return d;
+  }
+
+  protected courtLine(i: AgendaItem): string {
+    return [i.court ?? i.location, i.court_room ? `Court ${i.court_room}` : '', i.item_number ? `Item ${i.item_number}` : '']
+      .filter(Boolean).join(' · ');
+  }
+
+  /** Held / adjourned only once the day has come, never for tomorrow's. */
+  protected canMark(i: AgendaItem): boolean {
+    return i.kind === 'hearing' && i.status === 'scheduled' && new Date(i.start_at).getTime() < this.dayStart(1).getTime();
+  }
+
+  protected async markHearing(i: AgendaItem, status: 'held' | 'adjourned'): Promise<void> {
+    if (this.busy()) return;
+    this.busy.set(i.id);
     try {
-      this.overview.set(await firstValueFrom(this.analytics.overview()));
-    } catch {
-      /* handled */
-    }
+      await firstValueFrom(this.matters.updateHearing(i.id, { status }));
+      this.agenda.update((list) => (list ?? []).map((x) => (x.id === i.id ? { ...x, status } : x)));
+      this.nextDate = '';
+      this.nextFor.set(i);
+    } catch { /* handled */ } finally { this.busy.set(null); }
+  }
+
+  /** The next date given in court: a new hearing in the same court and courtroom. */
+  protected async addNextDate(): Promise<void> {
+    const prev = this.nextFor();
+    if (!prev?.matter_id || !this.nextDate || this.busy()) return;
+    this.busy.set(prev.id);
+    try {
+      await firstValueFrom(this.matters.addHearing(prev.matter_id, {
+        scheduled_on: this.nextDate, court: prev.court ?? null, court_room: prev.court_room ?? null,
+      }));
+      this.nextFor.set(null);
+      this.notify.success('Next date added to your diary.');
+      void this.loadAgenda();
+    } catch { /* handled */ } finally { this.busy.set(null); }
+  }
+
+  protected async completeTask(i: AgendaItem): Promise<void> {
+    if (this.busy()) return;
+    this.busy.set(i.id);
+    try {
+      await firstValueFrom(this.matters.setTaskDone(i.id));
+      this.agenda.update((list) => (list ?? []).filter((x) => x.id !== i.id));
+      this.notify.success('Done.');
+    } catch { /* handled */ } finally { this.busy.set(null); }
+  }
+
+  // ── Search ────────────────────────────────────────────────────────
+  protected search(): void {
+    const q = this.searchText.trim();
+    if (q.length < 2) return;
+    if (this.searchWhere === 'judgments') void this.router.navigate(['/app/research'], { queryParams: { q } });
+    else void this.router.navigate(['/app/knowledge'], { queryParams: { view: 'acts', q } });
+  }
+
+  // ── Daily cards ───────────────────────────────────────────────────
+  /** The section of the day in the in-app Bare Act reader ("bns:318"). */
+  protected sectionLink(c: DailyCard): { act: string; section: string } {
+    const [act, section] = c.ref.split(':');
+    return { act, section };
+  }
+
+  protected shareLink(c: DailyCard): string {
+    const url = c.kind === 'judgment' ? `${this.origin}/judgments/${c.ref}/` : c.url ?? this.origin;
+    return `https://wa.me/?text=${encodeURIComponent(`${c.title} — free on VidhiSangh: ${url}`)}`;
   }
 
   protected inr(n: number): string {

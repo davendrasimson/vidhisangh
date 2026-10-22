@@ -101,3 +101,19 @@ def test_the_section_pool_covers_the_three_new_laws() -> None:
     cheating = next(s for s in pool if s["act"] == "bns" and s["section"] == "318")
     assert cheating["heading"] == "Cheating" and "IPC" in cheating["old"] and "420" in cheating["old"]
     assert all(s["url"].startswith(f"/acts/{s['act']}/section-") for s in pool)
+
+
+async def test_daily_cards_for_the_home_screen(client: AsyncClient, strong_password: str, session_factory) -> None:
+    h = await _member(client, strong_password)
+    empty = (await client.get(f"{API}/network/daily", headers=h)).json()
+    assert empty == {"section": None, "judgment": None, "news": []}
+    ids = await _seed(session_factory)
+    async with session_factory() as s:
+        await official.post_daily(s, NOW)
+        await s.commit()
+    daily = (await client.get(f"{API}/network/daily", headers=h)).json()
+    assert daily["section"]["kind"] == "section" and ":" in daily["section"]["ref"]
+    assert daily["section"]["title"].startswith("Section ")
+    assert daily["judgment"]["ref"] == str(ids["newest"]) and "Bail cannot be refused" in daily["judgment"]["description"]
+    assert len(daily["news"]) == 1 and daily["news"][0]["url"]
+    assert (await client.get(f"{API}/network/daily")).status_code == 401

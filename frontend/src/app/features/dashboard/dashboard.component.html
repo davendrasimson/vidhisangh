@@ -1,135 +1,220 @@
-<!-- Hero -->
-<section class="vs-hero px-6 py-6 md:px-8 md:py-7 mb-6">
-  <div class="relative z-10 flex items-center gap-4 flex-wrap">
-    <div class="vs-hero__avatar">{{ initials() }}</div>
-    <div class="min-w-0 flex-1">
-      <h1 class="text-2xl md:text-3xl font-bold leading-tight">{{ greeting() }}, {{ user()?.full_name }}</h1>
-      <p class="text-sm opacity-85 mt-1">
-        {{ today | date: 'EEEE, dd/MM/yyyy' }}
-        @if (tenant.current(); as t) { @if (t.name !== user()?.full_name) { · {{ t.name }} } }
-      </p>
-    </div>
-    <div class="flex gap-2">
-      <a routerLink="/app/research" class="vs-hero__btn"><mat-icon class="material-icons-outlined">search</mat-icon> Research</a>
-      <a routerLink="/app/matters" class="vs-hero__btn vs-hero__btn--solid"><mat-icon class="material-icons-outlined">add</mat-icon> New matter</a>
-    </div>
+<!-- Greeting -->
+<header class="flex flex-wrap items-end justify-between gap-3 mb-4">
+  <div class="min-w-0">
+    <h1 class="vs-display text-2xl md:text-3xl font-semibold text-content leading-tight">{{ greeting() }}@if (firstName()) {, {{ firstName() }}}</h1>
+    <p class="text-sm text-content-muted mt-0.5">{{ today | date: 'EEEE, dd/MM/yyyy' }}</p>
   </div>
-</section>
+  <span class="hidden sm:block"><a routerLink="/app/matters" [queryParams]="{ open: 'new' }" mat-stroked-button><mat-icon class="material-icons-outlined">add</mat-icon> New matter</a></span>
+</header>
 
-@if (overview(); as o) {
-  <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-6">
-    <div class="flex items-center justify-between gap-3 mb-3"><div><h2 class="font-semibold text-content">Action centre</h2><p class="text-xs text-content-muted">Recent workflow items requiring attention</p></div><a routerLink="/app/analytics" class="text-sm text-brand">Full reporting →</a></div>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-      <a routerLink="/app/billing" class="rounded-lg bg-surface p-3"><p class="text-xl font-bold">{{ o.operations.submitted_time_entries }}</p><p class="text-xs text-content-muted">Timesheets awaiting approval</p></a>
-      <a routerLink="/app/billing" class="rounded-lg bg-surface p-3"><p class="text-xl font-bold">{{ inr(o.operations.unbilled_time_value) }}</p><p class="text-xs text-content-muted">Approved time ready to bill</p></a>
-      <a routerLink="/app/documents" [queryParams]="{ view: 'signatures' }" class="rounded-lg bg-surface p-3"><p class="text-xl font-bold">{{ o.operations.pending_signatures }}</p><p class="text-xs text-content-muted">Documents awaiting signature</p></a>
-      <a routerLink="/app/billing" class="rounded-lg bg-surface p-3"><p class="text-xl font-bold" [class.text-danger]="o.operations.follow_ups_due > 0">{{ o.operations.follow_ups_due }}</p><p class="text-xs text-content-muted">Invoice follow-ups due</p></a>
-    </div>
-  </section>
-}
+<div class="grid gap-4 lg:grid-cols-3 lg:items-start [&>*]:min-w-0">
+  <div class="grid gap-4 lg:col-span-2 [&>*]:min-w-0">
 
-<!-- Stat tiles -->
-<section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-6">
-  @for (stat of stats(); track stat.label) {
-    <a [routerLink]="stat.route" class="vs-tile vs-lift rounded-card bg-surface-raised border border-line shadow-card p-5 tone-{{ stat.tone }}">
-      <div class="flex items-start justify-between">
-        <span class="vs-iconchip"><mat-icon class="material-icons-outlined">{{ stat.icon }}</mat-icon></span>
-        <mat-icon class="material-icons-outlined text-content-muted vs-tile__go">north_east</mat-icon>
+    <!-- Today & tomorrow: hearings and deadlines, acted on here -->
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-4" aria-labelledby="board-title">
+      <div class="flex items-center justify-between gap-3 mb-2">
+        <h2 id="board-title" class="font-semibold text-content flex items-center gap-2"><mat-icon class="material-icons-outlined text-brand">event_note</mat-icon> Your day</h2>
+        <a routerLink="/app/calendar" class="text-sm text-brand">Diary →</a>
       </div>
-      <div class="mt-4 text-3xl font-bold text-content tracking-tight">{{ stat.value }}</div>
-      <div class="mt-0.5 text-sm font-medium text-content">{{ stat.label }}</div>
-      <div class="mt-1 text-xs text-content-muted">{{ stat.hint }}</div>
-    </a>
-  }
-</section>
-
-<!-- Revenue trend + insights -->
-<section class="grid gap-4 lg:grid-cols-3 mb-6">
-  <div class="lg:col-span-2 rounded-card bg-surface-raised border border-line shadow-card p-5">
-    <div class="flex items-center justify-between mb-1">
-      <h2 class="font-semibold text-content">Revenue trend</h2>
-      <div class="flex items-center gap-4 text-xs text-content-muted">
-        <span class="flex items-center gap-1.5"><i class="vs-dot" style="background:rgb(var(--vs-brand))"></i> Invoiced</span>
-        <span class="flex items-center gap-1.5"><i class="vs-dot" style="background:rgb(var(--vs-success))"></i> Collected</span>
-      </div>
-    </div>
-    <p class="text-xs text-content-muted mb-3">Last 6 months</p>
-    @if (chart(); as c) {
-      <svg [attr.viewBox]="'0 0 ' + c.W + ' ' + c.H" class="w-full" style="height:auto" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Revenue trend chart">
-        <defs>
-          <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="rgb(var(--vs-brand))" stop-opacity="0.28" />
-            <stop offset="100%" stop-color="rgb(var(--vs-brand))" stop-opacity="0.02" />
-          </linearGradient>
-        </defs>
-        @for (gy of c.grid; track gy) {
-          <line [attr.x1]="0" [attr.x2]="c.W" [attr.y1]="gy" [attr.y2]="gy"
-                stroke="rgb(var(--vs-border))" stroke-width="1" stroke-dasharray="3 5" opacity="0.7" />
-        }
-        <path [attr.d]="c.area" fill="url(#areaFill)" />
-        <path [attr.d]="c.invLine" fill="none" stroke="rgb(var(--vs-brand))" stroke-width="2.5"
-              stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
-        <path [attr.d]="c.colLine" fill="none" stroke="rgb(var(--vs-success))" stroke-width="2.5"
-              stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
-        @for (d of c.dots; track $index) {
-          <circle [attr.cx]="d.cx" [attr.cy]="d.cyc" r="3.5" fill="rgb(var(--vs-success))"
-                  stroke="rgb(var(--vs-surface-raised))" stroke-width="2" />
-        }
-        @for (lb of c.labels; track $index) {
-          <text [attr.x]="lb.x" [attr.y]="c.baseY + 18" text-anchor="middle"
-                fill="rgb(var(--vs-text-muted))" font-size="12">{{ lb.text }}</text>
-        }
-      </svg>
-    } @else {
-      <div class="h-40 grid place-items-center text-content-muted text-sm">Loading revenue…</div>
-    }
-  </div>
-
-  <div class="rounded-card bg-surface-raised border border-line shadow-card p-5">
-    <h2 class="font-semibold text-content mb-4">This period</h2>
-    @if (insights(); as ins) {
-      <div class="space-y-4">
-        <div>
-          <div class="flex items-end justify-between">
-            <span class="text-sm text-content-muted">Collected</span>
-            <span class="font-bold text-content">{{ ins.collected }}</span>
+      @if (agenda() === null) {
+        <p class="text-sm text-content-muted py-3">Loading your diary…</p>
+      } @else if (!board().today.length && !board().tomorrow.length) {
+        @if (noMatters()) {
+          <div class="vs-empty-board">
+            <p class="font-medium text-content">Add your first case and we will remind you of every date.</p>
+            <p class="text-sm text-content-muted mt-1">Paste the CNR from the eCourts case-status page: parties, court and next hearing are filled in for you.</p>
+            <div class="flex flex-wrap gap-2 mt-3">
+              <a mat-flat-button color="primary" routerLink="/app/matters" [queryParams]="{ open: 'ecourts' }"><mat-icon class="material-icons-outlined">cloud_download</mat-icon> Fetch a case by CNR</a>
+              <a mat-button routerLink="/app/matters" [queryParams]="{ open: 'new' }">Add it by hand</a>
+            </div>
           </div>
-          <div class="vs-meter mt-1.5"><span [style.width.%]="ins.collectRate"></span></div>
-          <div class="text-xs text-content-muted mt-1">{{ ins.collectRate }}% of {{ ins.invoiced }} invoiced</div>
-        </div>
-        <div class="vs-divider"></div>
-        <div class="flex items-center justify-between">
-          <span class="text-sm text-content-muted">Leads</span>
-          <span class="font-semibold text-content">{{ ins.leads }}</span>
-        </div>
-        <div class="flex items-center justify-between">
-          <span class="text-sm text-content-muted">Conversion</span>
-          <span class="vs-chip"><span class="text-brand">{{ ins.conversion }}%</span></span>
-        </div>
-        <div class="flex items-center justify-between">
-          <span class="text-sm text-content-muted">Won value</span>
-          <span class="font-semibold text-content">{{ ins.wonValue }}</span>
-        </div>
+        } @else {
+          <p class="text-sm text-content-muted py-3">Nothing listed for today or tomorrow.</p>
+        }
+      } @else {
+        @for (group of [{ label: 'Today', items: board().today }, { label: 'Tomorrow', items: board().tomorrow }]; track group.label) {
+          @if (group.items.length) {
+            <h3 class="text-xs font-semibold uppercase tracking-wide text-content-muted mt-3 mb-1">{{ group.label }}</h3>
+            <ul class="divide-y divide-line" [attr.aria-label]="group.label">
+              @for (i of group.items; track i.id) {
+                <li class="py-2.5">
+                  @if (i.kind === 'hearing') {
+                    <div class="flex items-start gap-3">
+                      <span class="vs-board-time">{{ i.start_at | date: 'h:mm a' }}</span>
+                      <div class="min-w-0 flex-1">
+                        <a [routerLink]="['/app/matters', i.matter_id]" class="font-medium text-content hover:text-brand">{{ i.title }}</a>
+                        @if (courtLine(i)) { <p class="text-xs text-content-muted mt-0.5">{{ courtLine(i) }}</p> }
+                        @if (i.status === 'held' || i.status === 'adjourned') { <p class="text-xs text-success mt-0.5">Marked {{ i.status }}</p> }
+                        @if (canMark(i)) {
+                          <div class="flex flex-wrap gap-2 mt-2">
+                            <button mat-stroked-button class="vs-board-btn" [disabled]="busy() === i.id" (click)="markHearing(i, 'held')">Held</button>
+                            <button mat-stroked-button class="vs-board-btn" [disabled]="busy() === i.id" (click)="markHearing(i, 'adjourned')">Adjourned</button>
+                          </div>
+                        }
+                        @if (nextFor()?.id === i.id) {
+                          <form class="flex flex-wrap items-center gap-2 mt-2" (ngSubmit)="addNextDate()" aria-label="Next date">
+                            <span class="text-sm">Next date given?</span>
+                            <vs-date-input withTime name="next_date" label="Next date" [(ngModel)]="nextDate" />
+                            <button mat-flat-button color="primary" type="submit" [disabled]="!nextDate || busy() === i.id">Add to diary</button>
+                            <button mat-button type="button" (click)="nextFor.set(null)">Not now</button>
+                          </form>
+                        }
+                      </div>
+                    </div>
+                  } @else {
+                    <label class="flex items-start gap-3 cursor-pointer">
+                      <input type="checkbox" class="vs-board-check" [disabled]="busy() === i.id" (change)="completeTask(i)" [attr.aria-label]="'Mark done: ' + i.title" />
+                      <span class="min-w-0">
+                        <span class="text-content">{{ i.title }}</span>
+                        @if (i.matter_number) { <span class="block text-xs text-content-muted">{{ i.matter_number }}</span> }
+                      </span>
+                    </label>
+                  }
+                </li>
+              }
+            </ul>
+          }
+        }
+      }
+    </section>
+
+    <!-- One search box: judgments or Bare Acts, plus the free tools -->
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-4" aria-labelledby="search-title">
+      <h2 id="search-title" class="sr-only">Search</h2>
+      <div class="flex gap-1 mb-3" role="radiogroup" aria-label="Search in">
+        <button type="button" role="radio" class="vs-seg" [class.vs-seg--on]="searchWhere === 'judgments'" [attr.aria-checked]="searchWhere === 'judgments'" (click)="searchWhere = 'judgments'">Judgments</button>
+        <button type="button" role="radio" class="vs-seg" [class.vs-seg--on]="searchWhere === 'acts'" [attr.aria-checked]="searchWhere === 'acts'" (click)="searchWhere = 'acts'">Bare Acts</button>
       </div>
-    } @else {
-      <p class="text-content-muted text-sm">Loading…</p>
+      <form class="flex gap-2" (ngSubmit)="search()">
+        <label class="vs-input flex items-center gap-2 flex-1 min-w-0">
+          <mat-icon class="material-icons-outlined text-content-muted shrink-0">search</mat-icon>
+          <input class="w-full bg-transparent p-0 min-w-0 border-0 outline-none shadow-none" name="q" [(ngModel)]="searchText" enterkeyhint="search"
+                 [attr.aria-label]="searchWhere === 'judgments' ? 'Search judgments' : 'Search the Bare Acts'"
+                 [placeholder]="searchWhere === 'judgments' ? 'e.g. anticipatory bail economic offence' : 'e.g. Section 138 or “dishonestly induces”'" />
+        </label>
+        <button mat-flat-button color="primary" type="submit" [disabled]="searchText.trim().length < 2">Search</button>
+      </form>
+      <div class="vs-chips mt-3" aria-label="Free tools">
+        @for (t of tools; track t.path) {
+          <a class="vs-tool-chip" [href]="origin + t.path" target="_blank" rel="noopener">{{ t.label }}</a>
+        }
+      </div>
+    </section>
+  </div>
+
+  <!-- Something new every day -->
+  <div class="grid gap-4 [&>*]:min-w-0">
+    @if (daily(); as d) {
+      @if (d.section; as s) {
+        <article class="rounded-card bg-surface-raised border border-line shadow-card p-4" aria-label="Section of the day">
+          <p class="text-xs font-semibold uppercase tracking-wide text-brand">Section of the day</p>
+          <h2 class="font-semibold text-content mt-1">{{ s.title }}</h2>
+          @if (s.description) { <p class="text-sm text-content-muted mt-1 vs-clamp-4">{{ s.description }}</p> }
+          <div class="flex flex-wrap gap-2 mt-3">
+            <a mat-stroked-button routerLink="/app/knowledge/reader" [queryParams]="sectionLink(s)">Read</a>
+            <a mat-button [href]="shareLink(s)" target="_blank" rel="noopener"><mat-icon class="material-icons-outlined">share</mat-icon> WhatsApp</a>
+          </div>
+        </article>
+      }
+      @if (d.judgment; as j) {
+        <article class="rounded-card bg-surface-raised border border-line shadow-card p-4" aria-label="Judgment of the day">
+          <p class="text-xs font-semibold uppercase tracking-wide text-brand">Supreme Court · judgment of the day</p>
+          <h2 class="font-semibold text-content mt-1">{{ j.title }}</h2>
+          @if (j.description) { <p class="text-sm text-content-muted mt-1 vs-clamp-4">{{ j.description }}</p> }
+          <p class="text-xs text-content-muted mt-1">AI-generated summary: read the judgment before relying on it.</p>
+          <div class="flex flex-wrap gap-2 mt-3">
+            <a mat-stroked-button [routerLink]="['/app/research', j.ref]">Read</a>
+            <a mat-button [href]="shareLink(j)" target="_blank" rel="noopener"><mat-icon class="material-icons-outlined">share</mat-icon> WhatsApp</a>
+          </div>
+        </article>
+      }
+      @if (d.news.length) {
+        <section class="rounded-card bg-surface-raised border border-line shadow-card p-4" aria-labelledby="news-title">
+          <div class="flex items-center justify-between gap-3 mb-1">
+            <h2 id="news-title" class="text-xs font-semibold uppercase tracking-wide text-brand">Legal news</h2>
+            <a routerLink="/app/news" class="text-sm text-brand">More →</a>
+          </div>
+          <ul class="divide-y divide-line">
+            @for (n of d.news; track n.post_id) {
+              <li class="py-2"><a [href]="n.url" target="_blank" rel="noopener" class="text-sm text-content hover:text-brand">{{ n.title }}</a>
+                @if (n.site) { <span class="block text-xs text-content-muted">{{ n.site }}</span> }</li>
+            }
+          </ul>
+        </section>
+      }
     }
   </div>
-</section>
+</div>
 
-<!-- Modules -->
-<section>
-  <h2 class="text-lg font-semibold text-content mb-3">Your platform</h2>
-  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-    @for (mod of modules; track mod.name) {
-      <a [routerLink]="mod.route" class="vs-module vs-lift rounded-card bg-surface-raised border border-line shadow-card p-5">
-        <span class="vs-iconchip"><mat-icon class="material-icons-outlined">{{ mod.icon }}</mat-icon></span>
-        <h3 class="mt-3 font-semibold text-content flex items-center gap-1">
-          {{ mod.name }}
-          <mat-icon class="material-icons-outlined vs-module__arrow">arrow_forward</mat-icon>
-        </h3>
-        <p class="mt-1 text-sm text-content-muted">{{ mod.desc }}</p>
+<!-- Firm figures: only when there is something in them -->
+@if (hasPractice()) {
+  <h2 class="text-lg font-semibold text-content mt-8 mb-3">Practice overview</h2>
+
+  @if (hasOperations(); as _) {
+    @if (overview(); as o) {
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-4">
+        <div class="flex items-center justify-between gap-3 mb-3"><div><h3 class="font-semibold text-content">Action centre</h3><p class="text-xs text-content-muted">Workflow items requiring attention</p></div><a routerLink="/app/analytics" class="text-sm text-brand">Full reporting →</a></div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <a routerLink="/app/billing" class="rounded-lg bg-surface p-3"><p class="text-xl font-bold">{{ o.operations.submitted_time_entries }}</p><p class="text-xs text-content-muted">Timesheets awaiting approval</p></a>
+          <a routerLink="/app/billing" class="rounded-lg bg-surface p-3"><p class="text-xl font-bold">{{ inr(o.operations.unbilled_time_value) }}</p><p class="text-xs text-content-muted">Approved time ready to bill</p></a>
+          <a routerLink="/app/documents" [queryParams]="{ view: 'signatures' }" class="rounded-lg bg-surface p-3"><p class="text-xl font-bold">{{ o.operations.pending_signatures }}</p><p class="text-xs text-content-muted">Documents awaiting signature</p></a>
+          <a routerLink="/app/billing" class="rounded-lg bg-surface p-3"><p class="text-xl font-bold" [class.text-danger]="o.operations.follow_ups_due > 0">{{ o.operations.follow_ups_due }}</p><p class="text-xs text-content-muted">Invoice follow-ups due</p></a>
+        </div>
+      </section>
+    }
+  }
+
+  <section class="grid gap-4 grid-cols-2 xl:grid-cols-4 mb-4">
+    @for (stat of stats(); track stat.label) {
+      <a [routerLink]="stat.route" class="vs-tile vs-lift rounded-card bg-surface-raised border border-line shadow-card p-4 tone-{{ stat.tone }}">
+        <div class="flex items-start justify-between">
+          <span class="vs-iconchip"><mat-icon class="material-icons-outlined">{{ stat.icon }}</mat-icon></span>
+          <mat-icon class="material-icons-outlined text-content-muted vs-tile__go">north_east</mat-icon>
+        </div>
+        <div class="mt-3 text-2xl font-bold text-content tracking-tight">{{ stat.value }}</div>
+        <div class="mt-0.5 text-sm font-medium text-content">{{ stat.label }}</div>
+        <div class="mt-1 text-xs text-content-muted">{{ stat.hint }}</div>
       </a>
     }
-  </div>
-</section>
+  </section>
+
+  @if (hasRevenue()) {
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-4">
+      <div class="flex items-center justify-between mb-1">
+        <h3 class="font-semibold text-content">Revenue trend</h3>
+        <div class="flex items-center gap-4 text-xs text-content-muted">
+          <span class="flex items-center gap-1.5"><i class="vs-dot" style="background:rgb(var(--vs-brand))"></i> Invoiced</span>
+          <span class="flex items-center gap-1.5"><i class="vs-dot" style="background:rgb(var(--vs-success))"></i> Collected</span>
+        </div>
+      </div>
+      <p class="text-xs text-content-muted mb-3">Last 6 months</p>
+      @if (chart(); as c) {
+        <svg [attr.viewBox]="'0 0 ' + c.W + ' ' + c.H" class="w-full" style="height:auto" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Revenue trend chart">
+          <defs>
+            <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="rgb(var(--vs-brand))" stop-opacity="0.28" />
+              <stop offset="100%" stop-color="rgb(var(--vs-brand))" stop-opacity="0.02" />
+            </linearGradient>
+          </defs>
+          @for (gy of c.grid; track gy) {
+            <line [attr.x1]="0" [attr.x2]="c.W" [attr.y1]="gy" [attr.y2]="gy"
+                  stroke="rgb(var(--vs-border))" stroke-width="1" stroke-dasharray="3 5" opacity="0.7" />
+          }
+          <path [attr.d]="c.area" fill="url(#areaFill)" />
+          <path [attr.d]="c.invLine" fill="none" stroke="rgb(var(--vs-brand))" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+          <path [attr.d]="c.colLine" fill="none" stroke="rgb(var(--vs-success))" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+          @for (d of c.dots; track $index) {
+            <circle [attr.cx]="d.cx" [attr.cy]="d.cyc" r="3.5" fill="rgb(var(--vs-success))"
+                    stroke="rgb(var(--vs-surface-raised))" stroke-width="2" />
+          }
+          @for (lb of c.labels; track $index) {
+            <text [attr.x]="lb.x" [attr.y]="c.baseY + 18" text-anchor="middle"
+                  fill="rgb(var(--vs-text-muted))" font-size="12">{{ lb.text }}</text>
+          }
+        </svg>
+      }
+    </section>
+  }
+}

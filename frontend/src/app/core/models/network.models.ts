@@ -114,3 +114,22 @@ export interface TrendingTag {
   tag: string;
   count: number;
 }
+
+/** One official daily post as a home-screen card. */
+export interface DailyCard {
+  kind: 'section' | 'judgment' | 'news';
+  /** "bns:318", a judgment id, or a news item id. */
+  ref: string;
+  post_id: string;
+  title: string;
+  description: string | null;
+  url: string | null;
+  site: string | null;
+  posted_at: string;
+}
+
+export interface DailyRead {
+  section: DailyCard | null;
+  judgment: DailyCard | null;
+  news: DailyCard[];
+}

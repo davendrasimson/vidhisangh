@@ -225,3 +225,23 @@ class CommentRead(BaseModel):
     author_avatar_url: str | None
     body: str
     created_at: datetime
+
+
+class DailyCard(BaseModel):
+    """One official daily post, as a card (home screen)."""
+
+    kind: str  # section | judgment | news
+    ref: str   # "bns:318", a judgment id, or a news item id
+    post_id: uuid.UUID
+    title: str
+    description: str | None = None
+    url: str | None = None
+    site: str | None = None
+    posted_at: datetime
+
+
+class DailyRead(BaseModel):
+    section: DailyCard | None = None
+    judgment: DailyCard | None = None
+    news: list[DailyCard] = []
+

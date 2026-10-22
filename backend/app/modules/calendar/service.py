@@ -105,6 +105,9 @@ class CalendarService:
                     location=hearing.court,
                     matter_id=hearing.matter_id,
                     matter_number=matter_number,
+                    court=hearing.court,
+                    court_room=hearing.court_room,
+                    item_number=hearing.item_number,
                 )
             )
 

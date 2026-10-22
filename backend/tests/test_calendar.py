@@ -56,7 +56,8 @@ async def test_agenda_merges_events_hearings_deadlines(client: AsyncClient, stro
     # A hearing (Aug 1), a task deadline (Jul 25) and a standalone event (Jul 20).
     await client.post(
         f"{API}/matters/{mid}/hearings", headers=h,
-        json={"scheduled_on": "2026-08-01T10:30:00Z", "purpose": "First hearing"},
+        json={"scheduled_on": "2026-08-01T10:30:00Z", "purpose": "First hearing",
+              "court": "Delhi High Court", "court_room": "12", "item_number": "34"},
     )
     await client.post(
         f"{API}/matters/{mid}/tasks", headers=h,
@@ -77,6 +78,7 @@ async def test_agenda_merges_events_hearings_deadlines(client: AsyncClient, stro
     hearing = next(i for i in items if i["kind"] == "hearing")
     assert hearing["matter_id"] == mid
     assert "Big case" in hearing["title"]
+    assert (hearing["court"], hearing["court_room"], hearing["item_number"]) == ("Delhi High Court", "12", "34")
 
 
 async def test_agenda_includes_limitation(client: AsyncClient, strong_password: str) -> None:

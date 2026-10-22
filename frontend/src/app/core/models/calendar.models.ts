@@ -39,4 +39,7 @@ export interface AgendaItem {
   location: string | null;
   matter_id: string | null;
   matter_number: string | null;
+  court?: string | null;
+  court_room?: string | null;
+  item_number?: string | null;
 }

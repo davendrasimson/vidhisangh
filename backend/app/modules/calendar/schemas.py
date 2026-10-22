@@ -62,3 +62,7 @@ class AgendaItem(BaseModel):
     location: str | None = None
     matter_id: uuid.UUID | None = None
     matter_number: str | None = None
+    # Hearings: court, courtroom and cause-list item (home screen, diary).
+    court: str | None = None
+    court_room: str | None = None
+    item_number: str | None = None

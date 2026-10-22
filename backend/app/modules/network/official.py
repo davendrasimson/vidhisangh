@@ -176,3 +176,23 @@ async def post_daily(session: AsyncSession, now: datetime | None = None) -> dict
     report["section"] = int(await post_section(session, now + timedelta(minutes=2)))
     log.info("official_posts", **report)
     return report
+
+
+async def daily_cards(session: AsyncSession, news_limit: int = 3) -> dict[str, object]:
+    """What the official account posted most recently, for the home screen:
+    the section of the day, the Supreme Court judgment and a few news items."""
+    async def latest(kind: str, limit: int) -> list[dict]:
+        rows = (await session.execute(
+            select(OfficialPost, Post).join(Post, Post.id == OfficialPost.post_id)
+            .where(OfficialPost.kind == kind, Post.deleted_at.is_(None))
+            .order_by(OfficialPost.created_at.desc()).limit(limit)
+        )).all()
+        return [{
+            "kind": kind, "ref": o.ref, "post_id": p.id, "title": p.link_title or p.title or "",
+            "description": p.link_description, "url": p.link_url, "site": p.link_site_name, "posted_at": o.created_at,
+        } for o, p in rows]
+
+    section, judgment = await latest("section", 1), await latest("judgment", 1)
+    return {"section": section[0] if section else None, "judgment": judgment[0] if judgment else None,
+            "news": await latest("news", news_limit)}
+

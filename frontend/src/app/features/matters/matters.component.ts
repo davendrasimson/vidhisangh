@@ -126,6 +126,9 @@ export class MattersComponent implements OnInit {
       this.client = { id: q.get('client_id'), name: q.get('client_name')! };
       this.showForm.set(true);
     }
+    // From home: "Fetch a case by CNR" / "Add it by hand".
+    if (q.get('open') === 'ecourts') this.showImport.set(true);
+    else if (q.get('open') === 'new') this.showForm.set(true);
     await Promise.all([this.reload(), this.loadPeople()]);
   }
 

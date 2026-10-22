@@ -162,3 +162,6 @@ encrypted copy. See DEPLOYMENT.md for the configuration.
 
 ## 🧪 Flaky browser tests (seen 20–21 Oct 2026)
 - ✅ Fixed 21 Oct 2026: the help tour now steps until "Finish tour" appears (`toPass`), and the matter-help test targets the form's own field; 48/48 repeated runs pass.
+
+## Home screen — next steps (owner chose solo advocates and students first, 22 Oct 2026)
+Built: your day (hearings/deadlines with in-place actions), search + tools, daily cards, firm figures only with data. Next, as proposed: (4) network on home — pending connection requests with Accept/Ignore, unread messages, 2–3 posts from the member's groups; (5) a progress card — profile completeness ("add your courts…") and the Founding Member invite goal with a WhatsApp invite button. Reaches phones only on app 1.0.6+ (live updates were broken on 1.0.4/1.0.5).

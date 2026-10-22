@@ -17,6 +17,7 @@ from app.core.pagination import PageParams, page_params
 from app.modules.identity.models import User
 from app.modules.network.models import ConnectionStatus, ReactionType
 from app.modules.network.schemas import (
+    DailyRead,
     PostImageRead,
     CommentCreate,
     CommentRead,
@@ -113,6 +114,15 @@ async def get_feed(
     page: Pagination, current: CurrentUserDep, session: TenantSessionDep
 ) -> list[FeedItem]:
     return _feed_items(*await _svc(current, session).feed(page.limit, page.offset))
+
+
+@router.get(
+    "/daily", dependencies=[require_permission("post:read")], response_model=DailyRead,
+    summary="Today's section, Supreme Court judgment and legal news (home screen)",
+)
+async def daily(session: TenantSessionDep) -> DailyRead:
+    from app.modules.network.official import daily_cards
+    return DailyRead.model_validate(await daily_cards(session))
 
 
 @router.get(
