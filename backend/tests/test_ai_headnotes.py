@@ -159,3 +159,27 @@ async def test_public_pages_show_only_headnoted_judgments_with_the_ai_flag(sessi
     assert sitemap.headers["content-type"].startswith("application/xml")
     assert f"https://vidhisangh.com/judgments/{ids['new']}/new-v-state/" in sitemap.text
     assert "https://vidhisangh.com/judgments/2024/" in sitemap.text and str(ids["old"]) not in sitemap.text
+
+
+def test_ai_headnote_index_matches_the_query_expression() -> None:
+    import importlib.util
+    from pathlib import Path
+    from app.modules.research.repository import AI_HEADNOTE_VECTOR_SQL
+    path = Path(__file__).parents[1] / "alembic" / "versions" / "0077_ai_headnote_search.py"
+    spec = importlib.util.spec_from_file_location("m0077", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    # Not byte-identical → Postgres silently ignores the index (5.6M-row scan).
+    assert module.AI_HEADNOTE_VECTOR_SQL == AI_HEADNOTE_VECTOR_SQL
+
+
+async def test_search_finds_words_only_in_the_ai_headnote(session_factory, client: AsyncClient, strong_password: str) -> None:
+    from app.modules.research.models import Judgment
+    h, _ = await _user(client, "Find LLP", "find@firm.co", strong_password)
+    ids = await _seed(session_factory)
+    async with session_factory() as session:
+        j = await session.get(Judgment, ids["mid"])
+        j.ai_headnote = HEADNOTE
+        await session.commit()
+    hits = (await client.get(f"{API}/research/judgments", headers=h, params={"q": "procedural lapse"})).json()
+    assert [r["id"] for r in hits["items"]] == [str(ids["mid"])]

@@ -9,7 +9,7 @@ import uuid
 from dataclasses import astuple, dataclass
 from datetime import date, timedelta
 
-from sqlalchemy import String, cast, func, literal, literal_column, or_, select, text, tuple_
+from sqlalchemy import String, and_, cast, func, literal, literal_column, or_, select, text, tuple_
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,6 +27,15 @@ _SEARCH_VECTOR = literal_column("judgments.search_vector")
 _FULL_TEXT_VECTOR = literal_column(
     "to_tsvector('english'::regconfig, left(coalesce(judgments.full_text, ''), 300000))"
 )
+# AI headnotes (0064) have a partial GIN expression index (0077) over their
+# text fields. Same rule: byte-identical to the index, and the query must also
+# say `ai_headnote IS NOT NULL` for the partial index to apply.
+AI_HEADNOTE_TEXT_SQL = (
+    "coalesce(ai_headnote->>'summary', '') || ' ' || coalesce((ai_headnote->'issues')::text, '') || ' ' || "
+    "coalesce((ai_headnote->'held')::text, '') || ' ' || coalesce((ai_headnote->'provisions')::text, '')"
+)
+AI_HEADNOTE_VECTOR_SQL = f"to_tsvector('english'::regconfig, {AI_HEADNOTE_TEXT_SQL})"
+_AI_HEADNOTE_VECTOR = literal_column(AI_HEADNOTE_VECTOR_SQL)
 _ENGLISH = literal_column("'english'::regconfig")
 _CNR_RE = re.compile(r"^[A-Z]{4}[A-Z0-9]{2}\d{10}$", re.I)
 # The single threshold for "small enough to treat precisely": below it a query
@@ -182,6 +191,7 @@ class ResearchRepository:
                 matches = [
                     _SEARCH_VECTOR.op("@@")(tsquery),
                     _FULL_TEXT_VECTOR.op("@@")(tsquery),
+                    and_(Judgment.ai_headnote.is_not(None), _AI_HEADNOTE_VECTOR.op("@@")(tsquery)),
                 ]
                 # A pasted CNR or "CRM-M/33310/2019" is an identifier, not prose;
                 # FTS tokenises those badly, so match them literally as well.
@@ -200,6 +210,7 @@ class ResearchRepository:
                         Judgment.full_text.ilike(like, escape=LIKE_ESCAPE),
                         Judgment.judge_text.ilike(like, escape=LIKE_ESCAPE),
                         cast(Judgment.keywords, String).ilike(like, escape=LIKE_ESCAPE),
+                        cast(Judgment.ai_headnote, String).ilike(like, escape=LIKE_ESCAPE),
                     )
                 )
 
@@ -300,7 +311,10 @@ class ResearchRepository:
             stmt = (
                 select(Judgment, snippet)
                 .where(*conds)
-                .order_by(func.ts_rank_cd(_SEARCH_VECTOR, tsquery).desc(), *newest_first)
+                .order_by(
+                    (func.ts_rank_cd(_SEARCH_VECTOR, tsquery) + func.ts_rank_cd(_AI_HEADNOTE_VECTOR, tsquery)).desc(),
+                    *newest_first,
+                )
             )
             return await self._page(stmt, limit, offset), False
 
