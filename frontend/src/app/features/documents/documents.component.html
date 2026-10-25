@@ -22,7 +22,8 @@
     </section>
   }
 
-  <!-- Who this work is for: a client from the master, a new one, or nobody. -->
+  <!-- Who this work is for: a client from the master, a new one, or nobody. Judges have no clients. -->
+  @if (!judge()) {
   <section class="client-bar panel">
     <div class="client-bar-main">
       <mat-icon class="material-icons-outlined">badge</mat-icon>
@@ -53,6 +54,7 @@
       </div>
     }
   </section>
+  }
 
   <nav class="workspace-tabs" aria-label="Documents sections">
     <button [class.active]="view() === 'draft'" (click)="view.set('draft')">
@@ -102,20 +104,27 @@
           <input [ngModel]="templateSearch()" (ngModelChange)="templateSearch.set($event)" placeholder="Search bail, notice, rent, affidavit, Munshi diary…" />
           @if (templateSearch()) { <button aria-label="Clear search" (click)="templateSearch.set('')"><mat-icon>close</mat-icon></button> }
         </label>
-        <select class="vs-input role-select" [ngModel]="role()" (ngModelChange)="role.set($event)">
-          @for (item of roles; track item.id) { @if (item.id !== 'judicial' || isJudicialUser()) { <option [value]="item.id">{{ local(item.label) }}</option> } }
-        </select>
+        @if (!judge()) {
+          <select class="vs-input role-select" [ngModel]="role()" (ngModelChange)="role.set($event)">
+            @for (item of roles; track item.id) { @if (item.id !== 'judicial' || isJudicialUser()) { <option [value]="item.id">{{ local(item.label) }}</option> } }
+          </select>
+        }
       </div>
       <div class="category-tabs">
         @for (item of categories; track item.id) {
-          @if (item.id !== 'judicial' || isJudicialUser()) { <button [class.active]="category() === item.id" (click)="category.set(item.id)">{{ local(item.label) }}</button> }
+          @if (judge() ? (item.id === 'all' || item.id === 'judicial') : (item.id !== 'judicial' || isJudicialUser())) { <button [class.active]="category() === item.id" (click)="category.set(item.id)">{{ local(item.label) }}</button> }
         }
       </div>
 
       <div class="word-template-head">
         <div>
-          <strong>Your firm’s Word templates</strong>
-          <span>Use <code>{{ '{{client_name}}' }}</code> or <code>[[case number]]</code> in a DOCX to create fillable fields.</span>
+          @if (judge()) {
+            <strong>Your Word templates</strong>
+            <span>Use <code>{{ '{{case_number}}' }}</code> or <code>[[next date]]</code> in a DOCX to create fillable fields.</span>
+          } @else {
+            <strong>Your firm’s Word templates</strong>
+            <span>Use <code>{{ '{{client_name}}' }}</code> or <code>[[case number]]</code> in a DOCX to create fillable fields.</span>
+          }
         </div>
         <div>
           <button mat-stroked-button (click)="showTemplateManager.set(!showTemplateManager())"><mat-icon class="material-icons-outlined">settings</mat-icon>Manage</button>
@@ -124,7 +133,7 @@
         </div>
       </div>
       @if (templatesLoading()) {
-        <div class="template-loading">Loading firm templates…</div>
+        <div class="template-loading">Loading {{ judge() ? 'your' : 'firm' }} templates…</div>
       } @else if (wordTemplates().length) {
         <div class="word-template-grid">
           @for (template of wordTemplates(); track template.id) {
@@ -143,7 +152,7 @@
           }
         </div>
       } @else {
-        <div class="word-template-empty"><mat-icon class="material-icons-outlined">upload_file</mat-icon><span>Upload an existing office format to reuse its wording, tables and page setup.</span></div>
+        <div class="word-template-empty"><mat-icon class="material-icons-outlined">upload_file</mat-icon><span>Upload {{ judge() ? 'an order format your court already uses' : 'an existing office format' }} to reuse its wording, tables and page setup.</span></div>
       }
 
       <div class="template-count">Built-in drafting formats · {{ filteredTemplates().length }}</div>
@@ -155,7 +164,7 @@
             <mat-icon class="material-icons-outlined arrow">arrow_forward</mat-icon>
           </button>
         } @empty {
-          <div class="empty-templates"><mat-icon class="material-icons-outlined">search_off</mat-icon><p>No format matches these filters.</p><button (click)="templateSearch.set(''); category.set('all'); role.set('all')">Clear filters</button></div>
+          <div class="empty-templates"><mat-icon class="material-icons-outlined">search_off</mat-icon><p>No format matches these filters.</p><button (click)="templateSearch.set(''); category.set('all'); role.set(judge() ? 'judicial' : 'all')">Clear filters</button></div>
         }
       </div>
     </section>

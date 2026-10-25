@@ -69,6 +69,8 @@ export class DocumentsComponent implements OnInit {
   protected readonly isJudicialUser = computed(() =>
     ['judicial_officer', 'retired_judicial_officer'].includes(this.profile()?.professional_role ?? ''),
   );
+  /** Sitting judicial officer (token claim): no clients, no firm, only the court's formats. */
+  protected readonly judge = this.auth.isJudicial;
   protected readonly templateSearch = signal('');
   protected readonly templates = DRAFT_TEMPLATES;
   protected readonly selectedTemplate = signal<DraftTemplate>(DRAFT_TEMPLATES[0]);

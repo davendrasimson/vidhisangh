@@ -11,6 +11,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { DraftsService } from '@core/services/drafts.service';
 import { NotificationService } from '@core/services/notification.service';
 import { TokenService } from '@core/auth/token.service';
+import { AuthService } from '@core/auth/auth.service';
 import { environment } from '@env/environment';
 import {
   DEFAULT_PAGE,
@@ -46,6 +47,8 @@ export class DraftEditorComponent implements OnDestroy {
   private readonly notify = inject(NotificationService);
   private readonly tokens = inject(TokenService);
   private readonly clients = inject(ClientsService);
+  /** Sitting judicial officer: no clients, and templates are their own, not a firm's. */
+  protected readonly judge = inject(AuthService).isJudicial;
 
   protected readonly editor = viewChild(VsRichEditorComponent);
   protected readonly draft = signal<Draft | null>(null);
@@ -246,7 +249,7 @@ export class DraftEditorComponent implements OnDestroy {
     try {
       await this.flush();
       const template = await firstValueFrom(this.drafts.saveAsTemplate(d.id, { name: name.trim() }));
-      this.notify.success(`${template.name} saved in your firm’s Word templates.`);
+      this.notify.success(`${template.name} saved in your ${this.judge() ? '' : 'firm’s '}Word templates.`);
     } catch { /* handled */ } finally { this.busy.set(null); }
   }
 

@@ -6,6 +6,7 @@
     </a>
     <div class="de-title">
       <input class="de-title-input" [ngModel]="title" (ngModelChange)="onTitle($event)" placeholder="Untitled document" aria-label="Document title" />
+      @if (!judge()) {
       <span class="de-client">
         <mat-icon class="material-icons-outlined">badge</mat-icon>
         @if (client(); as c) {
@@ -17,6 +18,7 @@
           <button type="button" (click)="showClient.set(!showClient())">select or add</button>
         }
       </span>
+      }
       <span class="de-save" [class.error]="saveState() === 'error'">
         @switch (saveState()) {
           @case ('saving') { <mat-icon class="material-icons-outlined">cloud_upload</mat-icon> Saving… }
@@ -48,7 +50,7 @@
       <button mat-icon-button [matMenuTriggerFor]="more" aria-label="More"><mat-icon class="material-icons-outlined">more_vert</mat-icon></button>
       <mat-menu #more="matMenu">
         <button mat-menu-item (click)="saveVersion()"><mat-icon class="material-icons-outlined">bookmark_add</mat-icon> Save a named version</button>
-        <button mat-menu-item [disabled]="busy() === 'template'" (click)="saveAsTemplate()"><mat-icon class="material-icons-outlined">library_add</mat-icon> Save as firm template</button>
+        <button mat-menu-item [disabled]="busy() === 'template'" (click)="saveAsTemplate()"><mat-icon class="material-icons-outlined">library_add</mat-icon> Save as {{ judge() ? 'my' : 'firm' }} template</button>
         <button mat-menu-item (click)="manageTemplates()"><mat-icon class="material-icons-outlined">docs</mat-icon> Manage Word templates</button>
         <button mat-menu-item (click)="remove()"><mat-icon class="material-icons-outlined">delete</mat-icon> Delete document</button>
       </mat-menu>
