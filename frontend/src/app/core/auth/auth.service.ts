@@ -52,6 +52,8 @@ export class AuthService {
   readonly offline = signal(false);
   private readonly cachedScopes = signal<string[]>([]);
   readonly permissions = computed(() => this.tokens.claims()?.scopes ?? (this.offline() ? this.cachedScopes() : []));
+  /** Sitting judicial officer (token claim `jud`): the app shows the judge's view. */
+  readonly isJudicial = computed(() => this.tokens.claims()?.jud === true);
   private reconnectTimer: ReturnType<typeof setInterval> | null = null;
   private bootedOffline = false;
 

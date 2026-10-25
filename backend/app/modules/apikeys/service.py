@@ -19,9 +19,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import AuthenticationError, NotFoundError, ValidationError
 from app.modules.apikeys.models import ApiKey
 from app.modules.apikeys.repository import ApiKeyRepository
-from app.modules.identity.rbac import ALL_PERMISSION_CODES
+from app.modules.identity.rbac import ALL_PERMISSION_CODES, mask_for_profession
 from app.modules.identity.repository import UserRepository
 from app.modules.identity.schemas import CurrentUser
+from app.modules.identity.service import professional_role_of
 
 _KEY_PREFIX = "vsk_"
 _PREFIX_DISPLAY_LEN = 12
@@ -54,7 +55,9 @@ async def authenticate_api_key(session: AsyncSession, raw_token: str) -> Current
         or creator.tenant_id != key.tenant_id
     ):
         raise AuthenticationError("This API key is no longer valid (its owner cannot sign in).")
-    allowed = set(ALL_PERMISSION_CODES) if creator.is_superuser else creator.permission_codes
+    allowed = set(ALL_PERMISSION_CODES) if creator.is_superuser else mask_for_profession(
+        creator.permission_codes, await professional_role_of(session, creator.id)
+    )
     scopes = [s for s in (key.scopes or []) if s in allowed]
     key.last_used_at = datetime.now(UTC)
     return CurrentUser(

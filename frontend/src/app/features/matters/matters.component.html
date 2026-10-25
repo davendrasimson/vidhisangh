@@ -1,10 +1,15 @@
 <div class="mx-auto w-full">
   <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
     <div>
-      <h1 class="vs-display text-3xl font-semibold text-content">Matters</h1>
-      <p class="text-sm text-content-muted mt-0.5">
-        Cases before the Supreme Court, High Courts, district judiciary and tribunals.
-      </p>
+      @if (auth.isJudicial()) {
+        <h1 class="vs-display text-3xl font-semibold text-content">Cases</h1>
+        <p class="text-sm text-content-muted mt-0.5">The cases on your board: parties, hearings, orders and notes.</p>
+      } @else {
+        <h1 class="vs-display text-3xl font-semibold text-content">Matters</h1>
+        <p class="text-sm text-content-muted mt-0.5">
+          Cases before the Supreme Court, High Courts, district judiciary and tribunals.
+        </p>
+      }
     </div>
     <div class="flex flex-wrap gap-2">
       @if (auth.hasPermission('tenant:manage')) {
@@ -22,7 +27,7 @@
       </button>
       <button mat-flat-button color="primary" (click)="showForm.set(!showForm()); showImport.set(false); showTransfer.set(false)">
         <mat-icon class="material-icons-outlined">{{ showForm() ? 'close' : 'add' }}</mat-icon>
-        {{ showForm() ? 'Cancel' : 'New matter' }}
+        {{ showForm() ? 'Cancel' : judge() ? 'New case' : 'New matter' }}
       </button>
     </div>
   </div>
@@ -249,6 +254,7 @@
             </ul>
           }
 
+          @if (!judge()) {
           <div class="grid gap-3 sm:grid-cols-2 mt-4 pt-3 border-t border-line">
             <div class="flex flex-col gap-1 sm:col-span-2">
               <span class="text-sm text-content-muted">Our client</span>
@@ -275,12 +281,13 @@
           <p class="text-xs text-content-muted mt-2">
             This decides which parties and counsel are filed as ours and which as the opponent’s.
           </p>
+          }
 
           <div class="mt-3 flex justify-end">
             <button mat-flat-button color="primary"
-                    [disabled]="!importClient || importing()"
+                    [disabled]="!(importClient || judge()) || importing()"
                     (click)="confirmImport()">
-              {{ importing() ? 'Filing…' : 'File as a matter' }}
+              {{ importing() ? 'Filing…' : judge() ? 'Add to my cases' : 'File as a matter' }}
             </button>
           </div>
         </div>
@@ -296,6 +303,7 @@
           <span class="text-sm text-content-muted">Cause title</span>
           <input class="vs-input" [(ngModel)]="form.title" placeholder="Ramesh Kumar vs State of Haryana" maxlength="300" />
         </label>
+        @if (!judge()) {
         <div class="flex flex-col gap-1 sm:col-span-2">
           <span class="text-sm text-content-muted">Client</span>
           <vs-client-picker [value]="client" (changed)="client = $event" />
@@ -307,6 +315,7 @@
             @for (p of people(); track p.id) { <option [value]="p.id">{{ p.full_name }}</option> }
           </select>
         </label>
+        }
         <label class="flex flex-col gap-1">
           <span class="text-sm text-content-muted">Court</span>
           <select class="vs-input" [(ngModel)]="form.court_level">
@@ -362,9 +371,9 @@
       </div>
       <div class="mt-4 flex justify-end">
         <button mat-flat-button color="primary"
-                [disabled]="form.title.trim().length < 2 || !client || saving()"
+                [disabled]="form.title.trim().length < 2 || !(client || judge()) || saving()"
                 (click)="submit()">
-          {{ saving() ? 'Creating…' : 'Create matter' }}
+          {{ saving() ? 'Creating…' : judge() ? 'Add case' : 'Create matter' }}
         </button>
       </div>
     </section>
@@ -424,10 +433,12 @@
                 <span class="vs-chip capitalize" [class.vs-chip--danger]="m.priority === 'high'">{{ m.priority }} priority</span>
               </div>
               <h2 class="font-semibold text-content break-words mt-2">{{ m.cause_title || m.title }}</h2>
+              @if (!judge()) {
               <p class="text-sm text-content-muted mt-1">
                 Client: {{ m.client_name }}@if (!m.client_id) { <span class="text-xs">(not linked)</span> }
                 · Lead: {{ m.lead_counsel_name || 'not assigned' }}
               </p>
+              }
               @if (m.description) { <p class="text-sm text-content-muted mt-2 line-clamp-2">{{ m.description }}</p> }
               <dl class="grid sm:grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-3 mt-4 text-sm">
                 <div><dt class="text-xs text-content-muted">Court / bench</dt><dd class="text-content mt-1">{{ m.court_establishment || m.court || 'Not recorded' }}</dd>

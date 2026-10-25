@@ -333,3 +333,28 @@ SYSTEM_ROLES: list[RoleDef] = [
 
 SYSTEM_ROLE_CODES: list[str] = [r.code for r in SYSTEM_ROLES]
 DEFAULT_SIGNUP_ROLE = "org_admin"  # first user of a new tenant owns it
+
+
+# ─── Profession mask ────────────────────────────────────────────────
+# A sitting judicial officer has no clients, fees or work to solicit, so
+# whatever roles they hold, these codes are taken out of their access token
+# (and API keys). It is a mask on top of RBAC, not a role, so it cannot be
+# undone by an org_admin granting themselves a custom role. Keyed on the
+# profile's ``professional_role``; retired judicial officers are not masked.
+JUDICIAL_PROFESSIONAL_ROLES: frozenset[str] = frozenset({"judicial_officer"})
+_JUDICIAL_BLOCKED_MODULES = ("client", "invoice", "timeentry", "lead", "marketplace")
+JUDICIAL_BLOCKED: frozenset[str] = frozenset(
+    c for c in ALL_PERMISSION_CODES if c.partition(":")[0] in _JUDICIAL_BLOCKED_MODULES
+) | {"analytics:view"}
+
+
+def is_judicial(professional_role: str | None) -> bool:
+    return professional_role in JUDICIAL_PROFESSIONAL_ROLES
+
+
+def mask_for_profession(codes: set[str], professional_role: str | None) -> set[str]:
+    """The codes a user may actually use given their profession. The platform
+    wildcard is left alone (platform staff)."""
+    if WILDCARD in codes or not is_judicial(professional_role):
+        return codes
+    return codes - JUDICIAL_BLOCKED

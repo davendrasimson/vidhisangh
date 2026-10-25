@@ -12,6 +12,8 @@ interface AccessClaims {
   ep?: number;
   /** "password must change": the session may only call /auth/change-password. */
   pmc?: boolean;
+  /** A sitting judicial officer: the judge's view, practice codes masked out. */
+  jud?: boolean;
 }
 
 /** Non-secret marker: "this browser has a session cookie worth trying". */

@@ -47,7 +47,8 @@ async def test_get_my_profile_autocreates(client: AsyncClient, strong_password: 
 
 
 async def test_update_profile(client: AsyncClient, strong_password: str) -> None:
-    headers, _ = await _auth(client, "p2@chamber.co", strong_password)
+    tokens = await _register(client, "Chamber", "p2@chamber.co", strong_password)
+    headers = {"Authorization": f"Bearer {tokens['access_token']}"}
     payload = {
         "headline": "Criminal defence advocate",
         "bio": "15 years at the trial and appellate bar.",
@@ -92,6 +93,14 @@ async def test_update_profile(client: AsyncClient, strong_password: str) -> None
     resp = await client.put("/api/v1/profiles/me", headers=headers, json=payload)
     assert resp.status_code == 200, resp.text
     assert resp.json()["headline"] == "Criminal defence advocate"
+
+    # Becoming a judicial officer re-scopes the account: the old access token is
+    # retired (test_judicial_view.py), so continue on a refreshed one.
+    assert (await client.get("/api/v1/profiles/me", headers=headers)).status_code == 401
+    fresh = await client.post("/api/v1/auth/refresh", json={"refresh_token": tokens["refresh_token"]},
+                              headers={"x-requested-with": "VidhiSangh"})
+    assert fresh.status_code == 200, fresh.text
+    headers = {"Authorization": f"Bearer {fresh.json()['access_token']}"}
 
     got = (await client.get("/api/v1/profiles/me", headers=headers)).json()
     assert got["years_of_experience"] == 15

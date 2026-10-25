@@ -14,7 +14,7 @@ export function profileSteps(p: ProfileDetail): ProfileStep[] {
     { key: 'headline', label: 'a one-line headline', done: !!p.headline?.trim() },
     { key: 'city', label: 'your city', done: !!p.city?.trim() },
     { key: 'practice_areas', label: 'your practice areas', done: p.practice_areas.length > 0 },
-    { key: 'courts', label: 'the courts you appear in', done: p.courts.length > 0 },
+    { key: 'courts', label: role === 'judicial_officer' ? 'the court you preside over' : 'the courts you appear in', done: p.courts.length > 0 },
     { key: 'bio', label: 'a few lines about yourself', done: (p.bio?.trim().length ?? 0) >= 40 },
   ];
   if (practising) steps.push({ key: 'enrolment', label: 'your Bar Council and year of enrolment', done: !!p.bar_council && !!p.year_of_enrollment });

@@ -51,6 +51,10 @@ export const QUICK_TOOLS = [
  * and Bare Acts with the free tools; the section, judgment and news of the
  * day. Firm figures (stats, revenue, action centre) only appear once there
  * is something in them, so a new member never faces a wall of zeros.
+ *
+ * A sitting judicial officer (`judge`) gets the same screen in the court's
+ * words: today's board of cases heard or adjourned, no clients, no fees. Their
+ * token has no practice-analytics code, so the firm figures never load.
  */
 @Component({
   selector: 'app-dashboard',
@@ -77,9 +81,10 @@ export class DashboardComponent implements OnInit {
   protected readonly origin = publicOrigin();
 
   protected readonly user = this.auth.user;
+  protected readonly judge = this.auth.isJudicial;
   protected readonly greeting = signal(this.timeGreeting());
   protected readonly firstName = computed(() => {
-    const parts = (this.user()?.full_name ?? '').replace(/^(adv\.?|advocate|dr\.?|mr\.?|ms\.?|mrs\.?)\s+/i, '').split(/\s+/);
+    const parts = (this.user()?.full_name ?? '').replace(/^(adv\.?|advocate|hon'?ble|justice|dr\.?|mr\.?|ms\.?|mrs\.?)\s+/i, '').split(/\s+/);
     return parts[0] || '';
   });
   protected readonly overview = signal<AnalyticsOverview | null>(null);
@@ -176,7 +181,9 @@ export class DashboardComponent implements OnInit {
     void firstValueFrom(this.tenant.load()).catch(() => undefined);
     void this.loadAgenda();
     void firstValueFrom(this.network.daily()).then((d) => this.daily.set(d)).catch(() => undefined);
-    void firstValueFrom(this.analytics.overview()).then((o) => this.overview.set(o)).catch(() => undefined);
+    if (this.auth.hasPermission('analytics:view')) {
+      void firstValueFrom(this.analytics.overview()).then((o) => this.overview.set(o)).catch(() => undefined);
+    }
     void firstValueFrom(this.network.incomingRequests()).then((r) => this.requests.set(r)).catch(() => undefined);
     void firstValueFrom(this.messaging.list()).then((c) => this.unread.set(c.filter((x) => x.unread_count > 0))).catch(() => undefined);
     void firstValueFrom(this.profile.myProfile()).then((p) => this.steps.set(profileSteps(p))).catch(() => undefined);

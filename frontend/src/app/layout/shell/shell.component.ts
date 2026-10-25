@@ -34,11 +34,14 @@ interface NavItem {
   queryParams?: Record<string, string>;
   /** Only for platform administrators (is_superuser). */
   platformAdmin?: boolean;
+  /** Wording for a judicial officer, when it differs. */
+  judicialLabel?: string;
 }
 
 interface NavGroup {
   /** Optional section heading; omitted for the top-level (un-headed) group. */
   title?: string;
+  judicialTitle?: string;
   /** Shown when the group is collapsible (acts as the toggle's leading icon). */
   icon?: string;
   items: NavItem[];
@@ -155,10 +158,11 @@ export class ShellComponent implements OnInit {
     },
     {
       title: 'Practice',
+      judicialTitle: 'Court',
       items: [
-        { label: 'Matters', icon: 'folder_shared', route: '/app/matters', permission: 'matter:read' },
+        { label: 'Matters', judicialLabel: 'Cases', icon: 'folder_shared', route: '/app/matters', permission: 'matter:read' },
         { label: 'Documents', icon: 'description', route: '/app/documents', permission: 'document:read' },
-        { label: 'Calendar', icon: 'event', route: '/app/calendar', permission: 'hearing:read' },
+        { label: 'Calendar', judicialLabel: 'Cause list', icon: 'event', route: '/app/calendar', permission: 'hearing:read' },
         { label: 'CRM', icon: 'contacts', route: '/app/crm', permission: 'lead:read' },
         { label: 'Clients', icon: 'badge', route: '/app/clients', permission: 'client:read' },
         { label: 'My timesheets', icon: 'schedule', route: '/app/billing', queryParams: { section: 'timesheets' }, permission: 'timeentry:read' },
@@ -185,16 +189,21 @@ export class ShellComponent implements OnInit {
     },
   ];
 
-  /** Groups with permission-filtered items; empty groups are dropped. */
-  protected visibleGroups = computed(() =>
-    this.navGroups
+  /** Groups with permission-filtered items; empty groups are dropped. A judicial
+   *  officer's practice codes are masked server-side, so CRM, clients, billing
+   *  and the marketplace drop out here; only the wording is swapped. */
+  protected visibleGroups = computed(() => {
+    const judge = this.auth.isJudicial();
+    return this.navGroups
       .map((g) => ({
         ...g,
+        title: (judge && g.judicialTitle) || g.title,
         items: g.items.filter((n) => (!n.permission || this.auth.hasPermission(n.permission))
-          && (!n.platformAdmin || this.user()?.is_superuser === true)),
+          && (!n.platformAdmin || this.user()?.is_superuser === true))
+          .map((n) => (judge && n.judicialLabel ? { ...n, label: n.judicialLabel } : n)),
       }))
-      .filter((g) => g.items.length > 0),
-  );
+      .filter((g) => g.items.length > 0);
+  });
 
   /** The collapsible "Settings" group starts collapsed to keep the rail short. */
   protected readonly settingsExpanded = signal(false);

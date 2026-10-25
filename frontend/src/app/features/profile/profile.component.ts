@@ -251,6 +251,11 @@ export class ProfileComponent implements OnInit {
         }),
       );
       this.profile.set(updated as ProfileDetail);
+      // Joining or leaving the bench changes what this account may do: take a
+      // fresh token so the menu and Home switch over now.
+      if ((v.professional_role === 'judicial_officer') !== this.auth.isJudicial()) {
+        await firstValueFrom(this.auth.refresh()).catch(() => undefined);
+      }
       await this.reload();
       this.editing.set(false);
       this.notify.success('Profile updated.');

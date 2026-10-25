@@ -30,6 +30,8 @@ import { ClientChoice, VsClientPickerComponent } from '@shared/client-picker/vs-
 type Filter = 'all' | MatterStatus | 'hearing_soon';
 
 const MINE_KEY = 'vs_matters_mine_only';
+/** The "client" a judicial officer's case is filed under (the API needs a name). */
+const COURT_RECORD = 'Court record';
 function readMine(): boolean {
   try { return typeof localStorage !== 'undefined' && localStorage.getItem(MINE_KEY) === '1'; } catch { return false; }
 }
@@ -66,6 +68,8 @@ export class MattersComponent implements OnInit {
   protected form = this.blank();
   /** A client picked from the master (or typed) for the new matter. */
   protected client: ClientChoice | null = null;
+  /** A judicial officer has no clients (and no client master): cases go under the court record. */
+  protected readonly judge = this.auth.isJudicial;
 
   // ─── eCourts import ───────────────────────────────────────────────
   protected readonly showImport = signal(false);
@@ -295,7 +299,7 @@ export class MattersComponent implements OnInit {
 
   protected async confirmImport(): Promise<void> {
     const found = this.preview();
-    if (!found || !this.importClient || this.importing()) return;
+    if (!found || !(this.importClient || this.judge()) || this.importing()) return;
     this.importing.set(true);
     try {
       const created = await firstValueFrom(
@@ -304,8 +308,7 @@ export class MattersComponent implements OnInit {
           case_type: found.case_type ?? undefined,
           case_number: found.case_number ?? undefined,
           case_year: found.case_year ?? undefined,
-          client_id: this.importClient.id,
-          client_name: this.importClient.id ? undefined : this.importClient.name,
+          ...this.clientOf(this.importClient),
           lead_counsel_id: this.lookup.lead_counsel_id || null,
           our_side_role: this.lookup.our_side_role,
         }),
@@ -328,17 +331,21 @@ export class MattersComponent implements OnInit {
     this.importClient = null;
   }
 
+  private clientOf(choice: ClientChoice | null): { client_id: string | null; client_name?: string } {
+    if (this.judge() || !choice) return { client_id: null, client_name: COURT_RECORD };
+    return { client_id: choice.id, client_name: choice.id ? undefined : choice.name };
+  }
+
   // ─── Manual create ────────────────────────────────────────────────
   protected async submit(): Promise<void> {
     const title = this.form.title.trim();
-    if (title.length < 2 || !this.client || this.saving()) return;
+    if (title.length < 2 || !(this.client || this.judge()) || this.saving()) return;
     this.saving.set(true);
     try {
       const created = await firstValueFrom(
         this.matters.create({
           title,
-          client_id: this.client.id,
-          client_name: this.client.id ? undefined : this.client.name,
+          ...this.clientOf(this.client),
           lead_counsel_id: this.form.lead_counsel_id || null,
           matter_type: this.form.matter_type,
           court_establishment: this.form.court_establishment.trim() || null,

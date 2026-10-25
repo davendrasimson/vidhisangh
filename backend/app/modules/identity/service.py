@@ -21,6 +21,8 @@ from datetime import UTC, datetime, timedelta
 
 import pyotp
 import structlog
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import security
 from app.core.channels import ChannelMessage, get_channels
@@ -45,7 +47,7 @@ from app.modules.identity.models import (
     TokenPurpose,
     User,
 )
-from app.modules.identity.rbac import DEFAULT_SIGNUP_ROLE
+from app.modules.identity.rbac import DEFAULT_SIGNUP_ROLE, is_judicial, mask_for_profession
 from app.modules.identity.repository import (
     MfaBackupCodeRepository,
     PasswordResetTokenRepository,
@@ -66,6 +68,16 @@ from app.modules.tenancy.models import PlanTier, Tenant, TenantStatus, TenantTyp
 from app.modules.tenancy.repository import TenantRepository
 
 log = structlog.get_logger("app.auth")
+
+
+async def professional_role_of(session: AsyncSession, user_id: uuid.UUID) -> str | None:
+    """The user's profession from their profile (None without one); drives the
+    profession mask on their permissions (``rbac.mask_for_profession``)."""
+    from app.modules.profile.models import ProfessionalProfile
+
+    return await session.scalar(
+        select(ProfessionalProfile.professional_role).where(ProfessionalProfile.user_id == user_id)
+    )
 
 
 def _current_terms_version() -> str:
@@ -474,10 +486,13 @@ class AuthService:
         }
         if user.password_must_change:
             extra["pmc"] = True
+        profession = await professional_role_of(self.session, user.id)
+        if is_judicial(profession):
+            extra["jud"] = True  # the app shows the judicial officer's view
         access = security.create_access_token(
             subject=str(user.id),
             tenant_id=str(user.tenant_id),
-            scopes=sorted(user.permission_codes),
+            scopes=sorted(mask_for_profession(user.permission_codes, profession)),
             extra=extra,
         )
         return TokenPair(

@@ -9,6 +9,8 @@ import segno
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
+from app.core.revocation import mark_user_revoked
+from app.modules.identity.rbac import is_judicial
 from app.modules.identity.repository import UserRepository
 from app.modules.network.models import ConnectionStatus
 from app.modules.network.repository import (
@@ -63,6 +65,7 @@ class ProfileService:
 
     async def update(self, user_id: uuid.UUID, data: ProfileUpdate) -> ProfessionalProfile:
         profile = await self.get_or_create(user_id)
+        was_judicial = is_judicial(profile.professional_role)
         payload = data.model_dump(exclude_unset=True)
         # Education & publications are lists of pydantic models — normalise to
         # plain dicts for JSON storage.
@@ -76,6 +79,13 @@ class ProfileService:
             if field == "visibility_settings" and value is not None:
                 value = {**DEFAULT_PROFILE_GROUP_VISIBILITY, **value}
             setattr(profile, field, value)
+        if is_judicial(profile.professional_role) != was_judicial:
+            # The profession mask changed (rbac.mask_for_profession): retire
+            # the access tokens so the next request refreshes into the new scopes.
+            user = await UserRepository(self.session).get_for_tenant(self.tenant_id, user_id)
+            if user is not None:
+                user.token_epoch = (user.token_epoch or 0) + 1
+                await mark_user_revoked(user.id, user.token_epoch)
         return profile
 
     async def visible_groups(
