@@ -15,6 +15,7 @@ import { DocFile, DocFolder, DocVersion, SignatureEnvelope, SignatureSignerInput
 import { DocumentsService } from '@core/services/documents.service';
 import { NotificationService } from '@core/services/notification.service';
 import { DRAFT_TEMPLATES, DraftCategory, DraftLanguage, DraftRole, DraftTemplate, FIELD_LABELS, LocalText, renderDraft } from './legal-drafting-templates';
+import { ORDER_LONG_FIELDS, ORDER_STATES, OrderState, orderStateFor, withOrderDefaults } from './judicial-orders';
 import { ClientChoice, VsClientPickerComponent } from '@shared/client-picker/vs-client-picker.component';
 import { ProfileService } from '@core/services/profile.service';
 import { ProfileDetail } from '@core/models/profile.models';
@@ -71,6 +72,15 @@ export class DocumentsComponent implements OnInit {
   );
   /** Sitting judicial officer (token claim): no clients, no firm, only the court's formats. */
   protected readonly judge = this.auth.isJudicial;
+  /** Whose High Court practice the order heading follows (from the profile's state, changeable). */
+  protected readonly orderState = signal<OrderState>('general');
+  protected readonly orderStates = ORDER_STATES;
+  /** A judge sees only the categories that hold judicial formats. */
+  private readonly judicialCategories = new Set(DRAFT_TEMPLATES.filter((item) => item.roles.includes('judicial')).map((item) => item.category));
+  protected showCategory(id: DraftCategory): boolean {
+    if (this.judge()) return id === 'all' || this.judicialCategories.has(id as Exclude<DraftCategory, 'all'>);
+    return id !== 'judicial' || this.isJudicialUser();
+  }
   protected readonly templateSearch = signal('');
   protected readonly templates = DRAFT_TEMPLATES;
   protected readonly selectedTemplate = signal<DraftTemplate>(DRAFT_TEMPLATES[0]);
@@ -158,8 +168,9 @@ export class DocumentsComponent implements OnInit {
     this.refreshDraft();
     await Promise.all([this.loadWordTemplates(), this.loadProfile()]);
     if (this.isJudicialUser()) {
+      this.orderState.set(orderStateFor(this.profile()?.judicial_state));
       this.role.set('judicial');
-      this.category.set('judicial');
+      this.category.set(this.judge() ? 'all' : 'judicial');
       this.chooseTemplate(this.templates.find((item) => item.kind === 'order') ?? this.templates[0]);
       if (this.matterId()) await this.loadMatterForOrder(this.matterId()!);
     }
@@ -194,16 +205,26 @@ export class DocumentsComponent implements OnInit {
   }
   protected isLongField(key: string): boolean {
     const custom = this.selectedWordTemplate()?.fields.find((field) => field.key === key);
-    return custom?.type === 'multiline' || ['facts', 'grounds', 'relief', 'terms', 'propertyDetails', 'powers', 'marriageDetails', 'orderBody', 'appearances'].includes(key);
+    return custom?.type === 'multiline' || ORDER_LONG_FIELDS.has(key) || ['facts', 'grounds', 'relief', 'terms', 'propertyDetails', 'powers', 'marriageDetails', 'orderBody', 'appearances'].includes(key);
   }
   protected activeFields(): string[] { return this.selectedWordTemplate()?.fields.map((field) => field.key) ?? this.selectedTemplate().fields; }
   protected activeTitle(): string { return this.selectedWordTemplate()?.name ?? this.local(this.selectedTemplate().title); }
   protected activeDescription(): string { return this.selectedWordTemplate()?.description || (this.selectedWordTemplate() ? 'Uploaded Word template' : this.local(this.selectedTemplate().description)); }
-  protected setLanguage(language: DraftLanguage): void { this.language.set(language); this.draftFileName = this.selectedWordTemplate()?.name ?? this.local(this.selectedTemplate().title); this.refreshDraft(); }
+  protected setLanguage(language: DraftLanguage): void {
+    this.language.set(language);
+    this.draftFileName = this.selectedWordTemplate()?.name ?? this.local(this.selectedTemplate().title);
+    if (!this.selectedWordTemplate()) this.draftValues.update((values) => withOrderDefaults(this.selectedTemplate(), language, values, this.orderState()));
+    this.refreshDraft();
+  }
+  protected setOrderState(state: OrderState): void {
+    this.orderState.set(state);
+    this.draftValues.update((values) => withOrderDefaults(this.selectedTemplate(), this.language(), values, state));
+    this.refreshDraft();
+  }
   protected chooseTemplate(template: DraftTemplate): void {
     this.selectedWordTemplate.set(null);
     this.selectedTemplate.set(template);
-    this.draftValues.set(template.kind === 'order' ? this.judicialDefaults() : { date: todayDdMmYyyy() });
+    this.draftValues.set(this.startingValues(template));
     this.draftFileName = this.local(template.title);
     this.refreshDraft();
     setTimeout(() => document.querySelector('.draft-builder')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
@@ -220,7 +241,11 @@ export class DocumentsComponent implements OnInit {
   }
   protected updateField(key: string, value: string): void { this.draftValues.update((current) => ({ ...current, [key]: value })); this.refreshDraft(); }
   protected updateDraftText(value: string): void { this.draftText.set(value); }
-  protected resetDraft(): void { this.draftValues.set(this.selectedTemplate().kind === 'order' ? this.judicialDefaults() : { date: todayDdMmYyyy() }); this.ecourtsCase.set(null); this.refreshDraft(); }
+  protected resetDraft(): void { this.draftValues.set(this.startingValues(this.selectedTemplate())); this.ecourtsCase.set(null); this.refreshDraft(); }
+  private startingValues(template: DraftTemplate): Record<string, string> {
+    if (template.kind !== 'order') return { date: todayDdMmYyyy() };
+    return withOrderDefaults(template, this.language(), this.judicialDefaults(), this.orderState());
+  }
   protected async copyDraft(): Promise<void> {
     try { await navigator.clipboard.writeText(this.draftText()); this.notify.success('Draft copied to clipboard.'); }
     catch { this.notify.error('Could not copy the draft.'); }
@@ -269,7 +294,7 @@ export class DocumentsComponent implements OnInit {
       this.editor()?.setContent(content);
       return;
     }
-    const text = renderDraft(this.selectedTemplate(), this.language(), this.draftValues());
+    const text = renderDraft(this.selectedTemplate(), this.language(), this.draftValues(), this.orderState());
     this.draftText.set(text);
     const html = draftTextToHtml(text);
     this.draftHtml.set(html);
@@ -345,6 +370,7 @@ export class DocumentsComponent implements OnInit {
         court: item.court_establishment || current['court'] || '',
         place: [item.district, item.state].filter(Boolean).join(', ') || current['place'] || '',
         caseNumber: caseNumber || item.cnr_number || '',
+        cnr: item.cnr_number || current['cnr'] || '',
         matterTitle: item.cause_title || current['matterTitle'] || '',
         firstParty: applicants || item.parties[0]?.name || '',
         secondParty: respondents || item.parties[1]?.name || '',
@@ -369,6 +395,7 @@ export class DocumentsComponent implements OnInit {
         court: matter.court_establishment || matter.court || current['court'] || '',
         place: [matter.district, matter.state].filter(Boolean).join(', ') || current['place'] || '',
         caseNumber: matter.registration_number || matter.case_number || matter.matter_number,
+        cnr: matter.cnr_number || current['cnr'] || '',
         matterTitle: matter.cause_title || matter.title,
         firstParty: applicants,
         secondParty: respondents,

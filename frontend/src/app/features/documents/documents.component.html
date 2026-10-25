@@ -83,6 +83,8 @@
       <section class="judicial-workspace panel">
         <div class="judicial-copy"><span><mat-icon class="material-icons-outlined">account_balance</mat-icon></span><div><strong>Judicial order workspace</strong><p>Your court, designation and signature block are filled from your profile. Fetch the case heading from the configured eCourts provider, type or dictate the order, then open the full editor for Word or Print/PDF.</p></div></div>
         <div class="cnr-lookup"><label><span>eCourts CNR</span><input class="vs-input" [(ngModel)]="cnrNumber" maxlength="20" placeholder="16-character CNR number" /></label><button mat-flat-button color="primary" [disabled]="ecourtsLoading() || !cnrNumber.trim()" (click)="fetchCaseForOrder()"><mat-icon class="material-icons-outlined">cloud_download</mat-icon>{{ ecourtsLoading() ? 'Fetching…' : 'Fill case header' }}</button></div>
+        <div class="cnr-lookup"><label><span>Order format</span><select class="vs-input" [ngModel]="orderState()" (ngModelChange)="setOrderState($event)">@for (st of orderStates; track st.id) { <option [value]="st.id">{{ st.label }}</option> }</select></label></div>
+        @if (orderState() !== 'general') { <p class="text-xs text-content-muted">These {{ orderState() === 'up' ? 'Uttar Pradesh' : 'Haryana' }} formats are being reviewed by serving judicial officers. Check them against your High Court’s current rules and circulars before use.</p> }
         @if (ecourtsCase(); as item) { <div class="case-loaded"><mat-icon class="material-icons-outlined">verified</mat-icon><span><strong>{{ item.cause_title || item.case_number }}</strong><small>{{ item.court_establishment }} · CNR {{ item.cnr_number }}</small></span></div> }
       </section>
     }
@@ -112,7 +114,7 @@
       </div>
       <div class="category-tabs">
         @for (item of categories; track item.id) {
-          @if (judge() ? (item.id === 'all' || item.id === 'judicial') : (item.id !== 'judicial' || isJudicialUser())) { <button [class.active]="category() === item.id" (click)="category.set(item.id)">{{ local(item.label) }}</button> }
+          @if (showCategory(item.id)) { <button [class.active]="category() === item.id" (click)="category.set(item.id)">{{ local(item.label) }}</button> }
         }
       </div>
 
