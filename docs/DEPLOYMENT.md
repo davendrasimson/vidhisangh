@@ -773,6 +773,21 @@ the unit loads the `wa_access_token` credential itself. Check with
 approves the template, sends fail and are recorded as `failed` in
 `hearing_reminder_sends` (no retry for that day).
 
+**Product updates on WhatsApp** (migration **0078**, 25 Oct 2026) use the same number
+and token with two approved MARKETING templates, each in `en` and `hi`:
+`judicial_officer_update` (judicial officers, and members who have not picked a
+profession) and `product_update` (everyone else). Body parameter: first name; static
+URL buttons. Members consent on Home or in Settings → Notifications (append-only ledger
+`whatsapp_updates_consents`); sends are logged per number per campaign in
+`whatsapp_campaign_sends` (HMAC of the number, never the number). Check with
+`python -m app.scripts.whatsapp_updates --campaign NAME --dry-run`. To schedule a
+campaign, install `infra/jobs/vidhisangh-whatsapp-updates@.{service,timer}` once,
+then per campaign add a timer drop-in with `OnCalendar=` and start
+`vidhisangh-whatsapp-updates@NAME.timer`. Only consenting members are sent to unless a
+service drop-in sets `Environment=CAMPAIGN_FLAGS=--owner-approved` (used once, for the
+26 Oct 2026 launch, on the owner's instruction). Replies to the number are not received
+(no webhook), so the templates use buttons, not "reply here".
+
 **Fee sweep** (retainer periods and dated milestones fall due): install
 `infra/jobs/vidhisangh-fee-sweep.{service,timer}` the same way and
 `systemctl enable --now vidhisangh-fee-sweep.timer` (00:30 UTC daily, catches up

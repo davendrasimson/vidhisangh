@@ -1,6 +1,6 @@
 # VidhiSangh Privacy Notice
 
-**Version 2026-09-27 · Effective 27 September 2026**
+**Version 2026-10-25 · Effective 25 October 2026**
 
 This notice is given under section 5 of the Digital Personal Data Protection Act, 2023 ("DPDP Act"). It explains what personal data VidhiSangh collects, why, for how long, who else touches it, and how you exercise your rights. It is written in plain English; a Hindi translation is available on request from the Grievance Officer (s.5(3)).
 
@@ -44,6 +44,7 @@ We do **not** collect biometric data, location, contacts or anything from your d
 | Sending **push notifications** to the mobile app | Consent, given through your phone's notification permission. We store the app's Firebase device token (Google Firebase Cloud Messaging delivers the message); it is deleted when you sign out or Firebase reports it invalid. Switch off in Settings → Notifications or in your phone's settings |
 | Publishing a **public profile page** at vidhisangh.com/in/your-name, open to anyone and to search engines | Consent, given separately and only if you switch it on in Settings → Privacy & data → "Public profile page". It shows your name, photo, headline and the profile sections you set to "Everyone"; never your contact details. Withdraw by switching it off; the page is removed at once (search engines may take a few days to drop it) |
 | Sending notifications you turned on (e-mail, Slack) | Consent, per channel, in Settings → Notifications |
+| Sending **product updates on WhatsApp** (new features, about once or twice a month) | Consent, given separately and only if you say yes on the Home screen or switch on Settings → Notifications → "Product updates on WhatsApp". Each yes or no is recorded with the date and this notice's version. Withdraw by switching it off; no further updates are sent |
 | Billing your organisation | Performance of the contract; legal obligation (GST) |
 | Security logging and the audit trail | Legal obligation and legitimate use (s.7) — this is why audit entries are kept even after an account is erased |
 | Responding to your rights requests and grievances | Legal obligation (s.11–13) |
@@ -92,7 +93,7 @@ All production data is hosted on servers in **India (ap-south-1 / Mumbai region)
 | Razorpay | Subscription and invoice payments | Name, e-mail, amount |
 | Google / Microsoft / LinkedIn | Single sign-on, only when you choose it | E-mail, name, subject identifier |
 | Google Firebase Cloud Messaging | Push notifications to the mobile app, only if you allow them | Device token, notification text |
-| Meta Platforms (WhatsApp Business) | WhatsApp sign-in codes, and hearing reminders if you turn them on | Mobile number, the code or the list of next-day hearings |
+| Meta Platforms (WhatsApp Business) | WhatsApp sign-in codes, hearing reminders if you turn them on, and product updates if you agree to them | Mobile number, the code, the list of next-day hearings, or your first name in an update |
 | Brevo (Sendinblue SAS) | Invitation e-mails to people not yet on VidhiSangh, from public professional listings | E-mail address, name, the listing it came from |
 | Hosting provider (India) | Servers, database, document storage | All platform data, encrypted at rest |
 

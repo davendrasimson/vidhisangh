@@ -1,0 +1,27 @@
+[Unit]
+# One product-update campaign on WhatsApp; the instance name is the campaign
+# (e.g. vidhisangh-whatsapp-updates@launch-2026-10-26). Only members who said
+# yes are sent to; a drop-in may set CAMPAIGN_FLAGS=--owner-approved for a
+# send the owner authorised. Rerunning never sends a number twice.
+Description=VidhiSangh WhatsApp product updates, campaign %i
+After=network-online.target postgresql.service
+OnFailure=vidhisangh-job-failed@%n.service
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/opt/vidhisangh/backend
+EnvironmentFile=/opt/vidhisangh/backend/.env
+Environment=PYTHONPATH=/opt/vidhisangh/backend
+Environment=CAMPAIGN_FLAGS=
+# VidhiSangh's WhatsApp number (+91 73411 00692); the same encrypted token
+# the API and the hearing reminders use.
+LoadCredentialEncrypted=wa_access_token:/etc/credstore.encrypted/vidhisangh.wa_access_token
+Environment=VS_WA_ACCESS_TOKEN_FILE=%d/wa_access_token
+Environment=VS_WA_PHONE_NUMBER_ID=1414403508414088
+ExecStart=/opt/vidhisangh/backend/.venv/bin/python -m app.scripts.whatsapp_updates --campaign %i $CAMPAIGN_FLAGS
+TimeoutStartSec=1800
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only

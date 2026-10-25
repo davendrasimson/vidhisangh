@@ -5,10 +5,10 @@ from __future__ import annotations
 import uuid
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Request, Response, status
 from pydantic import BaseModel, Field
 
-from app.core.deps import CurrentUserDep, TenantSessionDep, require_permission
+from app.core.deps import CurrentUserDep, TenantSessionDep, client_ip, require_permission
 from app.core.pagination import PageParams, page_params
 from app.modules.notifications.models import NotificationChannel
 from app.modules.notifications.schemas import (
@@ -76,6 +76,44 @@ async def update_preference(
 ) -> ChannelPreference:
     updated = await _prefs(current, session).update(channel, payload.enabled, payload.types)
     return ChannelPreference(**updated)
+
+
+class WhatsAppUpdatesRead(BaseModel):
+    status: Literal["granted", "refused", "unasked"]
+    # A verified mobile number is needed to receive them.
+    phone_verified: bool
+
+
+class WhatsAppUpdatesUpdate(BaseModel):
+    granted: bool
+    source: Literal["settings", "home"] = "settings"
+
+
+async def _whatsapp_updates(current: CurrentUserDep, session: TenantSessionDep) -> WhatsAppUpdatesRead:
+    from app.modules.identity.repository import UserRepository
+    from app.modules.notifications.whatsapp_updates import choice_of
+
+    user = await UserRepository(session).get_for_tenant(current.tenant_id, current.id)
+    return WhatsAppUpdatesRead(
+        status=await choice_of(session, current.id),
+        phone_verified=bool(user and user.phone and user.is_phone_verified),
+    )
+
+
+@router.get("/whatsapp-updates", response_model=WhatsAppUpdatesRead, summary="Do I get product updates on WhatsApp?")
+async def get_whatsapp_updates(current: CurrentUserDep, session: TenantSessionDep) -> WhatsAppUpdatesRead:
+    return await _whatsapp_updates(current, session)
+
+
+@router.put("/whatsapp-updates", response_model=WhatsAppUpdatesRead, summary="Say yes or no to product updates on WhatsApp")
+async def set_whatsapp_updates(
+    data: WhatsAppUpdatesUpdate, request: Request, current: CurrentUserDep, session: TenantSessionDep,
+) -> WhatsAppUpdatesRead:
+    """Each answer is a new row in the consent ledger (withdrawal never erases a grant)."""
+    from app.modules.notifications.whatsapp_updates import record_choice
+
+    await record_choice(session, current.id, data.granted, data.source, client_ip(request))
+    return await _whatsapp_updates(current, session)
 
 
 @router.get(

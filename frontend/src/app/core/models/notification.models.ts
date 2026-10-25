@@ -44,3 +44,9 @@ export interface NotificationDelivery {
   detail: string | null;
   created_at: string;
 }
+
+/** Product updates on WhatsApp (GET/PUT /notifications/whatsapp-updates). */
+export interface WhatsAppUpdates {
+  status: 'granted' | 'refused' | 'unasked';
+  phone_verified: boolean;
+}

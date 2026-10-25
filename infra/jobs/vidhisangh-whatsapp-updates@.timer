@@ -1,0 +1,11 @@
+[Unit]
+# Schedule a campaign once: give the instance a drop-in with its time, e.g.
+#   /etc/systemd/system/vidhisangh-whatsapp-updates@launch-2026-10-26.timer.d/when.conf
+#   [Timer]
+#   OnCalendar=2026-10-26 03:30:00 UTC
+# then: systemctl daemon-reload && systemctl start vidhisangh-whatsapp-updates@launch-2026-10-26.timer
+Description=Send WhatsApp product-update campaign %i at its scheduled time
+
+[Timer]
+AccuracySec=1min
+Persistent=false

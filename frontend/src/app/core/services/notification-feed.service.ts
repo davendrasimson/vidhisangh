@@ -7,6 +7,7 @@ import {
   ChannelPreference,
   NotificationChannel,
   NotificationDelivery,
+  WhatsAppUpdates,
 } from '@core/models/notification.models';
 
 /** API client for the in-app notification centre (distinct from the toast
@@ -41,6 +42,15 @@ export class NotificationFeedService {
     payload: { enabled: boolean; types: string[] },
   ): Observable<ChannelPreference> {
     return this.http.put<ChannelPreference>(`${this.api}/preferences/${channel}`, payload);
+  }
+
+  /** Product updates on WhatsApp: the member's choice (a consent ledger on the server). */
+  whatsappUpdates(): Observable<WhatsAppUpdates> {
+    return this.http.get<WhatsAppUpdates>(`${this.api}/whatsapp-updates`);
+  }
+
+  setWhatsappUpdates(granted: boolean, source: 'settings' | 'home'): Observable<WhatsAppUpdates> {
+    return this.http.put<WhatsAppUpdates>(`${this.api}/whatsapp-updates`, { granted, source });
   }
 
   deliveries(page = 1, size = 20): Observable<NotificationDelivery[]> {

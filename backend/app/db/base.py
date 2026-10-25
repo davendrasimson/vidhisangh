@@ -86,6 +86,8 @@ from app.modules.outreach.models import OutreachContact, OutreachSettings, Outre
 from app.modules.referrals.models import Referral, ReferralCode
 from app.modules.notifications.models import (
     HearingReminderSend,
+    WhatsAppCampaignSend,
+    WhatsAppUpdatesConsent,
     Notification,
     NotificationDelivery,
     NotificationPreference,
@@ -159,6 +161,8 @@ __all__ = [
     "NotificationPreference",
     "NotificationDelivery",
     "HearingReminderSend",
+    "WhatsAppCampaignSend",
+    "WhatsAppUpdatesConsent",
     "PushDevice",
     "Matter",
     "MatterAdvocate",

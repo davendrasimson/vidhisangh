@@ -8,10 +8,10 @@ log recording every routing decision.
 from __future__ import annotations
 
 import uuid
-from datetime import date
+from datetime import date, datetime
 from enum import StrEnum
 
-from sqlalchemy import JSON, Boolean, Date, Integer, String, UniqueConstraint, Uuid
+from sqlalchemy import JSON, Boolean, Date, DateTime, Integer, String, UniqueConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base_class import AuditedBase
@@ -103,6 +103,51 @@ class HearingReminderSend(AuditedBase):
     user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, index=True)
     for_date: Mapped[date] = mapped_column(Date, nullable=False)
     hearing_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(String(10), nullable=False)  # sending | sent | failed
+    detail: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
+
+class WhatsAppUpdatesConsent(AuditedBase):
+    """A member's choice about product updates (marketing templates) on WhatsApp.
+
+    Append-only, like the client consent ledger (DPDP s.6): every yes and every
+    no is a new row, and the latest row per member is the current choice. No
+    row means "not asked yet". Separate from the WhatsApp channel preference,
+    which only means hearing reminders. ``source`` is where the choice was
+    made (``settings`` or ``home``); ``notice_version`` the privacy notice in
+    force; ``ip_coarse`` a coarsened address, never the raw IP.
+    """
+
+    __tablename__ = "whatsapp_updates_consents"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, index=True)
+    granted: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    source: Mapped[str] = mapped_column(String(20), nullable=False)
+    notice_version: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    ip_coarse: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # Set in Python to the microsecond: orders a yes and a no given moments apart.
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class WhatsAppCampaignSend(AuditedBase):
+    """One product-update message: one row per number per campaign.
+
+    Written as ``sending`` before the message goes out, so a rerun never sends
+    the same campaign to a number twice. Holds a hash of the number, never the
+    number itself. ``basis`` says why it was sent: ``consent`` (the member
+    opted in) or ``owner_approved`` (a one-off send the owner authorised before
+    the opt-in existed, 25 Oct 2026).
+    """
+
+    __tablename__ = "whatsapp_campaign_sends"
+    __table_args__ = (UniqueConstraint("campaign", "phone_hash", name="uq_whatsapp_campaign_phone"),)
+
+    campaign: Mapped[str] = mapped_column(String(60), nullable=False, index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, index=True)
+    phone_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    template: Mapped[str] = mapped_column(String(60), nullable=False)
+    language: Mapped[str] = mapped_column(String(10), nullable=False)
+    basis: Mapped[str] = mapped_column(String(20), nullable=False)
     status: Mapped[str] = mapped_column(String(10), nullable=False)  # sending | sent | failed
     detail: Mapped[str | None] = mapped_column(String(200), nullable=True)
 

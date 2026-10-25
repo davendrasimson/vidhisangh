@@ -289,7 +289,7 @@ class Settings(BaseSettings):
 
     # ─── Privacy / DPDP (audit P-1, P-4, P-13, P-14) ────────────────
     CURRENT_TERMS_VERSION: str = "2026-09-27"
-    CURRENT_PRIVACY_NOTICE_VERSION: str = "2026-09-27"
+    CURRENT_PRIVACY_NOTICE_VERSION: str = "2026-10-25"
     GRIEVANCE_OFFICER_NAME: str = "Salil Shaida"
     GRIEVANCE_OFFICER_EMAIL: str = "grievance@vidhisangh.com"
     GRIEVANCE_OFFICER_ADDRESS: str = "VidhiSangh, India"

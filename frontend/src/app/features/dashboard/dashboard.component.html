@@ -117,6 +117,9 @@
 
   <!-- Something new every day -->
   <div class="grid gap-4 [&>*]:min-w-0">
+    <!-- One-time question: product updates on WhatsApp (hidden once answered) -->
+    <vs-whatsapp-updates prompt />
+
     <!-- People waiting on you: requests and unread messages (hidden when none) -->
     @if (requests().length || unread().length) {
       <section class="rounded-card bg-surface-raised border border-line shadow-card p-4" aria-labelledby="network-title">

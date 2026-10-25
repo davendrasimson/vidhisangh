@@ -22,6 +22,7 @@ import { Conversation } from '@core/models/messaging.models';
 import { profilePercent, profileSteps } from '@core/home/profile-progress';
 import { publicOrigin } from '@core/platform/platform';
 import { VsDateInputComponent } from '@shared/date-input/vs-date-input.component';
+import { WhatsappUpdatesComponent } from '@shared/whatsapp-updates/whatsapp-updates.component';
 
 interface StatTile {
   label: string;
@@ -60,7 +61,7 @@ export const QUICK_TOOLS = [
   selector: 'app-dashboard',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatIconModule, MatButtonModule, DatePipe, RouterLink, FormsModule, VsDateInputComponent],
+  imports: [MatIconModule, MatButtonModule, DatePipe, RouterLink, FormsModule, VsDateInputComponent, WhatsappUpdatesComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })

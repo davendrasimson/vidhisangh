@@ -15,7 +15,7 @@ from app.core.config import settings
 _DEFAULTS: dict[str, Any] = {
     # Versions the user/client accepted — bump when the text changes.
     "CURRENT_TERMS_VERSION": "2026-09-27",
-    "CURRENT_PRIVACY_NOTICE_VERSION": "2026-09-27",
+    "CURRENT_PRIVACY_NOTICE_VERSION": "2026-10-25",
     # DPDP s.8(9): the person a Data Principal may contact.
     "GRIEVANCE_OFFICER_NAME": "Salil Shaida",
     "GRIEVANCE_OFFICER_EMAIL": "grievance@vidhisangh.com",
