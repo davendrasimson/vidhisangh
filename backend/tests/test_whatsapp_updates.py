@@ -153,3 +153,12 @@ def test_greeting_and_language() -> None:
     assert updates.language_for(["Hindi"]) == "hi"
     assert updates.language_for(["Hindi", "English"]) == "en"
     assert updates.language_for([]) == "en"
+
+
+def test_the_script_only_sends_when_told_to() -> None:
+    from app.scripts.whatsapp_updates import parse
+
+    assert parse(["--campaign", "x"]).dry_run is True
+    assert parse(["--campaign", "x", "--owner-approved"]).dry_run is True
+    assert parse(["--campaign", "x", "--send", "--dry-run"]).dry_run is True
+    assert parse(["--campaign", "x", "--send"]).dry_run is False

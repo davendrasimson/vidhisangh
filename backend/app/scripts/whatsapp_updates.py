@@ -1,8 +1,11 @@
 """Send a product-update campaign on WhatsApp (approved marketing templates).
 
-    python -m app.scripts.whatsapp_updates --campaign launch-2026-10-26 --dry-run
-    python -m app.scripts.whatsapp_updates --campaign launch-2026-10-26
-    python -m app.scripts.whatsapp_updates --campaign launch-2026-10-26 --owner-approved
+    python -m app.scripts.whatsapp_updates --campaign NAME                 # dry run: counts only
+    python -m app.scripts.whatsapp_updates --campaign NAME --send          # send
+    python -m app.scripts.whatsapp_updates --campaign NAME --send --owner-approved
+
+Nothing is sent without ``--send``: a dropped or mistyped flag can only ever
+produce a dry run (on 25 Oct 2026 a lost ``--dry-run`` sent a campaign early).
 
 Only members who said yes to product updates are sent to. ``--owner-approved``
 also includes members who were never asked (the one-off launch send the owner
@@ -37,11 +40,18 @@ async def run(campaign: str, dry_run: bool, owner_approved: bool) -> dict:
         return {**summary, **await updates.send_campaign(session, sender, campaign, recipients)}
 
 
-if __name__ == "__main__":
+def parse(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--campaign", required=True, help="A name for this send, e.g. launch-2026-10-26")
-    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--send", action="store_true", help="Actually send; without it this is a dry run")
+    parser.add_argument("--dry-run", action="store_true", help="The default; kept so old commands still work")
     parser.add_argument("--owner-approved", action="store_true",
                         help="Also send to members never asked (never to those who said no)")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+    args.dry_run = args.dry_run or not args.send
+    return args
+
+
+if __name__ == "__main__":
+    args = parse()
     print(asyncio.run(run(args.campaign[:60], args.dry_run, args.owner_approved)))

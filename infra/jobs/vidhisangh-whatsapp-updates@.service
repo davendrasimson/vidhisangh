@@ -1,8 +1,12 @@
 [Unit]
 # One product-update campaign on WhatsApp; the instance name is the campaign
-# (e.g. vidhisangh-whatsapp-updates@launch-2026-10-26). Only members who said
-# yes are sent to; a drop-in may set CAMPAIGN_FLAGS=--owner-approved for a
-# send the owner authorised. Rerunning never sends a number twice.
+# (e.g. vidhisangh-whatsapp-updates@launch-2026-10-26). The script only sends
+# with --send, so the drop-in that schedules a real campaign sets
+#   Environment="CAMPAIGN_FLAGS=--send"            (or "--send --owner-approved")
+# QUOTED: unquoted, systemd splits the value at the space and drops the rest.
+# Without a drop-in the job is a dry run. Rerunning never sends a number twice.
+# To check a campaign, run the script by hand without --send; never start
+# this unit as a "test".
 Description=VidhiSangh WhatsApp product updates, campaign %i
 After=network-online.target postgresql.service
 OnFailure=vidhisangh-job-failed@%n.service

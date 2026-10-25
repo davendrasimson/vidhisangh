@@ -779,13 +779,17 @@ and token with two approved MARKETING templates, each in `en` and `hi`:
 profession) and `product_update` (everyone else). Body parameter: first name; static
 URL buttons. Members consent on Home or in Settings → Notifications (append-only ledger
 `whatsapp_updates_consents`); sends are logged per number per campaign in
-`whatsapp_campaign_sends` (HMAC of the number, never the number). Check with
-`python -m app.scripts.whatsapp_updates --campaign NAME --dry-run`. To schedule a
-campaign, install `infra/jobs/vidhisangh-whatsapp-updates@.{service,timer}` once,
-then per campaign add a timer drop-in with `OnCalendar=` and start
-`vidhisangh-whatsapp-updates@NAME.timer`. Only consenting members are sent to unless a
-service drop-in sets `Environment=CAMPAIGN_FLAGS=--owner-approved` (used once, for the
-26 Oct 2026 launch, on the owner's instruction). Replies to the number are not received
+`whatsapp_campaign_sends` (HMAC of the number, never the number). The script sends
+**only with `--send`**; without it every run is a dry run (counts only):
+`python -m app.scripts.whatsapp_updates --campaign NAME`. To schedule a campaign,
+install `infra/jobs/vidhisangh-whatsapp-updates@.{service,timer}` once, then per
+campaign add a timer drop-in with `OnCalendar=` and a service drop-in with
+`Environment="CAMPAIGN_FLAGS=--send"` (quoted), and start
+`vidhisangh-whatsapp-updates@NAME.timer`. Only consenting members are sent to unless the
+flags also hold `--owner-approved` (used once, on the owner's instruction). **Never start
+the unit to "test" it**: on 25 Oct 2026 an unquoted `CAMPAIGN_FLAGS=--owner-approved
+--dry-run` lost its `--dry-run`, and the launch campaign went to 12 members at 22:05 IST
+instead of 9:00 the next morning (logged as campaign `selftest-dry-run`). Replies to the number are not received
 (no webhook), so the templates use buttons, not "reply here".
 
 **Fee sweep** (retainer periods and dated milestones fall due): install
