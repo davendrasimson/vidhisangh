@@ -574,13 +574,31 @@ button[color='primary'].mat-mdc-unelevated-button {
 }
 .vs-iconchip mat-icon { font-size: 24px; width: 24px; height: 24px; }
 
-/* Focus glow on shared inputs. */
+/* Focus glow on shared inputs. `:focus-within` covers `.vs-input` used as a
+   wrapper (<label class="vs-input"> with an icon and a bare <input> inside). */
 .vs-input:focus,
+.vs-input:focus-within,
 .vs-composer:focus,
 .vs-comment-input:focus {
   border-color: rgb(var(--vs-brand));
   box-shadow: 0 0 0 3px color-mix(in srgb, rgb(var(--vs-brand)) 18%, transparent);
 }
+
+/* The bare input inside a `.vs-input` wrapper must not draw its own ring: the
+   wrapper carries the glow above. Specificity (0,2,1) beats both the global
+   `:focus-visible` outline and @tailwindcss/forms' `input:focus` ring. */
+.vs-input > input,
+.vs-input > input:focus,
+.vs-input > input:focus-visible {
+  border: 0;
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+.vs-input > input::placeholder { color: rgb(var(--vs-text-muted)); opacity: 0.8; }
 
 /* Gentle entrance for page content — feels alive without being noisy. */
 @keyframes vs-rise {

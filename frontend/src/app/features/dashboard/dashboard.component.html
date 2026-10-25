@@ -4,7 +4,7 @@
     <h1 class="vs-display text-2xl md:text-3xl font-semibold text-content leading-tight">{{ greeting() }}@if (firstName()) {, {{ firstName() }}}</h1>
     <p class="text-sm text-content-muted mt-0.5">{{ today | date: 'EEEE, dd/MM/yyyy' }}</p>
   </div>
-  <span class="hidden sm:block"><a routerLink="/app/matters" [queryParams]="{ open: 'new' }" mat-stroked-button><mat-icon class="material-icons-outlined">add</mat-icon> New matter</a></span>
+  <span class="hidden sm:block"><a routerLink="/app/matters" [queryParams]="{ open: 'new' }" mat-stroked-button><mat-icon class="material-icons-outlined">add</mat-icon> {{ judge() ? 'New case' : 'New matter' }}</a></span>
 </header>
 
 <div class="grid gap-4 lg:grid-cols-3 lg:items-start [&>*]:min-w-0">
@@ -13,13 +13,21 @@
     <!-- Today & tomorrow: hearings and deadlines, acted on here -->
     <section class="rounded-card bg-surface-raised border border-line shadow-card p-4" aria-labelledby="board-title">
       <div class="flex items-center justify-between gap-3 mb-2">
-        <h2 id="board-title" class="font-semibold text-content flex items-center gap-2"><mat-icon class="material-icons-outlined text-brand">event_note</mat-icon> Your day</h2>
-        <a routerLink="/app/calendar" class="text-sm text-brand">Diary →</a>
+        <h2 id="board-title" class="font-semibold text-content flex items-center gap-2"><mat-icon class="material-icons-outlined text-brand">event_note</mat-icon> {{ judge() ? 'Your board' : 'Your day' }}</h2>
+        <a routerLink="/app/calendar" class="text-sm text-brand">{{ judge() ? 'Cause list →' : 'Diary →' }}</a>
       </div>
       @if (agenda() === null) {
         <p class="text-sm text-content-muted py-3">Loading your diary…</p>
       } @else if (!board().today.length && !board().tomorrow.length) {
-        @if (noMatters()) {
+        @if (judge()) {
+          <div class="vs-empty-board">
+            <p class="font-medium text-content">Nothing on your board for today or tomorrow.</p>
+            <p class="text-sm text-content-muted mt-1">Add a case by its CNR from the eCourts case-status page: parties, court and next date are filled in for you.</p>
+            <div class="flex flex-wrap gap-2 mt-3">
+              <a mat-stroked-button routerLink="/app/matters" [queryParams]="{ open: 'ecourts' }"><mat-icon class="material-icons-outlined">cloud_download</mat-icon> Add a case by CNR</a>
+            </div>
+          </div>
+        } @else if (noMatters()) {
           <div class="vs-empty-board">
             <p class="font-medium text-content">Add your first case and we will remind you of every date.</p>
             <p class="text-sm text-content-muted mt-1">Paste the CNR from the eCourts case-status page: parties, court and next hearing are filled in for you.</p>
@@ -44,16 +52,16 @@
                       <div class="min-w-0 flex-1">
                         <a [routerLink]="['/app/matters', i.matter_id]" class="font-medium text-content hover:text-brand">{{ i.title }}</a>
                         @if (courtLine(i)) { <p class="text-xs text-content-muted mt-0.5">{{ courtLine(i) }}</p> }
-                        @if (i.status === 'held' || i.status === 'adjourned') { <p class="text-xs text-success mt-0.5">Marked {{ i.status }}</p> }
+                        @if (i.status === 'held' || i.status === 'adjourned') { <p class="text-xs text-success mt-0.5">Marked {{ judge() && i.status === 'held' ? 'heard' : i.status }}</p> }
                         @if (canMark(i)) {
                           <div class="flex flex-wrap gap-2 mt-2">
-                            <button mat-stroked-button class="vs-board-btn" [disabled]="busy() === i.id" (click)="markHearing(i, 'held')">Held</button>
+                            <button mat-stroked-button class="vs-board-btn" [disabled]="busy() === i.id" (click)="markHearing(i, 'held')">{{ judge() ? 'Heard' : 'Held' }}</button>
                             <button mat-stroked-button class="vs-board-btn" [disabled]="busy() === i.id" (click)="markHearing(i, 'adjourned')">Adjourned</button>
                           </div>
                         }
                         @if (nextFor()?.id === i.id) {
                           <form class="flex flex-wrap items-center gap-2 mt-2" (ngSubmit)="addNextDate()" aria-label="Next date">
-                            <span class="text-sm">Next date given?</span>
+                            <span class="text-sm">{{ judge() ? 'Next date fixed?' : 'Next date given?' }}</span>
                             <vs-date-input withTime name="next_date" label="Next date" [(ngModel)]="nextDate" />
                             <button mat-flat-button color="primary" type="submit" [disabled]="!nextDate || busy() === i.id">Add to diary</button>
                             <button mat-button type="button" (click)="nextFor.set(null)">Not now</button>
@@ -85,14 +93,19 @@
         <button type="button" role="radio" class="vs-seg" [class.vs-seg--on]="searchWhere === 'judgments'" [attr.aria-checked]="searchWhere === 'judgments'" (click)="searchWhere = 'judgments'">Judgments</button>
         <button type="button" role="radio" class="vs-seg" [class.vs-seg--on]="searchWhere === 'acts'" [attr.aria-checked]="searchWhere === 'acts'" (click)="searchWhere = 'acts'">Bare Acts</button>
       </div>
-      <form class="flex gap-2" (ngSubmit)="search()">
-        <label class="vs-input flex items-center gap-2 flex-1 min-w-0">
+      <form class="vs-search flex gap-2" (ngSubmit)="search()">
+        <label class="vs-input vs-search__field flex items-center gap-2 flex-1 min-w-0">
           <mat-icon class="material-icons-outlined text-content-muted shrink-0">search</mat-icon>
-          <input class="w-full bg-transparent p-0 min-w-0 border-0 outline-none shadow-none" name="q" [(ngModel)]="searchText" enterkeyhint="search"
+          <input class="w-full min-w-0" name="q" [(ngModel)]="searchText" enterkeyhint="search" autocomplete="off"
                  [attr.aria-label]="searchWhere === 'judgments' ? 'Search judgments' : 'Search the Bare Acts'"
-                 [placeholder]="searchWhere === 'judgments' ? 'e.g. anticipatory bail economic offence' : 'e.g. Section 138 or “dishonestly induces”'" />
+                 [placeholder]="searchWhere === 'judgments' ? 'anticipatory bail economic offence' : 'Section 138, “dishonestly induces”'" />
+          @if (searchText) {
+            <button type="button" class="vs-search__clear" aria-label="Clear search" (click)="searchText = ''">
+              <mat-icon class="material-icons-outlined">close</mat-icon>
+            </button>
+          }
         </label>
-        <button mat-flat-button color="primary" type="submit" [disabled]="searchText.trim().length < 2">Search</button>
+        <button mat-flat-button color="primary" class="vs-search__go" type="submit" [disabled]="searchText.trim().length < 2">Search</button>
       </form>
       <div class="vs-chips mt-3" aria-label="Free tools">
         @for (t of tools; track t.path) {
@@ -142,7 +155,7 @@
             <div class="h-full bg-brand" [style.width.%]="percent()"></div>
           </div>
           @if (nextStep(); as n) {
-            <p class="text-sm text-content-muted mt-2">Next: add {{ n.label }} so colleagues and clients can find you.</p>
+            <p class="text-sm text-content-muted mt-2">Next: add {{ n.label }} so {{ judge() ? 'colleagues' : 'colleagues and clients' }} can find you.</p>
             <a mat-stroked-button routerLink="/app/profile" class="mt-2">Complete profile</a>
           }
         }

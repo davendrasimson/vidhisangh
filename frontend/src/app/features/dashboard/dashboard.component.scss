@@ -168,6 +168,32 @@
   background: rgb(var(--vs-brand));
   border-color: rgb(var(--vs-brand));
 }
+/* Search row: a pill field with the button the same height, a clear (×) once
+   there is text. The inner input draws no ring of its own (see styles.scss). */
+.vs-search__field {
+  border-radius: 999px;
+  padding: 0.45rem 0.6rem 0.45rem 0.9rem;
+  min-height: 44px;
+  mat-icon { font-size: 22px; width: 22px; height: 22px; }
+}
+.vs-search__clear {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 50%;
+  color: rgb(var(--vs-text-muted));
+  background: rgb(var(--vs-border) / 0.6);
+  cursor: pointer;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  &:hover { color: rgb(var(--vs-text)); }
+}
+.vs-search__go {
+  --mdc-filled-button-container-shape: 999px;
+  --mdc-filled-button-container-height: 44px;
+  flex: none;
+}
 /* Tools: one scrollable row on phones, wrapped on wider screens. */
 .vs-chips {
   display: flex;
