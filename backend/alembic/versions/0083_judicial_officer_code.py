@@ -21,8 +21,8 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column("profiles", sa.Column("judicial_officer_code", sa.String(40), nullable=True))
+    op.add_column("professional_profiles", sa.Column("judicial_officer_code", sa.String(40), nullable=True))
 
 
 def downgrade() -> None:
-    op.drop_column("profiles", "judicial_officer_code")
+    op.drop_column("professional_profiles", "judicial_officer_code")
