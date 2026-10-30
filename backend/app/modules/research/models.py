@@ -48,7 +48,9 @@ class Judgment(AuditedBase):
 
     case_name: Mapped[str] = mapped_column(String(500), nullable=False)
     citation: Mapped[str | None] = mapped_column(String(200), nullable=True, index=True)
-    neutral_citation: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # Indexed (0079): the cite check resolves INSC and High Court neutral
+    # citations by exact match — a sequential scan over 5.9M rows took 10 s.
+    neutral_citation: Mapped[str | None] = mapped_column(String(200), nullable=True, index=True)
     # eCourts Case Number Record — the handle High Court records are keyed by.
     cnr_number: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
 
