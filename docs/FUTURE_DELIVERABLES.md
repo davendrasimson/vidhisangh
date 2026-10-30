@@ -82,7 +82,7 @@ Anthropic's 28 Oct 2026 "legal artifacts" (cite check, matter board, jurisdictio
 - **Google Search Console + Bing Webmaster** — owner verifies vidhisangh.com (DNS TXT record) and submits `sitemap.xml`.
 - ✅ **Prerender the public pages** — done 13 Oct 2026 (see PROJECT_STATUS).
 - ✅ **Public bare-act pages for BNS, BNSS, BSA** — done 13 Oct 2026 (1,059 sections).
-- **Remaining Acts not published** — POCSO and RTI (the bundled PDFs are OCR scans with errors; POCSO's holds 13 of 46 sections) and CrPC and the NI Act (their text lost its line structure). Each needs a clean official PDF (India Code) before it can go through `scripts/act_sections.py`.
+- **Remaining Acts not published** — POCSO and RTI (the bundled PDFs are OCR scans with errors; POCSO's holds 13 of 46 sections) and CrPC and the NI Act (their text lost its line structure). Each needs a clean official PDF (India Code) before it can go through `scripts/act_sections.py`. **Attempted 30 Oct 2026:** India Code answered 504 / timed out for every bitstream (CrPC handle 13624, IPC 4219, RTI 2065, NI 2189 / 13092, POCSO) from both this machine and the server, and its own records for the NI Act and IPC say "under updation"; the Legislative Department paths (`legislative.gov.in/sites/default/files/A1974-02.pdf` etc.) are gone (404). Retry India Code when it is back; otherwise the owner supplies the PDFs (the Ministry of Law diglot editions are an alternative source).
 - ✅ **Judgment pages** (public `/judgments/`, 14 Oct) and the **full old↔new tables** (BPRD, 20 Oct) are done.
 
 ## 📈 Registrations — the current priority (14 Oct 2026)
