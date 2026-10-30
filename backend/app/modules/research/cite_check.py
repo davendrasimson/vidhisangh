@@ -266,8 +266,10 @@ def party_tokens(case_name: str) -> list[str]:
     left, right = (_tokens(s) for s in sides)
     picked = left[:2] + right[:2]
     # Fall back to anything distinctive when a side is all stop-words ("State of X").
+    # Stop-words never qualify: "State of Punjab v. Others" yields nothing rather
+    # than a lookup on "state"/"others", which match most of the corpus.
     if not picked:
-        picked = [t for t in re.split(r"[^A-Za-z]+", case_name.lower()) if len(t) >= 5][:3]
+        picked = [t for t in _tokens(case_name) if len(t) >= 5][:3]
     return picked[:4]
 
 

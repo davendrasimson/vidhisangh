@@ -22,6 +22,7 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 
 from sqlalchemy import select
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.research.cite_check import MAX_TEXT_CHARS, FoundCitation, _year_window, find_citations, party_tokens
@@ -84,7 +85,13 @@ async def resolve(repo: ResearchRepository, citation: str, v: Votes, *, exclude:
         tokens = party_tokens(name)
         if not tokens:
             continue
-        rows = await repo.find_by_parties(tokens, lo, hi, CourtLevel.SUPREME_COURT, limit=3)
+        # Best effort: a lookup the database cancels (statement timeout on a
+        # pathological token set) costs this name its vote, not the whole run.
+        try:
+            async with repo.session.begin_nested():
+                rows = await repo.find_by_parties(tokens, lo, hi, CourtLevel.SUPREME_COURT, limit=3)
+        except DBAPIError:
+            continue
         if len(rows) == 1 and rows[0].id not in (exclude or set()):
             hits[rows[0].id] += weight
     if not hits:

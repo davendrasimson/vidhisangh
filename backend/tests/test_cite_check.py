@@ -56,6 +56,10 @@ async def test_party_tokens_skip_generic_words() -> None:
     assert party_tokens("K.S. Puttaswamy v. Union of India") == ["puttaswamy"]
     assert party_tokens("State of Haryana v. Chandvir and Ors.") == ["haryana", "chandvir"]
     assert party_tokens("Delhi Transport Corporation v. Balwan Singh & Ors.") == ["transport", "balwan", "singh"]
+    # Nothing distinctive on either side: no lookup rather than one on "state"/"others".
+    assert party_tokens("State v. Others") == []
+    assert party_tokens("Union of India and Others v. State and Another") == []
+    assert party_tokens("Chandvir & Ors.") == ["chandvir"]
 
 
 async def _seed(session_factory) -> dict[str, uuid.UUID]:
