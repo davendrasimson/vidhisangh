@@ -145,6 +145,51 @@ class ResearchRepository:
         )
         return res.scalar_one_or_none()
 
+    async def get_by_neutral_citation(self, neutral: str) -> Judgment | None:
+        res = await self.session.execute(
+            select(Judgment).where(
+                Judgment.neutral_citation == neutral, Judgment.deleted_at.is_(None)
+            ).limit(1)
+        )
+        return res.scalars().first()
+
+    # ── Cite check lookups ─────────────────────────────────────────
+    async def find_by_parties(
+        self, tokens: list[str], lo: date, hi: date, level: CourtLevel, *, limit: int = 4
+    ) -> list[Judgment]:
+        """Records of one court level in a date window whose title carries every token."""
+        conds = [
+            Judgment.deleted_at.is_(None),
+            Judgment.court_level == level,
+            Judgment.judgment_date >= lo,
+            Judgment.judgment_date <= hi,
+            *[Judgment.case_name.ilike(contains(t), escape=LIKE_ESCAPE) for t in tokens],
+        ]
+        res = await self.session.execute(
+            select(Judgment).where(*conds).order_by(Judgment.judgment_date.desc()).limit(limit)
+        )
+        return list(res.scalars().all())
+
+    async def mentions(self, phrase: str, *, limit: int = 3, cap: int = 50) -> tuple[int, list[Judgment]]:
+        """How many judgments' text contain this citation (capped) and a few of them.
+
+        PostgreSQL: a phrase query against the full-text GIN index, so
+        "(2019) 5 SCC 123" and "2019 (5) SCC 123" both match. SQLite: substring.
+        """
+        if self._is_postgres:
+            cond = _FULL_TEXT_VECTOR.op("@@")(func.phraseto_tsquery(_ENGLISH, phrase))
+        else:
+            cond = Judgment.full_text.ilike(contains(phrase), escape=LIKE_ESCAPE)
+        base = select(Judgment.id).where(cond, Judgment.deleted_at.is_(None)).limit(cap).subquery()
+        count = int((await self.session.execute(select(func.count()).select_from(base))).scalar_one())
+        if not count:
+            return 0, []
+        res = await self.session.execute(
+            select(Judgment).where(cond, Judgment.deleted_at.is_(None))
+            .order_by(Judgment.judgment_date.desc().nulls_last()).limit(limit)
+        )
+        return count, list(res.scalars().all())
+
     async def case_orders(self, cnr: str) -> list[Judgment]:
         """Every order the corpus holds for one case, oldest first."""
         res = await self.session.execute(

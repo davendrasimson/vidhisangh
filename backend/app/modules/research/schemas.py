@@ -266,6 +266,56 @@ class SearchFacets(BaseModel):
     outcomes: list[FacetBucket] = Field(default_factory=list)
 
 
+class CiteCheckRequest(BaseModel):
+    """A draft's text to scan for case citations."""
+
+    text: str = Field(min_length=1, max_length=300_000)
+
+
+class CiteCheckJudgment(BaseModel):
+    """The library record a citation resolved to (or might have)."""
+
+    id: uuid.UUID
+    case_name: str
+    citation: str | None
+    neutral_citation: str | None
+    court: str
+    judgment_date: date | None
+
+
+CiteCheckStatus = Literal["verified", "matched_by_name", "possible_matches", "cited_elsewhere", "not_found"]
+
+
+class CiteCheckFinding(BaseModel):
+    citation: str                  # normalised, e.g. "(2019) 5 SCC 123" or "[2019] 4 S.C.R. 532"
+    reporter: str                  # "SCC", "AIR", "S.C.R.", "INSC", "Neutral citation", …
+    kind: str                      # scr | insc | neutral | reporter
+    year: int
+    case_name_as_cited: str | None
+    occurrences: int
+    contexts: list[str]            # up to three passages around the citation
+    status: CiteCheckStatus
+    judgment: CiteCheckJudgment | None = None
+    candidates: list[CiteCheckJudgment] = Field(default_factory=list)
+    cited_in_count: int = 0        # judgments in the library whose text cites this string (capped at 50)
+    cited_in_examples: list[CiteCheckJudgment] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+
+
+class CiteCheckReport(BaseModel):
+    source_chars: int
+    citations_found: int           # every occurrence
+    distinct_citations: int
+    truncated: bool                # more distinct citations than were checked
+    counts: dict[str, int]         # per status
+    findings: list[CiteCheckFinding]
+    checked_at: datetime
+    note: str = (
+        "A first pass, not an opinion: it confirms that a citation exists in or is cited by the library, "
+        "not that the case supports the proposition. Read the authority before relying on it."
+    )
+
+
 class CitationCreate(BaseModel):
     to_judgment_id: uuid.UUID | None = None
     external_citation: str | None = Field(default=None, max_length=200)

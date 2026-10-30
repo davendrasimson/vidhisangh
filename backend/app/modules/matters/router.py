@@ -50,6 +50,7 @@ from app.modules.matters.schemas import (
     TeamTransferResult,
     WorkloadRow,
     TimelineEntry,
+    MatterBoard,
 )
 from app.modules.matters.service import MatterService
 
@@ -97,6 +98,28 @@ async def list_matters(
     svc = _svc(current, session)
     matters = await svc.list_matters(status_filter, page.limit, page.offset, client_id=client_id, user_id=user_id)
     return await svc.to_read(matters)
+
+
+@router.get(
+    "/board",
+    response_model=MatterBoard,
+    summary="Matter board: every open matter by stage, with owner, next step and flags",
+    description=(
+        "Matters that are not closed, grouped by stage. Each card carries the owner (lead "
+        "counsel, else the assignee), the next scheduled hearing or registry date, the "
+        "earliest-due open task, and flags — `hearing_today`, `hearing_soon` (7 days), "
+        "`limitation_soon` (30 days) / `limitation_passed`, `overdue_task`, `no_next_step` "
+        "(no hearing and no open task), `stale` (nothing touched for 30 days), `on_hold`. "
+        "`user_id` narrows to one person's matters (team, lead counsel or assignee)."
+    ),
+    dependencies=[require_permission("matter:read")],
+)
+async def matter_board(
+    current: CurrentUserDep,
+    session: TenantSessionDep,
+    user_id: Annotated[uuid.UUID | None, Query()] = None,
+) -> MatterBoard:
+    return await _svc(current, session).board(user_id=user_id)
 
 
 @router.get(

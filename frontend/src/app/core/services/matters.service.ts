@@ -38,6 +38,7 @@ import {
   MatterCustomValue,
   MatterFieldSettings,
   MatterFieldReport,
+  MatterBoard,
 } from '@core/models/matters.models';
 
 @Injectable({ providedIn: 'root' })
@@ -124,6 +125,13 @@ export class MattersService {
   /** Was this colleague ever on the other side of this matter's parties? (advisory) */
   teamConflicts(matterId: string, userId: string): Observable<TeamConflict[]> {
     return this.http.get<TeamConflict[]>(`${this.api}/${matterId}/team/conflicts`, { params: { user_id: userId } });
+  }
+
+  /** Every open matter by stage with owner, next step and attention flags; optionally one person's. */
+  board(userId?: string): Observable<MatterBoard> {
+    const params: Record<string, string> = {};
+    if (userId) params['user_id'] = userId;
+    return this.http.get<MatterBoard>(`${this.api}/board`, { params });
   }
 
   /** Open matters (by role) and hearings in the next 14 days, per colleague. */

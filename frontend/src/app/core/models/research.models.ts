@@ -181,3 +181,45 @@ export interface SearchFilters {
 
 /** The facet dimensions a user can click into. */
 export type FacetKey = 'court' | 'case_year' | 'case_type' | 'judge' | 'advocate' | 'outcome';
+
+// ── Cite check (POST /research/cite-check) ──────────────────────────────
+export type CiteCheckStatus = 'verified' | 'matched_by_name' | 'possible_matches' | 'cited_elsewhere' | 'not_found';
+
+export interface CiteCheckJudgment {
+  id: string;
+  case_name: string;
+  citation: string | null;
+  neutral_citation: string | null;
+  court: string;
+  judgment_date: string | null;
+}
+
+export interface CiteCheckFinding {
+  /** Normalised, e.g. "(2019) 5 SCC 123" or "[2019] 4 S.C.R. 532". */
+  citation: string;
+  reporter: string;
+  kind: 'scr' | 'insc' | 'neutral' | 'reporter';
+  year: number;
+  case_name_as_cited: string | null;
+  occurrences: number;
+  /** Up to three passages around the citation in the draft. */
+  contexts: string[];
+  status: CiteCheckStatus;
+  judgment: CiteCheckJudgment | null;
+  candidates: CiteCheckJudgment[];
+  /** Judgments in the library whose text cites this string (capped at 50). */
+  cited_in_count: number;
+  cited_in_examples: CiteCheckJudgment[];
+  warnings: string[];
+}
+
+export interface CiteCheckReport {
+  source_chars: number;
+  citations_found: number;
+  distinct_citations: number;
+  truncated: boolean;
+  counts: Partial<Record<CiteCheckStatus, number>>;
+  findings: CiteCheckFinding[];
+  checked_at: string;
+  note: string;
+}

@@ -38,6 +38,20 @@ export const HELP_TOPICS: HelpTopic[] = [
     "featured": true
   },
   {
+    "id": "matter-board",
+    "title": "Matter board",
+    "path": "/app/matters/board",
+    "summary": "Every open matter by stage, with its owner, next hearing, next task and what needs attention.",
+    "steps": [
+      "Open Board from the matters list. Columns are the stages; cards are the matters that are not closed.",
+      "Each card shows the owner (lead counsel, else the assignee), the next scheduled hearing or registry date, the earliest-due open task and the limitation date.",
+      "Use the chips to see only matters that need attention — a hearing today, limitation within 30 days or passed, an overdue task, no next step, or nothing touched for 30 days. Whole firm / My matters switches the view to your own."
+    ],
+    "tip": "The board is built from the hearings, tasks and notes you already record — keep a next hearing or an open task on every matter and nothing shows as 'No next step'.",
+    "permission": "matter:read",
+    "featured": false
+  },
+  {
     "id": "matter-detail",
     "title": "Matter workspace",
     "path": "/app/matters/:id",
@@ -224,6 +238,20 @@ export const HELP_TOPICS: HelpTopic[] = [
     "tip": "Start research from a matter’s Research link to carry over its case context.",
     "permission": "research:use",
     "featured": true
+  },
+  {
+    "id": "cite-check",
+    "title": "Cite check",
+    "path": "/app/research/cite-check",
+    "summary": "Verify every case citation in a draft against the judgment library.",
+    "steps": [
+      "Paste the text of the draft, or upload the Word (.docx) file — footnotes and tables are read too.",
+      "Review each citation: Verified and Matched by name link to the record; Not found, Several possible matches and Cited by other judgments need your own check against the reporter.",
+      "Download the CSV to keep with the matter file."
+    ],
+    "tip": "The check confirms that an authority exists, not that it supports your proposition — read the case before relying on it. SCC and AIR citations are matched by the case name and year, so name the case before the citation.",
+    "permission": "research:use",
+    "featured": false
   },
   {
     "id": "judgment",

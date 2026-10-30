@@ -17,6 +17,10 @@
           <mat-icon class="material-icons-outlined">tune</mat-icon>
         </button>
       }
+      <button mat-stroked-button routerLink="/app/matters/board" title="Every open matter by stage: owner, next hearing, next task and what needs attention">
+        <mat-icon class="material-icons-outlined">view_kanban</mat-icon>
+        Board
+      </button>
       <button mat-stroked-button (click)="toggleTransfer()" title="Who carries what, and move all of one person's matters to another">
         <mat-icon class="material-icons-outlined">swap_horiz</mat-icon>
         Reassign matters

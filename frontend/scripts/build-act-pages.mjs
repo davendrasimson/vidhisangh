@@ -22,6 +22,10 @@ const OLD_ACTS = {
 const JOIN = '/auth/register?utm_source=bare_acts';
 // Old <-> new law tables (BPRD), see scripts/law_correspondence.py.
 const CORRESPONDENCE = ['bns', 'bnss', 'bsa'].map((id) => JSON.parse(readFileSync(join(ROOT, `content/correspondence/${id}.json`), 'utf8')));
+// The BNSS First Schedule (classification of BNS offences), from scripts/bnss_schedule.py.
+const OFFENCE_SCHEDULE_JSON = readFileSync(join(ROOT, 'content/bnss-first-schedule.json'), 'utf8');
+const OFFENCE_SCHEDULE = JSON.parse(OFFENCE_SCHEDULE_JSON);
+const OFFENCE_SCHEDULE_URL = `/tools/bnss-first-schedule.json?v=${createHash('sha256').update(OFFENCE_SCHEDULE_JSON).digest('hex').slice(0, 10)}`;
 const NEW_SHORT = { bns: 'BNS', bnss: 'BNSS', bsa: 'BSA' };
 const OLD_SHORT = { ipc: 'IPC', crpc: 'CrPC', evidence: 'Evidence Act' };
 const BPRD = 'https://bprd.mha.gov.in/page/documents_by_bprd';
@@ -400,9 +404,37 @@ ${cta({ id: 'cpc', short: 'CPC' }, '')}
   });
   urls.push([interestUrl, 'monthly', '0.7']);
 
+  // Offence screener: the BNSS First Schedule as a lookup (data file + page).
+  writeFileSync(join(TOOLS_OUT, 'bnss-first-schedule.json'), JSON.stringify(OFFENCE_SCHEDULE));
+  const offenceUrl = '/tools/offence-screener/';
+  const examples = [['303(2)', 'Theft'], ['318(4)', 'Cheating (IPC 420)'], ['103', 'Murder'], ['IPC 498A', 'Cruelty by husband'], ['64', 'Rape'], ['351', 'Criminal intimidation']];
+  write(offenceUrl, {
+    title: 'Offence screener — is a BNS offence cognizable, bailable, which court tries it, default bail days | VidhiSangh',
+    description: 'Type a BNS section, an IPC section or the name of the offence: punishment, cognizable or not, bailable or not, the court that tries it (BNSS First Schedule), with the arrest regime under Section 35 and default bail under Section 187(3) BNSS. Free.',
+    crumbs: [...crumbsBase, ['Offence screener', offenceUrl]],
+    body: `<main>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/tools/">Free tools</a> › <span>Offence screener</span></nav>
+<p class="eyebrow">Free tool</p>
+<h1>Offence screener (BNSS First Schedule)</h1>
+<p class="lede">For any offence under the Bharatiya Nyaya Sanhita: the punishment, whether it is cognizable and bailable, the court that tries it — and what that means for arrest and default bail.</p>
+<form class="tool" data-tool="offence" data-src="${OFFENCE_SCHEDULE_URL}">
+<label>BNS section, IPC section or offence<input name="q" placeholder="e.g. 303(2), IPC 420, cheating" autocomplete="off" required /></label>
+<button type="submit">Look up</button>
+<p class="small">Try: ${examples.map(([q, label]) => `<a href="${offenceUrl}?q=${encodeURIComponent(q)}">${esc(q)} · ${esc(label)}</a>`).join(' · ')}</p>
+</form>
+<div class="tool-result" aria-live="polite"></div>
+<script src="${TOOLS_JS_URL}" defer></script>
+<p class="small">Part I of the First Schedule to the BNSS, 2023 (${OFFENCE_SCHEDULE.part_i.length} entries), from the Gazette text. For offences under other laws, Part II classifies by punishment: more than 7 years, life or death — cognizable, non-bailable, Court of Session; 3 to 7 years — cognizable, non-bailable, Magistrate of the first class; less than 3 years or fine only — non-cognizable, bailable, any Magistrate. Special laws (NDPS, UAPA, POCSO, SC/ST Act) set their own bail rules and default-bail periods.</p>
+${TOOL_NOTE}
+<p class="actions">${whatsappShare('Offence screener: cognizable? bailable? which court? default bail days — for any BNS section.', offenceUrl)}<a class="ghost" href="/acts/bnss/">Read the BNSS</a></p>
+${cta({ id: 'bns', short: 'BNS' }, '')}
+</main>`,
+  });
+  urls.push([offenceUrl, 'monthly', '0.8']);
+
   write('/tools/', {
-    title: 'Free legal tools — limitation, default bail and interest calculators, IPC to BNS | VidhiSangh',
-    description: 'Free tools for advocates: limitation period calculator for all 137 Articles, default bail calculator under BNSS, and IPC to BNS, CrPC to BNSS and Evidence Act to BSA converters.',
+    title: 'Free legal tools — limitation, default bail and interest calculators, offence screener, IPC to BNS | VidhiSangh',
+    description: 'Free tools for advocates: limitation period calculator for all 137 Articles, default bail calculator under BNSS, offence screener from the BNSS First Schedule, interest calculator, and IPC to BNS, CrPC to BNSS and Evidence Act to BSA converters.',
     crumbs: crumbsBase,
     body: `<main>
 <p class="eyebrow">Free tools</p>
@@ -411,6 +443,7 @@ ${cta({ id: 'cpc', short: 'CPC' }, '')}
 <a class="act" href="${limUrl}"><b>Limitation</b><span>Last date to file a suit, appeal or application, all 137 Articles</span><small>Calculator</small></a>
 <a class="act" href="${bailUrl}"><b>Default bail</b><span>60 / 90 days under Section 187(3) BNSS</span><small>Calculator</small></a>
 <a class="act" href="${interestUrl}"><b>Interest</b><span>Simple or compound interest between two dates</span><small>Calculator</small></a>
+<a class="act" href="${offenceUrl}"><b>Offence screener</b><span>Cognizable? Bailable? Which court? Default bail days — any BNS section</span><small>Lookup</small></a>
 ${CORRESPONDENCE.map((t) => `<a class="act" href="/acts/${CONVERTERS[t.old_act]}/"><b>${esc(OLD_SHORT[t.old_act])} → ${esc(NEW_SHORT[t.new_act])}</b><span>Find the new section for any old one</span><small>Converter</small></a>`).join('')}
 </div>
 ${cta({ id: 'bns', short: 'Acts' }, '')}
@@ -523,6 +556,12 @@ ${chapters.map((c) => `<section class="toc"><h2>${esc((c.name || 'Sections').rep
       CORRESPONDENCE.map((t) => ({ newAct: t.new_act, oldAct: t.old_act, rows: t.entries.map((e) => [e.new, e.subject, e.old, e.old_raw]) })))};\n`
     + `/** Acts with public section pages at vidhisangh.com/acts/<id>/section-<n>/. */\nexport const PUBLISHED_ACTS: string[] = ${JSON.stringify(ACT_IDS)};\n`);
   writeFileSync(join(OUT, 'converter.js'), CONVERTER_JS);
+  // The BNSS First Schedule for the in-app Act reader (another lazy chunk).
+  writeFileSync(join(ROOT, 'src/app/features/knowledge/data/bnss-schedule-data.ts'),
+    '// Generated by scripts/build-act-pages.mjs from content/bnss-first-schedule.json — do not edit.\n'
+    + '// [BNS section, offence, punishment, cognizable, bailable, triable by]\n'
+    + `export const BNSS_FIRST_SCHEDULE: [string, string, string, string, string, string][] = ${JSON.stringify(
+      OFFENCE_SCHEDULE.part_i.map((r) => [r.section, r.offence, r.punishment, r.cognizable, r.bailable, r.court]))};\n`);
 
   // Bare Acts landing, grouped by area of law.
   const groups = [

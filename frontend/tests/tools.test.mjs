@@ -49,3 +49,54 @@ test('interest: simple and compound between two dates, 365-day year', async () =
   assert.match(html, /data-tool="interest"/);
   assert.match(html, /Section 34 of the Code of Civil Procedure/);
 });
+
+test('offence screener: the BNSS First Schedule is complete and the derived notes follow the Code', () => {
+  const { maxTerm, defaultBailDays, arrestRegime, anticipatoryBail, screen } = createRequire(import.meta.url)('../scripts/tools.js');
+  const data = JSON.parse(readFileSync(new URL('../content/bnss-first-schedule.json', import.meta.url), 'utf8'));
+  // Every offence section of the BNS (49 to 357) has at least one entry; 1–48 define terms and exceptions.
+  const sections = new Set(data.part_i.map((r) => r.section.replace(/\(.*$/, '')));
+  for (const n of [49, 64, 103, 106, 303, 318, 351, 356, 357]) assert.ok(sections.has(String(n)), `section ${n}`);
+  assert.ok(data.part_i.length > 450 && sections.size >= 285, `${data.part_i.length} rows, ${sections.size} sections`);
+  for (const r of data.part_i) {
+    assert.ok(['cognizable', 'non_cognizable', 'according'].includes(r.cognizable), `${r.section}: ${r.cognizable_text}`);
+    assert.ok(['bailable', 'non_bailable', 'according'].includes(r.bailable), `${r.section}: ${r.bailable_text}`);
+    assert.ok(r.offence.length > 4 && r.court.endsWith('.'), `${r.section}: ${r.offence} / ${r.court}`);
+  }
+  assert.equal(data.part_ii.length, 3);
+
+  const theft = screen(data, '303(2)').rows;
+  assert.equal(theft[0].offence, 'Theft.');
+  assert.deepEqual([theft[0].cognizable, theft[0].bailable, theft[0].court], ['cognizable', 'non_bailable', 'Any Magistrate.']);
+  assert.equal(screen(data, 'Section 303').rows.length, theft.length);     // the whole section when no sub-section is given
+  const cheating = screen(data, 'IPC 420');
+  assert.deepEqual(cheating.via, { ipc: '420', bns: ['318(4)'] });
+  assert.equal(cheating.rows[0].punishment, 'Imprisonment for 7 years and fine.');
+  assert.deepEqual(screen(data, '498A IPC').via.bns, ['85', '86']);
+  assert.ok(screen(data, 'criminal intimidation').rows.some((r) => r.section === '351(2)'));
+  assert.deepEqual(screen(data, '12').rows, []);                          // no offence in sections 1–48
+
+  // Section 187(3): 90 days for death, life or ten years and upwards; else 60.
+  const murder = screen(data, '103').rows[0];
+  assert.deepEqual(maxTerm(murder.punishment), { death: true, life: true, years: null, fineOnly: false });
+  assert.equal(defaultBailDays(maxTerm(murder.punishment)), 90);
+  const rape = screen(data, '64(1)').rows[0];
+  assert.equal(defaultBailDays(maxTerm(rape.punishment)), 90);          // not less than 10 years
+  assert.equal(defaultBailDays(maxTerm(cheating.rows[0].punishment)), 60);
+  assert.equal(maxTerm('Imprisonment for one month, or fine of 1,000 rupees, or both.').years, 1 / 12);
+  assert.equal(maxTerm('Fine.').fineOnly, true);
+  // Section 35(3): notice first when the offence is punishable up to 7 years.
+  assert.equal(arrestRegime(maxTerm(cheating.rows[0].punishment), 'cognizable'), 'notice');
+  assert.equal(arrestRegime(maxTerm(murder.punishment), 'cognizable'), 'arrest');
+  assert.equal(arrestRegime(maxTerm('Imprisonment for 2 years.'), 'non_cognizable'), 'warrant');
+  // Section 482(4): no anticipatory bail for sections 65 and 70(2).
+  assert.equal(anticipatoryBail('65'), false);
+  assert.equal(anticipatoryBail('70(2)'), false);
+  assert.equal(anticipatoryBail('70(1)'), true);
+  assert.equal(anticipatoryBail('318(4)'), true);
+
+  const page = readFileSync(new URL('../public/tools/offence-screener/index.html', import.meta.url), 'utf8');
+  assert.match(page, /data-tool="offence" data-src="\/tools\/bnss-first-schedule\.json\?v=[0-9a-f]{10}"/);
+  assert.ok(JSON.parse(readFileSync(new URL('../public/tools/bnss-first-schedule.json', import.meta.url), 'utf8')).part_i.length === data.part_i.length);
+  const readerData = readFileSync(new URL('../src/app/features/knowledge/data/bnss-schedule-data.ts', import.meta.url), 'utf8');
+  assert.match(readerData, /export const BNSS_FIRST_SCHEDULE/);
+});

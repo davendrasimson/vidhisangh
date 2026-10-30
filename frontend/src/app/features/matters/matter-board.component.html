@@ -1,0 +1,115 @@
+<div class="mx-auto w-full">
+  <a routerLink="/app/matters" class="text-sm text-content-muted inline-flex items-center gap-1 mb-3">
+    <mat-icon class="material-icons-outlined text-base">arrow_back</mat-icon> {{ auth.isJudicial() ? 'Cases' : 'Matters' }}
+  </a>
+
+  <header class="flex flex-wrap items-end justify-between gap-3 mb-4">
+    <div>
+      <h1 class="vs-display text-3xl font-semibold text-content">{{ auth.isJudicial() ? 'Case board' : 'Matter board' }}</h1>
+      <p class="text-sm text-content-muted mt-0.5">
+        @if (board(); as b) {
+          {{ b.total }} open {{ auth.isJudicial() ? (b.total === 1 ? 'case' : 'cases') : (b.total === 1 ? 'matter' : 'matters') }} by stage
+          @if (b.attention > 0) { · <span class="text-danger font-medium">{{ b.attention }} need{{ b.attention === 1 ? 's' : '' }} attention</span> }
+          @else if (b.total > 0) { · <span class="text-success font-medium">every one has a next step</span> }
+        } @else { Owner, next hearing, next task and what needs attention, from the records you already keep. }
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <button mat-stroked-button [class.!border-brand]="mineOnly()" [class.!text-brand]="mineOnly()" (click)="toggleMine()">
+        <mat-icon class="material-icons-outlined">{{ mineOnly() ? 'person' : 'groups' }}</mat-icon>{{ mineOnly() ? 'My matters' : 'Whole firm' }}
+      </button>
+      <button mat-stroked-button (click)="load()" [disabled]="loading()"><mat-icon class="material-icons-outlined">refresh</mat-icon>Refresh</button>
+    </div>
+  </header>
+
+  @if (board(); as b) {
+    <!-- ── Attention filter chips ────────────────────────────────── -->
+    <div class="flex flex-wrap gap-2 mb-4" aria-label="Filter by flag">
+      <button class="vs-chip" [class.vs-chip-selected]="flagFilter() === 'all'" (click)="setFlag('all')">All {{ b.total }}</button>
+      @if (b.attention > 0) {
+        <button class="vs-chip" [class.vs-chip-selected]="flagFilter() === 'attention'" (click)="setFlag('attention')">
+          <mat-icon class="material-icons-outlined !text-sm !w-4 !h-4" [class.text-danger]="flagFilter() !== 'attention'">priority_high</mat-icon>Needs attention {{ b.attention }}
+        </button>
+      }
+      @for (f of flagOrder; track f) {
+        @if (flagCount(f) > 0) {
+          <button class="vs-chip" [class.vs-chip-selected]="flagFilter() === f" (click)="setFlag(f)">
+            <mat-icon class="material-icons-outlined !text-sm !w-4 !h-4"
+                      [class.text-danger]="meta[f].tone === 'danger' && flagFilter() !== f"
+                      [class.text-warning]="meta[f].tone === 'warning' && flagFilter() !== f">{{ meta[f].icon }}</mat-icon>
+            {{ meta[f].label }} {{ flagCount(f) }}
+          </button>
+        }
+      }
+    </div>
+
+    @if (b.total === 0) {
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-8 text-center">
+        <mat-icon class="material-icons-outlined text-4xl text-content-muted">view_kanban</mat-icon>
+        <p class="mt-2 text-content">{{ mineOnly() ? 'No open matters with you on them.' : 'No open matters yet.' }}</p>
+        <a routerLink="/app/matters" class="text-brand text-sm hover:underline">Create one from the matters list</a>
+      </section>
+    } @else {
+      <!-- ── Board ──────────────────────────────────────────────── -->
+      <div class="flex gap-3 overflow-x-auto pb-3 -mx-1 px-1">
+        @for (col of columns(); track col.stage) {
+          <section class="w-72 shrink-0" [attr.aria-label]="stageLabel[col.stage]">
+            <div class="flex items-center justify-between px-1 mb-2">
+              <span class="font-semibold text-content">{{ stageLabel[col.stage] }}</span>
+              <span class="vs-chip">{{ col.count }}</span>
+            </div>
+            <div class="flex flex-col gap-2">
+              @for (m of col.matters; track m.id) {
+                <a [routerLink]="['/app/matters', m.id]"
+                   class="block rounded-card bg-surface-raised border border-line shadow-card p-3 hover:border-brand transition-colors"
+                   [class.border-danger/40]="m.flags.includes('hearing_today') || m.flags.includes('limitation_passed') || m.flags.includes('limitation_soon') || m.flags.includes('overdue_task')">
+                  <div class="flex items-start justify-between gap-2">
+                    <p class="font-medium text-content leading-snug">{{ m.title }}</p>
+                    @if (m.priority === 'high') { <mat-icon class="material-icons-outlined !text-base text-danger shrink-0" title="High priority">keyboard_double_arrow_up</mat-icon> }
+                  </div>
+                  <p class="text-xs text-content-muted mt-0.5"><span class="font-mono">{{ m.matter_number }}</span> · {{ m.client_name }}@if (m.court) { · {{ m.court }} }</p>
+
+                  <dl class="mt-2 space-y-1 text-xs">
+                    <div class="flex gap-1.5"><dt class="w-14 shrink-0 text-content-muted">Owner</dt><dd class="text-content">{{ m.owner_name || '—' }}</dd></div>
+                    <div class="flex gap-1.5"><dt class="w-14 shrink-0 text-content-muted">Hearing</dt>
+                      <dd class="text-content">
+                        @if (m.next_hearing_on) {
+                          <span [class.text-danger]="daysUntil(m.next_hearing_on) === 0" [class.font-medium]="(daysUntil(m.next_hearing_on) ?? 9) <= 7">{{ m.next_hearing_on | date }} ({{ relative(m.next_hearing_on) }})</span>
+                          @if (m.next_hearing_purpose) { <span class="text-content-muted"> · {{ m.next_hearing_purpose }}</span> }
+                        } @else { <span class="text-content-muted">none fixed</span> }
+                      </dd></div>
+                    <div class="flex gap-1.5"><dt class="w-14 shrink-0 text-content-muted">Next</dt>
+                      <dd class="text-content">
+                        @if (m.next_task_title) {
+                          {{ m.next_task_title }}@if (m.next_task_due_on) { <span [class.text-danger]="(daysUntil(m.next_task_due_on) ?? 0) < 0" class="text-content-muted"> · {{ relative(m.next_task_due_on) }}</span> }
+                          @if (m.open_tasks > 1) { <span class="text-content-muted"> (+{{ m.open_tasks - 1 }})</span> }
+                        } @else { <span class="text-content-muted">no open task</span> }
+                      </dd></div>
+                    @if (m.limitation_date) {
+                      <div class="flex gap-1.5"><dt class="w-14 shrink-0 text-content-muted">Limitation</dt><dd [class.text-danger]="(daysUntil(m.limitation_date) ?? 99) <= 30" class="text-content">{{ m.limitation_date | date }} ({{ relative(m.limitation_date) }})</dd></div>
+                    }
+                  </dl>
+
+                  @if (m.flags.length) {
+                    <div class="flex flex-wrap gap-1 mt-2">
+                      @for (f of m.flags; track f) {
+                        <span class="vs-chip !text-[11px] !py-0 !px-2"
+                              [class.!text-danger]="meta[f].tone === 'danger'" [class.!text-warning]="meta[f].tone === 'warning'">
+                          <mat-icon class="material-icons-outlined !text-xs !w-3.5 !h-3.5">{{ meta[f].icon }}</mat-icon>{{ meta[f].label }}
+                        </span>
+                      }
+                    </div>
+                  }
+                  @if (m.days_idle !== null && m.days_idle > 0) { <p class="text-[11px] text-content-muted mt-1.5">Last activity {{ m.days_idle }} day{{ m.days_idle === 1 ? '' : 's' }} ago</p> }
+                </a>
+              } @empty { <p class="text-xs text-content-muted px-1">—</p> }
+            </div>
+          </section>
+        }
+      </div>
+      @if (flagFilter() !== 'all') { <p class="text-xs text-content-muted mt-1">Showing {{ shown() }} of {{ b.total }}. <button class="text-brand hover:underline" (click)="setFlag('all')">Show all</button></p> }
+    }
+  } @else if (loading()) {
+    <p class="text-content-muted">Loading the board…</p>
+  }
+</div>

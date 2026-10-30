@@ -110,5 +110,95 @@
   }
 
   function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
-  if (typeof module !== 'undefined') module.exports = { parseDate, parsePeriods, addPeriod, interest };
+
+  // ── Offence screener (BNSS First Schedule) ─────────────────────────
+  const TERM_WORDS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, ten: 10, fourteen: 14, twenty: 20 };
+  /** What the punishment column allows at most: death, life, a term in years, or fine only. */
+  function maxTerm(punishment) {
+    const p = String(punishment).toLowerCase();
+    const death = /\bdeath\b/.test(p);
+    const life = /imprisonment for life|remainder of (that|his) person's natural life|for life/.test(p);
+    let years = null;
+    for (const m of p.matchAll(/(\d+|one|two|three|four|five|six|seven|ten|fourteen|twenty)\s+years?/g)) years = Math.max(years ?? 0, TERM_WORDS[m[1]] ?? +m[1]);
+    for (const m of p.matchAll(/(\d+|one|two|three|six)\s+months?/g)) years = Math.max(years ?? 0, (TERM_WORDS[m[1]] ?? +m[1]) / 12);
+    const fineOnly = !death && !life && years === null && /fine/.test(p);
+    return { death, life, years, fineOnly };
+  }
+  /** Section 187(3) BNSS: 90 days where the offence is punishable with death, life, or ten years or more; else 60. */
+  function defaultBailDays(term) { return term.death || term.life || (term.years !== null && term.years >= 10) ? 90 : 60; }
+  /** Section 35 BNSS: for a cognizable offence punishable up to 7 years the police first issue a notice to appear
+   *  (35(3)) and arrest only for reasons recorded (35(1)(b)); beyond 7 years, arrest without warrant. */
+  function arrestRegime(term, cognizable) {
+    if (cognizable !== 'cognizable') return cognizable === 'non_cognizable' ? 'warrant' : 'depends';
+    return term.death || term.life || (term.years !== null && term.years > 7) ? 'arrest' : 'notice';
+  }
+  /** Section 482(4) BNSS: no anticipatory bail for offences under section 65 or 70(2) BNS. */
+  function anticipatoryBail(section) { return !/^(65\b|70\(2\))/.test(String(section)); }
+  const base = (s) => String(s).replace(/\s+/g, '').replace(/\(.*$/, '').toUpperCase();
+  /** Rows of the Schedule for a query: a BNS section, "IPC 420", or words from the offence. */
+  function screen(data, query) {
+    const q = String(query || '').trim().replace(/^(section|sec\.?|s\.)\s*/i, '');
+    if (!q) return { rows: [], via: null };
+    const ipc = q.match(/^(?:ipc\s*)?(\d+[A-Z]{0,2}(?:\(\w+\))?)\s*(?:ipc|of the ipc|indian penal code)$/i) || q.match(/^ipc\s*(\d+[A-Z]{0,2}(?:\(\w+\))?)$/i);
+    if (ipc) {
+      const news = (data.ipc_to_bns || {})[ipc[1].toUpperCase()] || (data.ipc_to_bns || {})[ipc[1]] || [];
+      // "318(4)" names one limb; "85" means every entry of that section.
+      const exact = new Set(news.filter((s) => s.includes('(')).map((s) => s.replace(/\s+/g, '').toUpperCase()));
+      const whole = new Set(news.filter((s) => !s.includes('(')).map(base));
+      const rows = data.part_i.filter((r) => exact.has(r.section.replace(/\s+/g, '').toUpperCase()) || whole.has(base(r.section)));
+      return { rows, via: { ipc: ipc[1].toUpperCase(), bns: news } };
+    }
+    const sec = q.match(/^(?:bns\s*)?(\d{1,3})(\(\w{1,3}\))?\s*(?:bns)?$/i);
+    if (sec) {
+      const exact = data.part_i.filter((r) => r.section.replace(/\s+/g, '') === `${sec[1]}${sec[2] || ''}`);
+      return { rows: exact.length && sec[2] ? exact : data.part_i.filter((r) => base(r.section) === sec[1]), via: null };
+    }
+    const terms = q.toLowerCase().split(/\s+/).filter((t) => t.length > 2);
+    return { rows: terms.length ? data.part_i.filter((r) => terms.every((t) => r.offence.toLowerCase().includes(t))).slice(0, 25) : [], via: null };
+  }
+  const FLAG_LABEL = { cognizable: 'Cognizable', non_cognizable: 'Non-cognizable', bailable: 'Bailable', non_bailable: 'Non-bailable', according: 'According as the offence abetted / attempted' };
+  function renderRow(r) {
+    const term = maxTerm(r.punishment);
+    const days = defaultBailDays(term);
+    const regime = arrestRegime(term, r.cognizable);
+    const notes = [];
+    if (r.cognizable === 'cognizable' || r.cognizable === 'according') notes.push(regime === 'arrest'
+      ? 'Arrest without warrant: the punishment exceeds 7 years, so Section 35(3) BNSS (notice to appear instead of arrest) does not apply.'
+      : regime === 'notice' ? 'Punishable up to 7 years: under Section 35(3) BNSS the police issue a notice to appear and arrest only for reasons recorded in writing (Section 35(1)(b)); Arnesh Kumar guidelines apply.'
+      : 'Cognizability follows the principal offence, so check that offence for the arrest regime.');
+    else notes.push('Non-cognizable: no arrest without a warrant or an order of a Magistrate (Sections 2(1)(o) and 174 BNSS).');
+    notes.push(term.fineOnly ? 'Punishable with fine only.' : `Default bail: ${days} days from the first remand under Section 187(3) BNSS (${days === 90 ? 'death, life or 10 years or more' : 'other offences'}).`);
+    if (!anticipatoryBail(r.section)) notes.push('Anticipatory bail is not available for this offence (Section 482(4) BNSS).');
+    if (r.bailable === 'bailable') notes.push('Bailable: bail is a right under Section 478 BNSS; the police or the court must release on bail.');
+    const sectionUrl = `/acts/bns/section-${base(r.section).toLowerCase()}/`;
+    return `<article class="offence">
+<h3><a href="${sectionUrl}">Section ${escapeHtml(r.section)} BNS</a> — ${escapeHtml(r.offence)}</h3>
+<dl><div><dt>Punishment</dt><dd>${escapeHtml(r.punishment)}</dd></div>
+<div><dt>Cognizable?</dt><dd><strong class="${r.cognizable}">${escapeHtml(FLAG_LABEL[r.cognizable] || r.cognizable_text)}</strong>${r.cognizable === 'according' ? ` <small>${escapeHtml(r.cognizable_text)}</small>` : ''}</dd></div>
+<div><dt>Bailable?</dt><dd><strong class="${r.bailable}">${escapeHtml(FLAG_LABEL[r.bailable] || r.bailable_text)}</strong>${r.bailable === 'according' ? ` <small>${escapeHtml(r.bailable_text)}</small>` : ''}</dd></div>
+<div><dt>Triable by</dt><dd>${escapeHtml(r.court)}</dd></div></dl>
+<ul class="small">${notes.map((n) => `<li>${escapeHtml(n)}</li>`).join('')}</ul>
+</article>`;
+  }
+  for (const form of forms('form[data-tool="offence"]')) {
+    const out = $(form.parentElement, '.tool-result');
+    let data = null;
+    const load = () => data ? Promise.resolve(data) : fetch(form.dataset.src).then((r) => r.json()).then((d) => (data = d));
+    const run = async () => {
+      const q = $(form, '[name=q]').value;
+      if (!q.trim()) { out.innerHTML = ''; return; }
+      out.innerHTML = '<p class="small">Looking up the Schedule…</p>';
+      try {
+        const d = await load();
+        const { rows, via } = screen(d, q);
+        const lead = via ? `<p class="answer">IPC ${escapeHtml(via.ipc)} is now ${via.bns.length ? via.bns.map((s) => `<strong>BNS ${escapeHtml(s)}</strong>`).join(', ') : 'not carried into the BNS'}.</p>` : '';
+        out.innerHTML = rows.length ? lead + rows.map(renderRow).join('')
+          : `${lead}<p class="error">No entry in the First Schedule matches “${escapeHtml(q)}”. Sections 1–48 of the BNS define terms and general exceptions and carry no offence; try the section number of the offence (e.g. 303(2)), “IPC 420”, or a word from the offence (e.g. “cheating”).</p>`;
+      } catch { out.innerHTML = '<p class="error">The Schedule could not be loaded. Please try again.</p>'; }
+    };
+    form.addEventListener('submit', (e) => { e.preventDefault(); void run(); });
+    const initial = new URLSearchParams(location.search).get('q');
+    if (initial) { $(form, '[name=q]').value = initial; void run(); }
+  }
+  if (typeof module !== 'undefined') module.exports = { parseDate, parsePeriods, addPeriod, interest, maxTerm, defaultBailDays, arrestRegime, anticipatoryBail, screen };
 })();

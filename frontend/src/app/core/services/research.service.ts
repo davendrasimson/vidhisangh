@@ -6,6 +6,7 @@ import {
   CaseRead,
   CitationGraph,
   CitationRelationship,
+  CiteCheckReport,
   Judgment,
   JudgmentCreate,
   SearchFacets,
@@ -53,6 +54,18 @@ export class ResearchService {
     body: { to_judgment_id?: string; external_citation?: string; relationship_type: CitationRelationship },
   ): Observable<{ id: string }> {
     return this.http.post<{ id: string }>(`${this.api}/judgments/${id}/citations`, body);
+  }
+
+  /** Every case citation in a draft, verified against the library. Nothing is stored. */
+  citeCheck(text: string): Observable<CiteCheckReport> {
+    return this.http.post<CiteCheckReport>(`${this.api}/cite-check`, { text });
+  }
+
+  /** The same for a Word (.docx) file — body, tables, footnotes and endnotes. */
+  citeCheckUpload(file: File): Observable<CiteCheckReport> {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    return this.http.post<CiteCheckReport>(`${this.api}/cite-check/upload`, form);
   }
 
   /** Only send what is set — the API treats absent and empty the same, but the

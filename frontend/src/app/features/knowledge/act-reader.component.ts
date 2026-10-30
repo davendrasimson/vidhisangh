@@ -8,7 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { ACTS } from './data/acts';
 import { publicOrigin } from '@core/platform/platform';
-import { CRIMINAL_LAW_COMPARISON_SOURCE, SectionCrossReference, fullCrossReferences, loadCorrespondence, publicSectionPath, sectionCrossReferences } from './data/section-intelligence';
+import { CRIMINAL_LAW_COMPARISON_SOURCE, OffenceClassification, SectionCrossReference, fullCrossReferences, loadCorrespondence, loadOffenceSchedule, offenceClassifications, publicSectionPath, sectionCrossReferences } from './data/section-intelligence';
 import { displayDate, lawApplicability, lawVersionProfile } from './data/law-versions';
 import { ResearchService } from '@core/services/research.service';
 import { MattersService } from '@core/services/matters.service';
@@ -151,6 +151,23 @@ export class ActReaderComponent {
     const all = this.correspondence();
     return all ? fullCrossReferences(all, this.selected().id, section.reference) : sectionCrossReferences(this.selected().id, section.reference);
   });
+  /** The BNSS First Schedule, loaded when a BNS section is first read. */
+  private readonly offenceSchedule = signal<OffenceClassification[] | null>(null);
+  /** How the First Schedule classifies the open BNS section: punishment, cognizable, bailable, court. */
+  protected readonly offenceClassifications = computed(() => {
+    const section = this.activeSection();
+    const all = this.offenceSchedule();
+    return section && all ? offenceClassifications(all, this.selected().id, section.reference) : [];
+  });
+  protected readonly screenerUrl = computed(() => {
+    const section = this.activeSection();
+    return section ? `${publicOrigin()}/tools/offence-screener/?q=${encodeURIComponent(section.reference)}` : null;
+  });
+  protected flagLabel(value: string, kind: 'cognizable' | 'bailable'): string {
+    if (value === 'according') return kind === 'cognizable' ? 'Cognizable as the principal offence' : 'Bailable as the principal offence';
+    return value === 'cognizable' ? 'Cognizable' : value === 'non_cognizable' ? 'Non-cognizable'
+      : value === 'bailable' ? 'Bailable' : value === 'non_bailable' ? 'Non-bailable' : value;
+  }
   /** WhatsApp link to the section's public page (Acts published at /acts/ only). */
   protected readonly whatsappSection = computed(() => {
     const section = this.activeSection();
@@ -166,6 +183,7 @@ export class ActReaderComponent {
 
   constructor() {
     void loadCorrespondence().then((all) => this.correspondence.set(all));
+    void loadOffenceSchedule().then((all) => this.offenceSchedule.set(all));
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
       const requested = params.get('act');
       const index = this.acts.findIndex((act) => act.id === requested);

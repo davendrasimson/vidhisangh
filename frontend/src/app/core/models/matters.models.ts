@@ -208,6 +208,47 @@ export interface TeamConflict {
   current: boolean;
 }
 
+// ─── Matter board (GET /matters/board) ──────────────────────────────
+export type BoardFlag =
+  | 'hearing_today' | 'hearing_soon' | 'limitation_passed' | 'limitation_soon'
+  | 'overdue_task' | 'no_next_step' | 'stale' | 'on_hold';
+
+/** One open matter on the board: owner, what happens next, what needs attention. */
+export interface BoardCard {
+  id: string;
+  matter_number: string;
+  title: string;
+  client_name: string;
+  status: MatterStatus;
+  stage: MatterStage;
+  priority: Priority;
+  court: string | null;
+  owner_id: string | null;
+  owner_name: string | null;
+  next_hearing_on: string | null;
+  next_hearing_at: string | null;
+  next_hearing_court: string | null;
+  next_hearing_purpose: string | null;
+  next_task_title: string | null;
+  next_task_due_on: string | null;
+  open_tasks: number;
+  overdue_tasks: number;
+  limitation_date: string | null;
+  last_activity_on: string | null;
+  days_idle: number | null;
+  flags: BoardFlag[];
+}
+
+export interface BoardColumn { stage: MatterStage; count: number; matters: BoardCard[]; }
+
+export interface MatterBoard {
+  columns: BoardColumn[];
+  total: number;
+  attention: number;
+  flag_counts: Partial<Record<BoardFlag, number>>;
+  generated_at: string;
+}
+
 /** One colleague's load: open matters they are on now, by role. */
 export interface WorkloadRow {
   user_id: string;

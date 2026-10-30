@@ -5,7 +5,7 @@ too)."""
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,11 +21,13 @@ from app.modules.matters.models import (
     MatterFeeArrangement,
     MatterFeeEvent,
     MatterFeeMilestone,
+    MatterNote,
     MatterParty,
     MatterStatus,
     MatterTask,
     MatterTeamMember,
     PartySide,
+    TaskStatus,
 )
 
 
@@ -193,6 +195,92 @@ class MatterRepository:
         for p in parties.scalars().all():
             by_matter.setdefault(p.matter_id, []).append(p)
         return [(m, now, by_matter.get(mid, [])) for mid, (m, now) in current.items()]
+
+    # ── Board ──────────────────────────────────────────────────────
+    async def board_matters(
+        self, tenant_id: uuid.UUID, *, user_id: uuid.UUID | None = None, limit: int = 500
+    ) -> list[Matter]:
+        """Every matter that is not closed; optionally only one person's."""
+        stmt = select(Matter).where(
+            Matter.tenant_id == tenant_id, Matter.deleted_at.is_(None), Matter.status != MatterStatus.CLOSED
+        )
+        if user_id is not None:
+            on_team = select(MatterTeamMember.matter_id).where(
+                MatterTeamMember.tenant_id == tenant_id,
+                MatterTeamMember.user_id == user_id,
+                MatterTeamMember.to_date.is_(None),
+                MatterTeamMember.deleted_at.is_(None),
+            )
+            stmt = stmt.where(
+                (Matter.id.in_(on_team)) | (Matter.lead_counsel_id == user_id) | (Matter.assigned_to == user_id)
+            )
+        res = await self.session.execute(
+            stmt.order_by(Matter.next_hearing_date.asc().nulls_last(), Matter.created_at.desc()).limit(limit)
+        )
+        return list(res.scalars().all())
+
+    async def next_hearings(
+        self, tenant_id: uuid.UUID, matter_ids: set[uuid.UUID], start: datetime
+    ) -> dict[uuid.UUID, Hearing]:
+        """The earliest scheduled hearing on or after ``start`` for each matter."""
+        if not matter_ids:
+            return {}
+        res = await self.session.execute(
+            select(Hearing)
+            .where(
+                Hearing.tenant_id == tenant_id,
+                Hearing.matter_id.in_(matter_ids),
+                Hearing.deleted_at.is_(None),
+                Hearing.status == HearingStatus.SCHEDULED,
+                Hearing.scheduled_on >= start,
+            )
+            .order_by(Hearing.scheduled_on.asc())
+        )
+        out: dict[uuid.UUID, Hearing] = {}
+        for h in res.scalars().all():
+            out.setdefault(h.matter_id, h)
+        return out
+
+    async def open_tasks(self, tenant_id: uuid.UUID, matter_ids: set[uuid.UUID]) -> dict[uuid.UUID, list[MatterTask]]:
+        """Open tasks per matter, earliest due first (undated last)."""
+        if not matter_ids:
+            return {}
+        res = await self.session.execute(
+            select(MatterTask)
+            .where(
+                MatterTask.tenant_id == tenant_id,
+                MatterTask.matter_id.in_(matter_ids),
+                MatterTask.deleted_at.is_(None),
+                MatterTask.status == TaskStatus.OPEN,
+            )
+            .order_by(MatterTask.due_on.asc().nulls_last(), MatterTask.created_at.asc())
+        )
+        out: dict[uuid.UUID, list[MatterTask]] = {}
+        for t in res.scalars().all():
+            out.setdefault(t.matter_id, []).append(t)
+        return out
+
+    async def last_activity(self, tenant_id: uuid.UUID, matter_ids: set[uuid.UUID]) -> dict[uuid.UUID, datetime]:
+        """When each matter's hearings, tasks or notes were last touched."""
+        if not matter_ids:
+            return {}
+        out: dict[uuid.UUID, datetime] = {}
+        for model in (Hearing, MatterTask, MatterNote):
+            res = await self.session.execute(
+                select(model.matter_id, func.max(model.updated_at))
+                .where(model.tenant_id == tenant_id, model.matter_id.in_(matter_ids), model.deleted_at.is_(None))
+                .group_by(model.matter_id)
+            )
+            for matter_id, latest in res.all():
+                if latest is None:
+                    continue
+                if isinstance(latest, str):  # SQLite returns max() of a datetime column as text
+                    latest = datetime.fromisoformat(latest)
+                if latest.tzinfo is None:
+                    latest = latest.replace(tzinfo=UTC)
+                if matter_id not in out or latest > out[matter_id]:
+                    out[matter_id] = latest
+        return out
 
     async def open_stints(self, tenant_id: uuid.UUID) -> list[tuple[uuid.UUID, str, uuid.UUID]]:
         """(user, role, matter) for every current stint on a matter that is not closed."""

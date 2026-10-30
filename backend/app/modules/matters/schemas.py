@@ -6,7 +6,7 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, PlainSerializer, model_validator
 from pydantic_core import PydanticCustomError
@@ -215,6 +215,55 @@ class TeamConflict(BaseModel):
     # acted_for_opponent: the opponent here was the client (our side) there.
     kind: str
     current: bool
+
+
+BoardFlag = Literal[
+    "hearing_today", "hearing_soon", "limitation_passed", "limitation_soon",
+    "overdue_task", "no_next_step", "stale", "on_hold",
+]
+
+
+class BoardCard(BaseModel):
+    """One open matter on the board: who owns it, what happens next, what needs attention."""
+
+    id: uuid.UUID
+    matter_number: str
+    title: str
+    client_name: str
+    status: MatterStatus
+    stage: MatterStage
+    priority: Priority
+    court: str | None
+    owner_id: uuid.UUID | None          # lead counsel, else the assignee
+    owner_name: str | None
+    next_hearing_on: date | None        # the next scheduled hearing, or the registry's next date
+    next_hearing_at: datetime | None    # with the time, when a hearing record exists
+    next_hearing_court: str | None
+    next_hearing_purpose: str | None
+    next_task_title: str | None         # the earliest-due open task
+    next_task_due_on: date | None
+    open_tasks: int
+    overdue_tasks: int
+    limitation_date: date | None
+    last_activity_on: date | None       # latest of the matter, its hearings, tasks and notes
+    days_idle: int | None
+    flags: list[BoardFlag] = Field(default_factory=list)
+
+
+class BoardColumn(BaseModel):
+    stage: MatterStage
+    count: int
+    matters: list[BoardCard]
+
+
+class MatterBoard(BaseModel):
+    """Every matter that is not closed, grouped by stage — the firm's board."""
+
+    columns: list[BoardColumn]
+    total: int
+    attention: int                      # cards carrying a flag that needs a person's look
+    flag_counts: dict[str, int]
+    generated_at: datetime
 
 
 class WorkloadRow(BaseModel):

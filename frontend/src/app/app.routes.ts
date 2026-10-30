@@ -149,6 +149,12 @@ export const routes: Routes = [
           import('@features/matters/matters.component').then((m) => m.MattersComponent),
       },
       {
+        // Before `matters/:id` so "board" is not read as a matter id.
+        path: 'matters/board',
+        loadComponent: () =>
+          import('@features/matters/matter-board.component').then((m) => m.MatterBoardComponent),
+      },
+      {
         path: 'matters/:id',
         loadComponent: () =>
           import('@features/matters/matter-detail.component').then((m) => m.MatterDetailComponent),
@@ -178,6 +184,12 @@ export const routes: Routes = [
         path: 'research',
         loadComponent: () =>
           import('@features/research/research.component').then((m) => m.ResearchComponent),
+      },
+      {
+        // Before `research/:id` so "cite-check" is not read as a judgment id.
+        path: 'research/cite-check',
+        loadComponent: () =>
+          import('@features/research/cite-check.component').then((m) => m.CiteCheckComponent),
       },
       {
         // Before `research/:id` so "case" is not read as a judgment id.

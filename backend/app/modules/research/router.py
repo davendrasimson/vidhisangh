@@ -11,22 +11,35 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Path, Query, UploadFile, status
 
 from app.core.deps import CurrentUserDep, TenantSessionDep, require_permission
+from app.core.http_utils import sanitize_filename
 from app.core.pagination import PageParams, page_params
+from app.core.ratelimit import upload_rate_limit
+from app.core.uploads import (
+    UnsupportedUploadTypeError,
+    UploadTooLargeError,
+    read_limited,
+    validate_upload,
+)
+from app.modules.research.cite_check import extract_docx_text
 from app.modules.research.models import CourtLevel
 from app.modules.research.repository import RECENT_YEARS, SearchFilters, sanitise_snippet
 from app.modules.research.schemas import (
     CaseRead,
     CitationCreate,
     CitationGraph,
+    CiteCheckReport,
+    CiteCheckRequest,
     JudgmentCreate,
     JudgmentRead,
     JudgmentSummary,
     SearchFacets,
     SearchPage,
 )
+
+_DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 from app.modules.research.service import ResearchService
 
 router = APIRouter(
@@ -80,6 +93,52 @@ def _filters(
 
 
 Filters = Annotated[SearchFilters, Depends(_filters)]
+
+
+@router.post(
+    "/cite-check",
+    response_model=CiteCheckReport,
+    summary="Check every case citation in a draft against the library",
+    description=(
+        "Finds SCR, INSC, High Court neutral, SCC, SCC OnLine, AIR, SCALE, JT and Cri LJ "
+        "citations in the text and reports, for each, whether the library holds the record "
+        "(`verified`), finds the named case for that year (`matched_by_name` / "
+        "`possible_matches`), finds other judgments citing it (`cited_elsewhere`), or nothing "
+        "(`not_found` — verify before filing). No AI is involved; nothing is stored."
+    ),
+)
+async def cite_check(
+    body: CiteCheckRequest, current: CurrentUserDep, session: TenantSessionDep
+) -> CiteCheckReport:
+    return await _svc(current, session).cite_check(body.text)
+
+
+@router.post(
+    "/cite-check/upload",
+    response_model=CiteCheckReport,
+    summary="Cite-check a Word (.docx) draft",
+    dependencies=[Depends(upload_rate_limit)],
+)
+async def cite_check_upload(
+    current: CurrentUserDep,
+    session: TenantSessionDep,
+    file: Annotated[UploadFile, File()],
+) -> CiteCheckReport:
+    try:
+        blob = await read_limited(file)
+    except UploadTooLargeError as exc:
+        raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, str(exc)) from exc
+    filename = sanitize_filename(file.filename or "draft.docx")
+    try:
+        content_type = validate_upload(blob, file.content_type, filename)
+    except UnsupportedUploadTypeError as exc:
+        raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, str(exc)) from exc
+    if content_type != _DOCX:
+        raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "Only .docx Word documents are accepted.")
+    text = extract_docx_text(blob)
+    if not text.strip():
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "The document contains no text to check.")
+    return await _svc(current, session).cite_check(text)
 
 
 @router.get(

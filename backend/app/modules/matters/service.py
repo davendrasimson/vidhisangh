@@ -41,6 +41,7 @@ from app.modules.matters.models import (
     MilestoneStatus,
     MilestoneTrigger,
     PartySide,
+    Priority,
     RateBasis,
     TaskStatus,
     TeamEndReason,
@@ -80,6 +81,9 @@ from app.modules.matters.schemas import (
     TeamTransfer,
     TeamTransferResult,
     TeamConflict,
+    BoardCard,
+    BoardColumn,
+    MatterBoard,
     TimelineEntry,
     WorkloadRow,
     AuthorityCreate,
@@ -714,6 +718,102 @@ class MatterService:
                 hits.append(TeamConflict(matter_id=other.id, matter_number=other.matter_number, title=other.title,
                                          party_name=theirs[key], kind="acted_for_opponent", current=current))
         return sorted(hits, key=lambda h: (not h.current, h.matter_number or "", h.party_name))
+
+    # ── Board ──────────────────────────────────────────────────────
+    _STAGE_ORDER = [s for s in MatterStage if s != MatterStage.CLOSED] + [MatterStage.CLOSED]
+    _PRIORITY_RANK = {Priority.HIGH: 0, Priority.MEDIUM: 1, Priority.LOW: 2}
+    _URGENT = {"hearing_today", "limitation_passed", "limitation_soon", "overdue_task"}
+    _ATTENTION = _URGENT | {"no_next_step", "stale"}
+    # Worst first inside a column.
+    _SEVERITY = ["limitation_passed", "hearing_today", "overdue_task", "limitation_soon",
+                 "hearing_soon", "no_next_step", "stale", "on_hold"]
+
+    async def board(self, *, user_id: uuid.UUID | None = None) -> MatterBoard:
+        """Open matters by stage, each with its owner, next step and what needs attention."""
+        matters = await self.repo.board_matters(self.tenant_id, user_id=user_id)
+        ids = {m.id for m in matters}
+        today = datetime.now(_IST).date()
+        day_start = datetime.combine(today, datetime.min.time(), _IST)
+        hearings = await self.repo.next_hearings(self.tenant_id, ids, day_start)
+        tasks = await self.repo.open_tasks(self.tenant_id, ids)
+        activity = await self.repo.last_activity(self.tenant_id, ids)
+        owners = {m.lead_counsel_id or m.assigned_to for m in matters} - {None}
+        names = await self.repo.names(self.tenant_id, owners)
+
+        def to_ist_date(value: datetime | None) -> date | None:
+            if value is None:
+                return None
+            return (value if value.tzinfo else value.replace(tzinfo=UTC)).astimezone(_IST).date()
+
+        cards: list[BoardCard] = []
+        flag_counts: dict[str, int] = {}
+        for m in matters:
+            hearing = hearings.get(m.id)
+            next_on = to_ist_date(hearing.scheduled_on) if hearing else (
+                m.next_hearing_date if m.next_hearing_date and m.next_hearing_date >= today else None
+            )
+            open_tasks = tasks.get(m.id, [])
+            overdue = [t for t in open_tasks if t.due_on and t.due_on < today]
+            next_task = open_tasks[0] if open_tasks else None
+            latest = activity.get(m.id)
+            touched = m.updated_at if m.updated_at and m.updated_at.tzinfo else (m.updated_at.replace(tzinfo=UTC) if m.updated_at else None)
+            if latest and (touched is None or latest > touched):
+                touched = latest
+            last_on = to_ist_date(touched)
+            idle = (today - last_on).days if last_on else None
+
+            flags: list[str] = []
+            if next_on == today:
+                flags.append("hearing_today")
+            elif next_on and 0 < (next_on - today).days <= 7:
+                flags.append("hearing_soon")
+            if m.limitation_date:
+                left = (m.limitation_date - today).days
+                if left < 0:
+                    flags.append("limitation_passed")
+                elif left <= 30:
+                    flags.append("limitation_soon")
+            if overdue:
+                flags.append("overdue_task")
+            if next_on is None and not open_tasks:
+                flags.append("no_next_step")
+            if m.status == MatterStatus.ON_HOLD:
+                flags.append("on_hold")
+            elif idle is not None and idle >= 30:
+                flags.append("stale")
+            for f in flags:
+                flag_counts[f] = flag_counts.get(f, 0) + 1
+
+            owner_id = m.lead_counsel_id or m.assigned_to
+            owner = names.get(owner_id) if owner_id else None
+            cards.append(BoardCard(
+                id=m.id, matter_number=m.matter_number, title=m.title, client_name=m.client_name,
+                status=m.status, stage=m.stage, priority=m.priority, court=m.court,
+                owner_id=owner_id, owner_name=owner.full_name if owner else None,
+                next_hearing_on=next_on,
+                next_hearing_at=hearing.scheduled_on if hearing else None,
+                next_hearing_court=(hearing.court if hearing else None) or m.court if next_on else None,
+                next_hearing_purpose=(hearing.purpose if hearing else m.hearing_purpose) if next_on else None,
+                next_task_title=next_task.title if next_task else None,
+                next_task_due_on=next_task.due_on if next_task else None,
+                open_tasks=len(open_tasks), overdue_tasks=len(overdue),
+                limitation_date=m.limitation_date, last_activity_on=last_on, days_idle=idle, flags=flags,
+            ))
+
+        def sort_key(c: BoardCard) -> tuple:
+            worst = min((self._SEVERITY.index(f) for f in c.flags if f in self._SEVERITY), default=len(self._SEVERITY))
+            return (worst, c.next_hearing_on or date.max, self._PRIORITY_RANK[c.priority], c.matter_number)
+
+        columns = []
+        for stage in self._STAGE_ORDER:
+            in_stage = sorted((c for c in cards if c.stage == stage), key=sort_key)
+            if in_stage or stage != MatterStage.CLOSED:
+                columns.append(BoardColumn(stage=stage, count=len(in_stage), matters=in_stage))
+        return MatterBoard(
+            columns=columns, total=len(cards),
+            attention=sum(1 for c in cards if self._ATTENTION & set(c.flags)),
+            flag_counts=flag_counts, generated_at=datetime.now(UTC),
+        )
 
     async def workload(self, days: int = 14) -> list[WorkloadRow]:
         """Who carries what: every active colleague, busiest first (people with nothing too)."""

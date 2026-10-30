@@ -78,6 +78,32 @@ export function loadCorrespondence(): Promise<Table[]> {
   return tables;
 }
 
+/** One entry of the BNSS First Schedule (classification of BNS offences). */
+export interface OffenceClassification {
+  section: string;
+  offence: string;
+  punishment: string;
+  cognizable: 'cognizable' | 'non_cognizable' | 'according' | string;
+  bailable: 'bailable' | 'non_bailable' | 'according' | string;
+  court: string;
+}
+
+let schedule: Promise<OffenceClassification[]> | null = null;
+/** The Schedule, loaded when a BNS section is first read (a lazily loaded chunk). */
+export function loadOffenceSchedule(): Promise<OffenceClassification[]> {
+  schedule ??= import('./bnss-schedule-data')
+    .then((m) => m.BNSS_FIRST_SCHEDULE.map(([section, offence, punishment, cognizable, bailable, court]) => ({ section, offence, punishment, cognizable, bailable, court })))
+    .catch(() => { schedule = null; return []; });
+  return schedule;
+}
+
+/** Every Schedule entry for a BNS section ("303" matches 303(2) and its limbs). */
+export function offenceClassifications(all: OffenceClassification[], actId: string, section: string): OffenceClassification[] {
+  if (actId !== 'bns') return [];
+  const sought = normalise(section).replace(/\(.*/, '');
+  return all.filter((row) => normalise(row.section).replace(/\(.*/, '') === sought);
+}
+
 /** Every old/new link for a section from the full tables, with the curated notes where they exist. */
 export function fullCrossReferences(all: Table[], actId: string, section: string): SectionCrossReference[] {
   const sought = normalise(section).replace(/\(.*/, '');

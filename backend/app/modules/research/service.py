@@ -30,6 +30,8 @@ from app.modules.research.schemas import (
     CitationCreate,
     CitationEdge,
     CitationGraph,
+    CiteCheckFinding,
+    CiteCheckReport,
     FacetBucket,
     JudgmentCreate,
     SearchFacets,
@@ -243,6 +245,26 @@ class ResearchService:
             cached = await self.repo.count(filters)
             _cache_put(key, cached, ttl=_ttl_for(filters))
         return cached
+
+    async def cite_check(self, text: str) -> CiteCheckReport:
+        """Find every case citation in a draft and resolve it against the library."""
+        from dataclasses import asdict
+
+        from app.modules.research.cite_check import check_text
+
+        findings, total, truncated = await check_text(self.repo, text)
+        counts: dict[str, int] = {}
+        for f in findings:
+            counts[f.status] = counts.get(f.status, 0) + 1
+        return CiteCheckReport(
+            source_chars=len(text),
+            citations_found=total,
+            distinct_citations=len(findings) if not truncated else total and len(findings),
+            truncated=truncated,
+            counts=counts,
+            findings=[CiteCheckFinding.model_validate(asdict(f)) for f in findings],
+            checked_at=datetime.now(UTC),
+        )
 
     async def add_citation(
         self, from_judgment_id: uuid.UUID, data: CitationCreate
