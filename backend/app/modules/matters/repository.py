@@ -163,6 +163,29 @@ class MatterRepository:
         res = await self.session.execute(stmt.order_by(Matter.matter_number))
         return [(m, mt) for m, mt in res.all()]
 
+    async def names_on_record(
+        self, tenant_id: uuid.UUID
+    ) -> list[tuple[Matter, list[MatterParty], list[MatterAdvocate]]]:
+        """Every matter of the firm with its parties and opposing counsel — for the intake conflict search."""
+        matters = list((await self.session.execute(
+            select(Matter).where(Matter.tenant_id == tenant_id, Matter.deleted_at.is_(None))
+        )).scalars().all())
+        if not matters:
+            return []
+        ids = [m.id for m in matters]
+        parties: dict[uuid.UUID, list[MatterParty]] = {}
+        for p in (await self.session.execute(
+            select(MatterParty).where(MatterParty.tenant_id == tenant_id, MatterParty.matter_id.in_(ids), MatterParty.deleted_at.is_(None))
+        )).scalars().all():
+            parties.setdefault(p.matter_id, []).append(p)
+        advocates: dict[uuid.UUID, list[MatterAdvocate]] = {}
+        for a in (await self.session.execute(
+            select(MatterAdvocate).where(MatterAdvocate.tenant_id == tenant_id, MatterAdvocate.matter_id.in_(ids),
+                                         MatterAdvocate.deleted_at.is_(None), MatterAdvocate.side == PartySide.OPPOSING)
+        )).scalars().all():
+            advocates.setdefault(a.matter_id, []).append(a)
+        return [(m, parties.get(m.id, []), advocates.get(m.id, [])) for m in matters]
+
     async def stints_with_sides(
         self, tenant_id: uuid.UUID, user_id: uuid.UUID, exclude_matter: uuid.UUID
     ) -> list[tuple[Matter, bool, list[MatterParty]]]:

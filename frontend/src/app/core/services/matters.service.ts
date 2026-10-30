@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '@env/environment';
@@ -39,6 +39,7 @@ import {
   MatterFieldSettings,
   MatterFieldReport,
   MatterBoard,
+  IntakeConflict,
 } from '@core/models/matters.models';
 
 @Injectable({ providedIn: 'root' })
@@ -125,6 +126,14 @@ export class MattersService {
   /** Was this colleague ever on the other side of this matter's parties? (advisory) */
   teamConflicts(matterId: string, userId: string): Observable<TeamConflict[]> {
     return this.http.get<TeamConflict[]>(`${this.api}/${matterId}/team/conflicts`, { params: { user_id: userId } });
+  }
+
+  /** Firm-wide intake conflict search: where do these names already appear (exactly or similarly)? */
+  intakeConflicts(names: string[], excludeMatter?: string): Observable<IntakeConflict[]> {
+    let params = new HttpParams();
+    for (const n of names) params = params.append('name', n);
+    if (excludeMatter) params = params.set('exclude_matter', excludeMatter);
+    return this.http.get<IntakeConflict[]>(`${this.api}/conflicts`, { params });
   }
 
   /** Every open matter by stage with owner, next step and attention flags; optionally one person's. */

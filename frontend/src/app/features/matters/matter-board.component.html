@@ -18,6 +18,9 @@
       <button mat-stroked-button [class.!border-brand]="mineOnly()" [class.!text-brand]="mineOnly()" (click)="toggleMine()">
         <mat-icon class="material-icons-outlined">{{ mineOnly() ? 'person' : 'groups' }}</mat-icon>{{ mineOnly() ? 'My matters' : 'Whole firm' }}
       </button>
+      <button mat-stroked-button (click)="lane.set(lane() === 'stage' ? 'owner' : 'stage')" [title]="lane() === 'stage' ? 'One lane per owner' : 'One column per stage (drag cards to move them)'">
+        <mat-icon class="material-icons-outlined">{{ lane() === 'stage' ? 'view_column' : 'badge' }}</mat-icon>{{ lane() === 'stage' ? 'By stage' : 'By owner' }}
+      </button>
       <button mat-stroked-button (click)="load()" [disabled]="loading()"><mat-icon class="material-icons-outlined">refresh</mat-icon>Refresh</button>
     </div>
   </header>
@@ -51,16 +54,18 @@
       </section>
     } @else {
       <!-- ── Board ──────────────────────────────────────────────── -->
-      <div class="flex gap-3 overflow-x-auto pb-3 -mx-1 px-1">
-        @for (col of columns(); track col.stage) {
-          <section class="w-72 shrink-0" [attr.aria-label]="stageLabel[col.stage]">
+      @if (lane() === 'stage') { <p class="text-xs text-content-muted mb-2">Drag a card to another column to change its stage.</p> }
+      <div class="flex gap-3 overflow-x-auto pb-3 -mx-1 px-1" cdkDropListGroup>
+        @for (col of lanes(); track col.key) {
+          <section class="w-72 shrink-0 min-h-[8rem]" [attr.aria-label]="col.label"
+                   cdkDropList [cdkDropListData]="col" [cdkDropListDisabled]="lane() !== 'stage'" (cdkDropListDropped)="onDrop($event)">
             <div class="flex items-center justify-between px-1 mb-2">
-              <span class="font-semibold text-content">{{ stageLabel[col.stage] }}</span>
+              <span class="font-semibold text-content">{{ col.label }}</span>
               <span class="vs-chip">{{ col.count }}</span>
             </div>
             <div class="flex flex-col gap-2">
               @for (m of col.matters; track m.id) {
-                <a [routerLink]="['/app/matters', m.id]"
+                <a [routerLink]="['/app/matters', m.id]" cdkDrag [cdkDragData]="m" [cdkDragDisabled]="lane() !== 'stage'"
                    class="block rounded-card bg-surface-raised border border-line shadow-card p-3 hover:border-brand transition-colors"
                    [class.border-danger/40]="m.flags.includes('hearing_today') || m.flags.includes('limitation_passed') || m.flags.includes('limitation_soon') || m.flags.includes('overdue_task')">
                   <div class="flex items-start justify-between gap-2">

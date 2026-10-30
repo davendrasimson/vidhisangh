@@ -22,6 +22,7 @@ import {
   TeamEndReason,
   TeamRole,
   WorkloadRow,
+  IntakeConflict,
 } from '@core/models/matters.models';
 import { AuthService } from '@core/auth/auth.service';
 import { VsDateInputComponent } from '@shared/date-input/vs-date-input.component';
@@ -337,6 +338,32 @@ export class MattersComponent implements OnInit {
   }
 
   // ─── Manual create ────────────────────────────────────────────────
+  // ── Intake conflict check ─────────────────────────────────────────
+  protected readonly intakeConflicts = signal<IntakeConflict[]>([]);
+  protected readonly checkingConflicts = signal(false);
+  protected readonly conflictsChecked = signal(false);
+  /** The names worth checking: the client and the parties named in the cause title. */
+  protected conflictNames(): string[] {
+    const names = new Set<string>();
+    const client = this.client?.name?.trim();
+    if (client && client.length >= 3) names.add(client);
+    for (const part of this.form.title.split(/\s+(?:vs?\.?|versus)\s+/i)) {
+      const n = part.replace(/\s*(?:&|and)\s+(?:ors|anr|others|another)\.?\s*$/i, '').trim();
+      if (n.length >= 3) names.add(n);
+    }
+    return [...names].slice(0, 6);
+  }
+
+  protected async checkConflicts(): Promise<void> {
+    const names = this.conflictNames();
+    if (!names.length || this.checkingConflicts()) return;
+    this.checkingConflicts.set(true);
+    try {
+      this.intakeConflicts.set(await firstValueFrom(this.matters.intakeConflicts(names)));
+      this.conflictsChecked.set(true);
+    } catch { /* the error toast has it */ } finally { this.checkingConflicts.set(false); }
+  }
+
   protected async submit(): Promise<void> {
     const title = this.form.title.trim();
     if (title.length < 2 || !(this.client || this.judge()) || this.saving()) return;

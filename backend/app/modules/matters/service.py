@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import uuid
 from datetime import UTC, date, datetime, timedelta
+from difflib import SequenceMatcher
 from zoneinfo import ZoneInfo
 from decimal import Decimal
 
@@ -81,6 +82,7 @@ from app.modules.matters.schemas import (
     TeamTransfer,
     TeamTransferResult,
     TeamConflict,
+    IntakeConflict,
     BoardCard,
     BoardColumn,
     MatterBoard,
@@ -116,12 +118,33 @@ _IST = ZoneInfo("Asia/Kolkata")
 
 # Words that do not tell two parties apart ("M/s Sharma Traders Pvt. Ltd." = "Sharma Traders").
 _NAME_NOISE = {"m", "s", "ms", "the", "pvt", "private", "ltd", "limited", "llp", "co", "and", "shri", "sh",
-               "smt", "mr", "mrs", "dr", "kumari", "km", "inc", "corp", "corporation", "company"}
+               "smt", "mr", "mrs", "dr", "kumari", "km", "inc", "corp", "corporation", "company",
+               "adv", "advocate", "sr", "senior", "ors", "anr", "others", "another", "etc"}
 
 
 def _party_key(name: str | None) -> str:
     words = re.sub(r"[^\w]+", " ", (name or "").lower()).split()
     return " ".join(w for w in words if w not in _NAME_NOISE)
+
+
+def _name_similarity(a: str, b: str) -> float:
+    """How alike two normalised party keys are: exact 1.0; else the better of a
+    word-set overlap and a character ratio, so "Ramesh Kumar Sharma" ~ "Sharma Ramesh"
+    and "Mohd. Irfan" ~ "Mohammed Irfan" both score, while unrelated names do not."""
+    if a == b:
+        return 1.0
+    wa, wb = set(a.split()), set(b.split())
+    if not wa or not wb:
+        return 0.0
+    # Words count as the same when spelt alike ("varma" ~ "verma", "mohd" ~ "mohammed" does not, the
+    # character ratio over the whole name catches that one).
+    matched = sum(1 for x in wa if any(x == y or SequenceMatcher(None, x, y).ratio() >= 0.8 for y in wb))
+    jaccard = matched / len(wa | wb) if matched < min(len(wa), len(wb)) else matched / max(len(wa), len(wb))
+    ratio = SequenceMatcher(None, a, b).ratio()
+    return round(max(jaccard, ratio), 3)
+
+
+SIMILAR_NAME_THRESHOLD = 0.75
 
 
 def _party_names(names: list[str | None]) -> dict[str, str]:
@@ -694,6 +717,38 @@ class MatterService:
     # ── Team ────────────────────────────────────────────────────────
     async def people(self) -> list[PersonRead]:
         return [PersonRead.model_validate(u) for u in await self.repo.people(self.tenant_id)]
+
+    async def intake_conflicts(self, names: list[str], *, exclude_matter: uuid.UUID | None = None) -> list[IntakeConflict]:
+        """Firm-wide: where do these names already appear — as a client, on our side, the
+        other side, or as opposing counsel — exactly or under a similar spelling?
+
+        For matter intake: the client's name and the opposing party's name are checked
+        against every matter of the firm. Advisory, like the team check.
+        """
+        queries = [(n.strip(), _party_key(n)) for n in names if n and len(_party_key(n)) >= 3]
+        if not queries:
+            return []
+        hits: list[IntakeConflict] = []
+        for matter, parties, advocates in await self.repo.names_on_record(self.tenant_id):
+            if exclude_matter and matter.id == exclude_matter:
+                continue
+            on_record: list[tuple[str, str]] = [(matter.client_name, "client")]
+            on_record += [(p.name, str(p.side)) for p in parties]
+            on_record += [(a.name, "counsel") for a in advocates]
+            for query, qkey in queries:
+                best: IntakeConflict | None = None
+                for name, side in on_record:
+                    score = _name_similarity(qkey, _party_key(name))
+                    if score < SIMILAR_NAME_THRESHOLD or (best and score <= best.score):
+                        continue
+                    best = IntakeConflict(
+                        query=query, matter_id=matter.id, matter_number=matter.matter_number, title=matter.title,
+                        status=matter.status, party_name=name, side=side,
+                        match="exact" if score == 1.0 else "similar", score=score,
+                    )
+                if best:
+                    hits.append(best)
+        return sorted(hits, key=lambda h: (h.status == MatterStatus.CLOSED, -h.score, h.matter_number))
 
     async def team_conflicts(self, matter_id: uuid.UUID, user_id: uuid.UUID) -> list[TeamConflict]:
         """Before putting someone on a matter: were they ever on the other side of its parties?

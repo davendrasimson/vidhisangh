@@ -216,6 +216,10 @@ class Settings(BaseSettings):
     FCM_CREDENTIALS_FILE: str = ""
     WA_REMINDER_TEMPLATE: str = "hearing_reminder"
     WA_REMINDER_TEMPLATE_LANG: str = "en"
+    # Morning digest of matters needing attention (matter board flags). Empty:
+    # no WhatsApp template approved yet, so the digest goes by push only.
+    WA_BOARD_DIGEST_TEMPLATE: str = ""
+    WA_BOARD_DIGEST_TEMPLATE_LANG: str = "en"
     SMTP_HOST: str | None = None
     SMTP_PORT: int = 587
     SMTP_USER: str | None = None

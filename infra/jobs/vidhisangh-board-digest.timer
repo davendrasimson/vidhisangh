@@ -1,0 +1,12 @@
+[Unit]
+Description=Send the morning matter-board digest at about 7.30 am India time
+
+[Timer]
+# 07:30 IST every day.
+OnCalendar=*-*-* 02:00:00 UTC
+RandomizedDelaySec=300
+# Not Persistent: a run missed while the server was down must not send at an odd hour.
+Persistent=false
+
+[Install]
+WantedBy=timers.target

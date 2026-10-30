@@ -85,6 +85,7 @@ from app.modules.news.models import NewsItem
 from app.modules.outreach.models import OutreachContact, OutreachSettings, OutreachSuppression
 from app.modules.referrals.models import Referral, ReferralCode
 from app.modules.notifications.models import (
+    BoardDigestSend,
     HearingReminderSend,
     WhatsAppCampaignSend,
     WhatsAppUpdatesConsent,
@@ -161,6 +162,7 @@ __all__ = [
     "NotificationPreference",
     "NotificationDelivery",
     "HearingReminderSend",
+    "BoardDigestSend",
     "WhatsAppCampaignSend",
     "WhatsAppUpdatesConsent",
     "PushDevice",

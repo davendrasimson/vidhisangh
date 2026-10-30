@@ -204,6 +204,20 @@ class TeamTransferResult(BaseModel):
     matter_numbers: list[str]
 
 
+class IntakeConflict(BaseModel):
+    """At intake: a name that already appears somewhere in the firm's matters."""
+
+    query: str                     # the name searched, as typed
+    matter_id: uuid.UUID
+    matter_number: str
+    title: str
+    status: MatterStatus
+    party_name: str                # the name as recorded on that matter
+    side: str                      # client | ours | opposing | other | counsel
+    match: Literal["exact", "similar"]
+    score: float                   # 1.0 exact; else token similarity 0–1
+
+
 class TeamConflict(BaseModel):
     """Another matter where this person was on the other side of one of our parties."""
 

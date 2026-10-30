@@ -305,12 +305,30 @@
       <div class="grid gap-3 sm:grid-cols-3">
         <label class="flex flex-col gap-1 sm:col-span-3">
           <span class="text-sm text-content-muted">Cause title</span>
-          <input class="vs-input" [(ngModel)]="form.title" placeholder="Ramesh Kumar vs State of Haryana" maxlength="300" />
+          <input class="vs-input" [(ngModel)]="form.title" placeholder="Ramesh Kumar vs State of Haryana" maxlength="300" (blur)="checkConflicts()" />
         </label>
+        @if (conflictNames().length) {
+          <div class="sm:col-span-3 rounded-md border px-3 py-2 text-sm" [class.border-warning/50]="intakeConflicts().length" [class.bg-warning/5]="intakeConflicts().length" [class.border-line]="!intakeConflicts().length">
+            <div class="flex flex-wrap items-center gap-2">
+              <mat-icon class="material-icons-outlined !text-base" [class.text-warning]="intakeConflicts().length" [class.text-success]="!intakeConflicts().length && conflictsChecked()">{{ intakeConflicts().length ? 'warning_amber' : 'verified_user' }}</mat-icon>
+              <span class="font-medium">Conflict check</span>
+              <span class="text-content-muted">{{ conflictNames().join(' · ') }}</span>
+              <button type="button" class="ml-auto text-brand text-xs font-medium hover:underline" (click)="checkConflicts()" [disabled]="checkingConflicts()">{{ checkingConflicts() ? 'Checking…' : conflictsChecked() ? 'Check again' : 'Check across the firm' }}</button>
+            </div>
+            @if (conflictsChecked() && !intakeConflicts().length) { <p class="text-xs text-content-muted mt-1">None of these names appears on any other matter of the firm — as a client, a party or opposing counsel.</p> }
+            @for (c of intakeConflicts(); track c.matter_id + c.query + c.party_name) {
+              <p class="text-xs mt-1">
+                <strong>{{ c.query }}</strong> {{ c.match === 'exact' ? 'is' : 'resembles' }} <em>{{ c.party_name }}</em>,
+                {{ c.side === 'client' ? 'the client' : c.side === 'ours' ? 'a party on our side' : c.side === 'opposing' ? 'the opposing party' : c.side === 'counsel' ? 'opposing counsel' : 'a party' }} in
+                <a [routerLink]="['/app/matters', c.matter_id]" class="text-brand hover:underline">{{ c.matter_number }} · {{ c.title }}</a>@if (c.status === 'closed') { <span class="text-content-muted"> (closed)</span> }@if (c.match === 'similar') { <span class="text-content-muted"> · similar spelling</span> }
+              </p>
+            }
+          </div>
+        }
         @if (!judge()) {
         <div class="flex flex-col gap-1 sm:col-span-2">
           <span class="text-sm text-content-muted">Client</span>
-          <vs-client-picker [value]="client" (changed)="client = $event" />
+          <vs-client-picker [value]="client" (changed)="client = $event; checkConflicts()" />
         </div>
         <label class="flex flex-col gap-1">
           <span class="text-sm text-content-muted">Lead counsel (in charge)</span>

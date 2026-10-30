@@ -47,6 +47,7 @@ from app.modules.matters.schemas import (
     TeamMemberUpdate,
     TeamTransfer,
     TeamConflict,
+    IntakeConflict,
     TeamTransferResult,
     WorkloadRow,
     TimelineEntry,
@@ -120,6 +121,27 @@ async def matter_board(
     user_id: Annotated[uuid.UUID | None, Query()] = None,
 ) -> MatterBoard:
     return await _svc(current, session).board(user_id=user_id)
+
+
+@router.get(
+    "/conflicts",
+    response_model=list[IntakeConflict],
+    summary="Intake conflict search: where do these names already appear in the firm's matters?",
+    description=(
+        "Give the client's and the opposing party's names (`name`, repeatable). Each hit is a "
+        "matter where the name — or a similar spelling (normalised, word-set and character "
+        "similarity ≥ 0.75) — is recorded as the client, a party on our or the other side, or "
+        "opposing counsel. Advisory: for the partner to look at, not a block."
+    ),
+    dependencies=[require_permission("matter:read")],
+)
+async def intake_conflicts(
+    current: CurrentUserDep,
+    session: TenantSessionDep,
+    name: Annotated[list[str], Query(min_length=1, max_length=10)],
+    exclude_matter: Annotated[uuid.UUID | None, Query()] = None,
+) -> list[IntakeConflict]:
+    return await _svc(current, session).intake_conflicts([n[:300] for n in name], exclude_matter=exclude_matter)
 
 
 @router.get(

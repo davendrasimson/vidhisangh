@@ -199,6 +199,19 @@ export interface TeamTransferResult {
 }
 
 /** Another matter where this person was on the other side of one of our parties. */
+/** At intake: a name that already appears somewhere in the firm's matters. */
+export interface IntakeConflict {
+  query: string;
+  matter_id: string;
+  matter_number: string;
+  title: string;
+  status: MatterStatus;
+  party_name: string;
+  side: 'client' | 'ours' | 'opposing' | 'other' | 'counsel';
+  match: 'exact' | 'similar';
+  score: number;
+}
+
 export interface TeamConflict {
   matter_id: string;
   matter_number: string | null;

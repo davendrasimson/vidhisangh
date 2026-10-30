@@ -107,6 +107,23 @@ class HearingReminderSend(AuditedBase):
     detail: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
 
+class BoardDigestSend(AuditedBase):
+    """One morning digest of a member's matters needing attention (migration 0081).
+
+    Same shape and purpose as ``HearingReminderSend``: claimed before sending,
+    counts and outcome only.
+    """
+
+    __tablename__ = "board_digest_sends"
+    __table_args__ = (UniqueConstraint("user_id", "for_date", name="uq_board_digest_user_day"),)
+
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, index=True)
+    for_date: Mapped[date] = mapped_column(Date, nullable=False)
+    matter_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(String(10), nullable=False)  # sending | sent | failed
+    detail: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
+
 class WhatsAppUpdatesConsent(AuditedBase):
     """A member's choice about product updates (marketing templates) on WhatsApp.
 

@@ -4,9 +4,14 @@ import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { AuthService } from '@core/auth/auth.service';
 import { MattersService } from '@core/services/matters.service';
+import { NotificationService } from '@core/services/notification.service';
 import { BoardCard, BoardColumn, BoardFlag, MatterBoard, MatterStage } from '@core/models/matters.models';
+
+/** A board column: a stage, or (in the owner view) one person's matters. */
+export interface Lane { key: string; label: string; count: number; matters: BoardCard[]; stage: MatterStage | null; }
 
 interface FlagMeta { label: string; icon: string; tone: 'danger' | 'warning' | 'muted'; }
 
@@ -37,7 +42,7 @@ export const STAGE_LABEL: Record<MatterStage, string> = {
   selector: 'app-matter-board',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, MatIconModule, MatButtonModule],
+  imports: [DatePipe, RouterLink, MatIconModule, MatButtonModule, DragDropModule],
   templateUrl: './matter-board.component.html',
 })
 export class MatterBoardComponent implements OnInit {
@@ -52,19 +57,61 @@ export class MatterBoardComponent implements OnInit {
   protected readonly stageLabel = STAGE_LABEL;
   protected readonly flagOrder = FLAG_ORDER;
 
-  /** Columns with the flag filter applied; empty columns stay so the stages read left to right. */
-  protected readonly columns = computed<BoardColumn[]>(() => {
+  private readonly notify = inject(NotificationService);
+  /** Columns are stages (drag a card to move it) or owners (one lane per person). */
+  protected readonly lane = signal<'stage' | 'owner'>('stage');
+
+  /** Lanes with the flag filter applied; empty stage columns stay so the stages read left to right. */
+  protected readonly lanes = computed<Lane[]>(() => {
     const b = this.board();
     if (!b) return [];
     const f = this.flagFilter();
-    if (f === 'all') return b.columns;
-    const keep = (c: BoardCard) => f === 'attention'
-      ? c.flags.some((x) => x !== 'hearing_soon' && x !== 'on_hold')
+    const keep = (c: BoardCard) => f === 'all' ? true
+      : f === 'attention' ? c.flags.some((x) => x !== 'hearing_soon' && x !== 'on_hold')
       : c.flags.includes(f);
-    return b.columns.map((col) => ({ ...col, matters: col.matters.filter(keep), count: col.matters.filter(keep).length }));
+    if (this.lane() === 'stage') {
+      return b.columns.map((col: BoardColumn) => {
+        const matters = col.matters.filter(keep);
+        return { key: col.stage, label: STAGE_LABEL[col.stage], count: matters.length, matters, stage: col.stage };
+      });
+    }
+    const byOwner = new Map<string, Lane>();
+    for (const col of b.columns) {
+      for (const c of col.matters.filter(keep)) {
+        const key = c.owner_id ?? 'unassigned';
+        const owner = byOwner.get(key) ?? { key, label: c.owner_name ?? 'No owner', count: 0, matters: [], stage: null };
+        owner.matters.push(c); owner.count++;
+        byOwner.set(key, owner);
+      }
+    }
+    return [...byOwner.values()].sort((x, y) => x.key === 'unassigned' ? 1 : y.key === 'unassigned' ? -1 : y.count - x.count || x.label.localeCompare(y.label));
   });
 
-  protected readonly shown = computed(() => this.columns().reduce((n, c) => n + c.count, 0));
+  protected readonly shown = computed(() => this.lanes().reduce((n, c) => n + c.count, 0));
+
+  /** A card dropped on another stage column: move it there and save the stage (PATCH /matters/{id}). */
+  protected async onDrop(event: CdkDragDrop<Lane>): Promise<void> {
+    const card = event.item.data as BoardCard;
+    const to = event.container.data, from = event.previousContainer.data;
+    const b = this.board();
+    if (!b || !to.stage || to.stage === from.stage) return;
+    const stage = to.stage;
+    this.board.set({
+      ...b,
+      columns: b.columns.map((col) => {
+        const matters = col.stage === from.stage ? col.matters.filter((m) => m.id !== card.id)
+          : col.stage === stage ? [...col.matters, { ...card, stage }] : col.matters;
+        return { ...col, matters, count: matters.length };
+      }),
+    });
+    try {
+      await firstValueFrom(this.matters.update(card.id, { stage }));
+      this.notify.success(`${card.title} moved to ${STAGE_LABEL[stage]}.`);
+    } catch {
+      this.notify.error('Could not change the stage; the board was reloaded.');
+      await this.load();
+    }
+  }
 
   protected flagCount(flag: BoardFlag): number {
     return this.board()?.flag_counts[flag] ?? 0;
