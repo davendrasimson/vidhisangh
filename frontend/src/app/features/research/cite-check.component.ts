@@ -9,6 +9,7 @@ import { ResearchService } from '@core/services/research.service';
 import { NotificationService } from '@core/services/notification.service';
 import { CiteCheckFinding, CiteCheckReport, CiteCheckStatus } from '@core/models/research.models';
 import { saveBlob } from '@core/platform/save-file';
+import { publicOrigin } from '@core/platform/platform';
 
 interface StatusMeta { label: string; icon: string; tone: 'success' | 'warning' | 'danger' | 'muted'; help: string; }
 
@@ -46,6 +47,7 @@ export class CiteCheckComponent {
   protected readonly filter = signal<CiteCheckStatus | 'all'>('all');
   protected readonly meta = STATUS_META;
   protected readonly statuses = STATUS_ORDER;
+  protected readonly publicOrigin = publicOrigin();
 
   protected readonly findings = computed<CiteCheckFinding[]>(() => {
     const r = this.report();
@@ -108,7 +110,14 @@ export class CiteCheckComponent {
       f.judgment?.judgment_date ? new Date(f.judgment.judgment_date).toLocaleDateString('en-IN') : '',
       f.cited_in_count, f.warnings.join(' | '),
     ].map(cell).join(','));
-    const csv = [head.map(cell).join(','), ...lines].join('\r\n');
+    // Statutory references follow as their own rows: the old section, where it went, the subject.
+    const statuteLines = r.statutes.map((s) => [
+      `${s.act_label} ${s.section}`, 'Statute',
+      s.status === 'mapped' ? `→ ${s.new_act_label} ${s.new_sections.join(', ')}` : s.status === 'not_carried' ? `Not carried into the ${s.new_act_label}`
+        : s.status === 'new_law' ? 'New law' : 'No such section',
+      s.subject, s.occurrences, '', s.old_sections.join(', '), '', '', '', s.note ?? '',
+    ].map(cell).join(','));
+    const csv = [head.map(cell).join(','), ...lines, ...statuteLines].join('\r\n');
     void saveBlob(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }), `cite-check-${r.checked_at.slice(0, 10)}.csv`);
   }
 }

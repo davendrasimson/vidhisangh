@@ -157,11 +157,24 @@
     return { rows: terms.length ? data.part_i.filter((r) => terms.every((t) => r.offence.toLowerCase().includes(t))).slice(0, 25) : [], via: null };
   }
   const FLAG_LABEL = { cognizable: 'Cognizable', non_cognizable: 'Non-cognizable', bailable: 'Bailable', non_bailable: 'Non-bailable', according: 'According as the offence abetted / attempted' };
-  function renderRow(r) {
+  /** Section 359 BNSS: who may compound this offence, and whether the Court's permission is needed; null if not compoundable. */
+  function compounding(data, section) {
+    const label = String(section).replace(/\s+/g, '');
+    const rows = data.compounding || [];
+    const exact = rows.find((r) => r.sections.some((s) => s.replace(/\s+/g, '') === label));
+    const row = exact || rows.find((r) => r.sections.some((s) => base(s) === base(label) && !s.includes('(')));
+    return row ? { part: row.part, by: row.by, section: row.section_text } : null;
+  }
+  function renderRow(r, data) {
     const term = maxTerm(r.punishment);
     const days = defaultBailDays(term);
     const regime = arrestRegime(term, r.cognizable);
     const notes = [];
+    const comp = compounding(data || {}, r.section);
+    notes.push(comp ? (comp.part === 'court'
+      ? `Compoundable only with the permission of the Court, by ${comp.by.replace(/\.$/, '')} (Section 359(2) BNSS).`
+      : `Compoundable by ${comp.by.replace(/\.$/, '')} (Section 359(1) BNSS), at any time before judgment.`)
+      : 'Not compoundable: the offence is in neither table of Section 359 BNSS. A settlement can only be placed before the High Court under Section 528.');
     if (r.cognizable === 'cognizable' || r.cognizable === 'according') notes.push(regime === 'arrest'
       ? 'Arrest without warrant: the punishment exceeds 7 years, so Section 35(3) BNSS (notice to appear instead of arrest) does not apply.'
       : regime === 'notice' ? 'Punishable up to 7 years: under Section 35(3) BNSS the police issue a notice to appear and arrest only for reasons recorded in writing (Section 35(1)(b)); Arnesh Kumar guidelines apply.'
@@ -192,7 +205,7 @@
         const d = await load();
         const { rows, via } = screen(d, q);
         const lead = via ? `<p class="answer">IPC ${escapeHtml(via.ipc)} is now ${via.bns.length ? via.bns.map((s) => `<strong>BNS ${escapeHtml(s)}</strong>`).join(', ') : 'not carried into the BNS'}.</p>` : '';
-        out.innerHTML = rows.length ? lead + rows.map(renderRow).join('')
+        out.innerHTML = rows.length ? lead + rows.map((r) => renderRow(r, d)).join('')
           : `${lead}<p class="error">No entry in the First Schedule matches “${escapeHtml(q)}”. Sections 1–48 of the BNS define terms and general exceptions and carry no offence; try the section number of the offence (e.g. 303(2)), “IPC 420”, or a word from the offence (e.g. “cheating”).</p>`;
       } catch { out.innerHTML = '<p class="error">The Schedule could not be loaded. Please try again.</p>'; }
     };
@@ -200,5 +213,5 @@
     const initial = new URLSearchParams(location.search).get('q');
     if (initial) { $(form, '[name=q]').value = initial; void run(); }
   }
-  if (typeof module !== 'undefined') module.exports = { parseDate, parsePeriods, addPeriod, interest, maxTerm, defaultBailDays, arrestRegime, anticipatoryBail, screen };
+  if (typeof module !== 'undefined') module.exports = { parseDate, parsePeriods, addPeriod, interest, maxTerm, defaultBailDays, arrestRegime, anticipatoryBail, screen, compounding };
 })();

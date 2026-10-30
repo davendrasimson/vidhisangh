@@ -353,9 +353,22 @@ async def _resolve(repo: "ResearchRepository", found: FoundCitation, budget: "_B
         if exact is None and found.kind == "neutral":
             alt = found.normalised[:-3] if found.normalised.endswith("-DB") else found.normalised + "-DB"
             exact = await repo.get_by_neutral_citation(alt)
+    # Tier 1b — a parallel citation the library has mapped (mined from judgment
+    # texts or curated): "(2017) 10 SCC 1" → the SCR record.
+    alias = None
+    if exact is None and found.kind == "reporter":
+        hit = await repo.get_alias(found.normalised)
+        if hit is not None:
+            alias, exact = hit
     if exact is not None:
         finding.status = "verified"
         finding.judgment = JudgmentRef.of(exact)
+        if alias is not None:
+            agree = alias.support
+            finding.warnings.append(
+                f"Resolved through the library's parallel-citation table ({'curated' if alias.source == 'curated' else f'{agree} citing judgment{'s' if agree != 1 else ''} name this case next to the citation'}); "
+                f"the library keys it as {exact.citation or exact.neutral_citation}."
+            )
         for w in (_name_warning(finding.case_name_as_cited, exact), _year_warning(found, exact)):
             if w:
                 finding.warnings.append(w)

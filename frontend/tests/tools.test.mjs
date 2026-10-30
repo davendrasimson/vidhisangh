@@ -94,6 +94,22 @@ test('offence screener: the BNSS First Schedule is complete and the derived note
   assert.equal(anticipatoryBail('70(1)'), true);
   assert.equal(anticipatoryBail('318(4)'), true);
 
+  // Section 359: both compounding tables, folded into the data file.
+  const { compounding } = createRequire(import.meta.url)('../scripts/tools.js');
+  const comp = JSON.parse(readFileSync(new URL('../content/bnss-compounding.json', import.meta.url), 'utf8')).rows;
+  assert.equal(comp.filter((r) => r.part === 'victim').length, 37);
+  assert.equal(comp.filter((r) => r.part === 'court').length, 13);
+  assert.ok(comp.every((r) => r.sections.length && r.by.length > 8 && r.offence.length > 4));
+  const served = JSON.parse(readFileSync(new URL('../public/tools/bnss-first-schedule.json', import.meta.url), 'utf8'));
+  assert.equal(served.compounding.length, 50);
+  assert.deepEqual(compounding(served, '303(2)'), { part: 'victim', by: 'The owner of the property stolen.', section: '303(2)' });
+  assert.equal(compounding(served, '318(4)').part, 'court');
+  assert.equal(compounding(served, '126(2)').by, 'The person restrained or confined.');   // "126(2), 127(2)"
+  assert.equal(compounding(served, '136').section, '131, 133,136');
+  assert.equal(compounding(served, '103(1)'), null);                                       // murder: not compoundable
+  assert.equal(compounding(served, '115(2)').part, 'victim');
+  assert.match(readFileSync(new URL('../src/app/features/knowledge/data/bnss-schedule-data.ts', import.meta.url), 'utf8'), /export const BNSS_COMPOUNDING/);
+
   const page = readFileSync(new URL('../public/tools/offence-screener/index.html', import.meta.url), 'utf8');
   assert.match(page, /data-tool="offence" data-src="\/tools\/bnss-first-schedule\.json\?v=[0-9a-f]{10}"/);
   assert.ok(JSON.parse(readFileSync(new URL('../public/tools/bnss-first-schedule.json', import.meta.url), 'utf8')).part_i.length === data.part_i.length);

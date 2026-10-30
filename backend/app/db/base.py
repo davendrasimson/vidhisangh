@@ -101,7 +101,7 @@ from app.modules.portal.models import (
     PortalDocument,
     PortalUpdate,
 )
-from app.modules.research.models import CaseCitation, Judgment
+from app.modules.research.models import CaseCitation, Judgment, JudgmentAlias
 from app.modules.support.models import PlatformAdminAction, SupportTicket, SupportTicketMessage
 from app.modules.signing.models import SignatureEnvelope, SignatureEvent, SignatureStep
 from app.modules.profile.models import (
@@ -196,6 +196,7 @@ __all__ = [
     "CalendarEvent",
     "Judgment",
     "CaseCitation",
+    "JudgmentAlias",
     "NewsItem",
     "Payment",
     "Lead",

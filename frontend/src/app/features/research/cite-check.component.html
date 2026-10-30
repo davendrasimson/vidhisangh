@@ -133,5 +133,41 @@
         <p class="text-sm text-content-muted">Nothing with this status.</p>
       }
     </section>
+
+    <!-- ── Statutory references: old criminal law → new ───────────── -->
+    @if (r.statutes.length) {
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mt-6">
+        <h2 class="text-lg font-semibold text-content">Statutory references</h2>
+        <p class="text-sm text-content-muted mt-0.5">
+          {{ r.statutes.length }} section{{ r.statutes.length === 1 ? '' : 's' }} of the IPC, CrPC, Evidence Act, BNS, BNSS or BSA cited.
+          @if (r.statute_counts.not_carried) { <span class="text-danger font-medium">{{ r.statute_counts.not_carried }} old-law section{{ r.statute_counts.not_carried === 1 ? ' has' : 's have' }} no new-law equivalent.</span> }
+          @if (r.statute_counts.unknown) { <span class="text-danger font-medium">{{ r.statute_counts.unknown }} section number{{ r.statute_counts.unknown === 1 ? ' does' : 's do' }} not exist.</span> }
+        </p>
+        <div class="mt-3 divide-y divide-line">
+          @for (s of r.statutes; track s.act + s.base) {
+            <div class="py-2.5 flex flex-wrap items-start gap-x-3 gap-y-1 text-sm">
+              <code class="font-mono font-semibold text-content shrink-0">{{ s.act_label }} {{ s.section }}</code>
+              @if (s.occurrences > 1) { <span class="text-xs text-content-muted">× {{ s.occurrences }}</span> }
+              <span class="flex-1 min-w-[16rem]">
+                @switch (s.status) {
+                  @case ('mapped') {
+                    <span class="text-content">→ <strong>{{ s.new_act_label }} {{ s.new_sections.join(', ') }}</strong>@if (s.subject) { <span class="text-content-muted"> · {{ s.subject }}</span> }</span>
+                  }
+                  @case ('not_carried') {
+                    <span class="text-danger font-medium">Not carried into the {{ s.new_act_label }}</span>
+                  }
+                  @case ('new_law') {
+                    <span class="text-content">@if (s.subject) { {{ s.subject }} }@if (s.old_sections.length) { <span class="text-content-muted"> · was {{ s.act === 'bns' ? 'IPC' : s.act === 'bnss' ? 'CrPC' : 'Evidence Act' }} {{ s.old_sections.join(', ') }}</span> }</span>
+                  }
+                  @default { <span class="text-danger font-medium">No such section</span> }
+                }
+                @if (s.note) { <span class="block text-xs text-content-muted mt-0.5">{{ s.note }}</span> }
+              </span>
+              @if (s.converter_path) { <a [href]="publicOrigin + s.converter_path" target="_blank" rel="noopener" class="text-brand text-xs hover:underline shrink-0">Converter page ↗</a> }
+            </div>
+          }
+        </div>
+      </section>
+    }
   }
 </div>

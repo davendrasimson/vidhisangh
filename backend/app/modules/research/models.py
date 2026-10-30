@@ -124,6 +124,27 @@ class Judgment(AuditedBase):
     )
 
 
+class JudgmentAlias(AuditedBase):
+    """Another reporter's citation for a judgment in the library (migration 0080).
+
+    The corpus keys Supreme Court judgments by SCR / INSC; practice cites SCC and
+    AIR. Rows are mined from cross-references inside judgment texts (a citing
+    judgment names the case next to the citation) or added by curators.
+    """
+
+    __tablename__ = "judgment_aliases"
+
+    judgment_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("judgments.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    citation: Mapped[str] = mapped_column(String(200), nullable=False, unique=True)
+    reporter: Mapped[str] = mapped_column(String(40), nullable=False)
+    source: Mapped[str] = mapped_column(String(20), nullable=False, default="mined")
+    # How many citing judgments named this case next to this citation.
+    support: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    case_name_as_cited: Mapped[str | None] = mapped_column(String(300), nullable=True)
+
+
 class CaseCitation(AuditedBase):
     """A directed citation edge between two judgments (or to an external cite)."""
 

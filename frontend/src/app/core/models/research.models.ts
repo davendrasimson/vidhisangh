@@ -108,6 +108,8 @@ export interface SearchFacets {
 }
 
 export interface Judgment extends JudgmentSummary {
+  /** Other reporters' citations for this judgment (SCC, AIR …), best supported first. */
+  aliases?: string[];
   neutral_citation: string | null;
   bench: string | null;
   judges: string[];
@@ -213,6 +215,27 @@ export interface CiteCheckFinding {
   warnings: string[];
 }
 
+export type StatuteStatus = 'mapped' | 'not_carried' | 'new_law' | 'unknown';
+
+/** A section of the IPC / CrPC / Evidence Act (or BNS / BNSS / BSA) cited in the draft. */
+export interface StatuteReference {
+  act: 'ipc' | 'crpc' | 'evidence' | 'bns' | 'bnss' | 'bsa';
+  act_label: string;
+  section: string;
+  base: string;
+  occurrences: number;
+  contexts: string[];
+  status: StatuteStatus;
+  new_act: string | null;
+  new_act_label: string | null;
+  new_sections: string[];
+  subject: string | null;
+  old_sections: string[];
+  /** Public converter page for the old section, e.g. /acts/ipc-to-bns/section-420/. */
+  converter_path: string | null;
+  note: string | null;
+}
+
 export interface CiteCheckReport {
   source_chars: number;
   citations_found: number;
@@ -220,6 +243,8 @@ export interface CiteCheckReport {
   truncated: boolean;
   counts: Partial<Record<CiteCheckStatus, number>>;
   findings: CiteCheckFinding[];
+  statutes: StatuteReference[];
+  statute_counts: Partial<Record<StatuteStatus, number>>;
   checked_at: string;
   note: string;
 }

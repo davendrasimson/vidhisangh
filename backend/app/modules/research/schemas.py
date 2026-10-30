@@ -184,13 +184,16 @@ class JudgmentRead(_RegistryFields):
     text_extracted_at: datetime | None = None
     # Always flagged as AI-generated (ai_generated=true, label); null until written.
     ai_headnote: AiHeadnoteRead | None = None
+    # Other reporters' citations for this judgment (migration 0080), best supported first.
+    aliases: list[str] = Field(default_factory=list)
     created_at: datetime
 
     @classmethod
-    def from_orm_row(cls, judgment) -> "JudgmentRead":  # noqa: ANN001
+    def from_orm_row(cls, judgment, aliases: list[str] | None = None) -> "JudgmentRead":  # noqa: ANN001
         read = cls.model_validate(judgment)
         read.ai_headnote = AiHeadnoteRead.from_judgment(judgment)
         read.judge_names = _split_judges(getattr(judgment, "judge_text", None))
+        read.aliases = aliases or []
         return read
 
 
@@ -302,6 +305,25 @@ class CiteCheckFinding(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
+class StatuteReference(BaseModel):
+    """A section of the IPC / CrPC / Evidence Act (or BNS / BNSS / BSA) cited in the draft."""
+
+    act: str                       # ipc | crpc | evidence | bns | bnss | bsa
+    act_label: str
+    section: str                   # as cited
+    base: str                      # the number the correspondence table keys by
+    occurrences: int
+    contexts: list[str]
+    status: Literal["mapped", "not_carried", "new_law", "unknown"]
+    new_act: str | None = None
+    new_act_label: str | None = None
+    new_sections: list[str] = Field(default_factory=list)
+    subject: str | None = None
+    old_sections: list[str] = Field(default_factory=list)
+    converter_path: str | None = None
+    note: str | None = None
+
+
 class CiteCheckReport(BaseModel):
     source_chars: int
     citations_found: int           # every occurrence
@@ -309,6 +331,8 @@ class CiteCheckReport(BaseModel):
     truncated: bool                # more distinct citations than were checked
     counts: dict[str, int]         # per status
     findings: list[CiteCheckFinding]
+    statutes: list[StatuteReference] = Field(default_factory=list)   # old-law → new-law references
+    statute_counts: dict[str, int] = Field(default_factory=dict)
     checked_at: datetime
     note: str = (
         "A first pass, not an opinion: it confirms that a citation exists in or is cited by the library, "

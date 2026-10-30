@@ -17,7 +17,7 @@ from starlette import status
 
 from app.core.db_utils import LIKE_ESCAPE, contains
 from app.core.exceptions import AppError
-from app.modules.research.models import CaseCitation, CourtLevel, Judgment
+from app.modules.research.models import CaseCitation, CourtLevel, Judgment, JudgmentAlias
 
 # The generated tsvector (migration 0036) is not an ORM column — SQLite cannot
 # hold it — so the PostgreSQL search path names it directly.
@@ -154,6 +154,23 @@ class ResearchRepository:
         return res.scalars().first()
 
     # ── Cite check lookups ─────────────────────────────────────────
+    async def get_alias(self, citation: str) -> tuple[JudgmentAlias, Judgment] | None:
+        """The library record a parallel citation ("(2017) 10 SCC 1") denotes, if mined or curated."""
+        res = await self.session.execute(
+            select(JudgmentAlias, Judgment)
+            .join(Judgment, Judgment.id == JudgmentAlias.judgment_id)
+            .where(JudgmentAlias.citation == citation, JudgmentAlias.deleted_at.is_(None), Judgment.deleted_at.is_(None))
+        )
+        row = res.first()
+        return (row[0], row[1]) if row else None
+
+    async def aliases_for(self, judgment_id: uuid.UUID) -> list[JudgmentAlias]:
+        res = await self.session.execute(
+            select(JudgmentAlias).where(JudgmentAlias.judgment_id == judgment_id, JudgmentAlias.deleted_at.is_(None))
+            .order_by(JudgmentAlias.support.desc(), JudgmentAlias.citation)
+        )
+        return list(res.scalars().all())
+
     async def find_by_parties(
         self, tokens: list[str], lo: date, hi: date, level: CourtLevel, *, limit: int = 4
     ) -> list[Judgment]:

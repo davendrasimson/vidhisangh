@@ -1,0 +1,1545 @@
+{
+ "new_act": "bsa",
+ "old_act": "evidence",
+ "source": "https://bprd.mha.gov.in/page/documents_by_bprd",
+ "entries": [
+  {
+   "new": "1",
+   "subject": "Short title, application and commencement",
+   "old": [
+    "1"
+   ],
+   "old_raw": "1"
+  },
+  {
+   "new": "2",
+   "subject": "Definitions",
+   "old": [
+    "3"
+   ],
+   "old_raw": "IEA 3 Interpret ation clause"
+  },
+  {
+   "new": "2(1)(a)",
+   "subject": "\"Court\"",
+   "old": [
+    "3"
+   ],
+   "old_raw": "3, para 1"
+  },
+  {
+   "new": "2(1)(b)",
+   "subject": "\"conclusive proof\"",
+   "old": [
+    "4"
+   ],
+   "old_raw": "4, para 3"
+  },
+  {
+   "new": "2(1)(c)",
+   "subject": "\"disproved\"",
+   "old": [
+    "3"
+   ],
+   "old_raw": "3, para 8"
+  },
+  {
+   "new": "2(1)(d)",
+   "subject": "\"document\"",
+   "old": [
+    "3"
+   ],
+   "old_raw": "3, para 5"
+  },
+  {
+   "new": "2(1)(e)",
+   "subject": "\"evidence\"",
+   "old": [
+    "3"
+   ],
+   "old_raw": "3, para 6"
+  },
+  {
+   "new": "2(1)(f)",
+   "subject": "\"fact\"",
+   "old": [
+    "3"
+   ],
+   "old_raw": "3, para 2"
+  },
+  {
+   "new": "2(1)(g)",
+   "subject": "\"facts in issue\"",
+   "old": [
+    "3"
+   ],
+   "old_raw": "3, para 4"
+  },
+  {
+   "new": "2(1)(h)",
+   "subject": "\"may presume\"",
+   "old": [
+    "4"
+   ],
+   "old_raw": "4, para 1"
+  },
+  {
+   "new": "2(1)(i)",
+   "subject": "\"not proved\"",
+   "old": [
+    "3"
+   ],
+   "old_raw": "3, para 9"
+  },
+  {
+   "new": "2(1)(j)",
+   "subject": "\"proved\"",
+   "old": [
+    "3"
+   ],
+   "old_raw": "3, para 7"
+  },
+  {
+   "new": "2(1)(k)",
+   "subject": "\"relevant\"",
+   "old": [
+    "3"
+   ],
+   "old_raw": "3, para 3"
+  },
+  {
+   "new": "2(1)(l)",
+   "subject": "\"shall presume\"",
+   "old": [
+    "4"
+   ],
+   "old_raw": "4, para 2"
+  },
+  {
+   "new": "2(2)",
+   "subject": "Words and expressions",
+   "old": [],
+   "old_raw": "New"
+  },
+  {
+   "new": "3",
+   "subject": "Evidence maybe given of facts in issue and relevant facts",
+   "old": [
+    "5"
+   ],
+   "old_raw": "5"
+  },
+  {
+   "new": "4",
+   "subject": "Relevancy of facts forming part of same transaction",
+   "old": [
+    "6"
+   ],
+   "old_raw": "6"
+  },
+  {
+   "new": "5",
+   "subject": "Facts which are occasion, cause or effect of facts in issue or relevant facts",
+   "old": [
+    "7"
+   ],
+   "old_raw": "7"
+  },
+  {
+   "new": "6",
+   "subject": "Motive, preparation and previous or subsequent conduct",
+   "old": [
+    "8"
+   ],
+   "old_raw": "8"
+  },
+  {
+   "new": "7",
+   "subject": "Facts necessary to explain or introduce fact in issue or relevant facts",
+   "old": [
+    "9"
+   ],
+   "old_raw": "9"
+  },
+  {
+   "new": "8",
+   "subject": "Things said or done by conspirator in reference to common design",
+   "old": [
+    "10"
+   ],
+   "old_raw": "10"
+  },
+  {
+   "new": "9",
+   "subject": "When facts not otherwise relevant become relevant",
+   "old": [
+    "11"
+   ],
+   "old_raw": "11"
+  },
+  {
+   "new": "10",
+   "subject": "Facts tending to enable Court to determine amount are relevant in suits for damages",
+   "old": [
+    "12"
+   ],
+   "old_raw": "12"
+  },
+  {
+   "new": "11",
+   "subject": "Facts relevant when right or custom is in question",
+   "old": [
+    "13"
+   ],
+   "old_raw": "13"
+  },
+  {
+   "new": "12",
+   "subject": "Facts showing existence of state of mind, or of body or bodily feeling",
+   "old": [
+    "14"
+   ],
+   "old_raw": "14"
+  },
+  {
+   "new": "13",
+   "subject": "Facts bearing on question whether act was accidental or intentional",
+   "old": [
+    "15"
+   ],
+   "old_raw": "15"
+  },
+  {
+   "new": "14",
+   "subject": "Existence of course of business when relevant",
+   "old": [
+    "16"
+   ],
+   "old_raw": "16"
+  },
+  {
+   "new": "15",
+   "subject": "Admission defined",
+   "old": [
+    "17"
+   ],
+   "old_raw": "17"
+  },
+  {
+   "new": "16",
+   "subject": "Admission by party to proceeding or his agent",
+   "old": [
+    "18"
+   ],
+   "old_raw": "18"
+  },
+  {
+   "new": "17",
+   "subject": "Admissions by persons whose position must be proved as against party to suit",
+   "old": [
+    "19"
+   ],
+   "old_raw": "19"
+  },
+  {
+   "new": "18",
+   "subject": "Admissions by persons expressly referred to by party to suit",
+   "old": [
+    "20"
+   ],
+   "old_raw": "20"
+  },
+  {
+   "new": "19",
+   "subject": "Proof of admissions against persons making them, and by or on their behalf",
+   "old": [
+    "21"
+   ],
+   "old_raw": "21"
+  },
+  {
+   "new": "20",
+   "subject": "When oral admissions as to contents of documents are relevant",
+   "old": [
+    "22"
+   ],
+   "old_raw": "22"
+  },
+  {
+   "new": "21",
+   "subject": "Admissions in civil cases when relevant",
+   "old": [
+    "23"
+   ],
+   "old_raw": "23"
+  },
+  {
+   "new": "22(1)",
+   "subject": "Confession caused by inducement, threat, coercion or promise, when irrelevant in criminal proceeding",
+   "old": [
+    "24"
+   ],
+   "old_raw": "24"
+  },
+  {
+   "new": "22, first proviso",
+   "subject": "Confession made after removal of impression caused by inducement, threat or promise, relevant",
+   "old": [
+    "28"
+   ],
+   "old_raw": "28"
+  },
+  {
+   "new": "22, second proviso",
+   "subject": "Confession otherwise relevant not to become irrelevant because of promise of secrecy, etc",
+   "old": [
+    "29"
+   ],
+   "old_raw": "29"
+  },
+  {
+   "new": "23(1)",
+   "subject": "Confession to police officer",
+   "old": [
+    "25"
+   ],
+   "old_raw": "25"
+  },
+  {
+   "new": "23(2)",
+   "subject": "Confession by accused while in custody of police not to be proved against him",
+   "old": [
+    "26"
+   ],
+   "old_raw": "26"
+  },
+  {
+   "new": "23, proviso",
+   "subject": "How much of information received from accused may be proved",
+   "old": [
+    "27"
+   ],
+   "old_raw": "27"
+  },
+  {
+   "new": "24",
+   "subject": "Consideration of proved confession affecting person making it and others jointly under trial for same offence",
+   "old": [
+    "30"
+   ],
+   "old_raw": "30"
+  },
+  {
+   "new": "25",
+   "subject": "Admissions not conclusive proof, but may estop",
+   "old": [
+    "31"
+   ],
+   "old_raw": "31"
+  },
+  {
+   "new": "26",
+   "subject": "Cases in which statement of relevant fact by person who is dead or cannot be found, etc., is relevant",
+   "old": [
+    "32"
+   ],
+   "old_raw": "32"
+  },
+  {
+   "new": "27",
+   "subject": "Relevancy of certain evidence for proving, in subsequent proceeding, truth of facts therein stated",
+   "old": [
+    "33"
+   ],
+   "old_raw": "33"
+  },
+  {
+   "new": "28",
+   "subject": "Entries in books of account when relevant",
+   "old": [
+    "34"
+   ],
+   "old_raw": "34"
+  },
+  {
+   "new": "29",
+   "subject": "Relevancy of entry in public record or an electronic record made in performance of duty",
+   "old": [
+    "35"
+   ],
+   "old_raw": "35"
+  },
+  {
+   "new": "30",
+   "subject": "Relevancy of statements in maps, charts and plans",
+   "old": [
+    "36"
+   ],
+   "old_raw": "36"
+  },
+  {
+   "new": "31",
+   "subject": "Relevancy of statement as to fact of public nature contained in certain Acts or notifications",
+   "old": [
+    "37"
+   ],
+   "old_raw": "37"
+  },
+  {
+   "new": "32",
+   "subject": "Relevancy of statements as to any law contained in law books including electronic or digital form",
+   "old": [
+    "38"
+   ],
+   "old_raw": "38"
+  },
+  {
+   "new": "33",
+   "subject": "What evidence to be given when statement forms part of a conversation, document, electronic record, book or series of letters or papers",
+   "old": [
+    "39"
+   ],
+   "old_raw": "39"
+  },
+  {
+   "new": "34",
+   "subject": "Previous judgments relevant to bar a second suit or trial",
+   "old": [
+    "40"
+   ],
+   "old_raw": "40"
+  },
+  {
+   "new": "35",
+   "subject": "Relevancy of certain judgments in probate, etc., jurisdiction",
+   "old": [
+    "41"
+   ],
+   "old_raw": "41"
+  },
+  {
+   "new": "36",
+   "subject": "Relevancy and effect of judgments, orders or decrees, other than those mentioned in section35[41 IEA]",
+   "old": [
+    "42"
+   ],
+   "old_raw": "42"
+  },
+  {
+   "new": "37",
+   "subject": "Judgments, etc., other than those mentioned in sections 34, 35 and 36 [40to 42 IEA] when relevant",
+   "old": [
+    "43"
+   ],
+   "old_raw": "43"
+  },
+  {
+   "new": "38",
+   "subject": "Fraud or collusion in obtaining judgment, or incompetency of Court, may be proved",
+   "old": [
+    "44"
+   ],
+   "old_raw": "44"
+  },
+  {
+   "new": "39(1)",
+   "subject": "Opinions of experts",
+   "old": [
+    "45"
+   ],
+   "old_raw": "45"
+  },
+  {
+   "new": "39(2)",
+   "subject": "Opinion of Examiner of Electronic Evidence",
+   "old": [
+    "45A"
+   ],
+   "old_raw": "45A"
+  },
+  {
+   "new": "40",
+   "subject": "Facts bearing upon opinions of experts",
+   "old": [
+    "46"
+   ],
+   "old_raw": "46"
+  },
+  {
+   "new": "41(1)",
+   "subject": "Opinion as to handwriting and signature, when relevant",
+   "old": [
+    "47"
+   ],
+   "old_raw": "47"
+  },
+  {
+   "new": "41(2)",
+   "subject": "Opinion as to electronic signature, when relevant",
+   "old": [
+    "47A"
+   ],
+   "old_raw": "47A"
+  },
+  {
+   "new": "42",
+   "subject": "Opinion as to existence of general custom or right, when relevant",
+   "old": [
+    "48"
+   ],
+   "old_raw": "48"
+  },
+  {
+   "new": "43",
+   "subject": "Opinion as to usages, tenets, etc., when relevant",
+   "old": [
+    "49"
+   ],
+   "old_raw": "49"
+  },
+  {
+   "new": "44",
+   "subject": "Opinion on relationship, when relevant",
+   "old": [
+    "50"
+   ],
+   "old_raw": "50"
+  },
+  {
+   "new": "45",
+   "subject": "Grounds of opinion, when relevant",
+   "old": [
+    "51"
+   ],
+   "old_raw": "51"
+  },
+  {
+   "new": "46",
+   "subject": "In civil cases character to prove conduct imputed, irrelevant",
+   "old": [
+    "52"
+   ],
+   "old_raw": "52"
+  },
+  {
+   "new": "47",
+   "subject": "In criminal cases previous good character relevant",
+   "old": [
+    "53"
+   ],
+   "old_raw": "53"
+  },
+  {
+   "new": "48",
+   "subject": "Evidence of character or previous sexual experience not relevant in certain cases",
+   "old": [
+    "53A"
+   ],
+   "old_raw": "53A"
+  },
+  {
+   "new": "49",
+   "subject": "Previous bad character not relevant, except in reply",
+   "old": [
+    "54"
+   ],
+   "old_raw": "54"
+  },
+  {
+   "new": "50",
+   "subject": "Character as affecting damages",
+   "old": [
+    "55"
+   ],
+   "old_raw": "55"
+  },
+  {
+   "new": "51",
+   "subject": "Fact judicially noticeable need not be proved",
+   "old": [
+    "56"
+   ],
+   "old_raw": "56"
+  },
+  {
+   "new": "52",
+   "subject": "Facts of which Court shall take judicial notice",
+   "old": [
+    "57"
+   ],
+   "old_raw": "57"
+  },
+  {
+   "new": "53",
+   "subject": "Facts admitted need not be proved",
+   "old": [
+    "58"
+   ],
+   "old_raw": "58"
+  },
+  {
+   "new": "54",
+   "subject": "Proof of facts by oral evidence",
+   "old": [
+    "59"
+   ],
+   "old_raw": "59"
+  },
+  {
+   "new": "55",
+   "subject": "Oral evidence to be direct",
+   "old": [
+    "60"
+   ],
+   "old_raw": "60"
+  },
+  {
+   "new": "56",
+   "subject": "Proof of contents of documents",
+   "old": [
+    "61"
+   ],
+   "old_raw": "61"
+  },
+  {
+   "new": "57",
+   "subject": "Primary evidence",
+   "old": [
+    "62"
+   ],
+   "old_raw": "62"
+  },
+  {
+   "new": "58",
+   "subject": "Secondary evidence",
+   "old": [
+    "63"
+   ],
+   "old_raw": "63"
+  },
+  {
+   "new": "59",
+   "subject": "Proof of documents by primary evidence",
+   "old": [
+    "64"
+   ],
+   "old_raw": "64"
+  },
+  {
+   "new": "60",
+   "subject": "Cases in which secondary evidence relating to documents may be given",
+   "old": [
+    "65"
+   ],
+   "old_raw": "65"
+  },
+  {
+   "new": "61",
+   "subject": "Electronic or digital record",
+   "old": [],
+   "old_raw": "New"
+  },
+  {
+   "new": "62",
+   "subject": "Special provisions as to evidence relating to electronic record",
+   "old": [
+    "65A"
+   ],
+   "old_raw": "65A"
+  },
+  {
+   "new": "63",
+   "subject": "Admissibility of electronic records",
+   "old": [
+    "65B"
+   ],
+   "old_raw": "65B"
+  },
+  {
+   "new": "64",
+   "subject": "Rules as to notice to produce",
+   "old": [
+    "66"
+   ],
+   "old_raw": "66"
+  },
+  {
+   "new": "65",
+   "subject": "Proof of signature and handwriting of person alleged to have signed or written document produced",
+   "old": [
+    "67"
+   ],
+   "old_raw": "67"
+  },
+  {
+   "new": "66",
+   "subject": "Proof as to electronic signature",
+   "old": [
+    "67A"
+   ],
+   "old_raw": "67A"
+  },
+  {
+   "new": "67",
+   "subject": "Proof of execution of document required by law to be attested",
+   "old": [
+    "68"
+   ],
+   "old_raw": "68"
+  },
+  {
+   "new": "68",
+   "subject": "Proof where no attesting witness found",
+   "old": [
+    "69"
+   ],
+   "old_raw": "69"
+  },
+  {
+   "new": "69",
+   "subject": "Admission of execution by party to attested document",
+   "old": [
+    "70"
+   ],
+   "old_raw": "70"
+  },
+  {
+   "new": "70",
+   "subject": "Proof when attesting witness denies execution",
+   "old": [
+    "71"
+   ],
+   "old_raw": "71"
+  },
+  {
+   "new": "71",
+   "subject": "Proof of document not required by law to be attested",
+   "old": [
+    "72"
+   ],
+   "old_raw": "72"
+  },
+  {
+   "new": "72",
+   "subject": "Comparison of signature, writing or seal with others admitted or proved",
+   "old": [
+    "73"
+   ],
+   "old_raw": "73"
+  },
+  {
+   "new": "73",
+   "subject": "Proof as to verification of digital signature",
+   "old": [
+    "73A"
+   ],
+   "old_raw": "73A"
+  },
+  {
+   "new": "74(1)",
+   "subject": "Public and private documents",
+   "old": [
+    "74"
+   ],
+   "old_raw": "74"
+  },
+  {
+   "new": "74(2)",
+   "subject": "Public and private documents",
+   "old": [
+    "75"
+   ],
+   "old_raw": "75"
+  },
+  {
+   "new": "75",
+   "subject": "Certified copies of public documents",
+   "old": [
+    "76"
+   ],
+   "old_raw": "76"
+  },
+  {
+   "new": "76",
+   "subject": "Proof of documents by production of certified copies",
+   "old": [
+    "77"
+   ],
+   "old_raw": "77"
+  },
+  {
+   "new": "77",
+   "subject": "Proof of other official documents",
+   "old": [
+    "78"
+   ],
+   "old_raw": "78"
+  },
+  {
+   "new": "78",
+   "subject": "Presumption as to genuineness of certified copies",
+   "old": [
+    "79"
+   ],
+   "old_raw": "79"
+  },
+  {
+   "new": "79",
+   "subject": "Presumption as to documents produced as record of evidence, etc",
+   "old": [
+    "80"
+   ],
+   "old_raw": "80"
+  },
+  {
+   "new": "80",
+   "subject": "Presumption as to Gazettes, newspapers, [private Acts of parliament] and other documents",
+   "old": [
+    "81"
+   ],
+   "old_raw": "81"
+  },
+  {
+   "new": "81",
+   "subject": "Presumption as to Gazettes in electronic or digital record",
+   "old": [
+    "81A"
+   ],
+   "old_raw": "81A"
+  },
+  {
+   "new": "82",
+   "subject": "Presumption as to maps or plans made by authority of Government",
+   "old": [
+    "83"
+   ],
+   "old_raw": "83"
+  },
+  {
+   "new": "83",
+   "subject": "Presumption as to collections of laws and reports of decisions",
+   "old": [
+    "84"
+   ],
+   "old_raw": "84"
+  },
+  {
+   "new": "84",
+   "subject": "Presumption as to powers-of- attorney",
+   "old": [
+    "85"
+   ],
+   "old_raw": "85"
+  },
+  {
+   "new": "85",
+   "subject": "Presumption as to electronic agreements",
+   "old": [
+    "85A"
+   ],
+   "old_raw": "85A"
+  },
+  {
+   "new": "86",
+   "subject": "Presumption as to electronic records and electronic signatures",
+   "old": [
+    "85B"
+   ],
+   "old_raw": "85B"
+  },
+  {
+   "new": "87",
+   "subject": "Presumption as to Electronic Signature Certificates",
+   "old": [
+    "85C"
+   ],
+   "old_raw": "85C"
+  },
+  {
+   "new": "88",
+   "subject": "Presumption as to certified copies of foreign judicial records",
+   "old": [
+    "86"
+   ],
+   "old_raw": "86"
+  },
+  {
+   "new": "89",
+   "subject": "Presumption as to books, maps and charts",
+   "old": [
+    "87"
+   ],
+   "old_raw": "87"
+  },
+  {
+   "new": "90",
+   "subject": "Presumption as to electronic messages",
+   "old": [
+    "88A"
+   ],
+   "old_raw": "88A"
+  },
+  {
+   "new": "91",
+   "subject": "Presumption as to due execution, etc., of documents not produced",
+   "old": [
+    "89"
+   ],
+   "old_raw": "89"
+  },
+  {
+   "new": "92",
+   "subject": "Presumption as to documents thirty years old",
+   "old": [
+    "90"
+   ],
+   "old_raw": "90"
+  },
+  {
+   "new": "93",
+   "subject": "Presumption as to electronic records five years old",
+   "old": [
+    "90A"
+   ],
+   "old_raw": "90A"
+  },
+  {
+   "new": "94",
+   "subject": "Evidence of terms of contracts, grants and other dispositions of property reduced to form of document",
+   "old": [
+    "91"
+   ],
+   "old_raw": "91"
+  },
+  {
+   "new": "95",
+   "subject": "Exclusion of evidence of oral agreement",
+   "old": [
+    "92"
+   ],
+   "old_raw": "92"
+  },
+  {
+   "new": "96",
+   "subject": "Exclusion of evidence to explain or amend ambiguous document",
+   "old": [
+    "93"
+   ],
+   "old_raw": "93"
+  },
+  {
+   "new": "97",
+   "subject": "Exclusion of evidence against application of document to existing facts",
+   "old": [
+    "94"
+   ],
+   "old_raw": "94"
+  },
+  {
+   "new": "98",
+   "subject": "Evidence as to document unmeaning in reference to existing facts",
+   "old": [
+    "95"
+   ],
+   "old_raw": "95"
+  },
+  {
+   "new": "99",
+   "subject": "Evidence as to application of language which can apply to one only of several persons",
+   "old": [
+    "96"
+   ],
+   "old_raw": "96"
+  },
+  {
+   "new": "100",
+   "subject": "Evidence as to application of language to one of two sets of facts, to neither of which the whole correctly applies",
+   "old": [
+    "97"
+   ],
+   "old_raw": "97"
+  },
+  {
+   "new": "101",
+   "subject": "Evidence as to meaning of illegible characters, etc",
+   "old": [
+    "98"
+   ],
+   "old_raw": "98"
+  },
+  {
+   "new": "102",
+   "subject": "Who may give evidence of agreement varying terms of document",
+   "old": [
+    "99"
+   ],
+   "old_raw": "99"
+  },
+  {
+   "new": "103",
+   "subject": "Saving of provisions of Indian Succession Act relating to wills",
+   "old": [
+    "100"
+   ],
+   "old_raw": "100"
+  },
+  {
+   "new": "104",
+   "subject": "Burden of proof",
+   "old": [
+    "101"
+   ],
+   "old_raw": "101"
+  },
+  {
+   "new": "105",
+   "subject": "On whom burden of proof lies",
+   "old": [
+    "102"
+   ],
+   "old_raw": "102"
+  },
+  {
+   "new": "106",
+   "subject": "Burden of proof as to particular fact",
+   "old": [
+    "103"
+   ],
+   "old_raw": "103"
+  },
+  {
+   "new": "107",
+   "subject": "Burden of proving fact to be proved to make evidence admissible",
+   "old": [
+    "104"
+   ],
+   "old_raw": "104"
+  },
+  {
+   "new": "108",
+   "subject": "Burden of proving that case of accused comes within exceptions",
+   "old": [
+    "105"
+   ],
+   "old_raw": "105"
+  },
+  {
+   "new": "109",
+   "subject": "Burden of proving fact especially within knowledge",
+   "old": [
+    "106"
+   ],
+   "old_raw": "106"
+  },
+  {
+   "new": "110",
+   "subject": "Burden of proving death of person known to have been alive within thirty years",
+   "old": [
+    "107"
+   ],
+   "old_raw": "107"
+  },
+  {
+   "new": "111",
+   "subject": "Burden of proving that person is alive who has not been heard of for seven years",
+   "old": [
+    "108"
+   ],
+   "old_raw": "108"
+  },
+  {
+   "new": "112",
+   "subject": "Burden of proof as to relationship in the cases of partners, landlord and tenant, principal and agent",
+   "old": [
+    "109"
+   ],
+   "old_raw": "109"
+  },
+  {
+   "new": "113",
+   "subject": "Burden of proof as to ownership",
+   "old": [
+    "110"
+   ],
+   "old_raw": "110"
+  },
+  {
+   "new": "114",
+   "subject": "Proof of good faith in transactions where one party is in relation of active confidence",
+   "old": [
+    "111"
+   ],
+   "old_raw": "111"
+  },
+  {
+   "new": "115",
+   "subject": "Presumption as to certain offences",
+   "old": [
+    "111A"
+   ],
+   "old_raw": "111A"
+  },
+  {
+   "new": "116",
+   "subject": "Birth during marriage, conclusive proof of legitimacy",
+   "old": [
+    "112"
+   ],
+   "old_raw": "112"
+  },
+  {
+   "new": "117",
+   "subject": "Presumption as to abetment of suicide by a married woman",
+   "old": [
+    "113A"
+   ],
+   "old_raw": "113A"
+  },
+  {
+   "new": "118",
+   "subject": "Presumption as to dowry death",
+   "old": [
+    "113B"
+   ],
+   "old_raw": "113B"
+  },
+  {
+   "new": "119",
+   "subject": "Court may presume existence of certain facts",
+   "old": [
+    "114"
+   ],
+   "old_raw": "114"
+  },
+  {
+   "new": "120",
+   "subject": "Presumption as to absence of consent in certain prosecution for rape",
+   "old": [
+    "114A"
+   ],
+   "old_raw": "114A"
+  },
+  {
+   "new": "121",
+   "subject": "Estoppel",
+   "old": [
+    "115"
+   ],
+   "old_raw": "115"
+  },
+  {
+   "new": "122",
+   "subject": "Estoppel of tenant and of licensee of person in possession",
+   "old": [
+    "116"
+   ],
+   "old_raw": "116"
+  },
+  {
+   "new": "123",
+   "subject": "Estoppel of acceptor of bill of exchange, bailee or licensee",
+   "old": [
+    "117"
+   ],
+   "old_raw": "117"
+  },
+  {
+   "new": "124",
+   "subject": "Who may testify",
+   "old": [
+    "118"
+   ],
+   "old_raw": "118"
+  },
+  {
+   "new": "125",
+   "subject": "Witness unable to communicate verbally",
+   "old": [
+    "119"
+   ],
+   "old_raw": "119"
+  },
+  {
+   "new": "126",
+   "subject": "Competency of husband and wife as witnesses in certain cases",
+   "old": [
+    "120"
+   ],
+   "old_raw": "120"
+  },
+  {
+   "new": "127",
+   "subject": "Judges and Magistrates",
+   "old": [
+    "121"
+   ],
+   "old_raw": "121"
+  },
+  {
+   "new": "128",
+   "subject": "Communications during marriage",
+   "old": [
+    "122"
+   ],
+   "old_raw": "122"
+  },
+  {
+   "new": "129",
+   "subject": "Evidence as to affairs of State",
+   "old": [
+    "123"
+   ],
+   "old_raw": "123"
+  },
+  {
+   "new": "130",
+   "subject": "Official communications",
+   "old": [
+    "124"
+   ],
+   "old_raw": "124"
+  },
+  {
+   "new": "131",
+   "subject": "Information as to commission of offences",
+   "old": [
+    "125"
+   ],
+   "old_raw": "125"
+  },
+  {
+   "new": "132(1)&(2)",
+   "subject": "Professional communications",
+   "old": [
+    "126"
+   ],
+   "old_raw": "126"
+  },
+  {
+   "new": "132(3)",
+   "subject": "Professional communications to apply interpreters, etc\"",
+   "old": [
+    "127"
+   ],
+   "old_raw": "127"
+  },
+  {
+   "new": "133",
+   "subject": "Privilege not waived by volunteering evidence",
+   "old": [
+    "128"
+   ],
+   "old_raw": "128"
+  },
+  {
+   "new": "134",
+   "subject": "Confidential communication with legal advisers",
+   "old": [
+    "129"
+   ],
+   "old_raw": "129"
+  },
+  {
+   "new": "135",
+   "subject": "Production of title-deeds of witness not a party",
+   "old": [
+    "130"
+   ],
+   "old_raw": "130"
+  },
+  {
+   "new": "136",
+   "subject": "Production of documents or electronic records which another person, having possession, could refuse to produce",
+   "old": [
+    "131"
+   ],
+   "old_raw": "131"
+  },
+  {
+   "new": "137",
+   "subject": "Witness not excused from answering on ground that answer will criminate",
+   "old": [
+    "132"
+   ],
+   "old_raw": "132"
+  },
+  {
+   "new": "138",
+   "subject": "Accomplice",
+   "old": [
+    "133"
+   ],
+   "old_raw": "133"
+  },
+  {
+   "new": "139",
+   "subject": "Number of witnesses",
+   "old": [
+    "134"
+   ],
+   "old_raw": "134"
+  },
+  {
+   "new": "140",
+   "subject": "Order of production and examination of witnesses",
+   "old": [
+    "135"
+   ],
+   "old_raw": "135"
+  },
+  {
+   "new": "141",
+   "subject": "Judge to decide as to admissibility of evidence",
+   "old": [
+    "136"
+   ],
+   "old_raw": "136"
+  },
+  {
+   "new": "142",
+   "subject": "Examination of witnesses",
+   "old": [
+    "137"
+   ],
+   "old_raw": "137"
+  },
+  {
+   "new": "143",
+   "subject": "Order of examinations",
+   "old": [
+    "138"
+   ],
+   "old_raw": "138"
+  },
+  {
+   "new": "144",
+   "subject": "Cross- examination of person called to produce a document",
+   "old": [
+    "139"
+   ],
+   "old_raw": "139"
+  },
+  {
+   "new": "145",
+   "subject": "Witnesses to character",
+   "old": [
+    "140"
+   ],
+   "old_raw": "140"
+  },
+  {
+   "new": "146(1)",
+   "subject": "Leading questions",
+   "old": [
+    "141"
+   ],
+   "old_raw": "141"
+  },
+  {
+   "new": "146(2)&(3)",
+   "subject": "When they (leading) must not be asked",
+   "old": [
+    "142"
+   ],
+   "old_raw": "142"
+  },
+  {
+   "new": "146(4)",
+   "subject": "When they (leading) may be asked",
+   "old": [
+    "143"
+   ],
+   "old_raw": "143"
+  },
+  {
+   "new": "147",
+   "subject": "Evidence as to matters in writing",
+   "old": [
+    "144"
+   ],
+   "old_raw": "144"
+  },
+  {
+   "new": "148",
+   "subject": "Cross- examination as to previous statements in writing",
+   "old": [
+    "145"
+   ],
+   "old_raw": "145"
+  },
+  {
+   "new": "149",
+   "subject": "Questions lawful in cross- examination",
+   "old": [
+    "146"
+   ],
+   "old_raw": "146"
+  },
+  {
+   "new": "150",
+   "subject": "When witness to be compelled to answer",
+   "old": [
+    "147"
+   ],
+   "old_raw": "147"
+  },
+  {
+   "new": "151",
+   "subject": "Court to decide when question shall be asked and when witness compelled to answer",
+   "old": [
+    "148"
+   ],
+   "old_raw": "148"
+  },
+  {
+   "new": "152",
+   "subject": "Question not to be asked without reasonable grounds",
+   "old": [
+    "149"
+   ],
+   "old_raw": "149"
+  },
+  {
+   "new": "153",
+   "subject": "Procedure of Court in case of question being asked without reasonable grounds",
+   "old": [
+    "150"
+   ],
+   "old_raw": "150"
+  },
+  {
+   "new": "154",
+   "subject": "Indecent and scandalous questions",
+   "old": [
+    "151"
+   ],
+   "old_raw": "151"
+  },
+  {
+   "new": "155",
+   "subject": "Questions intended to insult or annoy",
+   "old": [
+    "152"
+   ],
+   "old_raw": "152"
+  },
+  {
+   "new": "156",
+   "subject": "Exclusion of evidence to contradict answers to questions testing veracity",
+   "old": [
+    "153"
+   ],
+   "old_raw": "153"
+  },
+  {
+   "new": "157",
+   "subject": "Question by party to his own witness",
+   "old": [
+    "154"
+   ],
+   "old_raw": "154"
+  },
+  {
+   "new": "158",
+   "subject": "Impeaching credit of witness",
+   "old": [
+    "155"
+   ],
+   "old_raw": "155"
+  },
+  {
+   "new": "159",
+   "subject": "Questions tending to corroborate evidence of relevant fact, admissible",
+   "old": [
+    "156"
+   ],
+   "old_raw": "156"
+  },
+  {
+   "new": "160",
+   "subject": "Former statements of witness may be proved to corroborate later testimony as to same fact",
+   "old": [
+    "157"
+   ],
+   "old_raw": "157"
+  },
+  {
+   "new": "161",
+   "subject": "What matters may be proved in connection with proved statement relevant under section 26 or 27. [ section 32 or 33]",
+   "old": [
+    "158"
+   ],
+   "old_raw": "158"
+  },
+  {
+   "new": "162",
+   "subject": "Refreshing memory",
+   "old": [
+    "159"
+   ],
+   "old_raw": "159"
+  },
+  {
+   "new": "163",
+   "subject": "Testimony to facts stated in document mentioned in section 162[159]",
+   "old": [
+    "160"
+   ],
+   "old_raw": "160"
+  },
+  {
+   "new": "164",
+   "subject": "Right of adverse party as to writing used to refresh memory",
+   "old": [
+    "161"
+   ],
+   "old_raw": "161"
+  },
+  {
+   "new": "165",
+   "subject": "Production of documents",
+   "old": [
+    "162"
+   ],
+   "old_raw": "162"
+  },
+  {
+   "new": "166",
+   "subject": "Giving, as evidence, of document called for and produced on notice",
+   "old": [
+    "163"
+   ],
+   "old_raw": "163"
+  },
+  {
+   "new": "167",
+   "subject": "Using, as evidence, of document production of which was refused on notice",
+   "old": [
+    "164"
+   ],
+   "old_raw": "164"
+  },
+  {
+   "new": "168",
+   "subject": "Judge's power to put questions or order production",
+   "old": [
+    "165"
+   ],
+   "old_raw": "165"
+  },
+  {
+   "new": "169",
+   "subject": "No new trial for improper admission or rejection of evidence",
+   "old": [
+    "167"
+   ],
+   "old_raw": "167"
+  },
+  {
+   "new": "170",
+   "subject": "Repeal and savings",
+   "old": [],
+   "old_raw": "New"
+  }
+ ]
+}

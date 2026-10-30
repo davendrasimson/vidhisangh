@@ -1,0 +1,4262 @@
+{
+ "new_act": "bns",
+ "old_act": "ipc",
+ "source": "https://bprd.mha.gov.in/page/documents_by_bprd",
+ "entries": [
+  {
+   "new": "1(1)",
+   "subject": "Short title, commencement and application",
+   "old": [
+    "1"
+   ],
+   "old_raw": "1"
+  },
+  {
+   "new": "1(2)",
+   "subject": "Commencement",
+   "old": [],
+   "old_raw": "New"
+  },
+  {
+   "new": "1(3)",
+   "subject": "Punishment of offences committed within India",
+   "old": [
+    "2"
+   ],
+   "old_raw": "2"
+  },
+  {
+   "new": "1(4)",
+   "subject": "Punishment of offences committed beyond, which by law may be tried within, India",
+   "old": [
+    "3"
+   ],
+   "old_raw": "3"
+  },
+  {
+   "new": "1(5)",
+   "subject": "Short title, commencement and application- Extension of Code to extra-territorial offences",
+   "old": [
+    "4"
+   ],
+   "old_raw": "4"
+  },
+  {
+   "new": "1(6)",
+   "subject": "Short title, commencement and application-“Certain laws not to be affected by this Act”",
+   "old": [
+    "5"
+   ],
+   "old_raw": "5"
+  },
+  {
+   "new": "2",
+   "subject": "Definitions",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "2(1)",
+   "subject": "“act”",
+   "old": [
+    "33"
+   ],
+   "old_raw": "33 PC Sections"
+  },
+  {
+   "new": "2(2)",
+   "subject": "\"animal\"",
+   "old": [
+    "47"
+   ],
+   "old_raw": "47"
+  },
+  {
+   "new": "2(3)",
+   "subject": "\"child\"",
+   "old": [],
+   "old_raw": "New"
+  },
+  {
+   "new": "2(4)",
+   "subject": "\"Counterfeit\"",
+   "old": [
+    "28"
+   ],
+   "old_raw": "28"
+  },
+  {
+   "new": "2(5)",
+   "subject": "\"Court\"",
+   "old": [
+    "20"
+   ],
+   "old_raw": "20"
+  },
+  {
+   "new": "2(6)",
+   "subject": "\"Death\"",
+   "old": [
+    "46"
+   ],
+   "old_raw": "46"
+  },
+  {
+   "new": "2(7)",
+   "subject": "\"Dishonestly\"",
+   "old": [
+    "24"
+   ],
+   "old_raw": "24"
+  },
+  {
+   "new": "2(8)",
+   "subject": "\"Document\"",
+   "old": [
+    "29",
+    "29A"
+   ],
+   "old_raw": "29 and 29A"
+  },
+  {
+   "new": "2(9)",
+   "subject": "Fraudulently",
+   "old": [
+    "25"
+   ],
+   "old_raw": "25"
+  },
+  {
+   "new": "2(10)",
+   "subject": "Gender",
+   "old": [
+    "8"
+   ],
+   "old_raw": "8"
+  },
+  {
+   "new": "2(11)",
+   "subject": "Good faith",
+   "old": [
+    "52"
+   ],
+   "old_raw": "52"
+  },
+  {
+   "new": "2(12)",
+   "subject": "Government",
+   "old": [
+    "17"
+   ],
+   "old_raw": "17"
+  },
+  {
+   "new": "2(13)",
+   "subject": "Harbour",
+   "old": [
+    "52A"
+   ],
+   "old_raw": "52A"
+  },
+  {
+   "new": "2(14)",
+   "subject": "Injury",
+   "old": [
+    "44"
+   ],
+   "old_raw": "44"
+  },
+  {
+   "new": "2(15)",
+   "subject": "Illegal and legally bound to do",
+   "old": [
+    "43"
+   ],
+   "old_raw": "43"
+  },
+  {
+   "new": "2(16)",
+   "subject": "Judge",
+   "old": [
+    "19"
+   ],
+   "old_raw": "19"
+  },
+  {
+   "new": "2(17)",
+   "subject": "Life",
+   "old": [
+    "45"
+   ],
+   "old_raw": "45"
+  },
+  {
+   "new": "2(18)",
+   "subject": "Local law",
+   "old": [
+    "42"
+   ],
+   "old_raw": "42"
+  },
+  {
+   "new": "2(19)",
+   "subject": "Man",
+   "old": [
+    "10"
+   ],
+   "old_raw": "10"
+  },
+  {
+   "new": "2(20)",
+   "subject": "Month and year",
+   "old": [
+    "49"
+   ],
+   "old_raw": "49"
+  },
+  {
+   "new": "2(21)",
+   "subject": "Movable property",
+   "old": [
+    "22"
+   ],
+   "old_raw": "22"
+  },
+  {
+   "new": "2(22)",
+   "subject": "Number",
+   "old": [
+    "9"
+   ],
+   "old_raw": "9"
+  },
+  {
+   "new": "2(23)",
+   "subject": "Oath",
+   "old": [
+    "51"
+   ],
+   "old_raw": "51"
+  },
+  {
+   "new": "2(24)",
+   "subject": "Offence",
+   "old": [
+    "40"
+   ],
+   "old_raw": "40"
+  },
+  {
+   "new": "2(25)",
+   "subject": "Omission",
+   "old": [
+    "33"
+   ],
+   "old_raw": "33"
+  },
+  {
+   "new": "2(26)",
+   "subject": "Person",
+   "old": [
+    "11"
+   ],
+   "old_raw": "11"
+  },
+  {
+   "new": "2(27)",
+   "subject": "Public",
+   "old": [
+    "12"
+   ],
+   "old_raw": "12"
+  },
+  {
+   "new": "2(28)",
+   "subject": "Public servant",
+   "old": [
+    "21"
+   ],
+   "old_raw": "21"
+  },
+  {
+   "new": "2(29)",
+   "subject": "Reason to believe",
+   "old": [
+    "26"
+   ],
+   "old_raw": "26"
+  },
+  {
+   "new": "2(30)",
+   "subject": "Special law",
+   "old": [
+    "41"
+   ],
+   "old_raw": "41"
+  },
+  {
+   "new": "2(31)",
+   "subject": "Valuable security",
+   "old": [
+    "30"
+   ],
+   "old_raw": "30"
+  },
+  {
+   "new": "2(32)",
+   "subject": "Vessel",
+   "old": [
+    "48"
+   ],
+   "old_raw": "48"
+  },
+  {
+   "new": "2(33)",
+   "subject": "Voluntarily",
+   "old": [
+    "39"
+   ],
+   "old_raw": "39"
+  },
+  {
+   "new": "2(34)",
+   "subject": "Will",
+   "old": [
+    "31"
+   ],
+   "old_raw": "31"
+  },
+  {
+   "new": "2(35)",
+   "subject": "Woman",
+   "old": [
+    "10"
+   ],
+   "old_raw": "10"
+  },
+  {
+   "new": "2(36)",
+   "subject": "Wrongful gain",
+   "old": [
+    "23",
+    "1"
+   ],
+   "old_raw": "23 Clause-1"
+  },
+  {
+   "new": "2(37)",
+   "subject": "Wrongful loss",
+   "old": [
+    "23",
+    "2"
+   ],
+   "old_raw": "23 Clause-2"
+  },
+  {
+   "new": "2(38)",
+   "subject": "Gaining wrongfully, losing wrongfully",
+   "old": [
+    "23",
+    "3"
+   ],
+   "old_raw": "23 Clause-3"
+  },
+  {
+   "new": "2(39)",
+   "subject": "Words and expressions used but not defined",
+   "old": [
+    "29A"
+   ],
+   "old_raw": "29A"
+  },
+  {
+   "new": "3(1)",
+   "subject": "General explanations",
+   "old": [
+    "6"
+   ],
+   "old_raw": "6"
+  },
+  {
+   "new": "3(2)",
+   "subject": "General explanations- Sense of expression once explained",
+   "old": [
+    "7"
+   ],
+   "old_raw": "7"
+  },
+  {
+   "new": "3(3)",
+   "subject": "General explanations- Property in possession of wife, clerk or servant",
+   "old": [
+    "27"
+   ],
+   "old_raw": "27"
+  },
+  {
+   "new": "3(4)",
+   "subject": "General explanations-\"Words referring to acts include illegal omissions\"",
+   "old": [
+    "32"
+   ],
+   "old_raw": "32"
+  },
+  {
+   "new": "3(5)",
+   "subject": "General explanations- Acts done by several persons in furtherance of common intention",
+   "old": [
+    "34"
+   ],
+   "old_raw": "34"
+  },
+  {
+   "new": "3(6)",
+   "subject": "General explanations- When such an act is criminal by reason of its being done with a criminal knowledge or intention",
+   "old": [
+    "35"
+   ],
+   "old_raw": "35"
+  },
+  {
+   "new": "3(7)",
+   "subject": "General explanations- Effect caused partly by act and partly by omission",
+   "old": [
+    "36"
+   ],
+   "old_raw": "36"
+  },
+  {
+   "new": "3(8)",
+   "subject": "General explanations- Co-operation by doing one of several acts constituting an offence",
+   "old": [
+    "37"
+   ],
+   "old_raw": "37"
+  },
+  {
+   "new": "3(9)",
+   "subject": "General explanations- Persons concerned in Criminal act may be guilty of different offences",
+   "old": [
+    "38"
+   ],
+   "old_raw": "38"
+  },
+  {
+   "new": "4",
+   "subject": "Punishments",
+   "old": [
+    "53"
+   ],
+   "old_raw": "53"
+  },
+  {
+   "new": "5",
+   "subject": "Commutation of sentence",
+   "old": [
+    "54",
+    "55"
+   ],
+   "old_raw": "54 & 55"
+  },
+  {
+   "new": "5, explanation",
+   "subject": "Commutation of sentence",
+   "old": [
+    "55A"
+   ],
+   "old_raw": "55A"
+  },
+  {
+   "new": "6",
+   "subject": "Fractions of terms of punishment",
+   "old": [
+    "57"
+   ],
+   "old_raw": "57"
+  },
+  {
+   "new": "7",
+   "subject": "Sentence may be (in certain cases of imprisonment) wholly or partly rigorous or simple",
+   "old": [
+    "60"
+   ],
+   "old_raw": "60"
+  },
+  {
+   "new": "8(1)",
+   "subject": "Amount of fine, liability in default of payment of fine, etc",
+   "old": [
+    "63"
+   ],
+   "old_raw": "63"
+  },
+  {
+   "new": "8(2)",
+   "subject": "Sentence of imprisonment for non- payment of fine",
+   "old": [
+    "64"
+   ],
+   "old_raw": "64"
+  },
+  {
+   "new": "8(3)",
+   "subject": "Limit to imprisonment for non- payment of fine, when imprisonment and fine awardable",
+   "old": [
+    "65"
+   ],
+   "old_raw": "65"
+  },
+  {
+   "new": "8(4)",
+   "subject": "Description of imprisonment for non- payment of fine",
+   "old": [
+    "66"
+   ],
+   "old_raw": "66"
+  },
+  {
+   "new": "8(5)",
+   "subject": "Imprisonment for non-payment of fine, when offence punishable with fine only",
+   "old": [
+    "67"
+   ],
+   "old_raw": "67"
+  },
+  {
+   "new": "8(6)",
+   "subject": "Imprisonment to terminate on payment of fine. Termination of imprisonment on payment of proportional part of fine",
+   "old": [
+    "68",
+    "69"
+   ],
+   "old_raw": "68 & 69"
+  },
+  {
+   "new": "8(7)",
+   "subject": "Fine leviable within six years, or during imprisonment. Death not to discharge property from liability",
+   "old": [
+    "70"
+   ],
+   "old_raw": "70"
+  },
+  {
+   "new": "9",
+   "subject": "Limit of punishment of offence made up of several offences",
+   "old": [
+    "71"
+   ],
+   "old_raw": "71"
+  },
+  {
+   "new": "10",
+   "subject": "Punishment of person guilty of one of several offences, the judgment stating that it is doubtful of which",
+   "old": [
+    "72"
+   ],
+   "old_raw": "72"
+  },
+  {
+   "new": "11",
+   "subject": "Solitary confinement",
+   "old": [
+    "73"
+   ],
+   "old_raw": "73"
+  },
+  {
+   "new": "12",
+   "subject": "Limit of solitary confinement",
+   "old": [
+    "74"
+   ],
+   "old_raw": "74"
+  },
+  {
+   "new": "13",
+   "subject": "Enhanced punishment for certain offences after previous conviction",
+   "old": [
+    "75"
+   ],
+   "old_raw": "75"
+  },
+  {
+   "new": "14",
+   "subject": "Act done by a person bound, or by mistake of fact believing himself bound, by law",
+   "old": [
+    "76"
+   ],
+   "old_raw": "76"
+  },
+  {
+   "new": "15",
+   "subject": "Act of Judge when acting judicially",
+   "old": [
+    "77"
+   ],
+   "old_raw": "77"
+  },
+  {
+   "new": "16",
+   "subject": "Act done pursuant to the judgment or order of Court",
+   "old": [
+    "78"
+   ],
+   "old_raw": "78"
+  },
+  {
+   "new": "17",
+   "subject": "Act done by a person justified, or by mistake of fact believing himself justified, by law",
+   "old": [
+    "79"
+   ],
+   "old_raw": "79"
+  },
+  {
+   "new": "18",
+   "subject": "Accident in doing a lawful act",
+   "old": [
+    "80"
+   ],
+   "old_raw": "80"
+  },
+  {
+   "new": "19",
+   "subject": "Act likely to cause harm, but done without criminal intent, and to prevent other harm",
+   "old": [
+    "81"
+   ],
+   "old_raw": "81"
+  },
+  {
+   "new": "20",
+   "subject": "Act of a child under seven years of age",
+   "old": [
+    "82"
+   ],
+   "old_raw": "82"
+  },
+  {
+   "new": "21",
+   "subject": "Act of a child above seven and under twelve of immature understanding",
+   "old": [
+    "83"
+   ],
+   "old_raw": "83"
+  },
+  {
+   "new": "22",
+   "subject": "Act of a person of unsound mind",
+   "old": [
+    "84"
+   ],
+   "old_raw": "84"
+  },
+  {
+   "new": "23",
+   "subject": "Act of a person incapable of judgment by reason of intoxication caused against his will",
+   "old": [
+    "85"
+   ],
+   "old_raw": "85"
+  },
+  {
+   "new": "24",
+   "subject": "Offence requiring a particular intent or knowledge committed by one who is intoxicated",
+   "old": [
+    "86"
+   ],
+   "old_raw": "86"
+  },
+  {
+   "new": "25",
+   "subject": "Act not intended and not known to be likely to cause death or grievous hurt, done by consent",
+   "old": [
+    "87"
+   ],
+   "old_raw": "87"
+  },
+  {
+   "new": "26",
+   "subject": "Act not intended to cause death, done by consent in good faith for person's benefit",
+   "old": [
+    "88"
+   ],
+   "old_raw": "88"
+  },
+  {
+   "new": "27",
+   "subject": "Act done in good faith for benefit of child or person, by or by consent of guardian",
+   "old": [
+    "89"
+   ],
+   "old_raw": "89"
+  },
+  {
+   "new": "28",
+   "subject": "Consent known to be given under fear or misconception",
+   "old": [
+    "90"
+   ],
+   "old_raw": "90"
+  },
+  {
+   "new": "29",
+   "subject": "Exclusion of acts which are offences independently of harm caused",
+   "old": [
+    "91"
+   ],
+   "old_raw": "91"
+  },
+  {
+   "new": "30",
+   "subject": "Act done in good faith for benefit of a person without consent",
+   "old": [
+    "92"
+   ],
+   "old_raw": "92"
+  },
+  {
+   "new": "31",
+   "subject": "Communication made in good faith",
+   "old": [
+    "93"
+   ],
+   "old_raw": "93"
+  },
+  {
+   "new": "32",
+   "subject": "Act to which a person is compelled by threats",
+   "old": [
+    "94"
+   ],
+   "old_raw": "94"
+  },
+  {
+   "new": "33",
+   "subject": "Act causing slight harm",
+   "old": [
+    "95"
+   ],
+   "old_raw": "95"
+  },
+  {
+   "new": "34",
+   "subject": "Things done in private defence",
+   "old": [
+    "96"
+   ],
+   "old_raw": "96"
+  },
+  {
+   "new": "35",
+   "subject": "Right of private defence of body and of property",
+   "old": [
+    "97"
+   ],
+   "old_raw": "97"
+  },
+  {
+   "new": "36",
+   "subject": "Right of private defence against the act of a person of unsound mind, etc",
+   "old": [
+    "98"
+   ],
+   "old_raw": "98"
+  },
+  {
+   "new": "37",
+   "subject": "Act against which there is no right to private defence Extent to which the right may be exercised",
+   "old": [
+    "99"
+   ],
+   "old_raw": "99"
+  },
+  {
+   "new": "38",
+   "subject": "When the right of private defence of property extends to causing death",
+   "old": [
+    "100"
+   ],
+   "old_raw": "100"
+  },
+  {
+   "new": "39",
+   "subject": "When such right extends to causing any harm other than death",
+   "old": [
+    "101"
+   ],
+   "old_raw": "101"
+  },
+  {
+   "new": "40",
+   "subject": "Commencement and continuance of the right of private defence of the body",
+   "old": [
+    "102"
+   ],
+   "old_raw": "102"
+  },
+  {
+   "new": "41",
+   "subject": "When the right of private defence of property extends to causing death",
+   "old": [
+    "103"
+   ],
+   "old_raw": "103"
+  },
+  {
+   "new": "42",
+   "subject": "When such right extends to causing any harm other than death",
+   "old": [
+    "104"
+   ],
+   "old_raw": "104"
+  },
+  {
+   "new": "43",
+   "subject": "Commencement and continuance of the right of private defence of property",
+   "old": [
+    "105"
+   ],
+   "old_raw": "105"
+  },
+  {
+   "new": "44",
+   "subject": "Right of private defence against deadly assault when there is risk of harm to innocent person",
+   "old": [
+    "106"
+   ],
+   "old_raw": "106"
+  },
+  {
+   "new": "45",
+   "subject": "Abetment of a thing",
+   "old": [
+    "107"
+   ],
+   "old_raw": "107"
+  },
+  {
+   "new": "46",
+   "subject": "Abettor",
+   "old": [
+    "108"
+   ],
+   "old_raw": "108"
+  },
+  {
+   "new": "47",
+   "subject": "Abetment in India of offences outside India",
+   "old": [
+    "108A"
+   ],
+   "old_raw": "108A"
+  },
+  {
+   "new": "48",
+   "subject": "Abetment outside India for offence in India",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "49",
+   "subject": "Punishment of abetment if act abetted is committed in consequence and where no express provision is made for its punishment",
+   "old": [
+    "109"
+   ],
+   "old_raw": "109"
+  },
+  {
+   "new": "50",
+   "subject": "Punishment of abetment if person abetted does act with different intention from that of abettor",
+   "old": [
+    "110"
+   ],
+   "old_raw": "110"
+  },
+  {
+   "new": "51",
+   "subject": "Liability of abettor when one act abetted and different act done",
+   "old": [
+    "111"
+   ],
+   "old_raw": "111"
+  },
+  {
+   "new": "52",
+   "subject": "Abettor when liable to cumulative punishment for act abetted and for act done",
+   "old": [
+    "112"
+   ],
+   "old_raw": "112"
+  },
+  {
+   "new": "53",
+   "subject": "Liability of abettor for an effect caused by the act abetted different from that intended by the abettor",
+   "old": [
+    "113"
+   ],
+   "old_raw": "113"
+  },
+  {
+   "new": "54",
+   "subject": "Abettor present when offence committed",
+   "old": [
+    "114"
+   ],
+   "old_raw": "114"
+  },
+  {
+   "new": "55",
+   "subject": "Abetment of offence punishable with death or imprisonment for life",
+   "old": [
+    "115"
+   ],
+   "old_raw": "115"
+  },
+  {
+   "new": "56",
+   "subject": "Abetment of offence punishable with imprisonment",
+   "old": [
+    "116"
+   ],
+   "old_raw": "116"
+  },
+  {
+   "new": "57",
+   "subject": "Abetting commission of offence by the public or by more than ten persons",
+   "old": [
+    "117"
+   ],
+   "old_raw": "117"
+  },
+  {
+   "new": "58",
+   "subject": "Concealing design to commit offence punishable with death or imprisonment for life",
+   "old": [
+    "118"
+   ],
+   "old_raw": "118"
+  },
+  {
+   "new": "59",
+   "subject": "Public servant concealing design to commit offence which it is his duty to prevent",
+   "old": [
+    "119"
+   ],
+   "old_raw": "119"
+  },
+  {
+   "new": "60",
+   "subject": "Concealing design to commit offence punishable with imprisonment",
+   "old": [
+    "120"
+   ],
+   "old_raw": "120"
+  },
+  {
+   "new": "61(1)",
+   "subject": "Criminal conspiracy definition",
+   "old": [
+    "120A"
+   ],
+   "old_raw": "120A"
+  },
+  {
+   "new": "61(2)",
+   "subject": "Criminal conspiracy punishment",
+   "old": [
+    "120B"
+   ],
+   "old_raw": "120B"
+  },
+  {
+   "new": "62",
+   "subject": "Punishment for attempting to commit offences punishable with imprisonment for life or other imprisonment",
+   "old": [
+    "511"
+   ],
+   "old_raw": "511"
+  },
+  {
+   "new": "63",
+   "subject": "Rape definition",
+   "old": [
+    "375"
+   ],
+   "old_raw": "375"
+  },
+  {
+   "new": "64",
+   "subject": "Punishment for rape",
+   "old": [
+    "376"
+   ],
+   "old_raw": "376(1) & 376(2)"
+  },
+  {
+   "new": "65(1)",
+   "subject": "Punishment for rape in certain cases- rape on a woman under sixteen years",
+   "old": [
+    "376"
+   ],
+   "old_raw": "376(3)"
+  },
+  {
+   "new": "65(2)",
+   "subject": "Punishment for rape in certain cases- rape on a woman under twelve years",
+   "old": [
+    "376AB"
+   ],
+   "old_raw": "376AB"
+  },
+  {
+   "new": "66",
+   "subject": "Punishment for causing death or resulting in persistent vegetative state of victim",
+   "old": [
+    "376A"
+   ],
+   "old_raw": "376A"
+  },
+  {
+   "new": "67",
+   "subject": "Sexual intercourse by husband upon his wife during separation",
+   "old": [
+    "376B"
+   ],
+   "old_raw": "376B"
+  },
+  {
+   "new": "68",
+   "subject": "Sexual intercourse by a person in authority",
+   "old": [
+    "376C"
+   ],
+   "old_raw": "376C"
+  },
+  {
+   "new": "69",
+   "subject": "Sexual intercourse by employing deceitful means etc",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "70(1)",
+   "subject": "Gang rape",
+   "old": [
+    "376D"
+   ],
+   "old_raw": "376D"
+  },
+  {
+   "new": "70(2)",
+   "subject": "Gang rape on women under the age of eighteen",
+   "old": [
+    "376DB"
+   ],
+   "old_raw": "376DB"
+  },
+  {
+   "new": "71",
+   "subject": "Punishment for repeat offenders",
+   "old": [
+    "376E"
+   ],
+   "old_raw": "376E"
+  },
+  {
+   "new": "72",
+   "subject": "Disclosure of identity of victim of certain offences etc",
+   "old": [
+    "228A"
+   ],
+   "old_raw": "228A (1)/(2)"
+  },
+  {
+   "new": "73",
+   "subject": "Printing or publishing any matter relating to court proceedings without permission",
+   "old": [
+    "228A"
+   ],
+   "old_raw": "228A (3)"
+  },
+  {
+   "new": "74",
+   "subject": "Assault or use of criminal force to woman with intent to outrage her modesty",
+   "old": [
+    "354"
+   ],
+   "old_raw": "354"
+  },
+  {
+   "new": "75",
+   "subject": "Sexual harassment",
+   "old": [
+    "354A"
+   ],
+   "old_raw": "354A"
+  },
+  {
+   "new": "76",
+   "subject": "Assault or use of criminal force to woman with intent disrobe",
+   "old": [
+    "354B"
+   ],
+   "old_raw": "354B"
+  },
+  {
+   "new": "77",
+   "subject": "Voyeurism",
+   "old": [
+    "354C"
+   ],
+   "old_raw": "354C"
+  },
+  {
+   "new": "78",
+   "subject": "Stalking",
+   "old": [
+    "354D"
+   ],
+   "old_raw": "354D"
+  },
+  {
+   "new": "79",
+   "subject": "Word, gesture or act intended to insult the modesty of a woman",
+   "old": [
+    "509"
+   ],
+   "old_raw": "509"
+  },
+  {
+   "new": "80",
+   "subject": "Dowry death",
+   "old": [
+    "304B"
+   ],
+   "old_raw": "304B"
+  },
+  {
+   "new": "81",
+   "subject": "Cohabitation caused by man deceitfully inducing belief of lawful marriage",
+   "old": [
+    "493"
+   ],
+   "old_raw": "493"
+  },
+  {
+   "new": "82(1)",
+   "subject": "Marrying again during lifetime of husband or wife",
+   "old": [
+    "494"
+   ],
+   "old_raw": "494"
+  },
+  {
+   "new": "82(2)",
+   "subject": "Marrying again during lifetime of husband or wife with concealment of former marriage from person with whom subsequent marriage is contracted",
+   "old": [
+    "495"
+   ],
+   "old_raw": "495"
+  },
+  {
+   "new": "83",
+   "subject": "Marriage ceremony fraudulently gone through without lawful marriage",
+   "old": [
+    "496"
+   ],
+   "old_raw": "496"
+  },
+  {
+   "new": "84",
+   "subject": "Enticing or taking away or detaining with criminal intent a married Woman",
+   "old": [
+    "498"
+   ],
+   "old_raw": "498"
+  },
+  {
+   "new": "85",
+   "subject": "Husband or relative of husband of a woman subjecting her to cruelty",
+   "old": [
+    "498A"
+   ],
+   "old_raw": "498A"
+  },
+  {
+   "new": "86",
+   "subject": "Cruelty defined",
+   "old": [
+    "498A"
+   ],
+   "old_raw": "498A Explanat ion"
+  },
+  {
+   "new": "87",
+   "subject": "Kidnapping or abducting in order to murder or for ransom, etc",
+   "old": [
+    "366"
+   ],
+   "old_raw": "366"
+  },
+  {
+   "new": "88",
+   "subject": "Causing miscarriage",
+   "old": [
+    "312"
+   ],
+   "old_raw": "312"
+  },
+  {
+   "new": "89",
+   "subject": "Causing miscarriage without woman’s consent",
+   "old": [
+    "313"
+   ],
+   "old_raw": "313"
+  },
+  {
+   "new": "90",
+   "subject": "Death caused by act done with intent to cause miscarriage",
+   "old": [
+    "314"
+   ],
+   "old_raw": "314"
+  },
+  {
+   "new": "91",
+   "subject": "Act done with intent to prevent child being born alive or to cause it to die after birth",
+   "old": [
+    "315"
+   ],
+   "old_raw": "315"
+  },
+  {
+   "new": "92",
+   "subject": "Causing death of quick unborn child by act amounting to culpable homicide",
+   "old": [
+    "316"
+   ],
+   "old_raw": "316"
+  },
+  {
+   "new": "93",
+   "subject": "Exposure and abandonment of child under twelve years, by parent or person having care of it",
+   "old": [
+    "317"
+   ],
+   "old_raw": "317"
+  },
+  {
+   "new": "94",
+   "subject": "Concealment of birth by secret disposal of dead body",
+   "old": [
+    "318"
+   ],
+   "old_raw": "318"
+  },
+  {
+   "new": "95",
+   "subject": "Hiring, employing or engaging a child to commit an offence",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "96",
+   "subject": "Procuration of child",
+   "old": [
+    "366A"
+   ],
+   "old_raw": "366A"
+  },
+  {
+   "new": "97",
+   "subject": "Kidnapping or abducting child under ten years with intent to steal from its person",
+   "old": [
+    "369"
+   ],
+   "old_raw": "369"
+  },
+  {
+   "new": "98",
+   "subject": "Selling minor for purposes of prostitution, etc",
+   "old": [
+    "372"
+   ],
+   "old_raw": "372"
+  },
+  {
+   "new": "99",
+   "subject": "Buying minor for purposes of prostitution, etc",
+   "old": [
+    "373"
+   ],
+   "old_raw": "373"
+  },
+  {
+   "new": "100",
+   "subject": "Culpable homicide",
+   "old": [
+    "299"
+   ],
+   "old_raw": "299"
+  },
+  {
+   "new": "101",
+   "subject": "Murder",
+   "old": [
+    "300"
+   ],
+   "old_raw": "300"
+  },
+  {
+   "new": "102",
+   "subject": "Culpable homicide by causing death of person other than person whose death was intended",
+   "old": [
+    "301"
+   ],
+   "old_raw": "301"
+  },
+  {
+   "new": "103(1)",
+   "subject": "Punishment for murder",
+   "old": [
+    "302"
+   ],
+   "old_raw": "302"
+  },
+  {
+   "new": "103(2)",
+   "subject": "Punishment for murder",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "104",
+   "subject": "Punishment for murder by life- convict",
+   "old": [
+    "303"
+   ],
+   "old_raw": "303"
+  },
+  {
+   "new": "105",
+   "subject": "Punishment for culpable homicide not amounting to murder",
+   "old": [
+    "304"
+   ],
+   "old_raw": "304"
+  },
+  {
+   "new": "106(1)",
+   "subject": "Causing death by negligence",
+   "old": [
+    "304A"
+   ],
+   "old_raw": "304A"
+  },
+  {
+   "new": "106(2)",
+   "subject": "Causing death by negligence",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "107",
+   "subject": "Abetment of suicide of child or person of unsound mind",
+   "old": [
+    "305"
+   ],
+   "old_raw": "305"
+  },
+  {
+   "new": "108",
+   "subject": "Abetment of suicide",
+   "old": [
+    "306"
+   ],
+   "old_raw": "306"
+  },
+  {
+   "new": "109",
+   "subject": "Attempt to murder",
+   "old": [
+    "307"
+   ],
+   "old_raw": "307"
+  },
+  {
+   "new": "110",
+   "subject": "Attempt to commit culpable homicide",
+   "old": [
+    "308"
+   ],
+   "old_raw": "308"
+  },
+  {
+   "new": "111",
+   "subject": "Organized crime",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "112",
+   "subject": "Petty organized crime",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "113",
+   "subject": "Terrorist act",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "114",
+   "subject": "Hurt",
+   "old": [
+    "319"
+   ],
+   "old_raw": "319"
+  },
+  {
+   "new": "115(1)",
+   "subject": "Voluntarily causing hurt",
+   "old": [
+    "321"
+   ],
+   "old_raw": "321"
+  },
+  {
+   "new": "115(2)",
+   "subject": "Punishment for voluntarily causing hurt",
+   "old": [
+    "323"
+   ],
+   "old_raw": "323"
+  },
+  {
+   "new": "116",
+   "subject": "Grievous hurt definition",
+   "old": [
+    "320"
+   ],
+   "old_raw": "320"
+  },
+  {
+   "new": "117(1)",
+   "subject": "Voluntarily causing grievous hurt punishment",
+   "old": [
+    "322"
+   ],
+   "old_raw": "322"
+  },
+  {
+   "new": "117(2)",
+   "subject": "Punishment for voluntarily causing grievous hurt",
+   "old": [
+    "325"
+   ],
+   "old_raw": "325"
+  },
+  {
+   "new": "117(3)",
+   "subject": "Voluntarily causing grievous hurt",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "117(4)",
+   "subject": "Voluntarily causing grievous hurt",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "118(1)",
+   "subject": "Voluntarily causing hurt or grievous hurt by dangerous weapons or means",
+   "old": [
+    "324"
+   ],
+   "old_raw": "324"
+  },
+  {
+   "new": "118(2)",
+   "subject": "Voluntarily causing hurt or grievous hurt by dangerous weapons or means",
+   "old": [
+    "326"
+   ],
+   "old_raw": "326"
+  },
+  {
+   "new": "119(1)",
+   "subject": "Voluntarily causing hurt or grievous hurt to extort property, or to constrain to an illegal act",
+   "old": [
+    "327"
+   ],
+   "old_raw": "327"
+  },
+  {
+   "new": "119(2)",
+   "subject": "Voluntarily causing hurt or grievous hurt to extort property, or to constrain to an illegal act",
+   "old": [
+    "329"
+   ],
+   "old_raw": "329"
+  },
+  {
+   "new": "120(1)",
+   "subject": "Voluntarily causing hurt or grievous hurt to extort confession or to compel restoration of property",
+   "old": [
+    "330"
+   ],
+   "old_raw": "330"
+  },
+  {
+   "new": "120(2)",
+   "subject": "Voluntarily causing grievous hurt to extort confession, or to compel restoration of property",
+   "old": [
+    "331"
+   ],
+   "old_raw": "331"
+  },
+  {
+   "new": "121(1)",
+   "subject": "Voluntarily causing hurt to deter public servant from his duty",
+   "old": [
+    "332"
+   ],
+   "old_raw": "332"
+  },
+  {
+   "new": "121(2)",
+   "subject": "Voluntarily causing grievous hurt to deter public servant from his duty",
+   "old": [
+    "333"
+   ],
+   "old_raw": "333"
+  },
+  {
+   "new": "122(1)",
+   "subject": "Voluntarily causing provocation hurt on",
+   "old": [
+    "334"
+   ],
+   "old_raw": "334"
+  },
+  {
+   "new": "122(2)",
+   "subject": "Voluntarily causing grievous hurt on provocation",
+   "old": [
+    "335"
+   ],
+   "old_raw": "335"
+  },
+  {
+   "new": "123",
+   "subject": "Causing harm by means of poison etc with intent to commit an offence",
+   "old": [
+    "328"
+   ],
+   "old_raw": "328"
+  },
+  {
+   "new": "124(1)",
+   "subject": "Voluntarily causing grievous hurt by use of acid etc",
+   "old": [
+    "326A"
+   ],
+   "old_raw": "326A"
+  },
+  {
+   "new": "124(2)",
+   "subject": "Voluntarily causing grievous hurt by throwing or attempting to throw acid",
+   "old": [
+    "326B"
+   ],
+   "old_raw": "326B"
+  },
+  {
+   "new": "125",
+   "subject": "Act endangering life or personal safety of others",
+   "old": [
+    "336"
+   ],
+   "old_raw": "336"
+  },
+  {
+   "new": "125(a)",
+   "subject": "Where hurt is caused",
+   "old": [
+    "337"
+   ],
+   "old_raw": "337"
+  },
+  {
+   "new": "125(b)",
+   "subject": "Where grievous hurt is caused",
+   "old": [
+    "338"
+   ],
+   "old_raw": "338"
+  },
+  {
+   "new": "126(1)",
+   "subject": "Wrongful restraint",
+   "old": [
+    "339"
+   ],
+   "old_raw": "339"
+  },
+  {
+   "new": "126(2)",
+   "subject": "Punishment for Wrongful restraint",
+   "old": [
+    "341"
+   ],
+   "old_raw": "341"
+  },
+  {
+   "new": "127(1)",
+   "subject": "Wrongful confinement",
+   "old": [
+    "340"
+   ],
+   "old_raw": "340"
+  },
+  {
+   "new": "127(2)",
+   "subject": "Punishment for Wrongful confinement",
+   "old": [
+    "342"
+   ],
+   "old_raw": "342"
+  },
+  {
+   "new": "127(3)",
+   "subject": "Wrongful confinement for three or more days",
+   "old": [
+    "343"
+   ],
+   "old_raw": "343"
+  },
+  {
+   "new": "127(4)",
+   "subject": "Wrongful confinement for ten or more days",
+   "old": [
+    "344"
+   ],
+   "old_raw": "344"
+  },
+  {
+   "new": "127(5)",
+   "subject": "Wrongful confinement of person for whose liberation writ has been issued",
+   "old": [
+    "345"
+   ],
+   "old_raw": "345"
+  },
+  {
+   "new": "127(6)",
+   "subject": "Wrongful confinement in secret",
+   "old": [
+    "346"
+   ],
+   "old_raw": "346"
+  },
+  {
+   "new": "127(7)",
+   "subject": "Wrongful confinement to extort property, or constrain to illegal act",
+   "old": [
+    "347"
+   ],
+   "old_raw": "347"
+  },
+  {
+   "new": "127(8)",
+   "subject": "Wrongful confinement to extort confession, or compel restoration of property",
+   "old": [
+    "348"
+   ],
+   "old_raw": "348"
+  },
+  {
+   "new": "128",
+   "subject": "Force",
+   "old": [
+    "349"
+   ],
+   "old_raw": "349"
+  },
+  {
+   "new": "129",
+   "subject": "Criminal force",
+   "old": [
+    "350"
+   ],
+   "old_raw": "350"
+  },
+  {
+   "new": "130",
+   "subject": "Assault",
+   "old": [
+    "351"
+   ],
+   "old_raw": "351"
+  },
+  {
+   "new": "131",
+   "subject": "Punishment for assault or criminal force otherwise than on grave provocation",
+   "old": [
+    "352"
+   ],
+   "old_raw": "352"
+  },
+  {
+   "new": "132",
+   "subject": "Assault or criminal force to deter public servant from discharge of his duty",
+   "old": [
+    "353"
+   ],
+   "old_raw": "353"
+  },
+  {
+   "new": "133",
+   "subject": "Assault or criminal force with intent to dishonour person, otherwise than on grave provocation",
+   "old": [
+    "355"
+   ],
+   "old_raw": "355"
+  },
+  {
+   "new": "134",
+   "subject": "Assault or criminal force in attempt to commit theft of property carried by a person",
+   "old": [
+    "356"
+   ],
+   "old_raw": "356"
+  },
+  {
+   "new": "135",
+   "subject": "Assault or criminal force in attempt to wrongfully confine a person",
+   "old": [
+    "357"
+   ],
+   "old_raw": "357"
+  },
+  {
+   "new": "136",
+   "subject": "Assault or criminal force on grave provocation",
+   "old": [
+    "358"
+   ],
+   "old_raw": "358"
+  },
+  {
+   "new": "137(1)",
+   "subject": "Kidnapping",
+   "old": [
+    "359"
+   ],
+   "old_raw": "359"
+  },
+  {
+   "new": "137(1)(a)",
+   "subject": "Kidnapping from India",
+   "old": [
+    "360"
+   ],
+   "old_raw": "360"
+  },
+  {
+   "new": "137(1)(b)",
+   "subject": "Kidnapping from lawful guardianship",
+   "old": [
+    "361"
+   ],
+   "old_raw": "361"
+  },
+  {
+   "new": "137(2)",
+   "subject": "Punishment for kidnapping",
+   "old": [
+    "363"
+   ],
+   "old_raw": "363"
+  },
+  {
+   "new": "138",
+   "subject": "Abduction",
+   "old": [
+    "362"
+   ],
+   "old_raw": "362"
+  },
+  {
+   "new": "139",
+   "subject": "Kidnapping or maiming a child for purposes of begging",
+   "old": [
+    "363A"
+   ],
+   "old_raw": "363A,"
+  },
+  {
+   "new": "140(1)",
+   "subject": "Kidnapping or abducting in order to murder, etc",
+   "old": [
+    "364"
+   ],
+   "old_raw": "364"
+  },
+  {
+   "new": "140(2)",
+   "subject": "Kidnapping for ransom, etc",
+   "old": [
+    "364A"
+   ],
+   "old_raw": "364A"
+  },
+  {
+   "new": "140(3)",
+   "subject": "Kidnapping or abducting with intent secretly and wrongfully to confine person",
+   "old": [
+    "365"
+   ],
+   "old_raw": "365"
+  },
+  {
+   "new": "140(4)",
+   "subject": "Kidnapping or abducting in order to subject person to grievous hurt, slavery, etc",
+   "old": [
+    "367"
+   ],
+   "old_raw": "367"
+  },
+  {
+   "new": "141",
+   "subject": "Importation of girl or boy from foreign country",
+   "old": [
+    "366B"
+   ],
+   "old_raw": "366B"
+  },
+  {
+   "new": "142",
+   "subject": "Wrongfully concealing or keeping in confinement, kidnapped or abducted person",
+   "old": [
+    "368"
+   ],
+   "old_raw": "368"
+  },
+  {
+   "new": "143",
+   "subject": "Trafficking of person",
+   "old": [
+    "370"
+   ],
+   "old_raw": "370"
+  },
+  {
+   "new": "144",
+   "subject": "Exploitation of a trafficked person",
+   "old": [
+    "370A"
+   ],
+   "old_raw": "370A"
+  },
+  {
+   "new": "145",
+   "subject": "Habitual dealing in slaves",
+   "old": [
+    "371"
+   ],
+   "old_raw": "371"
+  },
+  {
+   "new": "146",
+   "subject": "Unlawful compulsory labour",
+   "old": [
+    "374"
+   ],
+   "old_raw": "374"
+  },
+  {
+   "new": "147",
+   "subject": "Waging, or attempting to wage war. or abetting waging of war, against the Government of India",
+   "old": [
+    "121"
+   ],
+   "old_raw": "121"
+  },
+  {
+   "new": "148",
+   "subject": "Conspiracy to commit offences punishable by Section 147",
+   "old": [
+    "121A"
+   ],
+   "old_raw": "121A"
+  },
+  {
+   "new": "149",
+   "subject": "Collecting arms, etc., with intention of waging war against the Government of India",
+   "old": [
+    "122"
+   ],
+   "old_raw": "122"
+  },
+  {
+   "new": "150",
+   "subject": "Concealing with intent to facilitate design to wage war",
+   "old": [
+    "123"
+   ],
+   "old_raw": "123"
+  },
+  {
+   "new": "151",
+   "subject": "Assaulting President, Governor, etc., with intent to compel or restrain the exercise of any lawful power",
+   "old": [
+    "124"
+   ],
+   "old_raw": "124"
+  },
+  {
+   "new": "152",
+   "subject": "Act endangering sovereignty, unity and integrity of India",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "153",
+   "subject": "Waging war against Government of any Foreign State at peace with Government of India",
+   "old": [
+    "125"
+   ],
+   "old_raw": "125"
+  },
+  {
+   "new": "154",
+   "subject": "Committing depredation on territories of Foreign State at peace with Government of India",
+   "old": [
+    "126"
+   ],
+   "old_raw": "126"
+  },
+  {
+   "new": "155",
+   "subject": "Receiving property taken by war or depredation mentioned in Sections 153 and 154",
+   "old": [
+    "127"
+   ],
+   "old_raw": "127"
+  },
+  {
+   "new": "156",
+   "subject": "Public servant voluntarily allowing prisoner of State or war to escape",
+   "old": [
+    "128"
+   ],
+   "old_raw": "128"
+  },
+  {
+   "new": "157",
+   "subject": "Public servant negligently suffering such prisoner to escape",
+   "old": [
+    "129"
+   ],
+   "old_raw": "129"
+  },
+  {
+   "new": "158",
+   "subject": "Aiding escape of, rescuing or harbouring such prisoner",
+   "old": [
+    "130"
+   ],
+   "old_raw": "130"
+  },
+  {
+   "new": "159",
+   "subject": "Abetting mutiny, attempting to seduce a soldier, sailor or airman from his duty",
+   "old": [
+    "131"
+   ],
+   "old_raw": "131"
+  },
+  {
+   "new": "160",
+   "subject": "Abetment of mutiny, if mutiny is committed in consequence thereof",
+   "old": [
+    "132"
+   ],
+   "old_raw": "132"
+  },
+  {
+   "new": "161",
+   "subject": "Abetment of assault by soldier, sailor or airman on his superior officer, when in execution of his office",
+   "old": [
+    "133"
+   ],
+   "old_raw": "133"
+  },
+  {
+   "new": "162",
+   "subject": "Abetment of such assault, if the assault is committed",
+   "old": [
+    "134"
+   ],
+   "old_raw": "134"
+  },
+  {
+   "new": "163",
+   "subject": "Abetment of desertion of soldier, sailor or airman",
+   "old": [
+    "135"
+   ],
+   "old_raw": "135"
+  },
+  {
+   "new": "164",
+   "subject": "Harbouring deserter",
+   "old": [
+    "136"
+   ],
+   "old_raw": "136"
+  },
+  {
+   "new": "165",
+   "subject": "Deserter concealed on board, of master merchant vessel through negligence",
+   "old": [
+    "137"
+   ],
+   "old_raw": "137"
+  },
+  {
+   "new": "166",
+   "subject": "Abetment of act of insubordination by soldier, sailor or airman",
+   "old": [
+    "138"
+   ],
+   "old_raw": "138"
+  },
+  {
+   "new": "167",
+   "subject": "Persons subject to certain Acts",
+   "old": [
+    "139"
+   ],
+   "old_raw": "139"
+  },
+  {
+   "new": "168",
+   "subject": "Wearing garb or carrying token used by soldier, sailor or airman",
+   "old": [
+    "140"
+   ],
+   "old_raw": "140"
+  },
+  {
+   "new": "169",
+   "subject": "Candidate, electoral right defined",
+   "old": [
+    "171A"
+   ],
+   "old_raw": "171A"
+  },
+  {
+   "new": "170",
+   "subject": "Bribery",
+   "old": [
+    "171B"
+   ],
+   "old_raw": "171B"
+  },
+  {
+   "new": "171",
+   "subject": "Undue influence at elections",
+   "old": [
+    "171C"
+   ],
+   "old_raw": "171C"
+  },
+  {
+   "new": "172",
+   "subject": "Personation at elections",
+   "old": [
+    "171D"
+   ],
+   "old_raw": "171D"
+  },
+  {
+   "new": "173",
+   "subject": "Punishment for bribery",
+   "old": [
+    "171E"
+   ],
+   "old_raw": "171E"
+  },
+  {
+   "new": "174",
+   "subject": "Punishment for undue influence or personation at an election",
+   "old": [
+    "171F"
+   ],
+   "old_raw": "171F"
+  },
+  {
+   "new": "175",
+   "subject": "False statement in connection with an election",
+   "old": [
+    "171G"
+   ],
+   "old_raw": "171G"
+  },
+  {
+   "new": "176",
+   "subject": "Illegal payment in connection with an election",
+   "old": [
+    "171H"
+   ],
+   "old_raw": "171H"
+  },
+  {
+   "new": "177",
+   "subject": "Failure to keep election accounts",
+   "old": [
+    "171"
+   ],
+   "old_raw": "171-I"
+  },
+  {
+   "new": "178",
+   "subject": "Counterfeiting coin, Government stamps, currency- notes or bank- notes",
+   "old": [
+    "230",
+    "231",
+    "232",
+    "246",
+    "247",
+    "248",
+    "249",
+    "255",
+    "489A"
+   ],
+   "old_raw": "230 to 232, 246 to 249, 255, 489A"
+  },
+  {
+   "new": "179",
+   "subject": "Using as genuine, forged or counterfeit coin, Government stamp, currency-notes or bank-notes",
+   "old": [
+    "237",
+    "238",
+    "239",
+    "240",
+    "241",
+    "250",
+    "251",
+    "254",
+    "258",
+    "260",
+    "489B"
+   ],
+   "old_raw": "237 to 241, 250, 251, 254, 258, 260, 489B"
+  },
+  {
+   "new": "180",
+   "subject": "Possession of forged or counterfeit coin, Government stamp, currency- notes or bank-notes",
+   "old": [
+    "242",
+    "243",
+    "252",
+    "253",
+    "259",
+    "489C"
+   ],
+   "old_raw": "242, 243, 252, 253, 259, 489C"
+  },
+  {
+   "new": "181",
+   "subject": "Making or possessing instruments or materials for forging or counterfeiting coin, govt stamps, currency notes or bank notes",
+   "old": [
+    "233",
+    "234",
+    "235",
+    "256",
+    "257",
+    "489D"
+   ],
+   "old_raw": "233 / 234 / 235 / 256 / 257 / 489D"
+  },
+  {
+   "new": "182",
+   "subject": "Making or using documents resembling currency-notes or bank- notes",
+   "old": [
+    "489E"
+   ],
+   "old_raw": "489E"
+  },
+  {
+   "new": "183",
+   "subject": "Effacing, writing from substance bearing Government stamp, removing from document a stamp used for it, with intent to cause loss to Government",
+   "old": [
+    "261"
+   ],
+   "old_raw": "261"
+  },
+  {
+   "new": "184",
+   "subject": "Using Government stamp known to have been before used",
+   "old": [
+    "262"
+   ],
+   "old_raw": "262"
+  },
+  {
+   "new": "185",
+   "subject": "Erasure of mark denoting that stamp has been used",
+   "old": [
+    "263"
+   ],
+   "old_raw": "263"
+  },
+  {
+   "new": "186",
+   "subject": "Prohibition of fictitious stamps",
+   "old": [
+    "263A"
+   ],
+   "old_raw": "263A"
+  },
+  {
+   "new": "187",
+   "subject": "Person employed in mint causing coin to be of different weight or composition from that fixed by law",
+   "old": [
+    "244"
+   ],
+   "old_raw": "244"
+  },
+  {
+   "new": "188",
+   "subject": "Unlawfully taking coining instrument from mint",
+   "old": [
+    "245"
+   ],
+   "old_raw": "245"
+  },
+  {
+   "new": "189(1)",
+   "subject": "Unlawful assembly",
+   "old": [
+    "141"
+   ],
+   "old_raw": "141"
+  },
+  {
+   "new": "189(2)",
+   "subject": "Unlawful assembly- Being member of unlawful assembly",
+   "old": [
+    "142"
+   ],
+   "old_raw": "142"
+  },
+  {
+   "new": "189(3)",
+   "subject": "Unlawful assembly- Joining or continuing in unlawful assembly, knowing it has been commanded to disperse",
+   "old": [
+    "145"
+   ],
+   "old_raw": "145"
+  },
+  {
+   "new": "189(4)",
+   "subject": "Unlawful assembly- Joining unlawful assembly armed with deadly weapon.—",
+   "old": [
+    "144"
+   ],
+   "old_raw": "144"
+  },
+  {
+   "new": "189(5)",
+   "subject": "Unlawful assembly- Knowingly joining or continuing in assembly of five or more persons after it has been commanded to disperse.—",
+   "old": [
+    "151"
+   ],
+   "old_raw": "151"
+  },
+  {
+   "new": "189(6)",
+   "subject": "Unlawful assembly- Hiring, or conniving at hiring, of persons to join unlawful assembly",
+   "old": [
+    "150"
+   ],
+   "old_raw": "150"
+  },
+  {
+   "new": "189(7)",
+   "subject": "Unlawful assembly- Harbouring persons hired for an unlawful assembly",
+   "old": [
+    "157"
+   ],
+   "old_raw": "157"
+  },
+  {
+   "new": "189(8)/(9)",
+   "subject": "Unlawful assembly- Being hired to take part in an unlawful assembly or riot. Or to go armed",
+   "old": [
+    "158"
+   ],
+   "old_raw": "158"
+  },
+  {
+   "new": "190",
+   "subject": "Every member of unlawful assembly guilty of offence committed in prosecution of common object",
+   "old": [
+    "149"
+   ],
+   "old_raw": "149"
+  },
+  {
+   "new": "191(1)",
+   "subject": "Rioting-Offence defined",
+   "old": [
+    "146"
+   ],
+   "old_raw": "146"
+  },
+  {
+   "new": "191(2)",
+   "subject": "Rioting- Punishment for rioting",
+   "old": [
+    "147"
+   ],
+   "old_raw": "147"
+  },
+  {
+   "new": "191(3)",
+   "subject": "Rioting- Being armed with deadly weapon.—",
+   "old": [
+    "148"
+   ],
+   "old_raw": "148"
+  },
+  {
+   "new": "192",
+   "subject": "Wantonly giving provocation with intent to cause riot if rioting be committed if not committed",
+   "old": [
+    "153"
+   ],
+   "old_raw": "153"
+  },
+  {
+   "new": "193(1)",
+   "subject": "Liability of owner, occupier, etc., of land on which an unlawful assembly or riot takes place",
+   "old": [
+    "154"
+   ],
+   "old_raw": "154"
+  },
+  {
+   "new": "193(2)",
+   "subject": "Liability of person for whose benefit riot is committed",
+   "old": [
+    "155"
+   ],
+   "old_raw": "155"
+  },
+  {
+   "new": "193(3)",
+   "subject": "Liability of agent of owner or occupier for whose benefit riot is committed",
+   "old": [
+    "156"
+   ],
+   "old_raw": "156"
+  },
+  {
+   "new": "194(1)",
+   "subject": "Affray- defined",
+   "old": [
+    "159"
+   ],
+   "old_raw": "159"
+  },
+  {
+   "new": "194(2)",
+   "subject": "Punishment for Affray",
+   "old": [
+    "160"
+   ],
+   "old_raw": "160"
+  },
+  {
+   "new": "195(1)",
+   "subject": "Assaulting or obstructing public servant when suppressing riot, etc",
+   "old": [
+    "152"
+   ],
+   "old_raw": "152"
+  },
+  {
+   "new": "195(2)",
+   "subject": "Assaulting or obstructing public servant when suppressing riot, etc",
+   "old": [
+    "152"
+   ],
+   "old_raw": "152"
+  },
+  {
+   "new": "196",
+   "subject": "Promoting enmity between different groups on grounds of religion, race, place of birth, residence, language, etc., and doing acts prejudicial to maintenance of harmony",
+   "old": [
+    "153A"
+   ],
+   "old_raw": "153A"
+  },
+  {
+   "new": "197",
+   "subject": "Imputations, assertions prejudicial to national integration",
+   "old": [
+    "153B"
+   ],
+   "old_raw": "153B"
+  },
+  {
+   "new": "197(1)d",
+   "subject": "Makes or publishes false or misleading information, jeopardising the sovereignty, unity and integrity or security of India",
+   "old": [],
+   "old_raw": "New"
+  },
+  {
+   "new": "198",
+   "subject": "Public servant disobeying law, with intent to cause injury to any person",
+   "old": [
+    "166"
+   ],
+   "old_raw": "166"
+  },
+  {
+   "new": "199",
+   "subject": "Public servant disobeying direction under law",
+   "old": [
+    "166A"
+   ],
+   "old_raw": "166A"
+  },
+  {
+   "new": "200",
+   "subject": "Punishment for non-treatment of victim",
+   "old": [
+    "166B"
+   ],
+   "old_raw": "166B"
+  },
+  {
+   "new": "201",
+   "subject": "Public servant framing an incorrect document with intent to cause injury",
+   "old": [
+    "167"
+   ],
+   "old_raw": "167"
+  },
+  {
+   "new": "202",
+   "subject": "Public servant unlawfully engaging in trade",
+   "old": [
+    "168"
+   ],
+   "old_raw": "168"
+  },
+  {
+   "new": "203",
+   "subject": "Public servant unlawfully buying or bidding for property",
+   "old": [
+    "169"
+   ],
+   "old_raw": "169"
+  },
+  {
+   "new": "204",
+   "subject": "Personating a public servant",
+   "old": [
+    "170"
+   ],
+   "old_raw": "170"
+  },
+  {
+   "new": "205",
+   "subject": "Wearing garb or carrying token used by public servant with fraudulent intent",
+   "old": [
+    "171"
+   ],
+   "old_raw": "171"
+  },
+  {
+   "new": "206",
+   "subject": "Absconding to avoid service of summons or other proceeding",
+   "old": [
+    "172"
+   ],
+   "old_raw": "172"
+  },
+  {
+   "new": "207",
+   "subject": "Preventing service of summons or other proceeding, or preventing publication thereof",
+   "old": [
+    "173"
+   ],
+   "old_raw": "173"
+  },
+  {
+   "new": "208",
+   "subject": "Non-attendance in obedience to an order from public servant",
+   "old": [
+    "174"
+   ],
+   "old_raw": "174"
+  },
+  {
+   "new": "209",
+   "subject": "Non-appearance in response to a proclamation under section 84 of Bharatiya Nagarik Suraksha Sanhita,2023",
+   "old": [
+    "174A"
+   ],
+   "old_raw": "174A"
+  },
+  {
+   "new": "210",
+   "subject": "Omission to produce document or electronic record to public servant by person, legally bound to produce it",
+   "old": [
+    "175"
+   ],
+   "old_raw": "175"
+  },
+  {
+   "new": "211",
+   "subject": "Omission to give notice or information to public servant by person legally bound to give it",
+   "old": [
+    "176"
+   ],
+   "old_raw": "176"
+  },
+  {
+   "new": "212",
+   "subject": "Furnishing false information",
+   "old": [
+    "177"
+   ],
+   "old_raw": "177"
+  },
+  {
+   "new": "213",
+   "subject": "Refusing oath or affirmation when duly required by public servant to make it",
+   "old": [
+    "178"
+   ],
+   "old_raw": "178"
+  },
+  {
+   "new": "214",
+   "subject": "Refusing to answer public servant authorised to question",
+   "old": [
+    "179"
+   ],
+   "old_raw": "179"
+  },
+  {
+   "new": "215",
+   "subject": "Refusing to sign statement",
+   "old": [
+    "180"
+   ],
+   "old_raw": "180"
+  },
+  {
+   "new": "216",
+   "subject": "False statement on oath or affirmation to public servant or person authorised to administer an oath or affirmation",
+   "old": [
+    "181"
+   ],
+   "old_raw": "181"
+  },
+  {
+   "new": "217",
+   "subject": "False information, with intent to cause public servant to use his lawful power to the injury of another person",
+   "old": [
+    "182"
+   ],
+   "old_raw": "182"
+  },
+  {
+   "new": "218",
+   "subject": "Resistance to the taking of property by the lawful authority of a public servant",
+   "old": [
+    "183"
+   ],
+   "old_raw": "183"
+  },
+  {
+   "new": "219",
+   "subject": "Obstructing sale of property offered by authority of public servant for sale",
+   "old": [
+    "184"
+   ],
+   "old_raw": "184"
+  },
+  {
+   "new": "220",
+   "subject": "Illegal purchase or bid for property offered for sale by authority of public servant",
+   "old": [
+    "185"
+   ],
+   "old_raw": "185"
+  },
+  {
+   "new": "221",
+   "subject": "Obstructing public servant in discharge of public functions",
+   "old": [
+    "186"
+   ],
+   "old_raw": "186"
+  },
+  {
+   "new": "222",
+   "subject": "Omission to assist public servant when bound by law to give assistance",
+   "old": [
+    "187"
+   ],
+   "old_raw": "187"
+  },
+  {
+   "new": "223",
+   "subject": "Disobedience to order duly promulgated by public servant",
+   "old": [
+    "188"
+   ],
+   "old_raw": "188"
+  },
+  {
+   "new": "224",
+   "subject": "Threat of injury to public servant",
+   "old": [
+    "189"
+   ],
+   "old_raw": "189"
+  },
+  {
+   "new": "225",
+   "subject": "Threat of injury to induce person to refrain from applying for protection",
+   "old": [
+    "190"
+   ],
+   "old_raw": "190"
+  },
+  {
+   "new": "226",
+   "subject": "Attempt to commit suicide to compel or restrain from applying or restrain of lawful power",
+   "old": [],
+   "old_raw": "new"
+  },
+  {
+   "new": "227",
+   "subject": "Giving false evidence",
+   "old": [
+    "191"
+   ],
+   "old_raw": "191"
+  },
+  {
+   "new": "228",
+   "subject": "Fabricating false evidence",
+   "old": [
+    "192"
+   ],
+   "old_raw": "192"
+  },
+  {
+   "new": "229",
+   "subject": "Punishment for false evidence",
+   "old": [
+    "193"
+   ],
+   "old_raw": "193"
+  },
+  {
+   "new": "230",
+   "subject": "Giving or fabricating false evidence with intent to procure conviction of capital offence",
+   "old": [
+    "194"
+   ],
+   "old_raw": "194"
+  },
+  {
+   "new": "231",
+   "subject": "Giving or fabricating false evidence with intent to procure conviction of offence punishable with imprisonment for life or imprisonment",
+   "old": [
+    "195"
+   ],
+   "old_raw": "195"
+  },
+  {
+   "new": "232",
+   "subject": "Threatening any person to give false evidence",
+   "old": [
+    "195A"
+   ],
+   "old_raw": "195A"
+  },
+  {
+   "new": "233",
+   "subject": "Using evidence known to be false",
+   "old": [
+    "196"
+   ],
+   "old_raw": "196"
+  },
+  {
+   "new": "234",
+   "subject": "Issuing or signing false certificate",
+   "old": [
+    "197"
+   ],
+   "old_raw": "197"
+  },
+  {
+   "new": "235",
+   "subject": "Using as true a certificate known to be false",
+   "old": [
+    "198"
+   ],
+   "old_raw": "198"
+  },
+  {
+   "new": "236",
+   "subject": "False statement made in declaration which is by law receivable as evidence",
+   "old": [
+    "199"
+   ],
+   "old_raw": "199"
+  },
+  {
+   "new": "237",
+   "subject": "Using as true such declaration knowing it to be false",
+   "old": [
+    "200"
+   ],
+   "old_raw": "200"
+  },
+  {
+   "new": "238",
+   "subject": "Causing disappearance of evidence ,or giving false information to screen offender",
+   "old": [
+    "201"
+   ],
+   "old_raw": "201"
+  },
+  {
+   "new": "239",
+   "subject": "Intentional omission to give information of offence by person bound to inform",
+   "old": [
+    "202"
+   ],
+   "old_raw": "202"
+  },
+  {
+   "new": "240",
+   "subject": "Giving false information respecting an offence committed",
+   "old": [
+    "203"
+   ],
+   "old_raw": "203"
+  },
+  {
+   "new": "241",
+   "subject": "Destruction of document or electronic record to prevent its production as evidence",
+   "old": [
+    "204"
+   ],
+   "old_raw": "204"
+  },
+  {
+   "new": "242",
+   "subject": "False personation for purpose of act or proceeding in suit or prosecution",
+   "old": [
+    "205"
+   ],
+   "old_raw": "205"
+  },
+  {
+   "new": "243",
+   "subject": "Fraudulent removal or concealment of property to prevent its seizure as forfeited or in execution",
+   "old": [
+    "206"
+   ],
+   "old_raw": "206"
+  },
+  {
+   "new": "244",
+   "subject": "Fraudulent claim to property to prevent its seizure as forfeited or in execution",
+   "old": [
+    "207"
+   ],
+   "old_raw": "207"
+  },
+  {
+   "new": "245",
+   "subject": "Fraudulently suffering decree for sum not due",
+   "old": [
+    "208"
+   ],
+   "old_raw": "208"
+  },
+  {
+   "new": "246",
+   "subject": "Dishonestly making false claim in Court",
+   "old": [
+    "209"
+   ],
+   "old_raw": "209"
+  },
+  {
+   "new": "247",
+   "subject": "Fraudulently obtaining decree for sum not due",
+   "old": [
+    "210"
+   ],
+   "old_raw": "210"
+  },
+  {
+   "new": "248",
+   "subject": "False charge of offence made with intent to injure",
+   "old": [
+    "211"
+   ],
+   "old_raw": "211"
+  },
+  {
+   "new": "249",
+   "subject": "Harbouring offender",
+   "old": [
+    "212"
+   ],
+   "old_raw": "212"
+  },
+  {
+   "new": "250",
+   "subject": "Taking gift, etc., to screen an offender from punishment",
+   "old": [
+    "213"
+   ],
+   "old_raw": "213"
+  },
+  {
+   "new": "251",
+   "subject": "Offering gift or restoration of property in consideration of screening offender",
+   "old": [
+    "214"
+   ],
+   "old_raw": "214"
+  },
+  {
+   "new": "252",
+   "subject": "Taking gift to help to recover stolen property, etc",
+   "old": [
+    "215"
+   ],
+   "old_raw": "215"
+  },
+  {
+   "new": "253",
+   "subject": "Harbouring offender who has escaped from custody or whose apprehension has been ordered",
+   "old": [
+    "216"
+   ],
+   "old_raw": "216"
+  },
+  {
+   "new": "254",
+   "subject": "Penalty for harbouring robbers or dacoits",
+   "old": [
+    "216A"
+   ],
+   "old_raw": "216A"
+  },
+  {
+   "new": "255",
+   "subject": "Public servant disobeying direction of law with intent to save person from punishment or property from forfeiture",
+   "old": [
+    "217"
+   ],
+   "old_raw": "217"
+  },
+  {
+   "new": "256",
+   "subject": "Public servant framing incorrect record or writing with intent to save person from punishment or property from forfeiture",
+   "old": [
+    "218"
+   ],
+   "old_raw": "218"
+  },
+  {
+   "new": "257",
+   "subject": "Public servant in judicial proceeding corruptly making report, etc. contrary to law",
+   "old": [
+    "219"
+   ],
+   "old_raw": "219"
+  },
+  {
+   "new": "258",
+   "subject": "Commitment for trial or confinement by person having authority who knows that he is acting contrary to law",
+   "old": [
+    "220"
+   ],
+   "old_raw": "220"
+  },
+  {
+   "new": "259",
+   "subject": "Intentional omission to apprehend on part of public servant bound to apprehend",
+   "old": [
+    "221"
+   ],
+   "old_raw": "221"
+  },
+  {
+   "new": "260",
+   "subject": "Intentional omission to apprehend on part of public servant bound to apprehend person under sentence or lawfully committed",
+   "old": [
+    "222"
+   ],
+   "old_raw": "222"
+  },
+  {
+   "new": "261",
+   "subject": "Escape from confinement or custody negligently suffered by public servant",
+   "old": [
+    "223"
+   ],
+   "old_raw": "223"
+  },
+  {
+   "new": "262",
+   "subject": "Resistance or obstruction by a person to his lawful apprehension",
+   "old": [
+    "224"
+   ],
+   "old_raw": "224"
+  },
+  {
+   "new": "263",
+   "subject": "Resistance or obstruction to lawful apprehension of another person",
+   "old": [
+    "225"
+   ],
+   "old_raw": "225"
+  },
+  {
+   "new": "264",
+   "subject": "Omission to apprehend, or sufferance of escape, on part of public servant, in cases not otherwise provided for",
+   "old": [
+    "225A"
+   ],
+   "old_raw": "225A"
+  },
+  {
+   "new": "265",
+   "subject": "Resistance or obstruction to lawful apprehension or escape or rescue in cases not otherwise provided for",
+   "old": [
+    "225B"
+   ],
+   "old_raw": "225B"
+  },
+  {
+   "new": "266",
+   "subject": "Violation of condition of remission of punishment",
+   "old": [
+    "227"
+   ],
+   "old_raw": "227"
+  },
+  {
+   "new": "267",
+   "subject": "Intentional insult or interruption to public servant sitting in judicial proceeding",
+   "old": [
+    "228"
+   ],
+   "old_raw": "228"
+  },
+  {
+   "new": "268",
+   "subject": "Personation of assessor",
+   "old": [
+    "229"
+   ],
+   "old_raw": "229"
+  },
+  {
+   "new": "269",
+   "subject": "Failure by person released on bail or bond to appear in Court",
+   "old": [
+    "229A"
+   ],
+   "old_raw": "229A"
+  },
+  {
+   "new": "270",
+   "subject": "Public nuisance",
+   "old": [
+    "268"
+   ],
+   "old_raw": "268"
+  },
+  {
+   "new": "271",
+   "subject": "Negligent act likely to spread infection of disease dangerous to life",
+   "old": [
+    "269"
+   ],
+   "old_raw": "269"
+  },
+  {
+   "new": "272",
+   "subject": "Malignant act likely to spread infection of disease dangerous to life",
+   "old": [
+    "270"
+   ],
+   "old_raw": "270"
+  },
+  {
+   "new": "273",
+   "subject": "Disobedience to quarantine rule",
+   "old": [
+    "271"
+   ],
+   "old_raw": "271"
+  },
+  {
+   "new": "274",
+   "subject": "Adulteration of food or drink intended for sale",
+   "old": [
+    "272"
+   ],
+   "old_raw": "272"
+  },
+  {
+   "new": "275",
+   "subject": "Sale of noxious food or drink",
+   "old": [
+    "273"
+   ],
+   "old_raw": "273"
+  },
+  {
+   "new": "276",
+   "subject": "Adulteration of drugs",
+   "old": [
+    "274"
+   ],
+   "old_raw": "274"
+  },
+  {
+   "new": "277",
+   "subject": "Sale of adulterated drugs",
+   "old": [
+    "275"
+   ],
+   "old_raw": "275"
+  },
+  {
+   "new": "278",
+   "subject": "Sale of drug as a different drug or preparation",
+   "old": [
+    "276"
+   ],
+   "old_raw": "276"
+  },
+  {
+   "new": "279",
+   "subject": "Fouling water of public spring or reservoir",
+   "old": [
+    "277"
+   ],
+   "old_raw": "277"
+  },
+  {
+   "new": "280",
+   "subject": "Making atmosphere noxious to health",
+   "old": [
+    "278"
+   ],
+   "old_raw": "278"
+  },
+  {
+   "new": "281",
+   "subject": "Rash driving or riding on a public way",
+   "old": [
+    "279"
+   ],
+   "old_raw": "279"
+  },
+  {
+   "new": "282",
+   "subject": "Rash navigation of vessel",
+   "old": [
+    "280"
+   ],
+   "old_raw": "280"
+  },
+  {
+   "new": "283",
+   "subject": "Exhibition of false light, mark or buoy",
+   "old": [
+    "281"
+   ],
+   "old_raw": "281"
+  },
+  {
+   "new": "284",
+   "subject": "Conveying person by water for hire in unsafe or overloaded vessel",
+   "old": [
+    "282"
+   ],
+   "old_raw": "282"
+  },
+  {
+   "new": "285",
+   "subject": "Danger or obstruction in public way or line of navigation",
+   "old": [
+    "283"
+   ],
+   "old_raw": "283"
+  },
+  {
+   "new": "286",
+   "subject": "Negligent conduct with respect to poisonous substance",
+   "old": [
+    "284"
+   ],
+   "old_raw": "284"
+  },
+  {
+   "new": "287",
+   "subject": "Negligent conduct with respect to fire or combustible matter",
+   "old": [
+    "285"
+   ],
+   "old_raw": "285"
+  },
+  {
+   "new": "288",
+   "subject": "Negligent conduct with respect to explosive substance",
+   "old": [
+    "286"
+   ],
+   "old_raw": "286"
+  },
+  {
+   "new": "289",
+   "subject": "Negligent conduct with respect to machinery",
+   "old": [
+    "287"
+   ],
+   "old_raw": "287"
+  },
+  {
+   "new": "290",
+   "subject": "Negligent conduct with respect to pulling down, repairing or constructing buildings, etc",
+   "old": [
+    "288"
+   ],
+   "old_raw": "288"
+  },
+  {
+   "new": "291",
+   "subject": "Negligent conduct with respect to animal",
+   "old": [
+    "289"
+   ],
+   "old_raw": "289"
+  },
+  {
+   "new": "292",
+   "subject": "Punishment for public nuisance in cases not otherwise provided for",
+   "old": [
+    "290"
+   ],
+   "old_raw": "290"
+  },
+  {
+   "new": "293",
+   "subject": "Continuance of nuisance after injunction to discontinue",
+   "old": [
+    "291"
+   ],
+   "old_raw": "291"
+  },
+  {
+   "new": "294",
+   "subject": "Sale, etc., of obscene books, etc",
+   "old": [
+    "292"
+   ],
+   "old_raw": "292"
+  },
+  {
+   "new": "295",
+   "subject": "Sale, etc., of obscene objects to young person",
+   "old": [
+    "293"
+   ],
+   "old_raw": "293"
+  },
+  {
+   "new": "296",
+   "subject": "Obscene acts and songs",
+   "old": [
+    "294"
+   ],
+   "old_raw": "294"
+  },
+  {
+   "new": "297",
+   "subject": "Keeping lottery office",
+   "old": [
+    "294A"
+   ],
+   "old_raw": "294A"
+  },
+  {
+   "new": "298",
+   "subject": "Injuring or defiling place of worship with intent to insult the religion of any class",
+   "old": [
+    "295"
+   ],
+   "old_raw": "295"
+  },
+  {
+   "new": "299",
+   "subject": "Deliberate and malicious acts intended to outrage religious feelings of any class, by insulting its religion or religious beliefs",
+   "old": [
+    "295A"
+   ],
+   "old_raw": "295A"
+  },
+  {
+   "new": "300",
+   "subject": "Disturbing religious assembly",
+   "old": [
+    "296"
+   ],
+   "old_raw": "296"
+  },
+  {
+   "new": "301",
+   "subject": "Trespassing on burial places, etc",
+   "old": [
+    "297"
+   ],
+   "old_raw": "297"
+  },
+  {
+   "new": "302",
+   "subject": "Uttering words, etc., with deliberate intent to wound the religious feelings of any person",
+   "old": [
+    "298"
+   ],
+   "old_raw": "298"
+  },
+  {
+   "new": "303(1)",
+   "subject": "Theft",
+   "old": [
+    "378"
+   ],
+   "old_raw": "378"
+  },
+  {
+   "new": "303(2)",
+   "subject": "Punishment for theft",
+   "old": [
+    "379"
+   ],
+   "old_raw": "379"
+  },
+  {
+   "new": "304",
+   "subject": "Snatching",
+   "old": [],
+   "old_raw": ""
+  },
+  {
+   "new": "305",
+   "subject": "Theft in a dwelling house, or means of transportation or place of worship, etc",
+   "old": [
+    "380"
+   ],
+   "old_raw": "380"
+  },
+  {
+   "new": "306",
+   "subject": "Theft by clerk or servant of property in possession of master",
+   "old": [
+    "381"
+   ],
+   "old_raw": "381"
+  },
+  {
+   "new": "307",
+   "subject": "Theft after preparation made for causing death, hurt or restraint in order to committing of theft",
+   "old": [
+    "382"
+   ],
+   "old_raw": "382"
+  },
+  {
+   "new": "308(1)",
+   "subject": "Extortion",
+   "old": [
+    "383"
+   ],
+   "old_raw": "383"
+  },
+  {
+   "new": "308(2)",
+   "subject": "Extortion punishment",
+   "old": [
+    "384"
+   ],
+   "old_raw": "384"
+  },
+  {
+   "new": "308(3)",
+   "subject": "Putting person in fear of injury in order to commit extortion",
+   "old": [
+    "385"
+   ],
+   "old_raw": "385"
+  },
+  {
+   "new": "308(4)",
+   "subject": "Putting person in fear of death or of grievous hurt, in order to commit extortion",
+   "old": [
+    "387"
+   ],
+   "old_raw": "387"
+  },
+  {
+   "new": "308(5)",
+   "subject": "Extortion by putting a person in fear of death or grievous hurt",
+   "old": [
+    "386"
+   ],
+   "old_raw": "386"
+  },
+  {
+   "new": "308(6)",
+   "subject": "Extortion by threat of accusation of an offence punishable with death or imprisonment for life, etc",
+   "old": [
+    "388"
+   ],
+   "old_raw": "388"
+  },
+  {
+   "new": "308(7)",
+   "subject": "Putting person in fear or accusation of offence, in order to commit extortion",
+   "old": [
+    "389"
+   ],
+   "old_raw": "389"
+  },
+  {
+   "new": "309(1),(2),(3)",
+   "subject": "Robbery- When theft is robbery When extortion is robbery",
+   "old": [
+    "390"
+   ],
+   "old_raw": "390"
+  },
+  {
+   "new": "309(4)",
+   "subject": "Robbery- Punishment for robbery",
+   "old": [
+    "392"
+   ],
+   "old_raw": "392"
+  },
+  {
+   "new": "309(5)",
+   "subject": "Robbery- Attempt to commit robbery",
+   "old": [
+    "393"
+   ],
+   "old_raw": "393"
+  },
+  {
+   "new": "309(6)",
+   "subject": "Robbery- Voluntarily causing hurt in committing robbery",
+   "old": [
+    "394"
+   ],
+   "old_raw": "394"
+  },
+  {
+   "new": "310(1)",
+   "subject": "Dacoity definition",
+   "old": [
+    "391"
+   ],
+   "old_raw": "391"
+  },
+  {
+   "new": "310(2)",
+   "subject": "Dacoity punishment ",
+   "old": [
+    "395"
+   ],
+   "old_raw": "395"
+  },
+  {
+   "new": "310(3)",
+   "subject": "Dacoity with murder",
+   "old": [
+    "396"
+   ],
+   "old_raw": "396"
+  },
+  {
+   "new": "310(4)",
+   "subject": "Making preparation to commit dacoity",
+   "old": [
+    "399"
+   ],
+   "old_raw": "399"
+  },
+  {
+   "new": "310(5)",
+   "subject": "Assembling for purpose of committing dacoity",
+   "old": [
+    "402"
+   ],
+   "old_raw": "402"
+  },
+  {
+   "new": "310(6)",
+   "subject": "Punishment for belonging to gang of dacoits",
+   "old": [
+    "400"
+   ],
+   "old_raw": "400"
+  },
+  {
+   "new": "311",
+   "subject": "Robbery or dacoity, with attempt to cause death or grievous hurt",
+   "old": [
+    "397"
+   ],
+   "old_raw": "397"
+  },
+  {
+   "new": "312",
+   "subject": "Attempt to commit robbery or dacoity when armed with deadly weapon",
+   "old": [
+    "398"
+   ],
+   "old_raw": "398"
+  },
+  {
+   "new": "313",
+   "subject": "Punishment for belonging to gang of robbers, etc",
+   "old": [
+    "401"
+   ],
+   "old_raw": "401"
+  },
+  {
+   "new": "314",
+   "subject": "Dishonest misappropriation of property",
+   "old": [
+    "403"
+   ],
+   "old_raw": "403"
+  },
+  {
+   "new": "315",
+   "subject": "Dishonest misappropriation of property possessed by deceased person at the time of his death",
+   "old": [
+    "404"
+   ],
+   "old_raw": "404"
+  },
+  {
+   "new": "316(1)",
+   "subject": "Criminal breach of trust",
+   "old": [
+    "405"
+   ],
+   "old_raw": "405"
+  },
+  {
+   "new": "316(2)",
+   "subject": "Punishment for criminal breach of trust",
+   "old": [
+    "406"
+   ],
+   "old_raw": "406"
+  },
+  {
+   "new": "316(3)",
+   "subject": "Criminal breach of trust by carrier, etc",
+   "old": [
+    "407"
+   ],
+   "old_raw": "407"
+  },
+  {
+   "new": "316(4)",
+   "subject": "Criminal breach of trust by clerk or servant",
+   "old": [
+    "408"
+   ],
+   "old_raw": "408"
+  },
+  {
+   "new": "316(5)",
+   "subject": "Criminal breach of trust by public servant, or by banker, merchant or agent",
+   "old": [
+    "409"
+   ],
+   "old_raw": "409"
+  },
+  {
+   "new": "317(1)",
+   "subject": "Stolen property",
+   "old": [
+    "410"
+   ],
+   "old_raw": "410"
+  },
+  {
+   "new": "317(2)",
+   "subject": "Dishonestly receiving stolen property",
+   "old": [
+    "411"
+   ],
+   "old_raw": "411"
+  },
+  {
+   "new": "317(3)",
+   "subject": "Dishonestly receiving property stolen in the commission of a dacoity",
+   "old": [
+    "412"
+   ],
+   "old_raw": "412"
+  },
+  {
+   "new": "317(4)",
+   "subject": "Habitually dealing in stolen property",
+   "old": [
+    "413"
+   ],
+   "old_raw": "413"
+  },
+  {
+   "new": "317(5)",
+   "subject": "Assisting in concealment of stolen property",
+   "old": [
+    "414"
+   ],
+   "old_raw": "414"
+  },
+  {
+   "new": "318(1)",
+   "subject": "Cheating",
+   "old": [
+    "415"
+   ],
+   "old_raw": "415"
+  },
+  {
+   "new": "318(2)",
+   "subject": "Cheating punishment",
+   "old": [
+    "417"
+   ],
+   "old_raw": "417"
+  },
+  {
+   "new": "318(3)",
+   "subject": "Cheating with knowledge that wrongful loss may ensue to person whose interest offender is bound to protect",
+   "old": [
+    "418"
+   ],
+   "old_raw": "418"
+  },
+  {
+   "new": "318(4)",
+   "subject": "Cheating and dishonestly inducing delivery of property",
+   "old": [
+    "420"
+   ],
+   "old_raw": "420"
+  },
+  {
+   "new": "319(1)",
+   "subject": "Cheating by personation",
+   "old": [
+    "416"
+   ],
+   "old_raw": "416"
+  },
+  {
+   "new": "319(2)",
+   "subject": "Cheating by personation punishment",
+   "old": [
+    "419"
+   ],
+   "old_raw": "419"
+  },
+  {
+   "new": "320",
+   "subject": "Dishonest or fraudulent removal or concealment of property to prevent distribution among creditors",
+   "old": [
+    "421"
+   ],
+   "old_raw": "421"
+  },
+  {
+   "new": "321",
+   "subject": "Dishonestly or fraudulently preventing debt being available for creditors",
+   "old": [
+    "422"
+   ],
+   "old_raw": "422"
+  },
+  {
+   "new": "322",
+   "subject": "Dishonest or fraudulent execution of deed of transfer containing false statement of consideration",
+   "old": [
+    "423"
+   ],
+   "old_raw": "423"
+  },
+  {
+   "new": "323",
+   "subject": "Dishonest or fraudulent removal or concealment of property",
+   "old": [
+    "424"
+   ],
+   "old_raw": "424"
+  },
+  {
+   "new": "324(1)",
+   "subject": "Mischief",
+   "old": [
+    "425"
+   ],
+   "old_raw": "425"
+  },
+  {
+   "new": "324(2)",
+   "subject": "Mischief punishment",
+   "old": [
+    "426"
+   ],
+   "old_raw": "426"
+  },
+  {
+   "new": "324(3)",
+   "subject": "Mischief - causes loss or damage to any property including the property of Government or Local Authority",
+   "old": [],
+   "old_raw": "New"
+  },
+  {
+   "new": "324(4)",
+   "subject": "Mischief causing damage to the amount of twenty thousand rupees and more but less than one lakh rupees",
+   "old": [
+    "427"
+   ],
+   "old_raw": "427"
+  },
+  {
+   "new": "324(5)",
+   "subject": "Mischief- cause loss or damage to amount of one lakh rupees onwards",
+   "old": [],
+   "old_raw": "New"
+  },
+  {
+   "new": "324(6)",
+   "subject": "Mischief committed after preparation made for causing death or hurt",
+   "old": [
+    "440"
+   ],
+   "old_raw": "440"
+  },
+  {
+   "new": "325",
+   "subject": "Mischief by killing or maiming animal",
+   "old": [
+    "428",
+    "429"
+   ],
+   "old_raw": "428/ 429"
+  },
+  {
+   "new": "326(a)",
+   "subject": "Mischief by injury, inundation, fire or explosive substance, etc",
+   "old": [
+    "430"
+   ],
+   "old_raw": "430"
+  },
+  {
+   "new": "326(b)",
+   "subject": "Mischief by injury to public road, bridge, river or channel",
+   "old": [
+    "431"
+   ],
+   "old_raw": "431"
+  },
+  {
+   "new": "326(c)",
+   "subject": "Mischief by causing inundation or obstruction to public drainage attended with damage",
+   "old": [
+    "432"
+   ],
+   "old_raw": "432"
+  },
+  {
+   "new": "326(d)",
+   "subject": "Mischief by injury, inundation, fire or explosive substance, etc",
+   "old": [
+    "433"
+   ],
+   "old_raw": "433"
+  },
+  {
+   "new": "326(e)",
+   "subject": "Mischief by destroying or moving, etc., a land-mark fixed by public authority",
+   "old": [
+    "434"
+   ],
+   "old_raw": "434"
+  },
+  {
+   "new": "326(f)",
+   "subject": "Mischief by injury, inundation, fire or explosive substance, etc",
+   "old": [
+    "435"
+   ],
+   "old_raw": "435"
+  },
+  {
+   "new": "326(g)",
+   "subject": "Mischief by fire or explosive substance with intent to destroy house, etc",
+   "old": [
+    "436"
+   ],
+   "old_raw": "436"
+  },
+  {
+   "new": "327(1)",
+   "subject": "Mischief with intent to destroy or make unsafe a rail, aircraft, decked vessel or one of twenty tons burden",
+   "old": [
+    "437"
+   ],
+   "old_raw": "437"
+  },
+  {
+   "new": "327(2)",
+   "subject": "Punishment for above offence",
+   "old": [
+    "438"
+   ],
+   "old_raw": "438"
+  },
+  {
+   "new": "328",
+   "subject": "Punishment for intentionally running vessel aground or ashore with intent to commit theft, etc",
+   "old": [
+    "439"
+   ],
+   "old_raw": "439"
+  },
+  {
+   "new": "329(1)",
+   "subject": "Criminal trespass and house- trespass",
+   "old": [
+    "441"
+   ],
+   "old_raw": "441"
+  },
+  {
+   "new": "329(2)",
+   "subject": "Criminal trespass and house- trespass",
+   "old": [
+    "442"
+   ],
+   "old_raw": "442"
+  },
+  {
+   "new": "329(3)",
+   "subject": "Criminal trespass punishment",
+   "old": [
+    "447"
+   ],
+   "old_raw": "447"
+  },
+  {
+   "new": "329(4)",
+   "subject": "Punishment for house- trespass",
+   "old": [
+    "448"
+   ],
+   "old_raw": "448"
+  },
+  {
+   "new": "330(1)",
+   "subject": "Lurking house trespass",
+   "old": [
+    "443"
+   ],
+   "old_raw": "443"
+  },
+  {
+   "new": "330(2)",
+   "subject": "House breaking",
+   "old": [
+    "445"
+   ],
+   "old_raw": "445"
+  },
+  {
+   "new": "331(1)",
+   "subject": "Punishment for house- trespass or house-breaking",
+   "old": [
+    "453"
+   ],
+   "old_raw": "453"
+  },
+  {
+   "new": "331(2)",
+   "subject": "Punishment for lurking house-trespass or house-breaking by night",
+   "old": [
+    "456"
+   ],
+   "old_raw": "456"
+  },
+  {
+   "new": "331(3)",
+   "subject": "Lurking house-trespass or house- breaking in order to commit offence punishable with imprisonment",
+   "old": [
+    "454"
+   ],
+   "old_raw": "454"
+  },
+  {
+   "new": "331(4)",
+   "subject": "Lurking house-trespass or house- breaking by night in order to commit offence punishable with imprisonment",
+   "old": [
+    "457"
+   ],
+   "old_raw": "457"
+  },
+  {
+   "new": "331(5)",
+   "subject": "Lurking house-trespass or house- breaking after preparation for hurt, assault or wrongful restraint",
+   "old": [
+    "455"
+   ],
+   "old_raw": "455"
+  },
+  {
+   "new": "331(6)",
+   "subject": "Lurking house-trespass or house- breaking by night after preparation for hurt, assault, or wrongful restraint",
+   "old": [
+    "458"
+   ],
+   "old_raw": "458"
+  },
+  {
+   "new": "331(7)",
+   "subject": "Grievous hurt caused whilst committing lurking house-trespass or house-breaking",
+   "old": [
+    "459"
+   ],
+   "old_raw": "459"
+  },
+  {
+   "new": "331(8)",
+   "subject": "All persons jointly concerned in lurking house-trespass or house- breaking by night punishable where death or grievous hurt caused by one of them",
+   "old": [
+    "460"
+   ],
+   "old_raw": "460"
+  },
+  {
+   "new": "332(a)",
+   "subject": "House-trespass in order to commit offence punishable with death",
+   "old": [
+    "449"
+   ],
+   "old_raw": "449"
+  },
+  {
+   "new": "332(b)",
+   "subject": "House-trespass in order to commit offence punishable with imprisonment for life",
+   "old": [
+    "450"
+   ],
+   "old_raw": "450"
+  },
+  {
+   "new": "332(c)",
+   "subject": "House-trespass in order to commit offence punishable with imprisonment",
+   "old": [
+    "451"
+   ],
+   "old_raw": "451"
+  },
+  {
+   "new": "333",
+   "subject": "House-trespass after preparation for hurt, assault or wrongful restraint",
+   "old": [
+    "452"
+   ],
+   "old_raw": "452"
+  },
+  {
+   "new": "334(1)",
+   "subject": "Dishonestly breaking open receptacle containing property",
+   "old": [
+    "461"
+   ],
+   "old_raw": "461"
+  },
+  {
+   "new": "334(2)",
+   "subject": "Punishment for same offence when committed by person entrusted with custody",
+   "old": [
+    "462"
+   ],
+   "old_raw": "462"
+  },
+  {
+   "new": "335",
+   "subject": "Making a false document",
+   "old": [
+    "464"
+   ],
+   "old_raw": "464"
+  },
+  {
+   "new": "336(1)",
+   "subject": "Forgery",
+   "old": [
+    "463"
+   ],
+   "old_raw": "463"
+  },
+  {
+   "new": "336(2)",
+   "subject": "Forgery punishment",
+   "old": [
+    "465"
+   ],
+   "old_raw": "465"
+  },
+  {
+   "new": "336(3)",
+   "subject": "Forgery for purpose of cheating",
+   "old": [
+    "468"
+   ],
+   "old_raw": "468"
+  },
+  {
+   "new": "336(4)",
+   "subject": "Forgery for purpose of harming reputation",
+   "old": [
+    "469"
+   ],
+   "old_raw": "469"
+  },
+  {
+   "new": "337",
+   "subject": "Forgery of record of Court or of public register, etc",
+   "old": [
+    "466"
+   ],
+   "old_raw": "466"
+  },
+  {
+   "new": "338",
+   "subject": "Forgery of valuable security, will, etc",
+   "old": [
+    "467"
+   ],
+   "old_raw": "467"
+  },
+  {
+   "new": "339",
+   "subject": "Having possession of document described in Section 337 or Section 338, knowing it to be forged and intending to use it as genuine",
+   "old": [
+    "474"
+   ],
+   "old_raw": "474"
+  },
+  {
+   "new": "340(1)",
+   "subject": "Forged document or electronic record. and using it as genuine",
+   "old": [
+    "470"
+   ],
+   "old_raw": "470"
+  },
+  {
+   "new": "340(2)",
+   "subject": "Using as genuine a forged document or electronic record",
+   "old": [
+    "471"
+   ],
+   "old_raw": "471"
+  },
+  {
+   "new": "341(1)",
+   "subject": "Making or possessing counterfeit seal, etc., with intent to commit forgery, punishable under section 338",
+   "old": [
+    "472"
+   ],
+   "old_raw": "472"
+  },
+  {
+   "new": "341(2)",
+   "subject": "Making or possessing counterfeit seal, etc., with intent to commit forgery punishable otherwise",
+   "old": [
+    "473"
+   ],
+   "old_raw": "473"
+  },
+  {
+   "new": "341(3)",
+   "subject": "Possesses any seal, plate or other instrument knowing the same to be counterfeit",
+   "old": [],
+   "old_raw": "New sub- section"
+  },
+  {
+   "new": "341(4)",
+   "subject": "Fraudulently or dishonestly uses as genuine any seal, plate or other instrument knowing or having reason to believe the same to be counterfeit",
+   "old": [],
+   "old_raw": "New sub- section"
+  },
+  {
+   "new": "342(1)",
+   "subject": "Counterfeiting device or mark used for authenticating documents described in section 338, or possessing counterfeit marked material",
+   "old": [
+    "475"
+   ],
+   "old_raw": "475"
+  },
+  {
+   "new": "342(2)",
+   "subject": "Counterfeiting device or mark used for authenticating documents described in section 338, or possessing counterfeit marked material",
+   "old": [
+    "476"
+   ],
+   "old_raw": "476"
+  },
+  {
+   "new": "343",
+   "subject": "Fraudulent cancellation, destruction, etc. of will, authority to adopt, or valuable security",
+   "old": [
+    "477"
+   ],
+   "old_raw": "477"
+  },
+  {
+   "new": "344",
+   "subject": "Falsification of accounts",
+   "old": [
+    "477A"
+   ],
+   "old_raw": "477A"
+  },
+  {
+   "new": "345(1)",
+   "subject": "Property mark",
+   "old": [
+    "479"
+   ],
+   "old_raw": "479"
+  },
+  {
+   "new": "345(2)",
+   "subject": "Using a false property mark",
+   "old": [
+    "481"
+   ],
+   "old_raw": "481"
+  },
+  {
+   "new": "345(3)",
+   "subject": "Punishment for using a false property mark",
+   "old": [
+    "482"
+   ],
+   "old_raw": "482"
+  },
+  {
+   "new": "346",
+   "subject": "Tampering with property mark with intent to cause injury",
+   "old": [
+    "489"
+   ],
+   "old_raw": "489"
+  },
+  {
+   "new": "347(1)",
+   "subject": "Counterfeiting a property mark",
+   "old": [
+    "483"
+   ],
+   "old_raw": "483"
+  },
+  {
+   "new": "347(2)",
+   "subject": "Counterfeiting a mark used by a public servant",
+   "old": [
+    "484"
+   ],
+   "old_raw": "484"
+  },
+  {
+   "new": "348",
+   "subject": "Making or possession of any instrument for counterfeiting a property mark",
+   "old": [
+    "485"
+   ],
+   "old_raw": "485"
+  },
+  {
+   "new": "349",
+   "subject": "Selling goods marked with counterfeit property mark",
+   "old": [
+    "486"
+   ],
+   "old_raw": "486"
+  },
+  {
+   "new": "350(1)",
+   "subject": "Making a false mark upon any receptacle containing goods",
+   "old": [
+    "487"
+   ],
+   "old_raw": "487"
+  },
+  {
+   "new": "350(2)",
+   "subject": "Punishment for making use of any such false mark",
+   "old": [
+    "488"
+   ],
+   "old_raw": "488"
+  },
+  {
+   "new": "351(1)",
+   "subject": "Criminal intimidation",
+   "old": [
+    "503"
+   ],
+   "old_raw": "503"
+  },
+  {
+   "new": "351(2)/(3)",
+   "subject": "Criminal intimidation punishment",
+   "old": [
+    "506"
+   ],
+   "old_raw": "506"
+  },
+  {
+   "new": "351(4)",
+   "subject": "Criminal intimidation by an anonymous communication",
+   "old": [
+    "507"
+   ],
+   "old_raw": "507"
+  },
+  {
+   "new": "352",
+   "subject": "Intentional insult with intent to provoke breach of the peace",
+   "old": [
+    "504"
+   ],
+   "old_raw": "504"
+  },
+  {
+   "new": "353",
+   "subject": "Statements conducing to public mischief",
+   "old": [
+    "505"
+   ],
+   "old_raw": "505"
+  },
+  {
+   "new": "354",
+   "subject": "Act caused by inducing person to believe that he will be rendered an object of the Divine displeasure",
+   "old": [
+    "508"
+   ],
+   "old_raw": "508"
+  },
+  {
+   "new": "355",
+   "subject": "Misconduct in public by a drunken person",
+   "old": [
+    "510"
+   ],
+   "old_raw": "510"
+  },
+  {
+   "new": "356(1)",
+   "subject": "Defamation",
+   "old": [
+    "499"
+   ],
+   "old_raw": "499"
+  },
+  {
+   "new": "356(2)",
+   "subject": "Defamation punishment",
+   "old": [
+    "500"
+   ],
+   "old_raw": "500"
+  },
+  {
+   "new": "356(3)",
+   "subject": "Printing or engraving matter known to be defamatory",
+   "old": [
+    "501"
+   ],
+   "old_raw": "501"
+  },
+  {
+   "new": "356(4)",
+   "subject": "Sale of printed or engraved substance containing defamatory matter",
+   "old": [
+    "502"
+   ],
+   "old_raw": "502"
+  },
+  {
+   "new": "357",
+   "subject": "Breach of contract to attend on and supply wants of helpless person",
+   "old": [
+    "491"
+   ],
+   "old_raw": "491"
+  },
+  {
+   "new": "358",
+   "subject": "Repeal and Savings",
+   "old": [],
+   "old_raw": ""
+  }
+ ]
+}

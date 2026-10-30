@@ -215,8 +215,9 @@ async def judgment_facets(
 async def get_judgment(
     judgment_id: uuid.UUID, current: CurrentUserDep, session: TenantSessionDep
 ) -> JudgmentRead:
-    judgment = await _svc(current, session).get_judgment(judgment_id)
-    return JudgmentRead.from_orm_row(judgment)
+    svc = _svc(current, session)
+    judgment = await svc.get_judgment(judgment_id)
+    return JudgmentRead.from_orm_row(judgment, [a.citation for a in await svc.repo.aliases_for(judgment_id)])
 
 
 @router.post(

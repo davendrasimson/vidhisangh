@@ -1,0 +1,460 @@
+{
+ "source": "BNSS 2023, Section 359 (Gazette of India), via public/bare-acts/bnss.pdf",
+ "rows": [
+  {
+   "part": "victim",
+   "offence": "Enticing or taking away or detaining with criminal intent a married woman.",
+   "section_text": "84",
+   "by": "The husband of the woman and the woman.",
+   "sections": [
+    "84"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Voluntarily causing hurt.",
+   "section_text": "115(2)",
+   "by": "The person to whom the hurt is caused.",
+   "sections": [
+    "115(2)"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Voluntarily causing hurt on provocation.",
+   "section_text": "122(1)",
+   "by": "The person to whom the hurt is caused.",
+   "sections": [
+    "122(1)"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Voluntarily causing grievous hurt on grave and sudden provocation.",
+   "section_text": "122(2)",
+   "by": "The person to whom the hurt is caused.",
+   "sections": [
+    "122(2)"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Wrongfully restraining or confining any person.",
+   "section_text": "126(2), 127(2)",
+   "by": "The person restrained or confined.",
+   "sections": [
+    "126(2)",
+    "127(2)"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Wrongfully confining a person for three days or more.",
+   "section_text": "127(3)",
+   "by": "The person confined.",
+   "sections": [
+    "127(3)"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Wrongfully confining a person for ten days or more.",
+   "section_text": "127(4)",
+   "by": "The person confined.",
+   "sections": [
+    "127(4)"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Wrongfully confining a person in secret.",
+   "section_text": "127(6)",
+   "by": "The person confined.",
+   "sections": [
+    "127(6)"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Assault or use of criminal force.",
+   "section_text": "131, 133,136",
+   "by": "The person assaulted or to whom criminal force is used.",
+   "sections": [
+    "131",
+    "133",
+    "136"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Uttering words, etc., with deliberate intent to wound the religious feelings of any person.",
+   "section_text": "302",
+   "by": "The person whose religious feelings are intended to be wounded.",
+   "sections": [
+    "302"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Theft.",
+   "section_text": "303(2)",
+   "by": "The owner of the property stolen.",
+   "sections": [
+    "303(2)"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Dishonest misappropriation of property.",
+   "section_text": "314",
+   "by": "The owner of the property misappropriated.",
+   "sections": [
+    "314"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Criminal breach of trust by a carrier, wharfinger, etc.",
+   "section_text": "316(3)",
+   "by": "The owner of the property in respect of which the breach of trust has been committed.",
+   "sections": [
+    "316(3)"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Dishonestly receiving stolen property knowing it to be stolen.",
+   "section_text": "317(2)",
+   "by": "The owner of the property stolen.",
+   "sections": [
+    "317(2)"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Assisting in the concealment or disposal of stolen property, knowing it to be stolen.",
+   "section_text": "317(5)",
+   "by": "The owner of the property stolen.",
+   "sections": [
+    "317(5)"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Cheating.",
+   "section_text": "318(2)",
+   "by": "The person cheated.",
+   "sections": [
+    "318(2)"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Cheating by personation.",
+   "section_text": "319(2)",
+   "by": "The person cheated.",
+   "sections": [
+    "319(2)"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Fraudulent removal or concealment of property, etc., to prevent distribution among creditors.",
+   "section_text": "320",
+   "by": "The creditors who are affected thereby.",
+   "sections": [
+    "320"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Fraudulently preventing from being made available for his creditors a debt or demand due to the offender.",
+   "section_text": "321",
+   "by": "The creditors who are affected thereby.",
+   "sections": [
+    "321"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Fraudulent execution of deed of transfer containing false statement of consideration.",
+   "section_text": "322",
+   "by": "The person affected thereby.",
+   "sections": [
+    "322"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Fraudulent removal or concealment of property.",
+   "section_text": "323",
+   "by": "The person affected thereby.",
+   "sections": [
+    "323"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Mischief, when the only loss or damage caused is loss or damage to a private person.",
+   "section_text": "324(2), 324(4)",
+   "by": "The person to whom the loss or damage is caused.",
+   "sections": [
+    "324(2)",
+    "324(4)"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Mischief by killing or maiming animal.",
+   "section_text": "325",
+   "by": "The owner of the animal.",
+   "sections": [
+    "325"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Mischief by injury to works of irrigation by wrongfully diverting water when the only loss or damage caused is loss or damage to private person.",
+   "section_text": "326(a)",
+   "by": "The person to whom the loss or damage is caused.",
+   "sections": [
+    "326(a)"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Criminal trespass.",
+   "section_text": "329(3)",
+   "by": "The person in possession of the property trespassed upon.",
+   "sections": [
+    "329(3)"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "House-trespass.",
+   "section_text": "329(4)",
+   "by": "The person in possession of the property trespassed upon.",
+   "sections": [
+    "329(4)"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "House-trespass to commit an offence (other than theft) punishable with imprisonment.",
+   "section_text": "332(c)",
+   "by": "The person in possession of the house trespassed upon.",
+   "sections": [
+    "332(c)"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Using a false trade or property mark.",
+   "section_text": "345(3)",
+   "by": "The person to whom loss or injury is caused by such use.",
+   "sections": [
+    "345(3)"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Counterfeiting a property mark used by another.",
+   "section_text": "347(1)",
+   "by": "The person to whom loss or injury is caused by such use.",
+   "sections": [
+    "347(1)"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Selling goods marked with a counterfeit property mark.",
+   "section_text": "349",
+   "by": "The person to whom loss or injury is caused by such use.",
+   "sections": [
+    "349"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Criminal intimidation.",
+   "section_text": "351(2), 351(3)",
+   "by": "The person intimidated.",
+   "sections": [
+    "351(2)",
+    "351(3)"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Insult intended to provoke a breach of peace.",
+   "section_text": "352",
+   "by": "The person insulted.",
+   "sections": [
+    "352"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Inducing person to believe himself an object of divine displeasure.",
+   "section_text": "354",
+   "by": "The person induced.",
+   "sections": [
+    "354"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Defamation, except such cases as are specified against section 356(2) of the Bharatiya Nyaya Sanhita, 2023, column 1 of the Table under sub-section (2).",
+   "section_text": "356(2)",
+   "by": "The person defamed.",
+   "sections": [
+    "356(2)"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Printing or engraving matter, knowing it to be defamatory.",
+   "section_text": "356(3)",
+   "by": "The person defamed.",
+   "sections": [
+    "356(3)"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Sale of printed or engraved substance containing defamatory matter, knowing it to contain such matter.",
+   "section_text": "356(4)",
+   "by": "The person defamed.",
+   "sections": [
+    "356(4)"
+   ]
+  },
+  {
+   "part": "victim",
+   "offence": "Criminal breach of contract of service.",
+   "section_text": "357",
+   "by": "The person with whom the offender has contracted.",
+   "sections": [
+    "357"
+   ]
+  },
+  {
+   "part": "court",
+   "offence": "Word, gesture or act intended to insult the modesty of a woman.",
+   "section_text": "79",
+   "by": "The woman whom it was intended to insult or whose privacy was intruded upon.",
+   "sections": [
+    "79"
+   ]
+  },
+  {
+   "part": "court",
+   "offence": "Marrying again during the life-time of a husband or wife.",
+   "section_text": "82(1)",
+   "by": "The husband or wife of the person so marrying.",
+   "sections": [
+    "82(1)"
+   ]
+  },
+  {
+   "part": "court",
+   "offence": "Causing miscarriage.",
+   "section_text": "88",
+   "by": "The woman to whom miscarriage is caused.",
+   "sections": [
+    "88"
+   ]
+  },
+  {
+   "part": "court",
+   "offence": "Voluntarily causing grievous hurt.",
+   "section_text": "117(2)",
+   "by": "The person to whom hurt is caused.",
+   "sections": [
+    "117(2)"
+   ]
+  },
+  {
+   "part": "court",
+   "offence": "Causing hurt by doing an act so rashly and negligently as to endanger human life or the personal safety of others.",
+   "section_text": "125(a)",
+   "by": "The person to whom hurt is caused.",
+   "sections": [
+    "125(a)"
+   ]
+  },
+  {
+   "part": "court",
+   "offence": "Causing grievous hurt by doing an act so rashly and negligently as to endanger human life or the personal safety of others.",
+   "section_text": "125(b)",
+   "by": "The person to whom hurt is caused.",
+   "sections": [
+    "125(b)"
+   ]
+  },
+  {
+   "part": "court",
+   "offence": "Assault or criminal force in attempting wrongfully to confine a person.",
+   "section_text": "135",
+   "by": "The person assaulted or to whom the force was used.",
+   "sections": [
+    "135"
+   ]
+  },
+  {
+   "part": "court",
+   "offence": "Theft, by clerk or servant of property in possession of master.",
+   "section_text": "306",
+   "by": "The owner of the property stolen.",
+   "sections": [
+    "306"
+   ]
+  },
+  {
+   "part": "court",
+   "offence": "Criminal breach of trust.",
+   "section_text": "316(2)",
+   "by": "The owner of the property in respect of which breach of trust has been committed.",
+   "sections": [
+    "316(2)"
+   ]
+  },
+  {
+   "part": "court",
+   "offence": "Criminal breach of trust by a clerk or servant.",
+   "section_text": "316(4)",
+   "by": "The owner of the property in respect of which the breach of trust has been committed.",
+   "sections": [
+    "316(4)"
+   ]
+  },
+  {
+   "part": "court",
+   "offence": "Cheating a person whose interest the offender was bound, either by law or by legal contract, to protect.",
+   "section_text": "318(3)",
+   "by": "The person cheated.",
+   "sections": [
+    "318(3)"
+   ]
+  },
+  {
+   "part": "court",
+   "offence": "Cheating and dishonestly inducing delivery of property or the making, alteration or destruction of a valuable security.",
+   "section_text": "318(4)",
+   "by": "The person cheated.",
+   "sections": [
+    "318(4)"
+   ]
+  },
+  {
+   "part": "court",
+   "offence": "Defamation against the President or the Vice-President or the Governor of the State or the Administrator of the Union territory or a Minister in respect of his public functions when instituted upon a complaint made by the public prosecutor.",
+   "section_text": "356(2)",
+   "by": "The person defamed.",
+   "sections": [
+    "356(2)"
+   ]
+  }
+ ]
+}

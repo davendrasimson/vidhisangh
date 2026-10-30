@@ -13,6 +13,7 @@
         }
         @if (j.citation) { <span class="vs-chip font-mono">{{ j.citation }}</span> }
         @if (j.neutral_citation) { <span class="vs-chip font-mono">{{ j.neutral_citation }}</span> }
+        @for (alias of j.aliases ?? []; track alias) { <span class="vs-chip font-mono" title="Parallel citation, found in the texts of judgments citing this case">{{ alias }}</span> }
         @if (j.cnr_number) { <span class="vs-chip font-mono">CNR {{ j.cnr_number }}</span> }
       </div>
       <h1 class="vs-display text-2xl font-semibold text-content">{{ j.cause_title || j.case_name }}</h1>

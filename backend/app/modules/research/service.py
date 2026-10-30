@@ -33,6 +33,7 @@ from app.modules.research.schemas import (
     CiteCheckFinding,
     CiteCheckReport,
     FacetBucket,
+    StatuteReference,
     JudgmentCreate,
     SearchFacets,
 )
@@ -251,11 +252,16 @@ class ResearchService:
         from dataclasses import asdict
 
         from app.modules.research.cite_check import check_text
+        from app.modules.research.statutes import find_statute_references
 
         findings, total, truncated = await check_text(self.repo, text)
         counts: dict[str, int] = {}
         for f in findings:
             counts[f.status] = counts.get(f.status, 0) + 1
+        statutes = find_statute_references(text)
+        statute_counts: dict[str, int] = {}
+        for s in statutes:
+            statute_counts[s.status] = statute_counts.get(s.status, 0) + 1
         return CiteCheckReport(
             source_chars=len(text),
             citations_found=total,
@@ -263,6 +269,8 @@ class ResearchService:
             truncated=truncated,
             counts=counts,
             findings=[CiteCheckFinding.model_validate(asdict(f)) for f in findings],
+            statutes=[StatuteReference.model_validate(asdict(s)) for s in statutes],
+            statute_counts=statute_counts,
             checked_at=datetime.now(UTC),
         )
 

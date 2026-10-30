@@ -86,13 +86,27 @@ export interface OffenceClassification {
   cognizable: 'cognizable' | 'non_cognizable' | 'according' | string;
   bailable: 'bailable' | 'non_bailable' | 'according' | string;
   court: string;
+  /** Section 359 BNSS: who may compound it, and whether only with the Court's permission; null if not compoundable. */
+  compounding: { part: 'victim' | 'court'; by: string } | null;
 }
 
+const compact = (s: string) => s.replace(/\s+/g, '');
+const baseOf = (s: string) => compact(s).replace(/\(.*$/, '');
+
 let schedule: Promise<OffenceClassification[]> | null = null;
-/** The Schedule, loaded when a BNS section is first read (a lazily loaded chunk). */
+/** The Schedule (with the compounding tables folded in), loaded when a BNS section is first read. */
 export function loadOffenceSchedule(): Promise<OffenceClassification[]> {
   schedule ??= import('./bnss-schedule-data')
-    .then((m) => m.BNSS_FIRST_SCHEDULE.map(([section, offence, punishment, cognizable, bailable, court]) => ({ section, offence, punishment, cognizable, bailable, court })))
+    .then((m) => {
+      const compounding = (section: string) => {
+        const label = compact(section);
+        const exact = m.BNSS_COMPOUNDING.find(([, sections]) => sections.some((s) => compact(s) === label));
+        const row = exact ?? m.BNSS_COMPOUNDING.find(([, sections]) => sections.some((s) => !s.includes('(') && baseOf(s) === baseOf(label)));
+        return row ? { part: row[0] as 'victim' | 'court', by: row[2] } : null;
+      };
+      return m.BNSS_FIRST_SCHEDULE.map(([section, offence, punishment, cognizable, bailable, court]) =>
+        ({ section, offence, punishment, cognizable, bailable, court, compounding: compounding(section) }));
+    })
     .catch(() => { schedule = null; return []; });
   return schedule;
 }
