@@ -76,6 +76,15 @@ async def test_mining_resolves_named_citations_and_counts_support(session_factor
         assert row.judgment_id == ids["puttaswamy"] and row.source == "curated"
 
 
+async def test_collect_reads_long_texts_up_to_the_parser_limit() -> None:
+    from app.modules.research.parallel_citations import collect
+
+    votes: dict = {}
+    text = "Puttaswamy v. Union of India, (2017) 10 SCC 1. " + ("x" * 400_000) + " Tail v. End, (2018) 1 SCC 1."
+    assert collect(text, uuid.uuid4(), votes) == 1          # no ValidationError; the tail beyond 300k is not read
+    assert list(votes) == ["(2017) 10 SCC 1"]
+
+
 async def test_cite_check_and_detail_use_aliases(session_factory, client: AsyncClient, strong_password: str) -> None:
     h, _ = await _user(client, "Alias2 LLP", "alias2@firm.co", strong_password)
     ids = await _seed(session_factory)

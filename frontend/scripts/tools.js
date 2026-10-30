@@ -28,6 +28,26 @@
   }
   const $ = (root, sel) => root.querySelector(sel);
 
+  /** The Supreme Court's COVID exclusion (In Re: Cognizance for Extension of Limitation, order of 10/01/2022):
+   *  15/03/2020–28/02/2022 is excluded from every period of limitation, and where a period would have ended
+   *  inside that window, at least 90 days run from 01/03/2022 (the longer actual balance prevails).
+   *  `days`: the excluded days that fell inside the running period; `end`: the recomputed last date;
+   *  `floor`: when the 90-day floor governs, both readings of "90 days from 01/03/2022" — counting 1 March
+   *  as day 1 (29/05/2022) and excluding it (30/05/2022) — since the counting is not settled. */
+  function covidAdjust(start, end) {
+    const MARCH_1 = Date.UTC(2022, 2, 1);
+    if (end < COVID_FROM || start > COVID_TO) return null;
+    const from = Math.max(start + DAY, COVID_FROM), to = Math.min(end, COVID_TO);
+    const days = to >= from ? Math.round((to - from) / DAY) + 1 : 0;
+    let adjusted = end + days * DAY;
+    let floor = null;
+    if (end >= COVID_FROM && end <= COVID_TO) {
+      const inclusive = MARCH_1 + 89 * DAY, exclusive = MARCH_1 + 90 * DAY;
+      if (adjusted < exclusive) { floor = { inclusive, exclusive }; adjusted = Math.max(adjusted, exclusive); }
+    }
+    return { days, end: adjusted, floor };
+  }
+
   const forms = (sel) => (typeof document === 'undefined' ? [] : document.querySelectorAll(sel));
   for (const form of forms('form[data-tool="limitation"]')) {
     const data = JSON.parse(document.getElementById('limitation-data').textContent);
@@ -62,9 +82,14 @@
       if (new Date(end).getUTCDay() === 0) notes.push(`That day is a Sunday. If the court is closed on the last day, the suit, appeal or application may be filed on the day it reopens (Section 4), e.g. ${fmt(end + DAY)}.`);
       else notes.push('If the court is closed on that day, it may be filed on the day the court reopens (Section 4).');
       if (excluded) notes.push(`Includes ${excluded} day(s) excluded for obtaining certified copies (Section 12(2)–(3)).`);
-      if (start <= COVID_TO && end >= COVID_FROM) notes.push('This period overlaps 15/03/2020–28/02/2022, which the Supreme Court excluded from limitation (In Re: Cognizance for Extension of Limitation, order of 10/01/2022). Recalculate with that exclusion.');
+      const covid = covidAdjust(start, end);
       if (a && a.division && !/Suits/.test(a.division)) notes.push('Appeals and applications may be admitted after the period if there was sufficient cause (Section 5); suits may not.');
-      out.innerHTML = `<p class="answer">Last date: <strong>${fmt(end)}</strong></p><p class="small">${escapeHtml(period.label)} from ${fmt(start)}, the first day excluded (Section 12(1)).</p><ul class="small">${notes.map((n) => `<li>${escapeHtml(n)}</li>`).join('')}</ul>`;
+      let covidHtml = '';
+      if (covid) {
+        const floor = covid.floor ? ` The 90-day floor from 01/03/2022 governs: it ends on <strong>${fmt(covid.floor.inclusive)}</strong> if 1 March counts as day 1, or <strong>${fmt(covid.floor.exclusive)}</strong> if it does not — the counting is not settled, so the later date is shown and the earlier one should be treated as the safe date.` : '';
+        covidHtml = `<p class="answer">With the COVID exclusion: <strong>${fmt(covid.end)}</strong></p><p class="small">${covid.days} day(s) of this period fell inside 15/03/2020–28/02/2022, which the Supreme Court excluded from limitation (In Re: Cognizance for Extension of Limitation, order of 10/01/2022).${floor}</p>`;
+      }
+      out.innerHTML = `<p class="answer">Last date: <strong>${fmt(end)}</strong></p><p class="small">${escapeHtml(period.label)} from ${fmt(start)}, the first day excluded (Section 12(1)).</p>${covidHtml}<ul class="small">${notes.map((n) => `<li>${escapeHtml(n)}</li>`).join('')}</ul>`;
     });
   }
 
@@ -213,5 +238,5 @@
     const initial = new URLSearchParams(location.search).get('q');
     if (initial) { $(form, '[name=q]').value = initial; void run(); }
   }
-  if (typeof module !== 'undefined') module.exports = { parseDate, parsePeriods, addPeriod, interest, maxTerm, defaultBailDays, arrestRegime, anticipatoryBail, screen, compounding };
+  if (typeof module !== 'undefined') module.exports = { parseDate, parsePeriods, addPeriod, interest, maxTerm, defaultBailDays, arrestRegime, anticipatoryBail, screen, compounding, covidAdjust };
 })();

@@ -13,6 +13,8 @@ export interface SavedAuthority {
   folderId: string;
   note: string;
   savedAt: string;
+  /** The AI headnote's one-paragraph summary at the time of saving (Supreme Court judgments that have one). */
+  aiSummary?: string | null;
 }
 
 export interface ResearchFolder { id: string; name: string; createdAt: string; }
@@ -88,7 +90,7 @@ export class ResearchWorkspaceService {
     const item: SavedAuthority = {
       id: crypto.randomUUID(), judgmentId: judgment.id, title: judgment.cause_title || judgment.case_name,
       citation: judgment.citation, court: judgment.court, judgmentDate: judgment.judgment_date,
-      folderId, note: '', savedAt: new Date().toISOString(),
+      folderId, note: '', savedAt: new Date().toISOString(), aiSummary: judgment.ai_summary ?? null,
     };
     this.write({ ...state, authorities: [item, ...state.authorities] });
     this.notify.success('Authority saved to the research workspace.');

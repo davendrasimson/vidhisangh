@@ -90,6 +90,26 @@ export class ResearchComponent implements OnInit {
   protected readonly corpusSize = signal<number | null>(null);
 
   protected readonly hasMore = computed(() => this.results().length < this.total());
+
+  /** The library lists orders; a case has many. Grouped, one card per CNR keeps the best-ranked order. */
+  protected readonly groupByCase = signal(false);
+  protected readonly displayResults = computed<JudgmentSummary[]>(() => {
+    const rows = this.results();
+    if (!this.groupByCase()) return rows;
+    const first = new Map<string, JudgmentSummary>();
+    const out: JudgmentSummary[] = [];
+    for (const r of rows) {
+      if (!r.cnr_number) { out.push(r); continue; }
+      const seen = first.get(r.cnr_number);
+      if (seen) { this.inResults.set(seen.id, (this.inResults.get(seen.id) ?? 1) + 1); continue; }
+      first.set(r.cnr_number, r); this.inResults.set(r.id, 1); out.push(r);
+    }
+    return out;
+  });
+  /** Orders folded into each shown card while grouped (card id → count). */
+  private readonly inResults = new Map<string, number>();
+  protected foldedOrders(j: JudgmentSummary): number { return this.groupByCase() ? (this.inResults.get(j.id) ?? 1) : 1; }
+  protected readonly groupedAway = computed(() => this.results().length - this.displayResults().length);
   protected issueSuggestions(): LegalIssueSuggestion[] {
     if (!this.factsMode() || this.query.trim().length < 8) return [];
     const text = this.query.toLocaleLowerCase('en-IN');
@@ -232,13 +252,21 @@ export class ResearchComponent implements OnInit {
 
   protected exportMemo(): void {
     const state = this.workspace.state();
-    const lines = ['# Research memorandum', '', `Generated ${new Date().toLocaleString('en-IN')}`, ''];
+    const fmtDate = (iso: string | null) => iso ? new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+    const lines = ['# Research memorandum', '', `Generated ${new Date().toLocaleString('en-IN')} from the VidhiSangh research workspace.`,
+      `${state.authorities.length} authorit${state.authorities.length === 1 ? 'y' : 'ies'}. AI headnotes are machine-written summaries of the judgment text; read the judgment before relying on one.`, ''];
     for (const folder of [{ id: '', name: 'Unfiled authorities' }, ...state.folders]) {
       const items = state.authorities.filter((item) => item.folderId === folder.id);
       if (!items.length) continue;
       lines.push(`## ${folder.name}`, '');
-      for (const [index, item] of items.entries()) lines.push(`${index + 1}. **${item.title}**${item.citation ? ` — ${item.citation}` : ''}`, `   ${item.court}${item.judgmentDate ? ` · ${item.judgmentDate}` : ''}`, item.note ? `   Note: ${item.note}` : '', `   ${publicOrigin()}/app/research/${item.judgmentId}`, '');
+      for (const [index, item] of items.entries()) lines.push(
+        `${index + 1}. **${item.title}**${item.citation ? ` — ${item.citation}` : ''}`,
+        `   ${item.court}${item.judgmentDate ? ` · ${fmtDate(item.judgmentDate)}` : ''}`,
+        item.aiSummary ? `   *AI headnote:* ${item.aiSummary}` : '',
+        item.note ? `   Note: ${item.note}` : '',
+        `   ${publicOrigin()}/app/research/${item.judgmentId}`, '');
     }
+    lines.push('---', 'Prepared with VidhiSangh (vidhisangh.com). Verify every authority against the reporter and check subsequent treatment before filing.');
     const blob = new Blob([lines.filter((line) => line !== undefined).join('\n')], { type: 'text/markdown;charset=utf-8' });
     void saveBlob(blob, `research-memo-${new Date().toISOString().slice(0, 10)}.md`);
   }

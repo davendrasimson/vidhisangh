@@ -24,7 +24,7 @@
       </div>
       <button mat-flat-button color="primary" type="submit" class="!h-auto px-6">Search</button>
     </form>
-    <div class="search-options"><button [class.active]="factsMode()" (click)="factsMode.set(!factsMode())"><mat-icon class="material-icons-outlined">psychology_alt</mat-icon>{{ factsMode() ? 'Facts search on' : 'Search by facts' }}</button><button [class.active]="advancedOpen()" (click)="advancedOpen.set(!advancedOpen())"><mat-icon class="material-icons-outlined">tune</mat-icon>Advanced filters</button>@if (filters().q || activeFilters().length || filters().act || filters().section) { <button (click)="createAlert()"><mat-icon class="material-icons-outlined">add_alert</mat-icon>Alert for this search</button> }</div>
+    <div class="search-options"><button [class.active]="factsMode()" (click)="factsMode.set(!factsMode())"><mat-icon class="material-icons-outlined">psychology_alt</mat-icon>{{ factsMode() ? 'Facts search on' : 'Search by facts' }}</button><button [class.active]="advancedOpen()" (click)="advancedOpen.set(!advancedOpen())"><mat-icon class="material-icons-outlined">tune</mat-icon>Advanced filters</button><button [class.active]="groupByCase()" (click)="groupByCase.set(!groupByCase())" title="One card per case: the library lists orders, and a case has many"><mat-icon class="material-icons-outlined">folder_copy</mat-icon>{{ groupByCase() ? 'Grouped by case' : 'Group by case' }}</button>@if (filters().q || activeFilters().length || filters().act || filters().section) { <button (click)="createAlert()"><mat-icon class="material-icons-outlined">add_alert</mat-icon>Alert for this search</button> }</div>
     @if (!factsMode()) { <p class="text-xs text-content-muted mt-2">
       Use <code>"quotes"</code> for an exact phrase, <code>-word</code> to exclude, <code>OR</code> for alternatives.
       A CNR or case number such as <code>CRM-M/33310/2019</code> is matched directly.
@@ -126,7 +126,10 @@
         </div>
       } @else {
         <div class="research-results">
-          @for (j of results(); track j.id) {
+          @if (groupByCase() && groupedAway() > 0) {
+            <p class="text-xs text-content-muted py-2">Grouped by case: {{ displayResults().length }} cases shown, {{ groupedAway() }} further order{{ groupedAway() === 1 ? '' : 's' }} of the same cases folded in. Load more to bring in later orders.</p>
+          }
+          @for (j of displayResults(); track j.id) {
             <article class="research-result">
               <div class="research-result__meta">
                 @if (caseLabel(j); as label) { <span class="font-mono">{{ label }}</span> }
@@ -170,6 +173,7 @@
                             (click)="$event.preventDefault(); $event.stopPropagation(); openCase(j.cnr_number)">
                       {{ j.order_count }} orders in this case
                     </button>
+                    @if (foldedOrders(j) > 1) { <span class="text-xs text-content-muted"> · {{ foldedOrders(j) }} of them in these results</span> }
                   }
                 </p>
               }

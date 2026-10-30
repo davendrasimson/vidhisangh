@@ -24,7 +24,7 @@ from dataclasses import dataclass, field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.research.cite_check import FoundCitation, _year_window, find_citations, party_tokens
+from app.modules.research.cite_check import MAX_TEXT_CHARS, FoundCitation, _year_window, find_citations, party_tokens
 from app.modules.research.models import CourtLevel, Judgment, JudgmentAlias
 from app.modules.research.repository import ResearchRepository
 
@@ -48,7 +48,8 @@ class Votes:
 def collect(text: str, citing_id: uuid.UUID, votes: dict[str, Votes]) -> int:
     """Add every mineable citation in one judgment's text to the votes. Returns how many."""
     n = 0
-    for found in find_citations(text):
+    # The parser refuses drafts over its limit; a long judgment is simply read up to it.
+    for found in find_citations(text[:MAX_TEXT_CHARS]):
         if not mineable(found):
             continue
         v = votes.setdefault(found.normalised, Votes(found.reporter, found.year, found.kind))

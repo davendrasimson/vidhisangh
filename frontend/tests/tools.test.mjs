@@ -22,6 +22,29 @@ test('limitation: the first day is excluded (s. 12(1)), years and days counted o
   assert.deepEqual(parsePeriods('Thirty years. Twelve years. Three years.').map((p) => p.n), [30, 12, 3]);
 });
 
+test('limitation: the COVID exclusion pauses the period and applies the 90-day floor from 01/03/2022', () => {
+  const { covidAdjust } = createRequire(import.meta.url)('../scripts/tools.js');
+  // Entirely outside the window: nothing to adjust.
+  assert.equal(covidAdjust(d('01/01/2023'), d('01/01/2026')), null);
+  assert.equal(covidAdjust(d('01/01/2017'), d('01/01/2020')), null);
+  // Three years from 10/01/2019 ended 10/01/2022, inside the window: 15/03/2020–10/01/2022 (667 days) is
+  // excluded, so the period runs on past 01/03/2022; the recomputed end exceeds the 90-day floor.
+  const a = covidAdjust(d('10/01/2019'), d('10/01/2022'));
+  assert.equal(a.days, 667);
+  assert.equal(iso(a.end), '2023-11-08');
+  assert.equal(a.floor, null);
+  // Thirty days from 01/03/2020 ended 31/03/2020: 17 excluded days leave a balance far short of 90 days,
+  // so the floor governs — both readings are reported, the later one used.
+  const b = covidAdjust(d('01/03/2020'), d('31/03/2020'));
+  assert.equal(b.days, 17);
+  assert.deepEqual([iso(b.floor.inclusive), iso(b.floor.exclusive), iso(b.end)], ['2022-05-29', '2022-05-30', '2022-05-30']);
+  // Period straddling the window's end: excluded days are added, no floor (it did not expire inside).
+  const c = covidAdjust(d('01/01/2022'), d('01/01/2025'));
+  assert.equal(c.days, 58);                                 // 02/01/2022–28/02/2022
+  assert.equal(iso(c.end), '2025-02-28');
+  assert.equal(c.floor, null);
+});
+
 test('the Schedule has all 137 Articles and the tool pages are generated', () => {
   const schedule = JSON.parse(readFileSync(new URL('../content/limitation-schedule.json', import.meta.url), 'utf8'));
   assert.deepEqual(schedule.map((a) => a.article), Array.from({ length: 137 }, (_, i) => i + 1));
