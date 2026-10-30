@@ -1221,7 +1221,7 @@ class MatterService:
         matter = await self._require_matter(matter_id)
         arr = await self.repo.active_arrangement(self.tenant_id, matter_id)
         event = self._raise_event(
-            matter, arr, kind=FeeEventKind.MANUAL, amount=data.amount, description=data.description,
+            matter, arr, kind=FeeEventKind(data.kind), amount=data.amount, description=data.description,
             occurred_on=data.occurred_on or date.today(), due_days=data.due_days,
         )
         await self.session.flush()

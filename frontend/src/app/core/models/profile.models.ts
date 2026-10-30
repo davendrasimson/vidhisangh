@@ -60,6 +60,7 @@ export interface ProfileDetail {
   judicial_court_address: string | null;
   judicial_district: string | null;
   judicial_state: string | null;
+  judicial_officer_code: string | null;
   consultation_enabled: boolean;
   consultation_fee: string | number | null;
   availability: Record<string, unknown>;
@@ -110,6 +111,7 @@ export interface ProfileUpdate {
   judicial_court_address?: string | null;
   judicial_district?: string | null;
   judicial_state?: string | null;
+  judicial_officer_code?: string | null;
   consultation_enabled?: boolean;
   consultation_fee?: number | null;
   visibility?: ProfileVisibility;

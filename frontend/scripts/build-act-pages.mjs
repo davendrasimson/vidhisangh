@@ -6,6 +6,7 @@
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
+import { I18N_JS } from './acts-i18n.mjs';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 const SITE = 'https://vidhisangh.com';
@@ -106,14 +107,15 @@ function page({ title, description, canonical, body, jsonLd }) {
 <body>
 <header class="top">
   <a class="brand" href="/"><img src="/brand-mark.svg" alt="" width="30" height="30" /><span>VidhiSangh</span></a>
-  <nav><a class="join" href="${JOIN}">Join now</a><a class="signin" href="/auth/login">Sign in</a></nav>
+  <nav><a class="join" href="${JOIN}" data-i18n>Join now</a><a class="signin" href="/auth/login" data-i18n>Sign in</a><button class="lang" id="vs-lang" type="button" lang="hi" aria-label="Switch language">हिन्दी</button></nav>
 </header>
 ${body}
 <footer>
-  <p><a href="/acts/">Bare Acts</a> · <a href="/tools/">Free tools</a> · <a href="/">VidhiSangh</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></p>
-  <p>VidhiSangh is developed and managed by <a href="/about">Simson Softwares Private Limited</a>. WhatsApp: <a href="https://wa.me/917341100692" rel="noopener">+91 73411 00692</a></p>
-  <p>Text reproduced from the official publication for reference. Check the official source and later amendments before relying on it.</p>
+  <p><a href="/acts/" data-i18n>Bare Acts</a> · <a href="/tools/" data-i18n>Free tools</a> · <a href="/">VidhiSangh</a> · <a href="/privacy" data-i18n>Privacy</a> · <a href="/terms" data-i18n>Terms</a></p>
+  <p><span data-i18n>VidhiSangh is developed and managed by</span> <a href="/about">Simson Softwares Private Limited</a>. <span data-i18n>WhatsApp:</span> <a href="https://wa.me/917341100692" rel="noopener">+91 73411 00692</a></p>
+  <p data-i18n>Text reproduced from the official publication for reference. Check the official source and later amendments before relying on it.</p>
 </footer>
+<script src="/acts/i18n.js" defer></script>
 </body>
 </html>
 `;
@@ -169,20 +171,20 @@ function oldLawSection(act, sec, links) {
   const items = rows.map((r) => r.isNew
     ? `<li><b>${esc(act.short)} ${esc(r.section)}</b> — new provision, no ${esc(OLD_SHORT[oldAct])} equivalent.</li>`
     : `<li><b>${esc(act.short)} ${esc(r.section)}</b> ← ${r.oldSection.split(/,\s*|\s+and\s+/).map((o) => /^\d+[A-Z]*$/.test(o) ? `<a href="${converterUrl(r.oldAct, o)}">${esc(OLD_SHORT[r.oldAct])} ${esc(o)}</a>` : esc(`${OLD_SHORT[r.oldAct]} ${o}`)).join(', ')} — ${esc(r.subject)}</li>`);
-  return `<section class="old-law"><h2>Old law equivalent</h2><ul>${items.join('')}</ul><p class="small">${SOURCE_NOTE} <a href="/acts/${CONVERTERS[oldAct]}/">${esc(OLD_SHORT[oldAct])} to ${esc(act.short)} converter</a>.</p></section>`;
+  return `<section class="old-law"><h2 data-i18n>Old law equivalent</h2><ul>${items.join('')}</ul><p class="small">${SOURCE_NOTE} <a href="/acts/${CONVERTERS[oldAct]}/">${esc(OLD_SHORT[oldAct])} to ${esc(act.short)} converter</a>.</p></section>`;
 }
 
 /** On an IPC / Evidence Act section: where it is in the new law. */
 function nowSection(act, sec, now) {
   if (!CONVERTERS[act.id]) return '';
   if (!now.length) {
-    return `<section class="old-law"><h2>In the new law</h2><p>The BPRD correspondence table lists no ${esc(NEW_SHORT[CORRESPONDENCE.find((t) => t.old_act === act.id).new_act])} provision for this section.</p></section>`;
+    return `<section class="old-law"><h2 data-i18n>In the new law</h2><p>The BPRD correspondence table lists no ${esc(NEW_SHORT[CORRESPONDENCE.find((t) => t.old_act === act.id).new_act])} provision for this section.</p></section>`;
   }
-  return `<section class="old-law"><h2>Now in the new law</h2><ul>${now.map((r) => `<li>${newLink(r.newAct, r.newSection)} — ${esc(r.subject)}${r.note ? `<br /><span class="small">${esc(r.note)}</span>` : ''}</li>`).join('')}</ul><p class="small"><a href="${converterUrl(act.id, base(sec.number))}">${esc(OLD_SHORT[act.id])} ${esc(sec.number)} in the ${esc(NEW_SHORT[now[0].newAct])}</a> · ${SOURCE_NOTE}</p></section>`;
+  return `<section class="old-law"><h2 data-i18n>Now in the new law</h2><ul>${now.map((r) => `<li>${newLink(r.newAct, r.newSection)} — ${esc(r.subject)}${r.note ? `<br /><span class="small">${esc(r.note)}</span>` : ''}</li>`).join('')}</ul><p class="small"><a href="${converterUrl(act.id, base(sec.number))}">${esc(OLD_SHORT[act.id])} ${esc(sec.number)} in the ${esc(NEW_SHORT[now[0].newAct])}</a> · ${SOURCE_NOTE}</p></section>`;
 }
 
 function whatsappShare(text, url) {
-  return `<a class="wa" href="https://wa.me/?text=${encodeURIComponent(`${text} ${SITE}${url}`)}" rel="noopener" target="_blank">Share on WhatsApp</a>`;
+  return `<a class="wa" href="https://wa.me/?text=${encodeURIComponent(`${text} ${SITE}${url}`)}" rel="noopener" target="_blank" data-i18n>Share on WhatsApp</a>`;
 }
 
 /** /acts/ipc-to-bns/ and one page per IPC section; same for CrPC and the Evidence Act. */
@@ -211,7 +213,7 @@ function converterPages(acts, refs, urls) {
       const share = targets.length ? `${oldShort} Section ${o}${heading ? ` (${heading})` : ''} is now ${targetText}.` : `${oldShort} Section ${o}: no ${newShort} equivalent listed.`;
       const prev = sorted[i - 1], next = sorted[i + 1];
       const body = `<main>
-<nav class="crumbs" aria-label="Breadcrumb"><a href="/acts/">Bare Acts</a> › <a href="/acts/${slug}/">${esc(oldShort)} to ${esc(newShort)}</a> › <span>Section ${esc(o)}</span></nav>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/acts/" data-i18n>Bare Acts</a> › <a href="/acts/${slug}/">${esc(oldShort)} to ${esc(newShort)}</a> › <span>Section ${esc(o)}</span></nav>
 <p class="eyebrow">${esc(oldShort)} to ${esc(newShort)} converter</p>
 <h1>${esc(h1)}</h1>
 ${heading ? `<p class="lede">${esc(oldShort)} ${esc(o)}: ${esc(heading)}</p>` : ''}
@@ -237,11 +239,11 @@ ${cta({ id: newId, short: newShort }, targets[0] ? base(targets[0]) : '')}
     });
 
     const body = `<main>
-<nav class="crumbs" aria-label="Breadcrumb"><a href="/acts/">Bare Acts</a> › <span>${esc(oldShort)} to ${esc(newShort)}</span></nav>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/acts/" data-i18n>Bare Acts</a> › <span>${esc(oldShort)} to ${esc(newShort)}</span></nav>
 <p class="eyebrow">Old law to new law</p>
 <h1>${esc(oldShort)} to ${esc(newShort)} converter</h1>
 <p class="lede">Find the ${esc(newShort)} section for any ${esc(OLD_ACTS[oldId] || oldShort)} section: all ${sorted.length} sections, from the official BPRD correspondence table.</p>
-<label class="search"><span>Search by section number or subject</span><input id="convert-q" type="search" inputmode="search" placeholder="e.g. 420 or cheating" autocomplete="off" /></label>
+<label class="search"><span data-i18n>Search by section number or subject</span><input id="convert-q" type="search" inputmode="search" placeholder="e.g. 420 or cheating" autocomplete="off" /></label>
 <table class="convert" id="convert-table"><thead><tr><th>${esc(oldShort)}</th><th>${esc(newShort)}</th><th>Subject</th></tr></thead><tbody>
 ${listing.map((r) => `<tr data-q="${esc(`${oldShort} ${r.o} ${r.targets.join(' ')} ${r.heading}`.toLowerCase())}"><td><a href="${r.url}">${esc(r.o)}</a></td><td>${r.targets.length ? r.targets.map((t) => newLink(newId, t)).join(', ') : '—'}</td><td>${esc(r.heading)}</td></tr>`).join('\n')}
 </tbody></table>
@@ -285,7 +287,7 @@ function limitationForm(selected) {
 <div class="custom-row row" hidden><label>Period<input name="n" inputmode="numeric" placeholder="e.g. 3" /></label><label>Unit<select name="unit"><option value="year">years</option><option value="month">months</option><option value="day">days</option></select></label></div>
 <div class="row"><label>Period starts on (dd/mm/yyyy)<input name="start" inputmode="numeric" placeholder="dd/mm/yyyy" autocomplete="off" required /></label>
 <label>Days to exclude (certified copy, s. 12)<input name="excluded" inputmode="numeric" placeholder="0" /></label></div>
-<button type="submit">Calculate the last date</button>
+<button type="submit" data-i18n>Calculate the last date</button>
 </form>
 <div class="tool-result" aria-live="polite"></div>
 <script type="application/json" id="limitation-data">${JSON.stringify(SCHEDULE).replace(/</g, '\\u003c')}</script>
@@ -313,7 +315,7 @@ function toolPages(urls) {
     description: 'Find the last date to file a suit, appeal or application: pick the Article of the Limitation Act Schedule and the start date. Section 12 exclusions, Section 4 and the COVID period noted. Free.',
     crumbs: [...crumbsBase, ['Limitation calculator', limUrl]],
     body: `<main>
-<nav class="crumbs" aria-label="Breadcrumb"><a href="/tools/">Free tools</a> › <span>Limitation calculator</span></nav>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/tools/" data-i18n>Free tools</a> › <span data-i18n>Limitation calculator</span></nav>
 <p class="eyebrow">Free tool</p>
 <h1>Limitation period calculator</h1>
 <p class="lede">The last date to file a suit, appeal or application under the Limitation Act, 1963: choose the Article of the Schedule and the date the period begins.</p>
@@ -333,7 +335,7 @@ ${cta({ id: 'limitation', short: 'Limitation Act' }, '')}
       description: `Article ${a.article}, Limitation Act, 1963: ${subject}. Period: ${a.period} Time runs from: ${a.from}`.slice(0, 158).replace(/\s+\S*$/, '') + '…',
       crumbs: [...crumbsBase, ['Limitation calculator', limUrl], [`Article ${a.article}`, url]],
       body: `<main>
-<nav class="crumbs" aria-label="Breadcrumb"><a href="/tools/">Free tools</a> › <a href="${limUrl}">Limitation calculator</a> › <span>Article ${a.article}</span></nav>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/tools/" data-i18n>Free tools</a> › <a href="${limUrl}">Limitation calculator</a> › <span>Article ${a.article}</span></nav>
 <p class="eyebrow">Limitation Act, 1963 · ${esc(a.division)}${a.part ? ` · ${esc(a.part)}` : ''}</p>
 <h1>Article ${a.article}: ${esc(subject)}</h1>
 <table class="convert facts"><tbody>
@@ -359,7 +361,7 @@ ${cta({ id: 'limitation', short: 'Limitation Act' }, '')}
     description: 'When is the charge sheet due and when does the right to default bail arise? Enter the date of first remand: 60 or 90 days under Section 187(3) BNSS, counted as the Supreme Court held. Free.',
     crumbs: [...crumbsBase, ['Default bail calculator', bailUrl]],
     body: `<main>
-<nav class="crumbs" aria-label="Breadcrumb"><a href="/tools/">Free tools</a> › <span>Default bail calculator</span></nav>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/tools/" data-i18n>Free tools</a> › <span data-i18n>Default bail calculator</span></nav>
 <p class="eyebrow">Free tool</p>
 <h1>Default bail calculator (Section 187(3) BNSS)</h1>
 <p class="lede">The date the charge sheet is due, and the day the right to default bail arises if it is not filed.</p>
@@ -368,7 +370,7 @@ ${cta({ id: 'limitation', short: 'Limitation Act' }, '')}
 <fieldset><legend>The offence is punishable with</legend>
 <label class="radio"><input type="radio" name="offence" value="90" checked /> death, imprisonment for life, or imprisonment of ten years or more — 90 days</label>
 <label class="radio"><input type="radio" name="offence" value="60" /> any other punishment — 60 days</label></fieldset>
-<button type="submit">Calculate</button>
+<button type="submit" data-i18n>Calculate</button>
 </form>
 <div class="tool-result" aria-live="polite"></div>
 <script src="${TOOLS_JS_URL}" defer></script>
@@ -385,7 +387,7 @@ ${cta({ id: 'bnss', short: 'BNSS' }, '187')}
     description: 'Interest on a sum between two dates: simple, or compounded monthly, quarterly or yearly. For money suits, decrees and invoices; Section 34 CPC noted. Free.',
     crumbs: [...crumbsBase, ['Interest calculator', interestUrl]],
     body: `<main>
-<nav class="crumbs" aria-label="Breadcrumb"><a href="/tools/">Free tools</a> › <span>Interest calculator</span></nav>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/tools/" data-i18n>Free tools</a> › <span data-i18n>Interest calculator</span></nav>
 <p class="eyebrow">Free tool</p>
 <h1>Interest calculator</h1>
 <p class="lede">Interest on a sum between two dates — for money suits, decrees, cheque and invoice claims.</p>
@@ -395,7 +397,7 @@ ${cta({ id: 'bnss', short: 'BNSS' }, '187')}
 <div class="row"><label>From (dd/mm/yyyy)<input name="from" inputmode="numeric" placeholder="dd/mm/yyyy" autocomplete="off" required /></label>
 <label>To (dd/mm/yyyy)<input name="to" inputmode="numeric" placeholder="dd/mm/yyyy" autocomplete="off" required /></label></div>
 <label>Interest<select name="compound"><option value="0">Simple</option><option value="12">Compounded monthly</option><option value="4">Compounded quarterly</option><option value="1">Compounded yearly</option></select></label>
-<button type="submit">Calculate interest</button>
+<button type="submit" data-i18n>Calculate interest</button>
 </form>
 <div class="tool-result" aria-live="polite"></div>
 <script src="${TOOLS_JS_URL}" defer></script>
@@ -416,13 +418,13 @@ ${cta({ id: 'cpc', short: 'CPC' }, '')}
     description: 'Type a BNS section, an IPC section or the name of the offence: punishment, cognizable or not, bailable or not, the court that tries it (BNSS First Schedule), with the arrest regime under Section 35 and default bail under Section 187(3) BNSS. Free.',
     crumbs: [...crumbsBase, ['Offence screener', offenceUrl]],
     body: `<main>
-<nav class="crumbs" aria-label="Breadcrumb"><a href="/tools/">Free tools</a> › <span>Offence screener</span></nav>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/tools/" data-i18n>Free tools</a> › <span data-i18n>Offence screener</span></nav>
 <p class="eyebrow">Free tool</p>
 <h1>Offence screener (BNSS First Schedule)</h1>
 <p class="lede">For any offence under the Bharatiya Nyaya Sanhita: the punishment, whether it is cognizable and bailable, the court that tries it — and what that means for arrest and default bail.</p>
 <form class="tool" data-tool="offence" data-src="${OFFENCE_SCHEDULE_URL}">
 <label>BNS section, IPC section or offence<input name="q" placeholder="e.g. 303(2), IPC 420, cheating" autocomplete="off" required /></label>
-<button type="submit">Look up</button>
+<button type="submit" data-i18n>Look up</button>
 <p class="small">Try: ${examples.map(([q, label]) => `<a href="${offenceUrl}?q=${encodeURIComponent(q)}">${esc(q)} · ${esc(label)}</a>`).join(' · ')}</p>
 </form>
 <div class="tool-result" aria-live="polite"></div>
@@ -460,6 +462,7 @@ function build() {
   rmSync(OUT, { recursive: true, force: true });
   mkdirSync(OUT, { recursive: true });
   writeFileSync(join(OUT, 'acts.css'), CSS);
+  writeFileSync(join(OUT, 'i18n.js'), I18N_JS);
   const urls = [];
   const acts = ACT_IDS.map((id) => JSON.parse(readFileSync(join(ROOT, `content/acts/${id}.json`), 'utf8')));
 
@@ -484,7 +487,7 @@ function build() {
         : `Section ${sec.number}, ${act.title} (${act.short}) | VidhiSangh`;
       const [chapterNo, chapterName = ''] = sec.chapter.split(' — ');
       const body = `<main>
-<nav class="crumbs" aria-label="Breadcrumb"><a href="/acts/">Bare Acts</a> › <a href="${actUrl}">${esc(act.short)}</a>${chapterNo ? ` › <span>${esc(chapterNo.replace('CHAPTER', 'Chapter').replace('PART', 'Part'))}</span>` : ''}</nav>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/acts/" data-i18n>Bare Acts</a> › <a href="${actUrl}">${esc(act.short)}</a>${chapterNo ? ` › <span>${esc(chapterNo.replace('CHAPTER', 'Chapter').replace('PART', 'Part'))}</span>` : ''}</nav>
 <p class="eyebrow">${esc(act.title)}</p>
 <h1>${esc(label(sec))}</h1>
 ${repealed}
@@ -526,7 +529,7 @@ ${sectionActions(act, sec.number)}
       chapters.at(-1).sections.push(sec);
     }
     const body = `<main>
-<nav class="crumbs" aria-label="Breadcrumb"><a href="/acts/">Bare Acts</a> › <span>${esc(act.short)}</span></nav>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/acts/" data-i18n>Bare Acts</a> › <span>${esc(act.short)}</span></nav>
 <p class="eyebrow">Bare Act · ${act.sections.length} sections</p>
 <h1>${esc(act.title)} (${esc(act.short)})</h1>
 ${repealed}

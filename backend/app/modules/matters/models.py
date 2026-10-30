@@ -199,6 +199,7 @@ class FeeEventKind(StrEnum):
     HEARING_NON_EFFECTIVE = "hearing_non_effective"  # adjournment / mention
     RETAINER = "retainer"
     MANUAL = "manual"
+    EXPENSE = "expense"                    # out-of-pocket: court fee, process fee, travel — billed at cost
 
 
 class FeeEventStatus(StrEnum):

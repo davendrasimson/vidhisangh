@@ -20,6 +20,7 @@ import {
   FIELD_LABELS,
   KycRequest,
   KycRequestDetail,
+  PortalHandoffResult,
   ReferenceData,
 } from '@core/models/clients.models';
 import { ClientFormComponent } from './client-form.component';
@@ -61,6 +62,10 @@ export class ClientDetailComponent {
   protected readonly showSend = signal(false);
   protected readonly fieldLabels = FIELD_LABELS;
   protected sendForm = { send_to_email: '', message: '', expires_in_days: 14 };
+  /** Portal hand-off (after KYC): the panel, its form and the last result. */
+  protected readonly showHandoff = signal(false);
+  protected handoffForm = { send_to_email: '', message: '' };
+  protected readonly handoff = signal<PortalHandoffResult | null>(null);
   private edits: ClientFormFields = {};
   /** Consent ledger (newest first) and the staff "record consent" mini-form. */
   protected readonly consents = signal<ConsentEvent[]>([]);
@@ -212,6 +217,23 @@ export class ClientDetailComponent {
       this.client.update((cur) => (cur ? { ...cur, kyc_status: 'pending' } : cur));
       this.showSend.set(false);
       this.notify.success(req.sent_to_email ? `KYC form sent to ${req.sent_to_email}. The link is also below to share.` : 'KYC link created — copy it below to share.');
+    } catch { /* handled */ } finally { this.saving.set(false); }
+  }
+
+  // ── Client portal hand-off ──────────────────────────────────────
+  protected async portalHandoff(): Promise<void> {
+    const c = this.client();
+    if (!c) return;
+    this.saving.set(true);
+    try {
+      const result = await firstValueFrom(this.clients.portalHandoff(c.id, {
+        send_to_email: this.handoffForm.send_to_email.trim() || null,
+        message: this.handoffForm.message.trim() || null,
+      }));
+      this.handoff.set(result);
+      const issued = result.items.filter((i) => i.issued).length;
+      if (!issued) this.notify.info('Every open matter already has a live portal link for this address — nothing new was issued.');
+      else this.notify.success(result.emailed ? `${issued} portal ${issued === 1 ? 'link' : 'links'} sent to ${result.sent_to_email}.` : `${issued} portal ${issued === 1 ? 'link' : 'links'} issued — copy them below to share.`);
     } catch { /* handled */ } finally { this.saving.set(false); }
   }
 

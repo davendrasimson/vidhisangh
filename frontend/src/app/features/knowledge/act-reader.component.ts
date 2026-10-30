@@ -1,3 +1,4 @@
+import { TPipe } from '@core/i18n/t.pipe';
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { DomSanitizer } from '@angular/platform-browser';
@@ -45,7 +46,7 @@ interface SectionEntry {
 @Component({
   selector: 'app-act-reader',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatButtonModule, MatIconModule],
+  imports: [FormsModule, RouterLink, MatButtonModule, MatIconModule, TPipe],
   templateUrl: './act-reader.component.html',
   styleUrl: './act-reader.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

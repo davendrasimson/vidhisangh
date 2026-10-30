@@ -2,6 +2,8 @@
 
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
 export type InvoiceDocumentType = 'proforma' | 'tax_invoice' | 'credit_note';
+/** How often a recurring invoice (a retainer, a monthly compliance fee) is raised again. */
+export type InvoiceRecurrence = 'monthly' | 'quarterly' | 'yearly';
 
 export interface LineItem {
   id: string;
@@ -46,6 +48,12 @@ export interface Invoice extends InvoiceTaxFields {
   payment_token: string;
   source_proforma_id: string | null;
   converted_invoice_id: string | null;
+  /** Set on a template: the nightly sweep raises a draft copy on next_issue_on until recur_until. */
+  recurrence?: InvoiceRecurrence | null;
+  recur_until?: string | null;
+  next_issue_on?: string | null;
+  /** Set on a copy: the template it was raised from. */
+  recurring_from_id?: string | null;
   next_follow_up_on: string | null;
   last_follow_up_at: string | null;
   created_at: string;
@@ -73,6 +81,8 @@ export interface InvoiceCreate {
   notes?: string | null;
   line_items?: LineItemCreate[];
   document_type?: InvoiceDocumentType;
+  recurrence?: InvoiceRecurrence | null;
+  recur_until?: string | null;
 }
 
 export interface InvoiceFollowUp {

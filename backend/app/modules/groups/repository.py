@@ -165,6 +165,18 @@ class GroupPostRepository:
         )
         return list(res.scalars().all())
 
+    async def latest_in_groups(self, group_ids: Sequence[uuid.UUID], limit: int) -> list[GroupPost]:
+        """The newest posts across several groups (the member's home-screen card)."""
+        if not group_ids:
+            return []
+        res = await self.session.execute(
+            select(GroupPost)
+            .where(GroupPost.group_id.in_(group_ids), GroupPost.deleted_at.is_(None))
+            .order_by(GroupPost.created_at.desc())
+            .limit(limit)
+        )
+        return list(res.scalars().all())
+
 
 class GroupPostCommentRepository:
     def __init__(self, session: AsyncSession) -> None:

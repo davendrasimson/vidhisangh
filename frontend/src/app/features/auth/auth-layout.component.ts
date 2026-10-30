@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { DailyTipComponent } from './daily-tip.component';
+import { TPipe } from '@core/i18n/t.pipe';
+import { LanguageToggleComponent } from '@core/i18n/language-toggle.component';
 
 /**
  * Split-screen marketing / form layout for unauthenticated pages.
@@ -16,7 +18,7 @@ import { DailyTipComponent } from './daily-tip.component';
   selector: 'app-auth-layout',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, DailyTipComponent],
+  imports: [RouterOutlet, RouterLink, DailyTipComponent, TPipe, LanguageToggleComponent],
   template: `
     <div class="auth">
       <aside class="auth__brand">
@@ -44,31 +46,29 @@ import { DailyTipComponent } from './daily-tip.component';
 
           <div class="auth__motto">
             <p class="auth__motto-sa vs-devanagari" lang="sa">सत्यमेव जयते</p>
-            <p class="auth__motto-en">Truth alone triumphs</p>
+            <p class="auth__motto-en">{{ 'Truth alone triumphs' | t }}</p>
           </div>
 
           <h1 class="vs-display">
-            Built for the practice of law
-            <span>in India.</span>
+            {{ 'Built for the practice of law' | t }}
+            <span>{{ 'in India.' | t }}</span>
           </h1>
 
           <p class="auth__lede">
-            From the district courts to the Supreme Court — research, matters,
-            filings and billing in one secure, multi-tenant platform for
-            advocates, chambers and in-house teams.
+            {{ 'From the district courts to the Supreme Court — research, matters, filings and billing in one secure, multi-tenant platform for advocates, chambers and in-house teams.' | t }}
           </p>
 
           <ul class="auth__features">
-            <li>Bar Council&ndash;verified advocate network</li>
-            <li>Judgments &amp; citations, searched in plain language</li>
-            <li>Cause lists, hearings, matters &amp; billing</li>
-            <li>Data held in India &middot; encrypted and audited</li>
+            <li>{{ 'Bar Council–verified advocate network' | t }}</li>
+            <li>{{ 'Judgments & citations, searched in plain language' | t }}</li>
+            <li>{{ 'Cause lists, hearings, matters & billing' | t }}</li>
+            <li>{{ 'Data held in India · encrypted and audited' | t }}</li>
           </ul>
 
           <p class="auth__courts">
-            Supreme Court &middot; High Courts &middot; District Judiciary &middot; Tribunals
+            {{ 'Supreme Court · High Courts · District Judiciary · Tribunals' | t }}
           </p>
-          <a routerLink="/trust" class="auth__trust">Verified security &amp; privacy status →</a>
+          <a routerLink="/trust" class="auth__trust">{{ 'Verified security & privacy status →' | t }}</a>
         </div>
       </aside>
 
@@ -78,6 +78,7 @@ import { DailyTipComponent } from './daily-tip.component';
             <img class="auth__mark" src="brand-mark.svg?v=4" alt="" width="34" height="34" />
             <span class="auth__wordmark vs-wordmark">Vidhi<b>Sangh</b></span>
           </div>
+          <div class="auth__lang"><vs-language-toggle /></div>
           <router-outlet />
           <app-daily-tip />
         </div>
@@ -86,6 +87,8 @@ import { DailyTipComponent } from './daily-tip.component';
   `,
   styles: [
     `
+      .auth__lang { display: flex; justify-content: flex-end; margin-bottom: 0.75rem; }
+
       .auth {
         display: grid;
         grid-template-columns: 1.05fr 1fr;

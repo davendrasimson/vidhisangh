@@ -64,6 +64,10 @@ export class InvoiceDetailComponent {
   protected print(): void { window.print(); }
   protected async copyPaymentLink(): Promise<void> { await navigator.clipboard.writeText(this.paymentLink()); this.notify.success('Payment link copied.'); }
 
+  protected async stopRecurring(): Promise<void> {
+    if (!window.confirm('Stop raising copies of this invoice? Copies already raised stay as they are.')) return;
+    try { this.invoice.set(await firstValueFrom(this.billing.update(this.id, { recurrence: null }))); this.notify.success('This invoice no longer repeats.'); } catch { /* handled */ }
+  }
   protected async setStatus(status: InvoiceStatus): Promise<void> {
     try { this.invoice.set(await firstValueFrom(this.billing.update(this.id, { status }))); } catch { /* handled */ }
   }

@@ -434,8 +434,10 @@ class FeeArrangementRead(BaseModel):
 
 
 class FeeEventCreate(BaseModel):
-    """A manual billable event (e.g. an opinion, a conference, a drafting fee)."""
+    """A manual billable event (an opinion, a conference, a drafting fee) or an
+    out-of-pocket expense to be billed at cost (court fee, process fee, travel)."""
 
+    kind: Literal[FeeEventKind.MANUAL, FeeEventKind.EXPENSE] = FeeEventKind.MANUAL
     description: str = Field(min_length=1, max_length=300)
     amount: Decimal = Field(ge=0)
     occurred_on: date | None = None

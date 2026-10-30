@@ -68,6 +68,12 @@ export interface GroupPost {
   liked: boolean;
 }
 
+/** A post on the home screen's "latest in your groups" card: the post plus its group. */
+export interface GroupFeedItem extends GroupPost {
+  group_name: string;
+  group_slug: string;
+}
+
 export interface GroupComment {
   id: string;
   group_post_id: string;

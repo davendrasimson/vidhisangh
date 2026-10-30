@@ -131,6 +131,13 @@ class GroupPostRead(BaseModel):
     liked: bool = False
 
 
+class GroupFeedItem(GroupPostRead):
+    """A post on the home screen's "latest in your groups" card: the post plus its group."""
+
+    group_name: str
+    group_slug: str
+
+
 # ─── Group post comments ────────────────────────────────────────────
 class GroupCommentCreate(BaseModel):
     body: str = Field(min_length=1, max_length=3000)

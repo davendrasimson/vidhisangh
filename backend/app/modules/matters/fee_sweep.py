@@ -68,7 +68,7 @@ def _event(arr: MatterFeeArrangement, **fields) -> MatterFeeEvent:
 
 
 async def sweep(session: AsyncSession, today: date) -> dict[str, int]:
-    """Raise due retainer periods and dated milestones. Caller commits."""
+    """Raise due retainer periods, dated milestones and recurring-invoice copies. Caller commits."""
     live = (
         select(MatterFeeArrangement)
         .join(Matter, Matter.id == MatterFeeArrangement.matter_id)
@@ -124,4 +124,6 @@ async def sweep(session: AsyncSession, today: date) -> dict[str, int]:
         milestones += 1
 
     await session.flush()
-    return {"retainer_periods": retainers, "dated_milestones": milestones}
+    from app.modules.billing.recurring import raise_due   # billing imports matters; resolve late
+    recurring = await raise_due(session, today)
+    return {"retainer_periods": retainers, "dated_milestones": milestones, "recurring_invoices": recurring}

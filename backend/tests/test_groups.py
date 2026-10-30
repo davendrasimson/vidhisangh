@@ -302,3 +302,32 @@ async def test_firm_page_records_tenant(client: AsyncClient, strong_password: st
 async def _lookup_group(client: AsyncClient, headers: dict) -> dict:
     mine = await client.get(f"{API}/groups/mine", headers=headers)
     return mine.json()[0]
+
+
+async def test_latest_posts_across_my_groups(client: AsyncClient, strong_password: str) -> None:
+    h1, _ = await _user(client, "Firm C", "owner@firmc.co", strong_password)
+    h2, me2 = await _user(client, "Firm D", "reader@firmd.co", strong_password)
+    mine = await _create_group(client, h1, name="Ask a Senior")
+    other = await _create_group(client, h1, name="Elsewhere Circle")
+    await client.post(f"{API}/groups/{mine['id']}/join", headers=h2)
+    for i in range(4):
+        assert (await client.post(f"{API}/groups/{mine['id']}/posts", headers=h1, json={"content": f"Post {i}"})).status_code == 201
+    await client.post(f"{API}/groups/{other['id']}/posts", headers=h1, json={"content": "Not for the reader"})
+    liked = (await client.post(f"{API}/groups/{mine['id']}/posts", headers=h2, json={"content": "The reader's own post"})).json()
+    await client.put(f"{API}/groups/posts/{liked['id']}/like", headers=h2)
+
+    resp = await client.get(f"{API}/groups/mine/posts", headers=h2)
+    assert resp.status_code == 200, resp.text
+    items = resp.json()
+    assert len(items) == 3                                   # 3 by default, newest first
+    assert all(i["group_name"] == "Ask a Senior" and i["group_slug"] == mine["slug"] for i in items)
+    assert all(i["content"] != "Not for the reader" for i in items)
+    everything = (await client.get(f"{API}/groups/mine/posts", headers=h2, params={"limit": 10})).json()
+    assert sorted(i["content"] for i in everything) == sorted([f"Post {i}" for i in range(4)] + ["The reader's own post"])
+    stamps = [i["created_at"] for i in everything]
+    assert stamps == sorted(stamps, reverse=True)
+    by_content = {i["content"]: i for i in everything}
+    assert by_content["The reader's own post"]["liked"] is True and by_content["Post 0"]["liked"] is False
+    # Not a member of anything: an empty card, not an error.
+    h3, _ = await _user(client, "Firm E", "lonely@firme.co", strong_password)
+    assert (await client.get(f"{API}/groups/mine/posts", headers=h3)).json() == []

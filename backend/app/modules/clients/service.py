@@ -45,6 +45,9 @@ from app.modules.clients.schemas import (
     KycApply,
     KycRequestCreate,
     KycSubmission,
+    PortalHandoffCreate,
+    PortalHandoffItem,
+    PortalHandoffResult,
     PrivacyNoticeSummary,
 )
 from app.modules.identity.models import User
@@ -188,6 +191,84 @@ class ClientService:
         client = await self._require(client_id)
         client.deleted_at = datetime.now(UTC)
         await self.session.flush()
+
+    # ── Client portal hand-off ───────────────────────────────────
+    async def portal_handoff(self, client_id: uuid.UUID, data: PortalHandoffCreate) -> PortalHandoffResult:
+        """After KYC: one portal link per open matter, emailed to the client in one message.
+
+        A matter that already has a live link for this email is listed but not
+        re-issued (revoke it on the matter's portal page to get a new one).
+        """
+        from app.modules.matters.models import Matter, MatterStatus
+        from app.modules.portal.models import PortalAccess
+        from app.modules.portal.schemas import PortalAccessCreate
+        from app.modules.portal.service import FirmPortalService
+
+        client = await self._require(client_id)
+        if client.kyc_status != KycStatus.VERIFIED:
+            raise ValidationError("Complete and apply the client's KYC before handing them over to the portal.")
+        email = (str(data.send_to_email) if data.send_to_email else None) or client.email or client.contact_person_email
+        if not email:
+            raise ValidationError("The client has no email on record — add one, or give one here.")
+        matters = list((await self.session.execute(
+            select(Matter).where(
+                Matter.tenant_id == self.tenant_id, Matter.client_id == client_id,
+                Matter.deleted_at.is_(None), Matter.status != MatterStatus.CLOSED,
+            ).order_by(Matter.created_at)
+        )).scalars().all())
+        if not matters:
+            raise ValidationError("This client has no open matter to share on the portal.")
+        now = datetime.now(UTC)
+        live = {a.matter_id: a for a in (await self.session.execute(
+            select(PortalAccess).where(
+                PortalAccess.tenant_id == self.tenant_id, PortalAccess.matter_id.in_([m.id for m in matters]),
+                PortalAccess.client_email == email, PortalAccess.is_active.is_(True), PortalAccess.deleted_at.is_(None),
+                (PortalAccess.expires_at.is_(None)) | (PortalAccess.expires_at > now),
+            )
+        )).scalars().all()}
+        portal = FirmPortalService(self.session, self.user_id, self.tenant_id)
+        items: list[PortalHandoffItem] = []
+        for m in matters:
+            title = m.cause_title or m.title
+            if (existing := live.get(m.id)) is not None:
+                items.append(PortalHandoffItem(matter_id=m.id, matter_number=m.matter_number, title=title, access_id=existing.id,
+                                               url=None, expires_at=existing.expires_at, issued=False))
+                continue
+            access = await portal.create_access(PortalAccessCreate(matter_id=m.id, client_name=client.display_name, client_email=email))
+            items.append(PortalHandoffItem(matter_id=m.id, matter_number=m.matter_number, title=title, access_id=access.id,
+                                           url=portal_url(access.token), expires_at=access.expires_at, issued=True))
+        emailed = await self._email_portal_links(client, email, [i for i in items if i.issued], data.message)
+        return PortalHandoffResult(client_id=client.id, sent_to_email=email, emailed=emailed, items=items)
+
+    async def _email_portal_links(self, client: Client, email: str, items: list[PortalHandoffItem], message: str | None) -> bool:
+        if not items:
+            return False
+        firm = await self.session.scalar(select(Tenant.name).where(Tenant.id == self.tenant_id))
+        lines = "\n".join(f"- {i.matter_number} {i.title}: {i.url}" for i in items)
+        expiry = min((i.expires_at for i in items if i.expires_at), default=None)
+        # Portal access serves the engagement itself (DPDP s.7), so it goes on the
+        # basis of the contract, like the KYC form — not marketing consent.
+        outcome = await send_to_client(
+            self.session,
+            client_id=client.id,
+            channel=NotificationChannel.EMAIL,
+            to_email=email,
+            to_name=client.display_name,
+            subject=f"{firm or 'Your advocate'} — your client portal",
+            body=(
+                f"Dear {client.display_name},\n\n"
+                f"{firm or 'We'} have opened your client portal. Each link below shows one matter: its "
+                f"hearings, the documents shared with you, updates and anything awaiting your approval.\n\n"
+                + (f"{message}\n\n" if message else "")
+                + lines + "\n"
+                + (f"\nThe links expire on {expiry.strftime('%d/%m/%Y')}.\n" if expiry else "")
+            ),
+            link=items[0].url,
+            basis=str(LawfulBasis.CONTRACT),
+        )
+        if outcome != "sent":
+            log.warning("portal_handoff_email_not_sent", outcome=outcome, client_id=str(client.id))
+        return outcome == "sent"
 
     # ── Erasure (DPDP s.12) ───────────────────────────────────────
     async def legal_holds(self, client_id: uuid.UUID) -> list[dict]:
@@ -499,6 +580,13 @@ class ClientService:
         await self.session.flush()
         await self.session.refresh(client)
         return client
+
+
+def portal_url(token: str | None) -> str | None:
+    """The client's portal link for a freshly issued access (raw token only)."""
+    if not token:
+        return None
+    return f"{settings.PUBLIC_APP_URL.rstrip('/')}/portal/{token}"
 
 
 def kyc_url(token: str | None) -> str | None:

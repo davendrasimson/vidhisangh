@@ -17,6 +17,8 @@ import { countStep } from '@core/analytics/funnel';
 import { rememberNext, takeNext } from '@core/navigation/after-signup';
 import { PROFESSIONAL_ROLES } from '../professional-roles';
 import { WhatsappLoginComponent } from '../whatsapp-login.component';
+import { TPipe } from '@core/i18n/t.pipe';
+import { UiLanguageService } from '@core/i18n/ui-language.service';
 import {
   PasswordStrengthComponent,
   STRONG_PASSWORD,
@@ -34,7 +36,7 @@ import {
   imports: [
     ReactiveFormsModule, RouterLink, WhatsappLoginComponent,
     MatFormFieldModule, MatInputModule, MatButtonModule, MatCheckboxModule,
-    MatIconModule, MatProgressBarModule, MatSelectModule, PasswordStrengthComponent,
+    MatIconModule, MatProgressBarModule, MatSelectModule, PasswordStrengthComponent, TPipe,
   ],
   templateUrl: './register.component.html',
 })
@@ -42,6 +44,8 @@ export class RegisterComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly i18n = inject(UiLanguageService);
+  protected readonly lang = this.i18n.lang;
 
   protected readonly roles = PROFESSIONAL_ROLES;
   protected readonly submitting = signal(false);
@@ -91,7 +95,7 @@ export class RegisterComponent implements OnInit {
     try {
       await this.auth.startSso('google');
     } catch (err) {
-      this.errorMsg.set(problemMessage(err, 'Could not open Google sign-in. Please try again.'));
+      this.errorMsg.set(problemMessage(err, this.i18n.t('Could not open Google sign-in. Please try again.')));
     }
   }
 
@@ -113,7 +117,7 @@ export class RegisterComponent implements OnInit {
       const result = await firstValueFrom(this.auth.resendPublicVerification(this.form.controls.email.value));
       this.infoMsg.set(result.detail);
     } catch (err) {
-      this.errorMsg.set(problemMessage(err, 'Could not resend. Please try again.'));
+      this.errorMsg.set(problemMessage(err, this.i18n.t('Could not resend. Please try again.')));
     } finally { this.submitting.set(false); }
   }
 
@@ -121,12 +125,12 @@ export class RegisterComponent implements OnInit {
   protected missing(): string[] {
     const c = this.form.controls;
     const out: string[] = [];
-    if (c.full_name.invalid) out.push('your full name');
-    if (c.email.invalid) out.push('a valid email address');
-    if (c.professional_role.invalid) out.push('what best describes you');
-    if (c.password.invalid) out.push('a password of at least 8 characters with upper and lower case, a number and a symbol');
-    if (c.organisation_name.invalid) out.push('your firm or chamber name');
-    if (c.accept_terms.invalid) out.push('agreement to the Terms of Service');
+    if (c.full_name.invalid) out.push(this.i18n.t('your full name'));
+    if (c.email.invalid) out.push(this.i18n.t('a valid email address'));
+    if (c.professional_role.invalid) out.push(this.i18n.t('what best describes you'));
+    if (c.password.invalid) out.push(this.i18n.t('a password of at least 8 characters with upper and lower case, a number and a symbol'));
+    if (c.organisation_name.invalid) out.push(this.i18n.t('your firm or chamber name'));
+    if (c.accept_terms.invalid) out.push(this.i18n.t('agreement to the Terms of Service'));
     return out;
   }
 
@@ -136,7 +140,7 @@ export class RegisterComponent implements OnInit {
       // The button stays tappable: a silent disabled button on a phone looks
       // like "nothing happens". Say what is missing, next to the button.
       this.form.markAllAsTouched();
-      this.errorMsg.set(`Please add ${this.missing().join('; ')}.`);
+      this.errorMsg.set(`${this.i18n.t('Please add')} ${this.missing().join('; ')}.`);
       return;
     }
     this.submitting.set(true);
@@ -162,7 +166,7 @@ export class RegisterComponent implements OnInit {
       await firstValueFrom(this.auth.loadCurrentUser());
       await this.router.navigateByUrl(takeNext() ?? '/app/dashboard');
     } catch (err) {
-      this.errorMsg.set(problemMessage(err, 'Registration failed. Please try again.'));
+      this.errorMsg.set(problemMessage(err, this.i18n.t('Registration failed. Please try again.')));
     } finally {
       this.submitting.set(false);
     }

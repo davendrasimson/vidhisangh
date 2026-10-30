@@ -184,3 +184,22 @@ export const FIELD_LABELS: Record<string, string> = {
   tds_applicable: 'Deducts TDS', tds_section: 'TDS section', tds_rate: 'TDS rate (%)', tan: 'TAN',
   msme_udyam: 'Udyam (MSME) number', notes: 'Notes', tags: 'Tags',
 };
+
+/** Client portal hand-off after KYC: one link per open matter. */
+export interface PortalHandoffItem {
+  matter_id: string;
+  matter_number: string;
+  title: string;
+  access_id: string;
+  /** Only a link issued by this call carries its URL (the token is never stored). */
+  url: string | null;
+  expires_at: string | null;
+  issued: boolean;
+}
+
+export interface PortalHandoffResult {
+  client_id: string;
+  sent_to_email: string;
+  emailed: boolean;
+  items: PortalHandoffItem[];
+}

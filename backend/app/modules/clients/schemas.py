@@ -6,7 +6,7 @@ import uuid
 from datetime import date, datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.modules.clients.models import ClientKind, ClientStatus, GstTreatment, KycRequestStatus, KycStatus, LawfulBasis
 from app.modules.privacy.models import ConsentPurpose, ConsentSource
@@ -294,3 +294,29 @@ class ClientEraseResult(BaseModel):
     erased: bool
     unlinked: dict[str, int]
     legal_hold_overridden: bool = False
+
+
+# ── Client portal hand-off ─────────────────────────────────────────
+class PortalHandoffCreate(BaseModel):
+    """Hand a KYC-verified client over to the client portal: one link per open matter."""
+
+    send_to_email: EmailStr | None = None   # left out: the client's email on record
+    message: str | None = Field(default=None, max_length=2000)
+
+
+class PortalHandoffItem(BaseModel):
+    matter_id: uuid.UUID
+    matter_number: str
+    title: str
+    access_id: uuid.UUID
+    # Only a link issued by this call carries its URL (the raw token is never stored).
+    url: str | None
+    expires_at: datetime | None
+    issued: bool            # False: a live link for this matter already existed
+
+
+class PortalHandoffResult(BaseModel):
+    client_id: uuid.UUID
+    sent_to_email: str
+    emailed: bool
+    items: list[PortalHandoffItem]

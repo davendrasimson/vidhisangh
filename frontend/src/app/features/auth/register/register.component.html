@@ -1,11 +1,11 @@
 <div class="w-full">
-  <h2 class="vs-display text-2xl md:text-3xl font-semibold text-content">Join VidhiSangh</h2>
-  <p class="text-sm text-content-muted mt-1 mb-4 md:mb-6">The free professional network for India's legal fraternity: advocates, judges, law students, munshi and firms.</p>
+  <h2 class="vs-display text-2xl md:text-3xl font-semibold text-content">{{ 'Join VidhiSangh' | t }}</h2>
+  <p class="text-sm text-content-muted mt-1 mb-4 md:mb-6">{{ "The free professional network for India's legal fraternity: advocates, judges, law students, munshi and firms." | t }}</p>
 
   @if (whatsappAvailable() && !useEmail()) {
     <app-whatsapp-login mode="join" />
     <div class="flex items-center gap-3 my-5 text-xs text-content-muted" aria-hidden="true">
-      <span class="h-px flex-1 bg-line"></span>or<span class="h-px flex-1 bg-line"></span>
+      <span class="h-px flex-1 bg-line"></span>{{ 'or' | t }}<span class="h-px flex-1 bg-line"></span>
     </div>
     @if (errorMsg()) {
       <div class="mb-3 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">{{ errorMsg() }}</div>
@@ -18,18 +18,24 @@
             <path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>
             <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/>
             <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/>
-          </svg>Continue with Google
+          </svg>{{ 'Continue with Google' | t }}
         </button>
       }
       <button mat-stroked-button type="button" class="w-full h-11" (click)="showEmailForm()">
-        <mat-icon class="material-icons-outlined">mail</mat-icon> Sign up with email instead
+        <mat-icon class="material-icons-outlined">mail</mat-icon> {{ 'Sign up with email instead' | t }}
       </button>
     </div>
     @if (googleAvailable()) {
       <p class="text-xs text-content-muted mt-3">
-        By continuing with Google you agree to the
-        <a routerLink="/terms" target="_blank" rel="noopener" class="text-brand underline">Terms of Service</a>
-        and have read the <a routerLink="/privacy" target="_blank" rel="noopener" class="text-brand underline">Privacy Notice</a>.
+        @if (lang() === 'hi') {
+          Google से जारी रखकर आप
+          <a routerLink="/terms" target="_blank" rel="noopener" class="text-brand underline">सेवा की शर्तों</a>
+          से सहमत होते हैं और आपने <a routerLink="/privacy" target="_blank" rel="noopener" class="text-brand underline">गोपनीयता सूचना</a> पढ़ ली है।
+        } @else {
+          By continuing with Google you agree to the
+          <a routerLink="/terms" target="_blank" rel="noopener" class="text-brand underline">Terms of Service</a>
+          and have read the <a routerLink="/privacy" target="_blank" rel="noopener" class="text-brand underline">Privacy Notice</a>.
+        }
       </p>
     }
   } @else {
@@ -37,65 +43,76 @@
       <p role="status" class="mb-4 rounded-lg bg-success/10 p-3 text-sm text-content">{{ infoMsg() }}</p>
     }
     @if (pendingEmail()) {
-      <h3 class="text-xl font-semibold mb-3">Check your email</h3>
-      <p class="text-sm text-content-muted mb-4">Open the verification link sent to {{ form.controls.email.value }} to activate your account. Check your spam folder too.</p>
+      <h3 class="text-xl font-semibold mb-3">{{ 'Check your email' | t }}</h3>
+      <p class="text-sm text-content-muted mb-4">
+        @if (lang() === 'hi') {
+          {{ form.controls.email.value }} पर भेजा गया सत्यापन लिंक खोलकर अपना खाता सक्रिय करें। स्पैम फ़ोल्डर भी देखें।
+        } @else {
+          Open the verification link sent to {{ form.controls.email.value }} to activate your account. Check your spam folder too.
+        }
+      </p>
       @if (errorMsg()) {
         <div class="mb-3 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">{{ errorMsg() }}</div>
       }
-      <button mat-stroked-button type="button" [disabled]="submitting()" (click)="resendVerification()">Resend verification link</button>
+      <button mat-stroked-button type="button" [disabled]="submitting()" (click)="resendVerification()">{{ 'Resend verification link' | t }}</button>
     } @else {
       <form [formGroup]="form" (ngSubmit)="submit()" class="grid gap-1">
         <mat-form-field appearance="outline">
-          <mat-label>Your full name</mat-label>
+          <mat-label>{{ 'Your full name' | t }}</mat-label>
           <input matInput formControlName="full_name" autocomplete="name" maxlength="200" required />
-          <mat-error>Enter your full name (at least 2 characters).</mat-error>
+          <mat-error>{{ 'Enter your full name (at least 2 characters).' | t }}</mat-error>
         </mat-form-field>
 
         <mat-form-field appearance="outline">
-          <mat-label>Email</mat-label>
+          <mat-label>{{ 'Email' | t }}</mat-label>
           <input matInput type="email" formControlName="email" autocomplete="email" required />
-          <mat-error>Enter a valid email address.</mat-error>
+          <mat-error>{{ 'Enter a valid email address.' | t }}</mat-error>
         </mat-form-field>
 
         <mat-form-field appearance="outline">
-          <mat-label>I am a</mat-label>
+          <mat-label>{{ 'I am a' | t }}</mat-label>
           <mat-select formControlName="professional_role" required>
-            @for (r of roles; track r.value) { <mat-option [value]="r.value">{{ r.label }}</mat-option> }
+            @for (r of roles; track r.value) { <mat-option [value]="r.value">{{ r.label | t }}</mat-option> }
           </mat-select>
-          <mat-error>Choose what best describes you.</mat-error>
+          <mat-error>{{ 'Choose what best describes you.' | t }}</mat-error>
         </mat-form-field>
 
         <mat-form-field appearance="outline">
-          <mat-label>Password</mat-label>
+          <mat-label>{{ 'Password' | t }}</mat-label>
           <input matInput [type]="hidePassword() ? 'password' : 'text'" formControlName="password" autocomplete="new-password" required />
-          <button mat-icon-button matSuffix type="button" (click)="hidePassword.set(!hidePassword())" aria-label="Toggle password visibility">
+          <button mat-icon-button matSuffix type="button" (click)="hidePassword.set(!hidePassword())" [attr.aria-label]="'Toggle password visibility' | t">
             <mat-icon class="material-icons-outlined">{{ hidePassword() ? 'visibility' : 'visibility_off' }}</mat-icon>
           </button>
           @if (form.controls.password.hasError('pattern') && form.controls.password.touched) {
-            <mat-error>At least 8 chars with upper &amp; lower case, a number, and a symbol.</mat-error>
+            <mat-error>{{ 'At least 8 chars with upper & lower case, a number, and a symbol.' | t }}</mat-error>
           }
         </mat-form-field>
         <vs-password-strength [password]="form.controls.password.value" />
 
         <mat-checkbox formControlName="firm" (change)="changeFirm()" class="text-sm mb-1">
-          I am registering a law firm or chamber
+          {{ 'I am registering a law firm or chamber' | t }}
         </mat-checkbox>
         @if (form.controls.firm.value) {
           <mat-form-field appearance="outline">
-            <mat-label>Firm / chamber name</mat-label>
+            <mat-label>{{ 'Firm / chamber name' | t }}</mat-label>
             <input matInput formControlName="organisation_name" autocomplete="organization" maxlength="200" required />
-            <mat-error>Enter your firm or chamber name (at least 2 characters).</mat-error>
+            <mat-error>{{ 'Enter your firm or chamber name (at least 2 characters).' | t }}</mat-error>
           </mat-form-field>
           <mat-checkbox formControlName="add_sample_data" class="text-sm mb-2">
-            Add a guided sample workspace with matters, hearings, documents, clients, CRM, billing and calendar entries.
+            {{ 'Add a guided sample workspace with matters, hearings, documents, clients, CRM, billing and calendar entries.' | t }}
           </mat-checkbox>
         }
 
         <mat-checkbox formControlName="accept_terms" class="text-sm mb-2">
-          I agree to the
-          <a routerLink="/terms" target="_blank" rel="noopener" class="text-brand underline" (click)="$event.stopPropagation()">Terms of Service</a>
-          and have read the
-          <a routerLink="/privacy" target="_blank" rel="noopener" class="text-brand underline" (click)="$event.stopPropagation()">Privacy Notice</a>.
+          @if (lang() === 'hi') {
+            मैं <a routerLink="/terms" target="_blank" rel="noopener" class="text-brand underline" (click)="$event.stopPropagation()">सेवा की शर्तों</a>
+            से सहमत हूँ और मैंने <a routerLink="/privacy" target="_blank" rel="noopener" class="text-brand underline" (click)="$event.stopPropagation()">गोपनीयता सूचना</a> पढ़ ली है।
+          } @else {
+            I agree to the
+            <a routerLink="/terms" target="_blank" rel="noopener" class="text-brand underline" (click)="$event.stopPropagation()">Terms of Service</a>
+            and have read the
+            <a routerLink="/privacy" target="_blank" rel="noopener" class="text-brand underline" (click)="$event.stopPropagation()">Privacy Notice</a>.
+          }
         </mat-checkbox>
 
         <!-- Errors and progress sit next to the button: on a phone the top of
@@ -109,19 +126,19 @@
           <mat-progress-bar mode="indeterminate" class="mb-2"></mat-progress-bar>
         }
         <button mat-flat-button color="primary" type="submit" [disabled]="submitting()" class="h-11">
-          {{ submitting() ? 'Creating account…' : 'Create account' }}
+          {{ (submitting() ? 'Creating account…' : 'Create account') | t }}
         </button>
       </form>
       @if (whatsappAvailable()) {
         <button mat-button type="button" class="w-full mt-2" (click)="useEmail.set(false)">
-          Use WhatsApp instead (no password)
+          {{ 'Use WhatsApp instead (no password)' | t }}
         </button>
       }
     }
   }
 
   <p class="text-sm text-content-muted mt-6 text-center">
-    Already have an account?
-    <a routerLink="/auth/login" class="text-brand font-medium">Sign in</a>
+    {{ 'Already have an account?' | t }}
+    <a routerLink="/auth/login" class="text-brand font-medium">{{ 'Sign in' | t }}</a>
   </p>
 </div>

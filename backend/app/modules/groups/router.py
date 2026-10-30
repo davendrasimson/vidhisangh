@@ -24,6 +24,7 @@ from app.modules.groups.schemas import (
     GroupCommentRead,
     GroupCreate,
     GroupPostCreate,
+    GroupFeedItem,
     GroupPostRead,
     GroupPreview,
     GroupRead,
@@ -92,6 +93,25 @@ async def discover(
 async def my_groups(current: CurrentUserDep, session: TenantSessionDep) -> list[GroupRead]:
     rows = await _svc(current, session).my_groups()
     return [_to_read(g, m) for g, m in rows]
+
+
+@router.get(
+    "/mine/posts",
+    dependencies=[require_permission("group:read")],
+    response_model=list[GroupFeedItem],
+    summary="The newest posts across the groups I belong to (home screen)",
+)
+async def latest_in_my_groups(
+    current: CurrentUserDep,
+    session: TenantSessionDep,
+    limit: Annotated[int, Query(ge=1, le=20)] = 3,
+) -> list[GroupFeedItem]:
+    rows, liked = await _svc(current, session).latest_in_my_groups(limit)
+    items: list[GroupFeedItem] = []
+    for post, group in rows:
+        base = GroupPostRead.model_validate(post)
+        items.append(GroupFeedItem(**{**base.model_dump(), "liked": post.id in liked}, group_name=group.name, group_slug=group.slug))
+    return items
 
 
 @router.get(

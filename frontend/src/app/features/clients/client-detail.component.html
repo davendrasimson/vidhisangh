@@ -32,6 +32,9 @@
       </div>
       <div class="flex flex-wrap gap-2">
         <button mat-stroked-button (click)="showSend.set(!showSend())"><mat-icon class="material-icons-outlined">send</mat-icon> Send KYC form</button>
+        @if (c.kyc_status === 'verified') {
+          <button mat-stroked-button title="Issue a client-portal link for every open matter and email them in one message" (click)="showHandoff.set(!showHandoff())"><mat-icon class="material-icons-outlined">vpn_key</mat-icon> Hand over to portal</button>
+        }
         <button mat-flat-button color="primary" [disabled]="!dirty() || saving()" (click)="save()">{{ saving() ? 'Saving…' : 'Save changes' }}</button>
         <button mat-icon-button title="Export this client's data (JSON, DPDP s.11)" (click)="exportData()"><mat-icon class="material-icons-outlined">download</mat-icon></button>
         <button mat-icon-button title="Delete client (kept for the retention period)" (click)="remove()"><mat-icon class="material-icons-outlined">delete</mat-icon></button>
@@ -147,6 +150,43 @@
           <button mat-button (click)="showSend.set(false)">Cancel</button>
           <button mat-flat-button color="primary" [disabled]="saving()" (click)="sendKyc()">{{ saving() ? 'Sending…' : 'Create link & send' }}</button>
         </div>
+      </section>
+    }
+
+    <!-- ── Client portal hand-off (after KYC) ───────────────────── -->
+    @if (showHandoff()) {
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-5">
+        <h2 class="font-semibold mb-1">Hand over to the client portal</h2>
+        <p class="text-sm text-content-muted mb-3">KYC is verified. One private link per open matter — hearings, shared documents, updates and approvals — goes to the client in a single email. A matter that already has a live link for this address is listed, not re-issued.</p>
+        <div class="grid gap-3 sm:grid-cols-3">
+          <label class="grid gap-1"><span class="text-sm text-content-muted">Send to email</span>
+            <input class="vs-input" type="email" [(ngModel)]="handoffForm.send_to_email" [placeholder]="c.email || c.contact_person_email || 'Client email'" /></label>
+          <label class="grid gap-1 sm:col-span-2"><span class="text-sm text-content-muted">Message to the client (optional)</span>
+            <textarea class="vs-input" rows="2" [(ngModel)]="handoffForm.message" placeholder="e.g. You can follow each of your matters here and approve drafts when we ask."></textarea></label>
+        </div>
+        <div class="flex justify-end gap-2 mt-3">
+          <button mat-button (click)="showHandoff.set(false)">Close</button>
+          <button mat-flat-button color="primary" [disabled]="saving()" (click)="portalHandoff()">{{ saving() ? 'Issuing…' : 'Issue links & send' }}</button>
+        </div>
+        @if (handoff(); as h) {
+          <div class="mt-4 border-t border-line pt-3">
+            <p class="text-sm text-content-muted mb-2">{{ h.emailed ? 'Sent to ' + h.sent_to_email + '.' : 'Not emailed (' + h.sent_to_email + ') — share the links yourself.' }}</p>
+            @for (item of h.items; track item.access_id) {
+              <div class="flex flex-wrap items-center gap-2 py-1.5 border-t border-line first:border-0 text-sm">
+                <span class="font-mono text-xs text-content-muted">{{ item.matter_number }}</span>
+                <span class="flex-1 min-w-0 truncate">{{ item.title }}</span>
+                @if (item.issued && item.url) {
+                  <span class="vs-chip text-success">New link</span>
+                  <button mat-button (click)="copyLink(item.url)"><mat-icon class="material-icons-outlined">content_copy</mat-icon> Copy</button>
+                } @else {
+                  <span class="vs-chip">Live link already issued</span>
+                  <a mat-button [routerLink]="['/app/matters', item.matter_id, 'portal']">Manage on the matter</a>
+                }
+                @if (item.expires_at) { <span class="text-xs text-content-muted">expires {{ item.expires_at | date }}</span> }
+              </div>
+            }
+          </div>
+        }
       </section>
     }
 

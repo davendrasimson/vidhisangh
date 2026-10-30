@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { ThemeService } from '@core/services/theme.service';
+import { UiLanguageService } from '@core/i18n/ui-language.service';
 
 /** Appearance settings: light/dark/system theme + brand accent colour.
  *  Mirrors the quick controls in the top bar, in one configurable place. */
@@ -12,7 +13,16 @@ import { ThemeService } from '@core/services/theme.service';
   template: `
     <div class="mx-auto w-full">
       <h1 class="text-2xl font-bold text-content mb-1">Appearance</h1>
-      <p class="text-content-muted mb-6">Choose your theme and accent colour. Saved on this device.</p>
+      <p class="text-content-muted mb-6">Choose your language, theme and accent colour. Saved on this device.</p>
+
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
+        <h2 class="font-semibold text-content mb-1">Interface language · इंटरफ़ेस की भाषा</h2>
+        <p class="text-sm text-content-muted mb-4">Sign-up, the diary and the bare-act reader follow this; the rest of the app is in English for now, and the law texts stay as published.</p>
+        <div class="grid grid-cols-2 gap-3">
+          <button type="button" class="vs-mode" [class.vs-mode--active]="i18n.lang() === 'en'" (click)="i18n.set('en')"><mat-icon class="material-icons-outlined">translate</mat-icon><span>English</span></button>
+          <button type="button" class="vs-mode" [class.vs-mode--active]="i18n.lang() === 'hi'" (click)="i18n.set('hi')" lang="hi"><mat-icon class="material-icons-outlined">translate</mat-icon><span>हिन्दी</span></button>
+        </div>
+      </section>
 
       <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
         <h2 class="font-semibold text-content mb-1">Theme</h2>
@@ -131,6 +141,7 @@ import { ThemeService } from '@core/services/theme.service';
 })
 export class AppearanceSettingsComponent {
   protected readonly theme = inject(ThemeService);
+  protected readonly i18n = inject(UiLanguageService);
   protected readonly modes = [
     { key: 'light', label: 'Light', icon: 'light_mode' },
     { key: 'dark', label: 'Dark', icon: 'dark_mode' },

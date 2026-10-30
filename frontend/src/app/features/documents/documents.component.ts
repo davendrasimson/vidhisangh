@@ -350,6 +350,7 @@ export class DocumentsComponent implements OnInit {
       coram: [p?.designation, this.auth.user()?.full_name].filter(Boolean).join(' '),
       judgeName: this.auth.user()?.full_name ?? '',
       judgeDesignation: p?.designation ?? '',
+      officerCode: p?.judicial_officer_code ?? '',
       matterTitle: this.matterTitle() ?? '',
     };
   }

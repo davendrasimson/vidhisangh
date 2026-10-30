@@ -10,6 +10,8 @@ import { NotificationService } from '@core/services/notification.service';
 import { AgendaItem, EventType } from '@core/models/calendar.models';
 import { VsDateInputComponent } from '@shared/date-input/vs-date-input.component';
 import { WhatsappRemindersComponent } from '@shared/whatsapp-reminders/whatsapp-reminders.component';
+import { TPipe } from '@core/i18n/t.pipe';
+import { UiLanguageService } from '@core/i18n/ui-language.service';
 
 interface DayGroup {
   dateIso: string;
@@ -23,13 +25,14 @@ interface CalendarDay extends DayGroup { date: Date; inMonth: boolean; isToday: 
   selector: 'app-calendar',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [VsDateInputComponent, FormsModule, DatePipe, RouterLink, MatIconModule, MatButtonModule, WhatsappRemindersComponent],
+  imports: [VsDateInputComponent, FormsModule, DatePipe, RouterLink, MatIconModule, MatButtonModule, WhatsappRemindersComponent, TPipe],
   templateUrl: './calendar.component.html',
   styleUrl: './calendar.component.scss',
 })
 export class CalendarComponent implements OnInit {
   private readonly cal = inject(CalendarService);
   private readonly notify = inject(NotificationService);
+  private readonly i18n = inject(UiLanguageService);
 
   protected readonly agenda = signal<AgendaItem[]>([]);
   protected readonly loading = signal(true);
@@ -151,7 +154,7 @@ export class CalendarComponent implements OnInit {
       );
       this.form = this.blank();
       this.showForm.set(false);
-      this.notify.success('Event added.');
+      this.notify.success(this.i18n.t('Event added.'));
       await this.load();
     } catch {
       /* handled */
@@ -171,7 +174,7 @@ export class CalendarComponent implements OnInit {
   }
 
   protected itemTime(item: AgendaItem): string {
-    return item.all_day ? 'All day' : this.format(new Date(item.start_at), { hour: 'numeric', minute: '2-digit' });
+    return item.all_day ? this.i18n.t('All day') : this.format(new Date(item.start_at), { hour: 'numeric', minute: '2-digit' });
   }
 
   protected kindLabel(item: AgendaItem): string {

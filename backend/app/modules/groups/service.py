@@ -433,6 +433,13 @@ class GroupService:
         liked = await self.likes.liked_post_ids(self.user_id, [p.id for p in posts])
         return posts, liked
 
+    async def latest_in_my_groups(self, limit: int) -> tuple[list[tuple[GroupPost, Group]], set[uuid.UUID]]:
+        """The newest posts across the groups the member is active in, with their groups."""
+        groups = {g.id: g for g, _ in await self.my_groups()}
+        posts = await self.posts.latest_in_groups(list(groups.keys()), limit)
+        liked = await self.likes.liked_post_ids(self.user_id, [p.id for p in posts])
+        return [(p, groups[p.group_id]) for p in posts], liked
+
     async def delete_post(self, post_id: uuid.UUID) -> None:
         post = await self.posts.get(post_id)
         if post is None:

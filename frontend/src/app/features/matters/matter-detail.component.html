@@ -563,8 +563,9 @@
             @else if (e.status === 'waived') { <button mat-button (click)="setEventStatus(e, 'unbilled')">Restore</button> }
           </div>
         } @empty { <p class="text-sm text-content-muted">Nothing due yet.</p> }
-        <div class="grid gap-2 sm:grid-cols-6 mt-3">
-          <input class="vs-input sm:col-span-3" [(ngModel)]="manualEvent.description" placeholder="Other billable work (opinion, conference, drafting…)" />
+        <div class="grid gap-2 sm:grid-cols-7 mt-3">
+          <select class="vs-input" [(ngModel)]="manualEvent.kind" aria-label="Fee or expense"><option value="manual">Fee</option><option value="expense">Expense</option></select>
+          <input class="vs-input sm:col-span-3" [(ngModel)]="manualEvent.description" [placeholder]="manualEvent.kind === 'expense' ? 'Out-of-pocket expense at cost (court fee, process fee, travel…)' : 'Other billable work (opinion, conference, drafting…)'" />
           <input class="vs-input" type="number" min="0" [(ngModel)]="manualEvent.amount" placeholder="Amount (₹)" />
           <vs-date-input [(ngModel)]="manualEvent.occurred_on" />
           <button mat-stroked-button [disabled]="!manualEvent.description.trim() || !manualEvent.amount" (click)="addManualEvent()">Add</button>

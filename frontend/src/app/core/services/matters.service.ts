@@ -173,7 +173,7 @@ export class MattersService {
     return this.http.get<FeeSummary>(`${this.api}/${matterId}/fees/summary`);
   }
 
-  addFeeEvent(matterId: string, payload: { description: string; amount: number; occurred_on?: string | null; due_days?: number }): Observable<FeeEvent> {
+  addFeeEvent(matterId: string, payload: { kind?: 'manual' | 'expense'; description: string; amount: number; occurred_on?: string | null; due_days?: number }): Observable<FeeEvent> {
     return this.http.post<FeeEvent>(`${this.api}/${matterId}/fees/events`, payload);
   }
 

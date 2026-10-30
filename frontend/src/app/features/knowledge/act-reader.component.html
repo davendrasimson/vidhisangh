@@ -1,58 +1,58 @@
 <div class="reader-shell">
   <header class="reader-header">
     <div class="reader-heading">
-      <a mat-icon-button routerLink="/app/knowledge" [queryParams]="{ view: 'acts', act: selected().id }" aria-label="Back to the Act guide"><mat-icon class="material-icons-outlined">arrow_back</mat-icon></a>
+      <a mat-icon-button routerLink="/app/knowledge" [queryParams]="{ view: 'acts', act: selected().id }" [attr.aria-label]="'Back to the Act guide' | t"><mat-icon class="material-icons-outlined">arrow_back</mat-icon></a>
       <button class="shelf-toggle" (click)="shelfOpen.set(!shelfOpen())" [attr.aria-expanded]="shelfOpen()"><mat-icon class="material-icons-outlined">library_books</mat-icon></button>
-      <div><p>BARE ACT READER · {{ currentNumber() }} OF {{ acts.length }}</p><h1>{{ selected().title }}</h1></div>
+      <div><p>{{ 'BARE ACT READER' | t }} · {{ currentNumber() }} {{ 'OF' | t }} {{ acts.length }}</p><h1>{{ selected().title }}</h1></div>
     </div>
     <div class="reader-actions">
-      <button mat-stroked-button [disabled]="selectedIndex() === 0" (click)="move(-1)"><mat-icon>chevron_left</mat-icon>Previous Act</button>
-      <button mat-stroked-button [disabled]="selectedIndex() === acts.length - 1" (click)="move(1)">Next Act<mat-icon>chevron_right</mat-icon></button>
-      <button mat-stroked-button [class.intelligence-active]="intelligenceOpen()" (click)="toggleIntelligence()"><mat-icon class="material-icons-outlined">hub</mat-icon>Section intelligence</button>
-      <button mat-flat-button color="primary" (click)="showPdf()"><mat-icon class="material-icons-outlined">picture_as_pdf</mat-icon>PDF copies</button>
+      <button mat-stroked-button [disabled]="selectedIndex() === 0" (click)="move(-1)"><mat-icon>chevron_left</mat-icon>{{ 'Previous Act' | t }}</button>
+      <button mat-stroked-button [disabled]="selectedIndex() === acts.length - 1" (click)="move(1)">{{ 'Next Act' | t }}<mat-icon>chevron_right</mat-icon></button>
+      <button mat-stroked-button [class.intelligence-active]="intelligenceOpen()" (click)="toggleIntelligence()"><mat-icon class="material-icons-outlined">hub</mat-icon>{{ 'Section intelligence' | t }}</button>
+      <button mat-flat-button color="primary" (click)="showPdf()"><mat-icon class="material-icons-outlined">picture_as_pdf</mat-icon>{{ 'PDF copies' | t }}</button>
     </div>
   </header>
 
   <div class="reader-notice">
     <mat-icon class="material-icons-outlined">menu_book</mat-icon>
-    <span><strong>Read the published Act as clear English text.</strong> Search within the law, enlarge the type and copy passages. The official English PDF and an official Hindi PDF, where published, remain available for verification. Check later amendments and commencement notifications separately.</span>
+    <span><strong>{{ 'Read the published Act as clear English text.' | t }}</strong> {{ 'Search within the law, enlarge the type and copy passages. The official English PDF and an official Hindi PDF, where published, remain available for verification. Check later amendments and commencement notifications separately.' | t }}</span>
   </div>
 
   <div class="reader-layout" [class.shelf-hidden]="!shelfOpen()">
     <aside class="book-shelf" [class.open]="shelfOpen()">
-      <div class="shelf-title"><div><span>LIBRARY</span><strong>Choose an Act</strong></div><button aria-label="Close Act shelf" (click)="shelfOpen.set(false)"><mat-icon>close</mat-icon></button></div>
-      <label class="shelf-search"><mat-icon class="material-icons-outlined">search</mat-icon><input [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Find an Act…" /></label>
+      <div class="shelf-title"><div><span>{{ 'LIBRARY' | t }}</span><strong>{{ 'Choose an Act' | t }}</strong></div><button [attr.aria-label]="'Close Act shelf' | t" (click)="shelfOpen.set(false)"><mat-icon>close</mat-icon></button></div>
+      <label class="shelf-search"><mat-icon class="material-icons-outlined">search</mat-icon><input [ngModel]="search()" (ngModelChange)="search.set($event)" [placeholder]="'Find an Act…' | t" /></label>
       <nav aria-label="Bare Acts book shelf">
         @for (act of filteredActs(); track act.id) {
           <button [class.active]="selected().id === act.id" (click)="choose(act.id)">
             <span class="book-number">{{ acts.indexOf(act) + 1 }}</span>
             <span><strong>{{ act.short }}</strong><small>{{ act.title }}</small></span>
-            @if (act.status === 'repealed') { <em>Repealed</em> }
+            @if (act.status === 'repealed') { <em>{{ 'Repealed' | t }}</em> }
           </button>
-        } @empty { <p class="empty-shelf">No Act matches that name.</p> }
+        } @empty { <p class="empty-shelf">{{ 'No Act matches that name.' | t }}</p> }
       </nav>
     </aside>
 
     <main class="reading-desk">
       <section class="book-summary">
-        <div><span>{{ selected().area }}</span><span [class.in-force]="selected().status === 'in-force'" [class.repealed]="selected().status === 'repealed'">{{ selected().status === 'in-force' ? 'In force' : 'Repealed · saved matters only' }}</span></div>
+        <div><span>{{ selected().area }}</span><span [class.in-force]="selected().status === 'in-force'" [class.repealed]="selected().status === 'repealed'">{{ (selected().status === 'in-force' ? 'In force' : 'Repealed · saved matters only') | t }}</span></div>
         <p>{{ selected().summary }}</p>
-        <a [routerLink]="['/app/knowledge']" [queryParams]="{ view: 'acts', act: selected().id }">Simple guide →</a>
+        <a [routerLink]="['/app/knowledge']" [queryParams]="{ view: 'acts', act: selected().id }">{{ 'Simple guide →' | t }}</a>
       </section>
 
       <section class="status-note" [class.repealed]="selected().status === 'repealed'">
         <mat-icon class="material-icons-outlined">{{ selected().status === 'in-force' ? 'verified' : 'history' }}</mat-icon>
-        <p><strong>{{ selected().status === 'in-force' ? 'Current legal status:' : 'Reference status:' }}</strong> {{ selected().statusNote }}</p>
+        <p><strong>{{ (selected().status === 'in-force' ? 'Current legal status:' : 'Reference status:') | t }}</strong> {{ selected().statusNote }}</p>
       </section>
 
       @if (intelligenceOpen()) {
         <section class="intelligence-panel">
-          <header class="intelligence-header"><div><span>SECTION INTELLIGENCE</span>@if (activeSection(); as section) { <h2>Section {{ section.reference }} · {{ section.title }}</h2> } @else { <h2>Choose a section to begin</h2> }</div><button aria-label="Close section intelligence" (click)="intelligenceOpen.set(false)"><mat-icon>close</mat-icon></button></header>
+          <header class="intelligence-header"><div><span>{{ 'SECTION INTELLIGENCE' | t }}</span>@if (activeSection(); as section) { <h2>Section {{ section.reference }} · {{ section.title }}</h2> } @else { <h2>{{ 'Choose a section to begin' | t }}</h2> }</div><button aria-label="Close section intelligence" (click)="intelligenceOpen.set(false)"><mat-icon>close</mat-icon></button></header>
           @if (activeSection(); as section) {
             <div class="intelligence-grid">
               <article>
-                <div class="intel-title"><mat-icon class="material-icons-outlined">history</mat-icon><h3>Version and transition</h3></div>
-                <label class="date-checker"><span>Law applicable on</span><input type="date" min="1860-01-01" [max]="snapshotIsoDate" [ngModel]="applicableOn()" (ngModelChange)="setApplicableOn($event)" /><small>Choose the date relevant to the facts or proceeding.</small></label>
+                <div class="intel-title"><mat-icon class="material-icons-outlined">history</mat-icon><h3>{{ 'Version and transition' | t }}</h3></div>
+                <label class="date-checker"><span>{{ 'Law applicable on' | t }}</span><input type="date" min="1860-01-01" [max]="snapshotIsoDate" [ngModel]="applicableOn()" (ngModelChange)="setApplicableOn($event)" /><small>Choose the date relevant to the facts or proceeding.</small></label>
                 <div class="applicability-result" [class]="applicability().tone">
                   <div><span>{{ applicability().label }}</span><strong>{{ applicability().headline }}</strong></div>
                   <p>{{ applicability().detail }}</p>
@@ -79,20 +79,20 @@
                 @if (offenceClassifications().length) { <h4>Classification · BNSS First Schedule</h4>@for (row of offenceClassifications(); track row.section + row.offence) { <div class="cross-reference"><strong>Section {{ row.section }} · {{ row.offence }}</strong><span>{{ row.punishment }}</span><span><b [class.text-danger]="row.cognizable === 'cognizable'">{{ flagLabel(row.cognizable, 'cognizable') }}</b> · <b [class.text-danger]="row.bailable === 'non_bailable'" [class.text-success]="row.bailable === 'bailable'">{{ flagLabel(row.bailable, 'bailable') }}</b> · {{ row.court }}</span><small [class.text-success]="!!row.compounding">@if (row.compounding; as c) { {{ c.part === 'court' ? 'Compoundable with the Court’s permission' : 'Compoundable' }} by {{ c.by }} (s. 359 BNSS) } @else { Not compoundable (s. 359 BNSS) }</small></div> }@if (screenerUrl(); as url) { <a class="source-link" [href]="url" target="_blank" rel="noopener noreferrer">Arrest regime and default-bail days in the offence screener ↗</a> } }
               </article>
               <article>
-                <div class="intel-title"><mat-icon class="material-icons-outlined">account_balance</mat-icon><h3>Judgments referring to this section</h3></div>
+                <div class="intel-title"><mat-icon class="material-icons-outlined">account_balance</mat-icon><h3>{{ 'Judgments referring to this section' | t }}</h3></div>
                 @if (!auth.hasPermission('research:use')) { <p class="intel-empty">Your role does not include the judgment research library.</p> }
                 @else if (authorityLoading()) { <p class="intel-empty">Searching the judgment corpus…</p> }
                 @else if (authorityError()) { <p class="intel-empty">Authorities could not be loaded. <button (click)="loadAuthorities()">Retry</button></p> }
                 @else { @for (judgment of authorities(); track judgment.id) { <a class="authority" [routerLink]="['/app/research', judgment.id]"><strong>{{ authorityTitle(judgment) }}</strong><span>{{ judgment.court }}@if (judgment.judgment_date) { · {{ judgment.judgment_date }} }@if (judgment.citation) { · {{ judgment.citation }} }</span></a> } @empty { <p class="intel-empty">No indexed judgment is tagged with this Act and section yet.</p> }<a class="all-authorities" routerLink="/app/research" [queryParams]="{ act: selected().title, section: section.reference }">Search all {{ authorityTotal().toLocaleString('en-IN') }} matching authorities →</a> }
               </article>
               <article>
-                <div class="intel-title"><mat-icon class="material-icons-outlined">folder_shared</mat-icon><h3>Use in a matter</h3></div>
+                <div class="intel-title"><mat-icon class="material-icons-outlined">folder_shared</mat-icon><h3>{{ 'Use in a matter' | t }}</h3></div>
                 <p class="intel-note">Save the complete provision, legal-status note, snapshot date and official source as a matter research note.</p>
                 @if (!auth.hasPermission('matter:update')) { <p class="intel-empty">Matter update permission is required to save research.</p> }
                 @else if (matterLoading()) { <p class="intel-empty">Loading active matters…</p> }
                 @else if (matterError()) { <p class="intel-empty">Matters could not be loaded. <button (click)="loadMatters()">Retry</button></p> }
                 @else { <label class="matter-picker"><span>Matter</span><select [ngModel]="selectedMatterId()" (ngModelChange)="selectedMatterId.set($event)"><option value="">Choose an active matter</option>@for (matter of matterList(); track matter.id) { <option [value]="matter.id">{{ matter.matter_number }} · {{ matter.title }}</option> }</select></label><button mat-flat-button color="primary" [disabled]="!selectedMatterId() || savingToMatter()" (click)="saveProvisionToMatter()"><mat-icon class="material-icons-outlined">note_add</mat-icon>{{ savingToMatter() ? 'Saving…' : 'Save provision to matter' }}</button> }
-                <button class="copy-intel" (click)="copyProvision()"><mat-icon class="material-icons-outlined">content_copy</mat-icon>Copy provision with source</button>
+                <button class="copy-intel" (click)="copyProvision()"><mat-icon class="material-icons-outlined">content_copy</mat-icon>{{ 'Copy provision with source' | t }}</button>
               </article>
             </div>
             @if (comparisonLoading()) { <p class="comparison-state">Loading corresponding statutory text…</p> }
@@ -103,14 +103,14 @@
       }
 
       <div class="mode-bar">
-        <div class="mode-switch" aria-label="Reader format">
-          <button [class.active]="readerMode() === 'text'" (click)="readerMode.set('text')"><mat-icon class="material-icons-outlined">article</mat-icon>Readable text</button>
-          <button [class.active]="readerMode() === 'pdf'" (click)="showPdf()"><mat-icon class="material-icons-outlined">picture_as_pdf</mat-icon>Official PDF</button>
+        <div class="mode-switch" [attr.aria-label]="'Reader format' | t">
+          <button [class.active]="readerMode() === 'text'" (click)="readerMode.set('text')"><mat-icon class="material-icons-outlined">article</mat-icon>{{ 'Readable text' | t }}</button>
+          <button [class.active]="readerMode() === 'pdf'" (click)="showPdf()"><mat-icon class="material-icons-outlined">picture_as_pdf</mat-icon>{{ 'Official PDF' | t }}</button>
         </div>
         @if (readerMode() === 'text') {
           <div class="text-tools">
-            @if (sectionEntries().length) { <label class="section-jump"><span class="sr-only">Jump to section</span><select [ngModel]="sectionSelection()" (ngModelChange)="jumpToSection($event)"><option value="">Jump to section…</option>@for (section of sectionEntries(); track section.blockId) { <option [value]="section.blockId">S. {{ section.reference }} · {{ section.title }}</option> }</select></label> }
-            <label class="text-search"><mat-icon class="material-icons-outlined">search</mat-icon><input [ngModel]="textQuery()" (ngModelChange)="updateTextQuery($event)" (keydown.enter)="jumpMatch(1)" placeholder="Search this Act: section, phrase…" /></label>
+            @if (sectionEntries().length) { <label class="section-jump"><span class="sr-only">Jump to section</span><select [ngModel]="sectionSelection()" (ngModelChange)="jumpToSection($event)"><option value="">{{ 'Jump to section…' | t }}</option>@for (section of sectionEntries(); track section.blockId) { <option [value]="section.blockId">S. {{ section.reference }} · {{ section.title }}</option> }</select></label> }
+            <label class="text-search"><mat-icon class="material-icons-outlined">search</mat-icon><input [ngModel]="textQuery()" (ngModelChange)="updateTextQuery($event)" (keydown.enter)="jumpMatch(1)" [placeholder]="'Search this Act: section, phrase…' | t" /></label>
             @if (textQuery()) {
               <span class="match-count">{{ matchingBlocks().length ? activeMatch() + 1 : 0 }} / {{ matchingBlocks().length }}</span>
               <button aria-label="Previous result" [disabled]="!matchingBlocks().length" (click)="jumpMatch(-1)"><mat-icon>keyboard_arrow_up</mat-icon></button>
@@ -119,8 +119,8 @@
             <span class="tool-divider"></span>
             <button aria-label="Decrease text size" [disabled]="fontSize() === 14" (click)="fontSize.set(fontSize() - 1)">A−</button>
             <button aria-label="Increase text size" [disabled]="fontSize() === 22" (click)="fontSize.set(fontSize() + 1)">A+</button>
-            <button class="copy-button" [disabled]="!matchingBlocks().length && !sectionSelection()" (click)="copyProvision()"><mat-icon class="material-icons-outlined">content_copy</mat-icon>{{ copied() ? 'Copied' : 'Copy provision' }}</button>
-            <button aria-label="Copy full Act text" title="Copy full Act text" (click)="copyText()"><mat-icon class="material-icons-outlined">library_add</mat-icon></button>
+            <button class="copy-button" [disabled]="!matchingBlocks().length && !sectionSelection()" (click)="copyProvision()"><mat-icon class="material-icons-outlined">content_copy</mat-icon>{{ (copied() ? 'Copied' : 'Copy provision') | t }}</button>
+            <button [attr.aria-label]="'Copy full Act text' | t" [title]="'Copy full Act text' | t" (click)="copyText()"><mat-icon class="material-icons-outlined">library_add</mat-icon></button>
           </div>
         }
       </div>
@@ -128,15 +128,15 @@
       @if (readerMode() === 'text') {
         <section class="manual-scroll" [style.--reader-size.px]="fontSize()">
           @if (textLoading()) {
-            <div class="reader-state"><mat-icon class="material-icons-outlined">hourglass_top</mat-icon><p>Preparing the English text…</p></div>
+            <div class="reader-state"><mat-icon class="material-icons-outlined">hourglass_top</mat-icon><p>{{ 'Preparing the English text…' | t }}</p></div>
           } @else if (textError()) {
-            <div class="reader-state error"><mat-icon class="material-icons-outlined">error_outline</mat-icon><p>The text copy could not be opened.</p><button mat-stroked-button (click)="showPdf()">Open official PDF</button></div>
+            <div class="reader-state error"><mat-icon class="material-icons-outlined">error_outline</mat-icon><p>{{ 'The text copy could not be opened.' | t }}</p><button mat-stroked-button (click)="showPdf()">{{ 'Open official PDF' | t }}</button></div>
           } @else {
             <article class="manual-page">
               <header class="manual-cover">
-                <span>BARE ACT · ENGLISH STATUTORY TEXT</span>
+                <span>{{ 'BARE ACT · ENGLISH STATUTORY TEXT' | t }}</span>
                 <h2>{{ selected().title }}</h2>
-                <p>{{ wordCount().toLocaleString('en-IN') }} words · Searchable and selectable · Page formatting normalised from the official copy</p>
+                <p>{{ wordCount().toLocaleString('en-IN') }} {{ 'words · Searchable and selectable · Page formatting normalised from the official copy' | t }}</p>
               </header>
               <div class="act-copy">
                 @for (block of textBlocks(); track block.id) {
@@ -153,20 +153,20 @@
       } @else {
         <section class="pdf-panel">
           <div class="pdf-choice">
-            <div><strong>Official PDF copies</strong><span>Use these when you need the published page layout or want to verify the reading text.</span></div>
+            <div><strong>{{ 'Official PDF copies' | t }}</strong><span>{{ 'Use these when you need the published page layout or want to verify the reading text.' | t }}</span></div>
             <div class="pdf-links">
               @if (native) {
-                <button mat-flat-button color="primary" type="button" (click)="openPdfInApp()"><mat-icon class="material-icons-outlined">download</mat-icon>English PDF</button>
+                <button mat-flat-button color="primary" type="button" (click)="openPdfInApp()"><mat-icon class="material-icons-outlined">download</mat-icon>{{ 'English PDF' | t }}</button>
               } @else {
-                <a mat-flat-button color="primary" [href]="localPdfUrl()" target="_blank"><mat-icon class="material-icons-outlined">download</mat-icon>English PDF</a>
+                <a mat-flat-button color="primary" [href]="localPdfUrl()" target="_blank"><mat-icon class="material-icons-outlined">download</mat-icon>{{ 'English PDF' | t }}</a>
               }
-              @if (selected().hindiSource) { <a mat-stroked-button [href]="selected().hindiSource" target="_blank" rel="noopener noreferrer"><mat-icon class="material-icons-outlined">language</mat-icon>Hindi PDF</a> }
-              <a mat-stroked-button [href]="selected().source" target="_blank" rel="noopener noreferrer">Official source<mat-icon class="material-icons-outlined">open_in_new</mat-icon></a>
+              @if (selected().hindiSource) { <a mat-stroked-button [href]="selected().hindiSource" target="_blank" rel="noopener noreferrer"><mat-icon class="material-icons-outlined">language</mat-icon>{{ 'Hindi PDF' | t }}</a> }
+              <a mat-stroked-button [href]="selected().source" target="_blank" rel="noopener noreferrer">{{ 'Official source' | t }}<mat-icon class="material-icons-outlined">open_in_new</mat-icon></a>
             </div>
           </div>
           @if (!native) {
           <div class="document-frame">
-            @if (pdfLoading()) { <div class="reader-state"><mat-icon class="material-icons-outlined">hourglass_top</mat-icon><p>Opening the English PDF…</p></div> }
+            @if (pdfLoading()) { <div class="reader-state"><mat-icon class="material-icons-outlined">hourglass_top</mat-icon><p>{{ 'Opening the English PDF…' | t }}</p></div> }
             <iframe [src]="readerSource()" [title]="'English PDF of ' + selected().title" (load)="pdfLoading.set(false)"></iframe>
           </div>
           }

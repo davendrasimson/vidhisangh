@@ -88,6 +88,7 @@ async def test_update_profile(client: AsyncClient, strong_password: str) -> None
         "judicial_court_name": "District & Sessions Court, New Delhi",
         "judicial_district": "New Delhi",
         "judicial_state": "Delhi",
+        "judicial_officer_code": "DL0421",
         "visibility_settings": {"contact": "none", "education": "connections"},
     }
     resp = await client.put("/api/v1/profiles/me", headers=headers, json=payload)
@@ -110,6 +111,7 @@ async def test_update_profile(client: AsyncClient, strong_password: str) -> None
     assert got["publications"][0]["publisher"] == "SCC Journal"
     assert got["professional_role"] == "judicial_officer"
     assert got["judicial_court_name"] == "District & Sessions Court, New Delhi"
+    assert got["judicial_officer_code"] == "DL0421"
     assert got["employment_history"][0]["current"] is True
 
 

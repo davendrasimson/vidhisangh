@@ -374,7 +374,7 @@ export interface FeeArrangementCreate {
   milestones?: MilestoneCreate[];
 }
 
-export type FeeEventKind = 'milestone' | 'hearing' | 'hearing_non_effective' | 'retainer' | 'manual';
+export type FeeEventKind = 'milestone' | 'hearing' | 'hearing_non_effective' | 'retainer' | 'manual' | 'expense';
 export type FeeEventStatus = 'unbilled' | 'invoiced' | 'waived';
 
 export const FEE_EVENT_KIND_LABELS: Record<FeeEventKind, string> = {
@@ -383,6 +383,7 @@ export const FEE_EVENT_KIND_LABELS: Record<FeeEventKind, string> = {
   hearing_non_effective: 'Non-effective hearing',
   retainer: 'Retainer',
   manual: 'Manual',
+  expense: 'Expense',
 };
 
 export interface FeeEvent {

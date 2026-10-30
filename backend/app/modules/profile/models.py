@@ -97,6 +97,8 @@ class ProfessionalProfile(TenantScopedBase):
     judicial_court_address: Mapped[str | None] = mapped_column(String(400), nullable=True)
     judicial_district: Mapped[str | None] = mapped_column(String(120), nullable=True)
     judicial_state: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    # e-Courts officer identifier written on every order (JO code / UID No.).
+    judicial_officer_code: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
     # ── Consultation & availability ─────────────────────────────────
     consultation_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

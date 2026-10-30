@@ -240,3 +240,54 @@ async def test_invoice_takes_tax_position_from_client(client: AsyncClient, stron
     # No client: nothing to take, no GST.
     plain = (await client.post(f"{API}/billing/invoices", headers=h, json={"client_name": "Walk-in", "line_items": line})).json()
     assert plain["tax_rate"] == "0.00" and plain["place_of_supply"] is None and plain["tds_amount"] is None
+
+
+async def test_recurring_invoice_raises_draft_copies(client: AsyncClient, strong_password: str, session_factory) -> None:
+    from datetime import date, timedelta
+
+    from app.modules.billing.service import add_months, next_issue_on
+    from app.modules.matters.fee_sweep import sweep
+
+    h, _ = await _user(client, "Retainer LLP", "retainer@firm.co", strong_password)
+    today = date.today()
+    issued = add_months(today, -1)
+    first_copy_on = add_months(issued, 1)            # on or just before today
+    inv = await client.post(f"{API}/billing/invoices", headers=h, json={
+        "client_name": "Acme Corp", "tax_rate": "18.00", "issue_date": issued.isoformat(),
+        "due_date": (issued + timedelta(days=7)).isoformat(), "notes": "Monthly retainer",
+        "recurrence": "monthly", "recur_until": add_months(today, 1).isoformat(),
+        "line_items": [{"description": "Retainer — monthly", "quantity": "1", "unit_price": "25000"}],
+    })
+    assert inv.status_code == 201, inv.text
+    body = inv.json()
+    assert body["recurrence"] == "monthly" and body["next_issue_on"] == first_copy_on.isoformat()
+
+    async with session_factory() as s:
+        result = await sweep(s, today)
+        await s.commit()
+    assert result["recurring_invoices"] == 1
+    invoices = (await client.get(f"{API}/billing/invoices", headers=h)).json()
+    copies = [i for i in invoices if i["recurring_from_id"] == body["id"]]
+    assert len(copies) == 1
+    copy = copies[0]
+    assert copy["status"] == "draft" and copy["issue_date"] == first_copy_on.isoformat()
+    assert copy["due_date"] == (first_copy_on + timedelta(days=7)).isoformat()
+    assert copy["recurrence"] is None and copy["next_issue_on"] is None     # copies never recur themselves
+    assert float(copy["total"]) == 29500.0 and copy["invoice_number"] != body["invoice_number"]
+    detail = (await client.get(f"{API}/billing/invoices/{copy['id']}", headers=h)).json()
+    assert [li["description"] for li in detail["line_items"]] == ["Retainer — monthly"] and detail["notes"] == "Monthly retainer"
+    template = (await client.get(f"{API}/billing/invoices/{body['id']}", headers=h)).json()
+    assert template["next_issue_on"] == add_months(first_copy_on, 1).isoformat()
+
+    # Nothing more today; stopping the repetition clears the schedule.
+    async with session_factory() as s:
+        assert (await sweep(s, today))["recurring_invoices"] == 0
+        await s.commit()
+    stopped = (await client.patch(f"{API}/billing/invoices/{body['id']}", headers=h, json={"recurrence": None})).json()
+    assert stopped["recurrence"] is None and stopped["next_issue_on"] is None
+
+    # The schedule helper: month ends clamp, the window closes at recur_until.
+    assert next_issue_on(date(2026, 1, 31), "monthly", date(2026, 3, 15)) == date(2026, 2, 28)
+    assert next_issue_on(date(2026, 1, 31), "monthly", date(2026, 2, 15)) is None
+    assert next_issue_on(date(2026, 1, 1), "quarterly", None, after=date(2026, 5, 20)) == date(2026, 7, 1)
+    assert next_issue_on(date(2026, 1, 1), None, None) is None

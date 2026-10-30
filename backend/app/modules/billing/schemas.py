@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.modules.billing.models import (
     InvoiceDocumentType,
+    InvoiceRecurrence,
     InvoiceStatus,
     TimeEntrySource,
     TimeEntryStatus,
@@ -50,11 +51,16 @@ class InvoiceCreate(BaseModel):
     notes: str | None = Field(default=None, max_length=5000)
     line_items: list[LineItemCreate] = Field(default_factory=list, max_length=100)
     document_type: InvoiceDocumentType = InvoiceDocumentType.TAX_INVOICE
+    # Raise this document again every period (a draft copy, same lines) until recur_until.
+    recurrence: InvoiceRecurrence | None = None
+    recur_until: date | None = None
 
 
 class InvoiceUpdate(BaseModel):
     client_name: str | None = Field(default=None, min_length=1, max_length=200)
     status: InvoiceStatus | None = None
+    recurrence: InvoiceRecurrence | None = None   # null stops the repetition
+    recur_until: date | None = None
     issue_date: date | None = None
     due_date: date | None = None
     tax_rate: Decimal | None = Field(default=None, ge=0, le=100)
@@ -104,6 +110,10 @@ class InvoiceRead(InvoiceTaxFields):
     converted_invoice_id: uuid.UUID | None
     next_follow_up_on: date | None
     last_follow_up_at: datetime | None
+    recurrence: InvoiceRecurrence | None = None
+    recur_until: date | None = None
+    next_issue_on: date | None = None
+    recurring_from_id: uuid.UUID | None = None
     created_at: datetime
 
 

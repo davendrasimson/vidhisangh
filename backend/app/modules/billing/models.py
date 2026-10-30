@@ -39,6 +39,17 @@ class InvoiceDocumentType(StrEnum):
     CREDIT_NOTE = "credit_note"
 
 
+class InvoiceRecurrence(StrEnum):
+    """How often a recurring invoice (a retainer, a monthly compliance fee) is raised again."""
+
+    MONTHLY = "monthly"
+    QUARTERLY = "quarterly"
+    YEARLY = "yearly"
+
+
+RECURRENCE_MONTHS = {InvoiceRecurrence.MONTHLY: 1, InvoiceRecurrence.QUARTERLY: 3, InvoiceRecurrence.YEARLY: 12}
+
+
 class TimeEntryStatus(StrEnum):
     DRAFT = "draft"
     SUBMITTED = "submitted"
@@ -105,6 +116,14 @@ class Invoice(TenantScopedBase):
     next_follow_up_on: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
     last_follow_up_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
+    )
+    # Recurring invoices: this one is the template; the nightly sweep raises a
+    # draft copy on ``next_issue_on`` (moving it a period on) until ``recur_until``.
+    recurrence: Mapped[InvoiceRecurrence | None] = mapped_column(String(12), nullable=True)
+    recur_until: Mapped[date | None] = mapped_column(Date, nullable=True)
+    next_issue_on: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
+    recurring_from_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("invoices.id", ondelete="SET NULL"), nullable=True
     )
     created_by: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
 

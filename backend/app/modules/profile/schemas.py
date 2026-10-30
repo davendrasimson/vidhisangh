@@ -72,6 +72,7 @@ class ProfileUpdate(BaseModel):
     judicial_court_address: str | None = Field(default=None, max_length=400)
     judicial_district: str | None = Field(default=None, max_length=120)
     judicial_state: str | None = Field(default=None, max_length=120)
+    judicial_officer_code: str | None = Field(default=None, max_length=40)
     consultation_enabled: bool | None = None
     consultation_fee: Decimal | None = Field(default=None, ge=0)
     availability: dict | None = None
@@ -138,6 +139,7 @@ class ProfileRead(BaseModel):
     judicial_court_address: str | None
     judicial_district: str | None
     judicial_state: str | None
+    judicial_officer_code: str | None
     consultation_enabled: bool
     consultation_fee: Decimal | None
     availability: dict

@@ -148,6 +148,29 @@
       </section>
     }
 
+    <!-- Latest in the member's groups (hidden until a group they belong to has posts) -->
+    @if (groupPosts().length) {
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-4" aria-labelledby="groups-title">
+        <div class="flex items-center justify-between gap-3 mb-1">
+          <h2 id="groups-title" class="text-xs font-semibold uppercase tracking-wide text-brand">Latest in your groups</h2>
+          <a routerLink="/app/groups" class="text-xs text-brand">All groups →</a>
+        </div>
+        <ul class="divide-y divide-line" aria-label="Recent group posts">
+          @for (p of groupPosts(); track p.id) {
+            <li class="py-2">
+              <a [routerLink]="['/app/groups', p.group_id]" class="block hover:text-brand">
+                <p class="text-xs text-content-muted truncate"><span class="font-medium text-content">{{ p.author_name }}</span> · {{ p.group_name }} · {{ ago(p.created_at) }}</p>
+                <p class="text-sm text-content mt-0.5">{{ snippet(p) }}</p>
+                @if (p.like_count || p.comment_count) {
+                  <p class="text-xs text-content-muted mt-0.5">@if (p.like_count) { {{ p.like_count }} {{ p.like_count === 1 ? 'like' : 'likes' }} }@if (p.like_count && p.comment_count) { · }@if (p.comment_count) { {{ p.comment_count }} {{ p.comment_count === 1 ? 'comment' : 'comments' }} }</p>
+                }
+              </a>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
     <!-- Progress: profile and the Founding Member goal (hidden once both are done) -->
     @if (showProgress()) {
       <section class="rounded-card bg-surface-raised border border-line shadow-card p-4" aria-labelledby="progress-title">

@@ -1,3 +1,4 @@
+import { LanguageToggleComponent } from '@core/i18n/language-toggle.component';
 import { HelpControlsComponent } from '@features/help/help-controls.component';
 import { TellAFriendService } from '@core/services/tell-a-friend.service';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
@@ -57,7 +58,7 @@ interface NavGroup {
   imports: [
     RouterOutlet, RouterLink, RouterLinkActive,
     MatSidenavModule, MatToolbarModule, MatListModule, MatIconModule,
-    MatButtonModule, MatMenuModule, MatTooltipModule, NotificationsBellComponent,
+    MatButtonModule, MatMenuModule, MatTooltipModule, NotificationsBellComponent, LanguageToggleComponent,
     TermsUpdatePromptComponent, SupportDialogComponent, HelpControlsComponent,
   ],
   templateUrl: './shell.component.html',

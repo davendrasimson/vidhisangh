@@ -6,6 +6,7 @@ import {
   Group,
   GroupComment,
   GroupCreate,
+  GroupFeedItem,
   GroupMember,
   GroupPost,
   GroupType,
@@ -97,6 +98,11 @@ export class GroupsService {
   }
 
   // ── Community posts ───────────────────────────────────────────
+  /** The newest posts across the groups I belong to (home screen card). */
+  latestInMyGroups(limit = 3): Observable<GroupFeedItem[]> {
+    return this.http.get<GroupFeedItem[]>(`${this.api}/mine/posts`, { params: { limit } });
+  }
+
   posts(groupId: string, page = 1, size = 20): Observable<GroupPost[]> {
     return this.http.get<GroupPost[]>(`${this.api}/${groupId}/posts`, { params: { page, size } });
   }

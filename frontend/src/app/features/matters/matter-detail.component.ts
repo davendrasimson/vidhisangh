@@ -166,7 +166,7 @@ export class MatterDetailComponent {
   protected readonly waived = computed(() => this.sum('waived'));
   protected readonly eventsNewestFirst = computed(() =>
     [...(this.matter()?.fee_events ?? [])].sort((a, b) => b.occurred_on.localeCompare(a.occurred_on) || b.created_at.localeCompare(a.created_at)));
-  protected manualEvent = { description: '', amount: '' as string | number, occurred_on: '' };
+  protected manualEvent = { kind: 'manual' as 'manual' | 'expense', description: '', amount: '' as string | number, occurred_on: '' };
 
   // Per-section add drafts.
   protected party = { name: '', role: '' };
@@ -602,10 +602,10 @@ export class MatterDetailComponent {
     if (!this.manualEvent.description.trim() || !this.manualEvent.amount) return;
     try {
       await firstValueFrom(this.matters.addFeeEvent(this.id, {
-        description: this.manualEvent.description.trim(), amount: Number(this.manualEvent.amount),
+        kind: this.manualEvent.kind, description: this.manualEvent.description.trim(), amount: Number(this.manualEvent.amount),
         occurred_on: this.manualEvent.occurred_on || null,
       }));
-      this.manualEvent = { description: '', amount: '', occurred_on: '' };
+      this.manualEvent = { kind: 'manual', description: '', amount: '', occurred_on: '' };
       await this.refresh();
     } catch { /* handled */ }
   }

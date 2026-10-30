@@ -13,6 +13,8 @@ import { MattersService } from '@core/services/matters.service';
 import { NetworkService } from '@core/services/network.service';
 import { MessagingService } from '@core/services/messaging.service';
 import { ProfileService } from '@core/services/profile.service';
+import { GroupsService } from '@core/services/groups.service';
+import { GroupFeedItem } from '@core/models/groups.models';
 import { TellAFriendService, whatsappInvite } from '@core/services/tell-a-friend.service';
 import { NotificationService } from '@core/services/notification.service';
 import { AnalyticsOverview } from '@core/models/analytics.models';
@@ -75,6 +77,7 @@ export class DashboardComponent implements OnInit {
   private readonly notify = inject(NotificationService);
   private readonly messaging = inject(MessagingService);
   private readonly profile = inject(ProfileService);
+  private readonly groups = inject(GroupsService);
   private readonly invites = inject(TellAFriendService);
   protected readonly tenant = inject(TenantService);
   protected readonly today = new Date();
@@ -110,6 +113,8 @@ export class DashboardComponent implements OnInit {
   protected readonly requests = signal<Connection[]>([]);
   protected readonly unread = signal<Conversation[]>([]);
   protected readonly unreadTotal = computed(() => this.unread().reduce((n, c) => n + c.unread_count, 0));
+  /** The newest posts across the member's groups (hidden until they join one that has posts). */
+  protected readonly groupPosts = signal<GroupFeedItem[]>([]);
 
   // ── Progress: profile completeness and the invite goal ────────────
   protected readonly steps = signal<ReturnType<typeof profileSteps> | null>(null);
@@ -188,6 +193,9 @@ export class DashboardComponent implements OnInit {
     void firstValueFrom(this.network.incomingRequests()).then((r) => this.requests.set(r)).catch(() => undefined);
     void firstValueFrom(this.messaging.list()).then((c) => this.unread.set(c.filter((x) => x.unread_count > 0))).catch(() => undefined);
     void firstValueFrom(this.profile.myProfile()).then((p) => this.steps.set(profileSteps(p))).catch(() => undefined);
+    if (this.auth.hasPermission('group:read')) {
+      void firstValueFrom(this.groups.latestInMyGroups(3)).then((p) => this.groupPosts.set(p)).catch(() => undefined);
+    }
     void this.invites.loadReferral();
   }
 
@@ -199,6 +207,23 @@ export class DashboardComponent implements OnInit {
       this.requests.update((list) => list.filter((x) => x.id !== c.id));
       if (accept) this.notify.success(`You and ${c.requester?.display_name ?? 'they'} are now connected.`);
     } catch { /* handled */ } finally { this.busy.set(null); }
+  }
+
+  /** The first line or so of a post, without markup. */
+  protected snippet(p: GroupFeedItem): string {
+    const text = p.content.replace(/\s+/g, ' ').trim();
+    return text.length > 160 ? `${text.slice(0, 157).trimEnd()}…` : text;
+  }
+
+  /** "5 min ago", "3 h ago", "2 days ago" for the group card. */
+  protected ago(iso: string): string {
+    const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+    if (minutes < 1) return 'just now';
+    if (minutes < 60) return `${minutes} min ago`;
+    const hours = Math.round(minutes / 60);
+    if (hours < 24) return `${hours} h ago`;
+    const days = Math.round(hours / 24);
+    return days === 1 ? 'yesterday' : `${days} days ago`;
   }
 
   /** Who the conversation is with (the other participants), for the unread list. */

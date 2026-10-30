@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, Query, Request, Response, status
 from fastapi.responses import JSONResponse
 
 from app.core.ratelimit import public_token_rate_limit
-from app.core.deps import AuthSessionDep, CurrentUserDep, TenantSessionDep, client_ip, require_permission
+from app.core.deps import AuthSessionDep, CurrentUserDep, TenantSessionDep, client_ip, require_flag, require_permission
 from app.core.exceptions import TenantError
 from app.modules.clients.kyc import BUSINESS_TYPES, GST_STATE_CODES, TDS_SECTIONS
 from app.modules.clients.models import ClientKind, ClientStatus
@@ -33,6 +33,8 @@ from app.modules.clients.schemas import (
     KycRequestRead,
     KycSubmission,
     KycSubmitResult,
+    PortalHandoffCreate,
+    PortalHandoffResult,
     KycSubmission as _KycSubmission,  # noqa: F401 — re-export for OpenAPI clarity
     ValidationIssue,
 )
@@ -204,6 +206,15 @@ async def apply_kyc(
     client_id: uuid.UUID, request_id: uuid.UUID, data: KycApply, current: CurrentUserDep, session: TenantSessionDep
 ) -> ClientRead:
     return _read(await _svc(current, session).apply_kyc(client_id, request_id, data))
+
+
+@router.post("/{client_id}/portal-handoff", response_model=PortalHandoffResult, status_code=status.HTTP_201_CREATED,
+             summary="Hand a KYC-verified client over to the client portal: a link per open matter, emailed in one message",
+             dependencies=[require_flag("client_portal"), require_permission("client:update")])
+async def portal_handoff(
+    client_id: uuid.UUID, data: PortalHandoffCreate, current: CurrentUserDep, session: TenantSessionDep
+) -> PortalHandoffResult:
+    return await _svc(current, session).portal_handoff(client_id, data)
 
 
 @router.post("/{client_id}/kyc/{request_id}/cancel", response_model=KycRequestRead,

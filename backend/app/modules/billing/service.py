@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import calendar
 import secrets
 import uuid
 from collections.abc import Iterable
@@ -14,11 +15,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import NotFoundError, ValidationError
 from app.core.payments import PaymentProvider
 from app.modules.billing.models import (
+    RECURRENCE_MONTHS,
     BillingReceipt,
     Invoice,
     InvoiceDocumentType,
     InvoiceFollowUp,
     InvoiceLineItem,
+    InvoiceRecurrence,
     InvoiceStatus,
 )
 from app.modules.billing.repository import BillingRepository
@@ -33,7 +36,7 @@ from app.modules.billing.schemas import (
     ReceiptCreate,
 )
 from app.modules.clients.models import Client
-from app.modules.matters.models import FeeEventStatus, Matter, MatterFeeEvent
+from app.modules.matters.models import FeeEventKind, FeeEventStatus, Matter, MatterFeeEvent
 from app.modules.payments.models import Payment, PaymentStatus
 from app.modules.payments.schemas import OrderCreate
 from app.modules.payments.service import PaymentService
@@ -41,6 +44,31 @@ from app.modules.tenancy.models import Tenant
 
 _CENTS = Decimal("0.01")
 _BILLING_SETTINGS_KEY = "billing"
+
+
+def add_months(start: date, months: int) -> date:
+    """Same day `months` later; the 31st becomes the last day of a shorter month."""
+    month = start.month - 1 + months
+    year, month = start.year + month // 12, month % 12 + 1
+    last = calendar.monthrange(year, month)[1]
+    return date(year, month, min(start.day, last))
+
+
+def next_issue_on(
+    issue_date: date | None, recurrence: InvoiceRecurrence | str | None, until: date | None, *, after: date | None = None
+) -> date | None:
+    """When the next copy of a recurring invoice is due: the first period boundary
+    after ``after`` (default: the issue date itself), or None once past ``until``."""
+    if not recurrence or issue_date is None:
+        return None
+    months = RECURRENCE_MONTHS[InvoiceRecurrence(recurrence)]
+    floor = after or issue_date
+    n = 1
+    while (candidate := add_months(issue_date, n * months)) <= floor:
+        n += 1
+    if until is not None and candidate > until:
+        return None
+    return candidate
 
 
 def _code() -> str:
@@ -143,7 +171,10 @@ class BillingService:
             verification_code=_code(),
             payment_token=secrets.token_urlsafe(24),
             created_by=self.user_id,
+            recurrence=data.recurrence,
+            recur_until=data.recur_until,
         )
+        invoice.next_issue_on = next_issue_on(invoice.issue_date, data.recurrence, data.recur_until)
         await self._tax_position(invoice, await self._client(data.client_id), data.tax_rate)
         invoice.line_items = [self._line(invoice.id, li) for li in data.line_items]
         self.repo.add(invoice)
@@ -188,7 +219,8 @@ class BillingService:
                 notes=data.notes,
                 line_items=[
                     LineItemCreate(
-                        description=e.description, quantity=Decimal(1), unit_price=e.amount
+                        description=(f"Expense: {e.description}" if e.kind == FeeEventKind.EXPENSE else e.description)[:300],
+                        quantity=Decimal(1), unit_price=e.amount,
                     )
                     for e in events
                 ],
@@ -251,6 +283,11 @@ class BillingService:
             if invoice.tax_rate is None:  # "from the client" again
                 await self._tax_position(invoice, await self._client(invoice.client_id), None)
             self._apply_totals(invoice, invoice.line_items)  # tax changed → recompute
+        if data.model_fields_set & {"recurrence", "recur_until"}:
+            # The next copy falls on the first period boundary after today.
+            invoice.next_issue_on = next_issue_on(
+                invoice.issue_date, invoice.recurrence, invoice.recur_until, after=date.today()
+            )
         return await self._require(invoice_id, detail=True)
 
     async def delete_invoice(self, invoice_id: uuid.UUID) -> None:

@@ -14,7 +14,7 @@ import { VsDateInputComponent } from '@shared/date-input/vs-date-input.component
 import { Matter } from '@core/models/matters.models';
 import { ClientSummary } from '@core/models/clients.models';
 import {
-  BillingReceipt, BillingSummary, Invoice, InvoiceDocumentType, InvoiceFollowUp,
+  BillingReceipt, BillingSummary, Invoice, InvoiceDocumentType, InvoiceRecurrence, InvoiceFollowUp,
   InvoiceStatus, LineItemCreate, TimeEntry, TimeImportPreview,
 } from '@core/models/billing.models';
 
@@ -65,6 +65,7 @@ export class BillingComponent implements OnInit {
   protected form = {
     client_name: '', client_id: null as string | null, matter_id: null as string | null,
     tax_rate: null as number | null, due_date: '', notes: '', document_type: 'proforma' as InvoiceDocumentType,
+    recurrence: '' as '' | InvoiceRecurrence, recur_until: '',
   };
   protected readonly rows = signal<LineItemCreate[]>([{ description: '', quantity: 1, unit_price: 0 }]);
   protected readonly filters: Filter[] = ['all', 'pending', 'draft', 'sent', 'paid', 'overdue', 'cancelled'];
@@ -129,10 +130,11 @@ export class BillingComponent implements OnInit {
           client_name: this.form.client_name.trim(), client_id: this.form.client_id, matter_id: this.form.matter_id,
           tax_rate: this.form.tax_rate ?? null, due_date: this.form.due_date || null,
           notes: this.form.notes.trim() || null, document_type: this.form.document_type,
+          recurrence: this.form.recurrence || null, recur_until: this.form.recurrence ? this.form.recur_until || null : null,
           line_items: this.rows().filter((row) => row.description.trim() && row.unit_price > 0),
         }));
       this.notify.success(`${created.invoice_number} created.`);
-      this.form = { client_name: '', client_id: null, matter_id: null, tax_rate: null, due_date: '', notes: '', document_type: 'proforma' };
+      this.form = { client_name: '', client_id: null, matter_id: null, tax_rate: null, due_date: '', notes: '', document_type: 'proforma', recurrence: '', recur_until: '' };
       this.rows.set([{ description: '', quantity: 1, unit_price: 0 }]); this.showForm.set(false);
       await this.router.navigate(['/app/billing', created.id]);
     } catch { /* handled centrally */ } finally { this.saving.set(false); }

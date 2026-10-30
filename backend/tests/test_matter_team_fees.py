@@ -393,9 +393,9 @@ async def test_fee_sweep_raises_retainer_periods_and_dated_milestones(
     async with session_factory() as s:
         first = await sweep(s, today)
         await s.commit()
-    assert first == {"retainer_periods": expected - 1, "dated_milestones": 1}
+    assert first == {"retainer_periods": expected - 1, "dated_milestones": 1, "recurring_invoices": 0}
     async with session_factory() as s:
-        assert await sweep(s, today) == {"retainer_periods": 0, "dated_milestones": 0}  # idempotent
+        assert await sweep(s, today) == {"retainer_periods": 0, "dated_milestones": 0, "recurring_invoices": 0}  # idempotent
         await s.commit()
 
     events = (await client.get(f"{API}/matters/{mid}", headers=h)).json()["fee_events"]
@@ -404,3 +404,20 @@ async def test_fee_sweep_raises_retainer_periods_and_dated_milestones(
     staged = (await client.get(f"{API}/matters/{m2}", headers=h)).json()
     assert [(e["description"], e["amount"]) for e in staged["fee_events"]] == [("Second instalment", "40000.00")]
     assert len((await client.get(f"{API}/matters/{m3}", headers=h)).json()["fee_events"]) == 1  # only the first period
+
+
+async def test_expenses_are_billed_at_cost(client: AsyncClient, strong_password: str) -> None:
+    h, _ = await _admin(client, "Expense LLP", "expense@firm.co", strong_password)
+    mid = (await client.post(f"{API}/matters", headers=h, json={"title": "Costs", "client_name": "C"})).json()["id"]
+    ev = await client.post(f"{API}/matters/{mid}/fees/events", headers=h,
+                           json={"kind": "expense", "description": "Court fee on the plaint", "amount": 1250})
+    assert ev.status_code == 201, ev.text
+    assert ev.json()["kind"] == "expense"
+    fee = await client.post(f"{API}/matters/{mid}/fees/events", headers=h, json={"description": "Drafting the plaint", "amount": 20000})
+    assert fee.json()["kind"] == "manual"          # the default
+    # Only manual fees and expenses are raised by hand.
+    assert (await client.post(f"{API}/matters/{mid}/fees/events", headers=h,
+                              json={"kind": "retainer", "description": "x", "amount": 1})).status_code == 422
+    inv = await client.post(f"{API}/billing/matters/{mid}/prepare-invoice", headers=h, json={})
+    assert inv.status_code == 201, inv.text
+    assert sorted(li["description"] for li in inv.json()["line_items"]) == ["Drafting the plaint", "Expense: Court fee on the plaint"]

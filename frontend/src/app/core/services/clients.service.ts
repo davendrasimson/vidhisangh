@@ -13,6 +13,7 @@ import {
   KycRequest,
   KycRequestDetail,
   KycSubmitResult,
+  PortalHandoffResult,
   ReferenceData,
 } from '@core/models/clients.models';
 
@@ -65,6 +66,11 @@ export class ClientsService {
 
   applyKyc(clientId: string, requestId: string, fields: string[] | null = null, markVerified = true): Observable<Client> {
     return this.http.post<Client>(`${this.api}/${clientId}/kyc/${requestId}/apply`, { fields, mark_verified: markVerified });
+  }
+
+  /** After KYC: issue a portal link for every open matter and email them to the client. */
+  portalHandoff(clientId: string, body: { send_to_email?: string | null; message?: string | null }): Observable<PortalHandoffResult> {
+    return this.http.post<PortalHandoffResult>(`${this.api}/${clientId}/portal-handoff`, body);
   }
 
   cancelKyc(clientId: string, requestId: string): Observable<KycRequest> {

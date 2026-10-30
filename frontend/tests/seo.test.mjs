@@ -116,7 +116,8 @@ test('the WhatsApp number is published next to the company name (Meta display-na
     'src/app/features/legal/compliance-status.component.ts', 'src/app/features/help/help-center.component.ts']) {
     assert.match(read(f), /<vs-public-header \/>/, f);
   }
-  assert.match(read('scripts/build-act-pages.mjs'), /Simson Softwares Private Limited<\/a>\. WhatsApp: <a href="https:\/\/wa\.me\/917341100692"/);
+  // The footer words carry data-i18n so the Hindi switch can swap them (tests/i18n.test.mjs).
+  assert.match(read('scripts/build-act-pages.mjs'), /Simson Softwares Private Limited<\/a>\. <span data-i18n>WhatsApp:<\/span> <a href="https:\/\/wa\.me\/917341100692"/);
 });
 
 test('prerendered pages never carry an error toast from the build', () => {
