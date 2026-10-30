@@ -109,14 +109,14 @@ async def test_cite_check_report(session_factory, client: AsyncClient, strong_pa
     # citing judgment is reported too.
     putt = by["(2017) 10 SCC 1"]
     assert putt["status"] == "matched_by_name" and putt["judgment"]["id"] == str(ids["puttaswamy"])
-    assert putt["occurrences"] == 2 and putt["cited_in_count"] == 1
-    assert putt["cited_in_examples"][0]["id"] == str(ids["bhasin"])
+    assert putt["occurrences"] == 2 and putt["cited_in_count"] == 0   # resolved, so the costly citing-text search is skipped
     assert any("keys this case as [2017] 10 S.C.R. 569" in w for w in putt["warnings"])
     assert by["(2020) 3 SCC 637"]["status"] == "matched_by_name"
 
     # Only cited by another judgment — exists, but no record of its own.
     air = by["AIR 2019 SC 1234"]
     assert air["status"] == "cited_elsewhere" and air["cited_in_count"] == 1 and air["judgment"] is None
+    assert air["cited_in_examples"][0]["id"] == str(ids["bhasin"])
 
     # A citation nothing in the library knows: flagged for manual verification.
     fake = by["(2031) 9 SCC 999"]

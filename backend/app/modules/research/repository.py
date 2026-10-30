@@ -170,25 +170,42 @@ class ResearchRepository:
         )
         return list(res.scalars().all())
 
-    async def mentions(self, phrase: str, *, limit: int = 3, cap: int = 50) -> tuple[int, list[Judgment]]:
-        """How many judgments' text contain this citation (capped) and a few of them.
+    async def mentions(
+        self, phrase: str, *, limit: int = 3, cap: int = 50, timeout_ms: int = 1500
+    ) -> tuple[int, list[Judgment]] | None:
+        """How many Supreme Court judgments' text contain this citation (capped) and a few of them.
 
         PostgreSQL: a phrase query against the full-text GIN index, so
-        "(2019) 5 SCC 123" and "2019 (5) SCC 123" both match. SQLite: substring.
+        "(2019) 5 SCC 123" and "2019 (5) SCC 123" both match. Best effort: a
+        citation made of common tokens ("(2017) 10 SCC 1" — 2017, 10, 1 are in
+        most judgments) means a phrase recheck over a huge candidate set, so the
+        query runs under a short statement timeout inside a savepoint and
+        returns None when it is cancelled. Restricted to the Supreme Court rows
+        (the ones with full text) so the index bitmap is ANDed with the
+        court_level index. SQLite: substring.
         """
         if self._is_postgres:
             cond = _FULL_TEXT_VECTOR.op("@@")(func.phraseto_tsquery(_ENGLISH, phrase))
         else:
             cond = Judgment.full_text.ilike(contains(phrase), escape=LIKE_ESCAPE)
-        base = select(Judgment.id).where(cond, Judgment.deleted_at.is_(None)).limit(cap).subquery()
-        count = int((await self.session.execute(select(func.count()).select_from(base))).scalar_one())
-        if not count:
-            return 0, []
-        res = await self.session.execute(
-            select(Judgment).where(cond, Judgment.deleted_at.is_(None))
-            .order_by(Judgment.judgment_date.desc().nulls_last()).limit(limit)
-        )
-        return count, list(res.scalars().all())
+        where = (cond, Judgment.deleted_at.is_(None), Judgment.court_level == CourtLevel.SUPREME_COURT)
+        try:
+            async with self.session.begin_nested():
+                if self._is_postgres:
+                    await self.session.execute(text(f"SET LOCAL statement_timeout = {int(timeout_ms)}"))
+                base = select(Judgment.id).where(*where).limit(cap).subquery()
+                count = int((await self.session.execute(select(func.count()).select_from(base))).scalar_one())
+                if not count:
+                    return 0, []
+                res = await self.session.execute(
+                    select(Judgment).where(*where)
+                    .order_by(Judgment.judgment_date.desc().nulls_last()).limit(limit)
+                )
+                return count, list(res.scalars().all())
+        except DBAPIError as exc:
+            if _is_query_canceled(exc):
+                return None
+            raise
 
     async def case_orders(self, cnr: str) -> list[Judgment]:
         """Every order the corpus holds for one case, oldest first."""

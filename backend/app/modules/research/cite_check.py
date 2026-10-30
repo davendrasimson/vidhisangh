@@ -24,6 +24,7 @@ whether the cited case supports the proposition — that needs reading the case.
 from __future__ import annotations
 
 import re
+import time
 import zipfile
 from dataclasses import dataclass, field
 from datetime import date
@@ -333,7 +334,7 @@ def _year_warning(found: FoundCitation, matched: Judgment) -> str | None:
     return None
 
 
-async def _resolve(repo: "ResearchRepository", found: FoundCitation) -> Finding:
+async def _resolve(repo: "ResearchRepository", found: FoundCitation, budget: "_Budget") -> Finding:
     names = found.case_names
     finding = Finding(
         citation=found.normalised, reporter=found.reporter, kind=found.kind, year=found.year,
@@ -377,16 +378,40 @@ async def _resolve(repo: "ResearchRepository", found: FoundCitation) -> Finding:
                 finding.status = "possible_matches"
                 finding.candidates = [JudgmentRef.of(r) for r in rows]
 
-    # Tier 3 — does any judgment in the library cite this string?
-    if found.kind in {"reporter", "scr", "insc"}:
-        count, examples = await repo.mentions(found.normalised, limit=3)
-        finding.cited_in_count = count
-        finding.cited_in_examples = [JudgmentRef.of(j) for j in examples]
-        if count and finding.status == "not_found":
-            finding.status = "cited_elsewhere"
-    if finding.status == "not_found":
+    # Tier 3 — does any Supreme Court judgment in the library cite this string?
+    # Only when nothing else resolved it, and only while the request's time
+    # budget lasts: the phrase lookup is best effort (see repository.mentions).
+    if finding.status == "not_found" and found.kind in {"reporter", "scr", "insc"}:
+        if budget.spent():
+            finding.warnings.append("The search for judgments citing this string was skipped to keep the check quick; verify the citation against the reporter.")
+        else:
+            result = await repo.mentions(found.normalised, limit=3)
+            if result is None:
+                finding.warnings.append("The search for judgments citing this string took too long and was skipped; verify the citation against the reporter.")
+            else:
+                count, examples = result
+                finding.cited_in_count = count
+                finding.cited_in_examples = [JudgmentRef.of(j) for j in examples]
+                if count:
+                    finding.status = "cited_elsewhere"
+    if finding.status == "not_found" and not finding.warnings:
         finding.warnings.append("No record and no citing judgment found: verify this citation against the reporter before filing.")
+    elif finding.status == "not_found" and not any("verify" in w for w in finding.warnings):
+        finding.warnings.append("Verify this citation against the reporter before filing.")
     return finding
+
+
+class _Budget:
+    """Wall-clock budget for the best-effort lookups across one request."""
+
+    def __init__(self, seconds: float) -> None:
+        self.deadline = time.monotonic() + seconds
+
+    def spent(self) -> bool:
+        return time.monotonic() > self.deadline
+
+
+MENTIONS_BUDGET_SECONDS = 8.0
 
 
 async def check_text(repo: "ResearchRepository", text: str) -> tuple[list[Finding], int, bool]:
@@ -394,7 +419,8 @@ async def check_text(repo: "ResearchRepository", text: str) -> tuple[list[Findin
     found = find_citations(text)
     total = sum(len(c.occurrences) for c in found)
     truncated = len(found) > MAX_DISTINCT_CITATIONS
-    findings = [await _resolve(repo, c) for c in found[:MAX_DISTINCT_CITATIONS]]
+    budget = _Budget(MENTIONS_BUDGET_SECONDS)
+    findings = [await _resolve(repo, c, budget) for c in found[:MAX_DISTINCT_CITATIONS]]
     return findings, total, truncated
 
 
