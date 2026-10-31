@@ -10,7 +10,7 @@ from sqlalchemy import select
 
 from app.core.outreach_mail import OutreachMessage, RecipientRefused, set_outreach_sender
 from app.modules.identity.models import User
-from app.modules.outreach import service
+from app.modules.outreach import runner, service
 from app.modules.outreach.models import OutreachContact, OutreachStatus
 
 pytestmark = pytest.mark.asyncio
@@ -129,8 +129,47 @@ async def test_import_needs_a_source_and_an_email_column(client: AsyncClient, se
                             files={"file": ("b.csv", b"name\nx\n", "text/csv")})
     assert bad.status_code == 422
     assert (await client.post("/api/v1/platform-admin/outreach/test", headers=admin, json={})).status_code == 503
+    assert (await client.post("/api/v1/platform-admin/outreach/send-now", headers=admin)).status_code == 503
     preview = await client.get("/api/v1/platform-admin/outreach/preview", headers=admin)
     assert preview.status_code == 200 and "Unsubscribe" in preview.text
+
+
+async def test_admin_test_send_and_send_now(client: AsyncClient, session_factory, strong_password, monkeypatch) -> None:
+    admin = await _admin(client, session_factory, strong_password)
+    recorder = Recorder(refuse={"meera@firm.in"})
+    set_outreach_sender(recorder)
+    monkeypatch.setattr(runner, "SPACING_SECONDS", (0.0, 0.0))
+
+    # "Send me a test": greets the admin by the account's name, to their own address by default.
+    r = await client.post("/api/v1/platform-admin/outreach/test", headers=admin, json={})
+    assert r.status_code == 200, r.text
+    assert r.json() == {"sent_to": "ops@vidhisangh.co"}
+    assert recorder.sent[-1].to == "ops@vidhisangh.co" and "Dear Ops Admin," in recorder.sent[-1].text
+    assert recorder.sent[-1].subject.startswith("[Test] ")
+    r = await client.post("/api/v1/platform-admin/outreach/test", headers=admin, json={"to": "meera@firm.in"})
+    assert r.status_code == 502 and "refused" in r.json()["detail"]
+
+    # Nothing queued yet: the button says so instead of silently doing nothing.
+    r = await client.post("/api/v1/platform-admin/outreach/send-now", headers=admin)
+    assert r.status_code == 409 and "upload a CSV" in r.json()["detail"]
+
+    await client.post("/api/v1/platform-admin/outreach/contacts", headers=admin,
+                      files={"file": ("list.csv", CSV.encode(), "text/csv")}, data={"source": "a bar directory"})
+    async with session_factory() as s:
+        await service.update_settings(s, paused=True, daily_limit=2)
+        await s.commit()
+    recorder.sent.clear()
+
+    # Send now works while scheduled sending is paused, but only up to today's number.
+    r = await client.post("/api/v1/platform-admin/outreach/send-now", headers=admin)
+    assert r.status_code == 200 and r.json() == {"started": True, "planned": 2}
+    assert await runner.wait() == {"sent": 2, "skipped": 0, "bounced": 0, "failed": 0}
+    assert [m.to for m in recorder.sent] == ["priya@lawchambers.in", "ravi@advocates.in"]
+    overview = (await client.get("/api/v1/platform-admin/outreach", headers=admin)).json()
+    assert overview["sent_today"] == 2 and overview["counts"]["queued"] == 1 and overview["sending"] is False
+
+    r = await client.post("/api/v1/platform-admin/outreach/send-now", headers=admin)
+    assert r.status_code == 409 and "already gone out" in r.json()["detail"]
 
 
 async def test_daily_limit_never_exceeds_the_configured_ceiling(session_factory) -> None:

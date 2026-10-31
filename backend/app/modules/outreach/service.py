@@ -149,20 +149,35 @@ def message_for(contact: OutreachContact) -> OutreachMessage:
     )
 
 
+async def budget_today(session: AsyncSession, now: datetime | None = None) -> int:
+    """How many more invitations may go out today: the daily number minus those sent (IST)."""
+    cfg = await get_settings(session)
+    return max(0, min(cfg.daily_limit, settings.OUTREACH_DAILY_LIMIT) - await sent_today(session, now))
+
+
+async def queued_count(session: AsyncSession) -> int:
+    return int(await session.scalar(
+        select(func.count()).select_from(OutreachContact)
+        .where(OutreachContact.status == OutreachStatus.QUEUED, OutreachContact.deleted_at.is_(None))
+    ) or 0)
+
+
 async def send_batch(
-    session: AsyncSession, sender: OutreachSender, *, now: datetime | None = None, pause=None,
+    session: AsyncSession, sender: OutreachSender, *, now: datetime | None = None, pause=None, force: bool = False,
 ) -> dict[str, int]:
     """Send today's invitations: up to the daily limit minus what went out today (IST).
 
     `pause` is awaited between messages (the job spaces them out). Commits
-    after every contact, so a crash never re-sends.
+    after every contact, so a crash never re-sends. `force` sends even while
+    scheduled sending is paused (the admin's "Send now"); the daily number
+    still holds, and is re-checked before every message so two runs at once
+    (two API workers, or the timer and the admin) cannot exceed it together.
     """
     report = {"sent": 0, "skipped": 0, "bounced": 0, "failed": 0}
     cfg = await get_settings(session)
-    if cfg.paused:
+    if cfg.paused and not force:
         return report
-    budget = min(cfg.daily_limit, settings.OUTREACH_DAILY_LIMIT) - await sent_today(session, now)
-    while budget > 0:
+    while (budget := await budget_today(session, now)) > 0:
         contact = await session.scalar(
             select(OutreachContact).where(OutreachContact.status == OutreachStatus.QUEUED, OutreachContact.deleted_at.is_(None))
             .order_by(OutreachContact.created_at, OutreachContact.id).limit(1).with_for_update(skip_locked=True)
@@ -193,7 +208,7 @@ async def send_batch(
                 report["sent"] += 1
                 budget -= 1
         await session.commit()
-        if pause and budget > 0:
+        if pause and budget > 0 and contact.status == OutreachStatus.SENT:
             await pause()
     log.info("outreach_batch", **report)
     return report

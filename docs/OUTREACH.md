@@ -6,7 +6,8 @@ Platform admin → **Outreach**. Built 16 Oct 2026 (migration `0067`).
 ## Rules the system enforces
 - **One invitation per address, ever.** No follow-ups or reminders.
 - **At most 50 a day** (`VS_OUTREACH_DAILY_LIMIT`, a ceiling the admin can only lower), counted by India date; sent Monday–Saturday from about 10:30 IST, spaced 30–90 s apart (`vidhisangh-outreach.timer`).
-- **Starts paused.** Nothing goes out until the admin presses *Start sending* and the mail service is configured.
+- **Starts paused.** Nothing goes out on the timer until the admin presses *Start scheduled sending* and the mail service is configured.
+- **Send now** (added 31 Oct 2026): the admin screen can send the rest of today's number straight away (`POST /platform-admin/outreach/send-now`), even while scheduled sending is paused. It runs inside the API process (`app/modules/outreach/runner.py`), 5–10 s apart, and the screen refreshes every 5 s until `sent_today` stops moving. The batch re-checks the day's budget before every message, so a run in two API workers, or alongside the morning timer, still stops at the daily number; each contact is committed as it is sent, so a worker restart mid-run leaves the rest queued and never re-sends. With nobody queued, or today's number already out, the button is disabled and the API answers 409 with the reason.
 - **Skipped automatically:** existing members, anyone who unsubscribed or bounced before, duplicates, malformed addresses, rows without a source.
 - **Unsubscribe**: the mail app's own button (RFC 8058 `List-Unsubscribe-Post`, no page) or the link in the footer (`/unsubscribe/:token`, one tap; not on page load, because mail scanners open links). Either puts a peppered hash of the address on `outreach_suppressions`, which outlives the contact row: the address can never be re-imported.
 - **Hard bounce** (server refuses the address): suppressed the same way.
@@ -49,3 +50,6 @@ priya@lawchambers.in,Adv. Priya Sharma,Delhi,Delhi High Court,the Delhi High Cou
 ## Operations
 - Dry run on the server: `python -m app.scripts.outreach_send --dry-run`
 - Units: `infra/jobs/vidhisangh-outreach.{service,timer}`
+- **"The morning job runs but sends 0"** — in order: (1) `outreach_contacts` is empty (nothing has been uploaded; the admin screen now says "Nobody is waiting to be invited"); (2) scheduled sending is paused; (3) today's number has already gone out (IST day). `journalctl -u vidhisangh-outreach` prints `outreach_batch sent=… skipped=… bounced=… failed=…` for each run; `failed=1` means the relay refused the connection and the run stopped (the contact's `last_error` has the reason).
+- **"Send me a test" fails** — a failed relay call now comes back as 502 with the SMTP error text (before 31 Oct 2026 it was a 500: the route read a name field the token principal does not carry).
+- State on 31 Oct 2026: relay configured for the API and the job, scheduled sending **on**, limit 50, **no contacts ever imported**, so nothing has been sent yet.

@@ -12,7 +12,7 @@ import { problemMessage } from '@core/http/problem-message';
 
 interface OutreachOverview {
   paused: boolean; daily_limit: number; max_daily_limit: number; sender_configured: boolean; from_address: string;
-  sent_today: number; sent_last_7_days: number; suppressed_total: number;
+  sent_today: number; sent_last_7_days: number; suppressed_total: number; sending: boolean;
   counts: Record<'queued' | 'sent' | 'joined' | 'unsubscribed' | 'bounced' | 'skipped', number>;
   recent: { email: string; name: string | null; status: string; source: string; sent_at: string | null; updated_at: string }[];
 }
@@ -49,15 +49,26 @@ type ImportReport = Record<'added' | 'duplicate' | 'member' | 'unsubscribed' | '
 
       <section class="rounded-card border border-line bg-surface-raised p-5 mt-4 flex flex-wrap items-center gap-4">
         <div class="flex-1 min-w-[14rem]">
-          <h2 class="font-semibold">Sending is {{ d.paused ? 'paused' : 'on' }}</h2>
+          <h2 class="font-semibold">Scheduled sending is {{ d.paused ? 'paused' : 'on' }}</h2>
           <p class="text-sm text-content-muted">From {{ d.from_address }}. Sent at about 10:30 am, Monday to Saturday.</p>
+          @if (sendingNow() || d.sending) {
+            <p class="text-sm text-brand mt-1" role="status"><mat-icon class="material-icons-outlined align-middle text-base animate-pulse">schedule_send</mat-icon> Sending now… {{ d.sent_today }} sent today.</p>
+          } @else if (d.counts.queued === 0) {
+            <p class="text-sm text-warning mt-1">Nobody is waiting to be invited. Upload a CSV of contacts below and the next morning's batch (or <em>Send now</em>) will go out.</p>
+          } @else if (remainingToday() === 0) {
+            <p class="text-sm text-content-muted mt-1">Today's number has gone out; the next {{ d.daily_limit }} go tomorrow morning.</p>
+          }
         </div>
         <label class="text-sm flex items-center gap-2">Per day
           <input class="vs-input w-20" type="number" min="0" [max]="d.max_daily_limit" [(ngModel)]="limit" />
         </label>
         <button mat-stroked-button (click)="save({ daily_limit: limit })">Save</button>
-        <button mat-flat-button [color]="d.paused ? 'primary' : 'warn'" (click)="save({ paused: !d.paused })">
-          <mat-icon class="material-icons-outlined">{{ d.paused ? 'play_arrow' : 'pause' }}</mat-icon> {{ d.paused ? 'Start sending' : 'Pause' }}
+        <button mat-stroked-button [color]="d.paused ? 'primary' : 'warn'" (click)="save({ paused: !d.paused })">
+          <mat-icon class="material-icons-outlined">{{ d.paused ? 'play_arrow' : 'pause' }}</mat-icon> {{ d.paused ? 'Start scheduled sending' : 'Pause' }}
+        </button>
+        <button mat-flat-button color="primary" [disabled]="!d.sender_configured || sendingNow() || d.sending || remainingToday() === 0"
+                (click)="sendNow()" title="Send the rest of today's number straight away, even while scheduled sending is paused">
+          <mat-icon class="material-icons-outlined">send</mat-icon> Send now{{ remainingToday() ? ' (' + remainingToday() + ')' : '' }}
         </button>
       </section>
 
@@ -119,12 +130,19 @@ export class OutreachAdminComponent implements OnInit {
   protected readonly report = signal<ImportReport | null>(null);
   protected readonly preview = signal<SafeHtml | null>(null);
   protected readonly uploading = signal(false);
+  /** True from the Send now click until the batch stops growing `sent_today`. */
+  protected readonly sendingNow = signal(false);
   protected limit = 50;
   protected source = '';
 
   protected readonly daysLeft = computed(() => {
     const d = this.o();
     return d && d.daily_limit ? Math.ceil(d.counts.queued / d.daily_limit) : 0;
+  });
+  /** How many Send now would send: the rest of today's number, capped by the queue. */
+  protected readonly remainingToday = computed(() => {
+    const d = this.o();
+    return d ? Math.max(0, Math.min(d.daily_limit - d.sent_today, d.counts.queued)) : 0;
   });
   protected readonly joinRate = computed(() => {
     const d = this.o();
@@ -179,6 +197,38 @@ export class OutreachAdminComponent implements OnInit {
     try {
       const r = await firstValueFrom(this.http.post<{ sent_to: string }>(`${this.api}/test`, {}));
       this.notify.success(`Test sent to ${r.sent_to}.`);
-    } catch { /* toast shown */ }
+    } catch (err) {
+      this.notify.error(problemMessage(err, 'The test could not be sent.'));
+    }
+  }
+
+  protected async sendNow(): Promise<void> {
+    const n = this.remainingToday();
+    if (!window.confirm(`Send ${n} invitation${n === 1 ? '' : 's'} now? They go out a few seconds apart over the next few minutes; each address is invited once.`)) return;
+    try {
+      const r = await firstValueFrom(this.http.post<{ started: boolean; planned: number }>(`${this.api}/send-now`, {}));
+      this.notify.success(`Sending ${r.planned} invitation${r.planned === 1 ? '' : 's'}…`);
+      this.sendingNow.set(true);
+      void this.watchProgress();
+    } catch (err) {
+      this.notify.error(problemMessage(err, 'Could not start sending.'));
+    }
+  }
+
+  /** Refresh every 5 s while the batch runs; stop once `sent_today` has not moved for 20 s. */
+  private async watchProgress(): Promise<void> {
+    let last = this.o()?.sent_today ?? 0;
+    let still = 0;
+    const started = Date.now();
+    while (Date.now() - started < 15 * 60_000) {
+      await new Promise(res => setTimeout(res, 5_000));
+      await this.load();
+      const now = this.o()?.sent_today ?? 0;
+      still = now === last ? still + 1 : 0;
+      last = now;
+      if (still >= 4 && !this.o()?.sending) break;
+    }
+    this.sendingNow.set(false);
+    this.notify.success(`Done: ${last} sent today.`);
   }
 }
