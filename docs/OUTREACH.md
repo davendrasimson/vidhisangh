@@ -47,6 +47,26 @@ email,name,city,court,source
 priya@lawchambers.in,Adv. Priya Sharma,Delhi,Delhi High Court,the Delhi High Court Bar Association directory
 ```
 
+## Sources (first import, 31 Oct 2026)
+Addresses come only from official lists that publish professional contact details, each row
+naming its list (the email prints it). Built with `scripts/outreach_build_contacts.py` from
+`pdftotext -layout` output; role mailboxes (gov.in / nic.in, info@ …) and entries remarked
+"Expired" are left out; one address per person; names the parser could not read cleanly are
+blank (the email then says "Dear Colleague"). Imported on production: **3,046 contacts**, 0 invalid.
+
+| List | Where | Rows |
+|---|---|---|
+| Supreme Court of India, *List of Advocates-on-Record as on 09.10.2026* (Record Room) | linked from https://www.sci.gov.in/advocate-on-record/ → `cdnbbsr.s3waas.gov.in/…/uploads/2026/10/2026100959.pdf` (543 pp.) | 2,319 |
+| Delhi High Court, *nominated counsel for the Union of India* (Ministry of Law & Justice letter F.No. J-11017/19/2025-Judicial dated 11.09.2025; Lists A/B, standing and panel counsel) | https://delhihighcourt.nic.in/files/2026-08/nomcouncil/nominatedcounsel.pdf (380 pp.) | 711 (+102 already in the AOR list) |
+| Supreme Court Bar Association, *life members* directory | https://scbaindia.org/lifemem.pdf (71 pp.) | 16 (older list; most addresses are in the AOR list) |
+
+Looked at and not usable: the Ministry's own panel-counsel PDFs on legalaffairs.gov.in (all 404 now),
+the DHCBA empanelled-advocates list (no emails), Delhi High Court senior-advocate designations (no emails).
+Next candidates when the queue runs low (~a month at 100/day): other High Courts' nominated-counsel
+lists on their own sites, and bar associations that publish member directories with emails
+(Gujarat HC Advocates Association, Kerala, Madras, Bombay, Allahabad — see bhattandjoshiassociates.com's
+directory page for the links).
+
 ## Operations
 - Dry run on the server: `python -m app.scripts.outreach_send --dry-run`
 - Units: `infra/jobs/vidhisangh-outreach.{service,timer}`
