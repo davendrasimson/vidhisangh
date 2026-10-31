@@ -59,4 +59,4 @@ class OutreachSettings(AuditedBase):
     __tablename__ = "outreach_settings"
 
     paused: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    daily_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=50)
+    daily_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=100)

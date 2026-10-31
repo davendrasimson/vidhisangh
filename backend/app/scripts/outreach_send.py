@@ -1,6 +1,6 @@
 """Send today's invitation emails (systemd timer vidhisangh-outreach, daily).
 
-    python -m app.scripts.outreach_send            # send, spaced 30-90 s apart
+    python -m app.scripts.outreach_send            # send, spaced 20-60 s apart
     python -m app.scripts.outreach_send --dry-run  # show what would go out
 
 Does nothing while sending is paused in Platform admin → Outreach, or until the
@@ -33,7 +33,7 @@ async def run(dry_run: bool) -> dict:
         sender = get_outreach_sender()
         if sender is None:
             return {"skipped": "VS_OUTREACH_SMTP_HOST is not set"}
-        return await service.send_batch(session, sender, pause=lambda: asyncio.sleep(random.uniform(30, 90)))
+        return await service.send_batch(session, sender, pause=lambda: asyncio.sleep(random.uniform(20, 60)))
 
 
 if __name__ == "__main__":

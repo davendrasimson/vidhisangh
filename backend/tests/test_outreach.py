@@ -175,5 +175,5 @@ async def test_admin_test_send_and_send_now(client: AsyncClient, session_factory
 async def test_daily_limit_never_exceeds_the_configured_ceiling(session_factory) -> None:
     async with session_factory() as s:
         cfg = await service.update_settings(s, paused=False, daily_limit=500)
-        assert cfg.daily_limit == 50
+        assert cfg.daily_limit == 100
         assert await service.sent_today(s, datetime.now(UTC)) == 0
