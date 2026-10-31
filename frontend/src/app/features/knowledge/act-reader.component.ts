@@ -21,7 +21,7 @@ import { firstValueFrom } from 'rxjs';
 import { isNativeApp } from '@core/platform/platform';
 import { saveBlob } from '@core/platform/save-file';
 
-const BARE_ACTS_EDITION = '2026-09-26-text-2';
+const BARE_ACTS_EDITION = '2026-10-31-text-3';
 
 type ReaderMode = 'text' | 'pdf';
 type BlockKind = 'chapter' | 'section' | 'heading' | 'body';

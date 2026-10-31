@@ -164,7 +164,7 @@ export const ACTS: ActGuide[] = [
     provisions: [{ reference: 'Section 6', meaning: 'Explains how to request information; reasons for the request are not required.' }, { reference: 'Section 19', meaning: 'Provides an appeal process.' }],
     prepare: ['Identify the public authority holding the record.', 'Specify the records and time period you need.'],
     note: 'RTI seeks existing information. It is not itself a procedure to compel a favourable decision on your underlying complaint. Check current exemptions and rules.',
-    source: 'https://nri.up.gov.in/en/page/rti', related: ['legal-aid'],
+    source: 'https://indiacode.gov.in/handle/123456789/496169', hindiSource: 'https://vidhisangh.com/bare-acts/hindi/rti.pdf', related: ['legal-aid'],
   },
   {
     id: 'cpc', short: 'CPC', title: 'Code of Civil Procedure, 1908', area: 'Courts & disputes',
@@ -208,7 +208,7 @@ export const ACTS: ActGuide[] = [
     provisions: [{ reference: 'Section 138', meaning: 'Sets conditions for specified cheque dishonour offences.' }, { reference: 'Section 142', meaning: 'Addresses complaints and related procedural requirements.' }],
     prepare: ['Keep the cheque and bank return memo.', 'Preserve debt records, notice and delivery proof.'],
     note: 'Not every returned cheque creates an offence. Several strict time limits apply; obtain a date-specific assessment promptly.',
-    source: 'https://session.delhi.gov.in/session/negotiable-instruments-act', related: ['contract', 'limitation'],
+    source: 'https://indiacode.gov.in/handle/123456789/496318', hindiSource: 'https://vidhisangh.com/bare-acts/hindi/cheque.pdf', related: ['contract', 'limitation'],
   },
   {
     id: 'it', short: 'IT Act', title: 'Information Technology Act, 2000', area: 'Everyday rights',
@@ -285,7 +285,7 @@ export const ACTS: ActGuide[] = [
     provisions: [{ reference: 'Section 19', meaning: 'Provides for reporting offences to the Special Juvenile Police Unit or local police.' }, { reference: 'Section 24', meaning: 'Provides safeguards for recording a child’s statement.' }],
     prepare: ['Prioritise the child’s safety and appropriate support.', 'Preserve available information without sharing the child’s identity publicly.'],
     note: 'Reporting duties apply. Do not repeatedly question the child or circulate identifying details.',
-    source: 'https://www.wcd.gov.in/documents/legislations', related: ['legal-aid', 'bns', 'bnss'],
+    source: 'https://indiacode.gov.in/handle/123456789/496004', hindiSource: 'https://vidhisangh.com/bare-acts/hindi/pocso.pdf', related: ['legal-aid', 'bns', 'bnss'],
   },
   {
     id: 'legal-aid', short: 'Legal Aid', title: 'Legal Services Authorities Act, 1987', area: 'Everyday rights',

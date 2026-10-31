@@ -66,10 +66,10 @@
     "bytes": 87193
   },
   "rti": {
-    "title": "The Right to Information Act,2005(22 of 2005)",
-    "official_source": "https://cdnbbsr.s3waas.gov.in/s3c3614206a443012045cfd75d2600af2d/uploads/2023/01/2023013137.pdf",
-    "retrieved_on": "2026-09-26",
-    "bytes": 849879
+    "title": "Right to Information Act, 2005",
+    "official_source": "https://indiacode.gov.in/handle/123456789/496169",
+    "retrieved_on": "2026-10-31",
+    "bytes": 447103
   },
   "cpc": {
     "title": "Code of Civil Procedure,1908",
@@ -90,10 +90,10 @@
     "bytes": 569981
   },
   "cheque": {
-    "title": "The Negotiable Instruments Act, 1881",
-    "official_source": "https://session.delhi.gov.in/session/negotiable-instruments-act",
-    "retrieved_on": "2026-09-26",
-    "bytes": 200749
+    "title": "Negotiable Instruments Act, 1881",
+    "official_source": "https://indiacode.gov.in/handle/123456789/496318",
+    "retrieved_on": "2026-10-31",
+    "bytes": 468685
   },
   "it": {
     "title": "The Information Technology Act, 2000-2023010613",
@@ -120,10 +120,10 @@
     "bytes": 380291
   },
   "pocso": {
-    "title": "The Protection of Children From Sexual Offences Act, 2012-20250728151216680",
-    "official_source": "https://www.wcd.gov.in/documents/uploaded/1709101314.pdf",
-    "retrieved_on": "2026-09-26",
-    "bytes": 2907681
+    "title": "Protection of Children from Sexual Offences Act, 2012",
+    "official_source": "https://indiacode.gov.in/handle/123456789/496004",
+    "retrieved_on": "2026-10-31",
+    "bytes": 349647
   },
   "ibc": {
     "title": "The Insolvency and Bankruptcy Code, 2016",

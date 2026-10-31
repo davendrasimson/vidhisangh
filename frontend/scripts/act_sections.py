@@ -12,6 +12,10 @@ import re
 import subprocess
 from collections import Counter
 
+# India Code stamps a rotated "India Code" watermark on every downloaded page; it
+# comes out as huge two-letter words ('In', 'di', 'aC', 'od', 'e') that are dropped
+# by their width (a real two-letter word is under 15 points wide).
+WATERMARK = {'In', 'di', 'aC', 'od', 'e'}
 LINE = re.compile(r'<line xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">(.*?)</line>', re.S)
 WORD = re.compile(r'<word xMin="([\d.]+)" yMin="[\d.]+" xMax="([\d.]+)" yMax="[\d.]+">([^<]*)</word>')
 PAGE = re.compile(r'<page width="([\d.]+)" height="([\d.]+)">(.*?)</page>', re.S)
@@ -24,7 +28,8 @@ def _lines(pdf_path: str):
     for page_no, (w, h, body) in enumerate(PAGE.findall(out)):
         rows = []
         for x0, y0, x1, y1, inner in LINE.findall(body):
-            words = [(float(a), float(b), html.unescape(t)) for a, b, t in WORD.findall(inner)]
+            words = [(float(a), float(b), html.unescape(t)) for a, b, t in WORD.findall(inner)
+                     if not (html.unescape(t) in WATERMARK and float(b) - float(a) > 15)]
             text = ' '.join(w[2] for w in words).strip()
             if not text or set(text) <= set('_—-. '):
                 continue
@@ -193,8 +198,21 @@ def parse_pdf(pdf_path: str, variant: bool = False):
 
 # 'N. Heading.—Text'; old typewriter text sometimes drops the full stop ('17 "Government".--').
 INLINE = re.compile(r'^(\d{1,3})([A-Z]{0,3})(?:\s*\.\s*|\s+(?=["“A-Z\[]))(.*)$')
-HEAD_SPLIT = re.compile(r'^(.{2,240}?[.\]])\s*[—–―-]{1,2}\s*(.*)$')
+HEAD_SPLIT = re.compile(r'^(.{2,240}?[.\]]["”]?)\s*[—–―-]{1,2}\s*(.*)$')
+# Headings printed without the closing full stop ('65. Hours for presentment—Presentment
+# for payment…'): a short capitalised run with no brackets or commas before an em dash.
+HEAD_LOOSE = re.compile(r'^([A-Z“\[][^(),—–―]{1,110}?)\s*[—–―]\s*(.*)$')
 FOOTNOTE_REF = re.compile(r'(?<![\w\d])\d{1,3}\*?(?=\[)|(?<![\w\d])\d{1,3}(?=\*{3,})')
+# The India Code 'as on' editions set the reference off with a space ('4. 3 [(1)] Whoever');
+# only those editions use this form, so a real 'Section 30 [note]' elsewhere is left alone.
+FOOTNOTE_REF_SPACED = re.compile(r'(?<![\w\d])\d{1,3}\*?\s?(?=\[)|(?<![\w\d])\d{1,3}(?=\*{3,})')
+INDIA_CODE_EDITIONS = {'pocso', 'rti', 'cheque'}
+_footnote_ref = FOOTNOTE_REF
+
+
+def _head(text: str):
+    """Split 'Heading.—Body' (or the loose 'Heading—Body'), else None."""
+    return HEAD_SPLIT.match(text) or HEAD_LOOSE.match(text)
 
 
 # A page's amendment footnotes start at the first numbered line in India Code's
@@ -213,7 +231,7 @@ LEAD_MARK = re.compile(r'^(\d{1,3}\*?)?\[\s*|^\d{1,3}\*(?=\d)|^\d{1,2}\s+(?=\d{1
 
 def _clean_inline(text: str) -> str:
     """Drop India Code footnote reference numbers ('3*[extend' -> '[extend')."""
-    return re.sub(r'\s{2,}', ' ', FOOTNOTE_REF.sub('', text)).strip()
+    return re.sub(r'\s{2,}', ' ', _footnote_ref.sub('', text)).strip()
 
 
 def parse_inline_pdf(pdf_path: str, merge_fragments: bool = False, bare_headings: bool = False):
@@ -228,7 +246,7 @@ def parse_inline_pdf(pdf_path: str, merge_fragments: bool = False, bare_headings
     left = min(x for x, _ in Counter(round(r['x0']) for r in wide).most_common(3)) if wide else 90
     sections, expected, current, pending_label, label_y = [], 1, None, None, -1.0
     pending_letter, letter_y = None, -1.0
-    chapter, chapter_pending, enacted = '', False, False
+    chapter, chapter_pending, enacted, title_just_set = '', False, False, False
     done = False
     for rows in pages:
         if done:
@@ -279,20 +297,45 @@ def parse_inline_pdf(pdf_path: str, merge_fragments: bool = False, bare_headings
             if re.match(r'^THE\s+(FIRST\s+|SECOND\s+)?SCHEDULE', t):
                 done = True                            # schedules are not sections
                 break
+            # A letter-spaced heading ('C H A P T E R V', 'O F P R E S E N T M E N T'):
+            # join it; a chapter number is read, a title only while one is awaited.
+            if re.fullmatch(r'[A-Z](?: [A-Z])+', t):
+                joined = t.replace(' ', '')
+                if joined.startswith('CHAPTER'):
+                    t = 'CHAPTER ' + joined[7:]
+                elif chapter_pending:
+                    t = joined
+                else:
+                    continue
+            # A part heading inside a chapter ('A.—PENETRATIVE SEXUAL ASSAULT …') is
+            # not section text.
+            if re.match(r'^[A-Z]\.\s*[—–―-]', t) and not re.search(r'[a-z]', t):
+                continue
             if CHAPTER.match(t) or re.match(r'^PART\s+[IVXLC]+[A-Z]?\b', t):
                 chapter, chapter_pending = t.split()[0].title().upper() + ' ' + t.split()[1].rstrip('.'), True
                 if len(t.split()) > 2:
                     chapter, chapter_pending = f"{chapter} — {_title(' '.join(t.split()[2:]))}", False
+                    title_just_set = True
                 continue
             if chapter_pending and t.isupper() and not INLINE.match(t):
-                chapter, chapter_pending = f'{chapter} — {_title(t)}', False
+                chapter, chapter_pending, title_just_set = f'{chapter} — {_title(t)}', False, True
                 continue
+            # The second printed line of a chapter title that wrapped ('… IN THE' / 'ACCOUNTS'):
+            # only when the first line is long or ends mid-phrase, so a short title followed
+            # by a sub-heading ('Execution' / 'General') is left alone.
+            if title_just_set:
+                title_just_set = False
+                title = chapter.split(' — ', 1)[-1]
+                wrapped = len(title) >= 45 or title.split()[-1].lower() in {'and', 'of', 'the', 'in', 'for', 'to', 'or', 'by', 'with', 'on'}
+                if wrapped and re.fullmatch(r"[A-Z][A-Z ,'&.-]{1,60}", t) and not INLINE.match(t):
+                    chapter = f'{chapter} {_title(t)}'
+                    continue
             chapter_pending = False
             # IT Act prints inserted sections as '66 A Heading': join the letter.
             spaced = re.match(r'^(\d{1,3}) ([A-Z]{1,2})\s+(\S.*)$', t)
             if spaced and int(spaced.group(1)) == expected - 1:
                 rest = spaced.group(3)
-                h = HEAD_SPLIT.match(rest)
+                h = _head(rest)
                 heading, body = (h.group(1), h.group(2)) if h else (rest, '')
                 current = {'number': spaced.group(1) + spaced.group(2),
                            'heading': re.sub(r'\s+', ' ', heading).strip(' .[]'),
@@ -314,7 +357,7 @@ def parse_inline_pdf(pdf_path: str, merge_fragments: bool = False, bare_headings
                     expected += 1
                 pending_label = None
                 rest = m.group(3)
-                h = HEAD_SPLIT.match(rest)
+                h = _head(rest)
                 # Bare-heading layout (IT Act): '66D Punishment for ...' is the whole heading.
                 if bare_headings and m.group(2) and not h and len(rest) < 200 and not rest.endswith((',', ';', ':', '—', '-')):
                     current = {'number': m.group(1) + m.group(2), 'heading': re.sub(r'\s+', ' ', rest).strip(' .[]'),
@@ -344,7 +387,7 @@ def parse_inline_pdf(pdf_path: str, merge_fragments: bool = False, bare_headings
                 pending_letter, letter_y = lettered.group(1) + lettered.group(2), r['y0']
                 continue
             if pending_letter and abs(r['y0'] - letter_y) < 3 and len(t) < 240 and t[:1].isupper():
-                h = HEAD_SPLIT.match(t)
+                h = _head(t)
                 heading, body = (h.group(1), h.group(2)) if h else (t, '')
                 current = {'number': pending_letter, 'heading': re.sub(r'\s+', ' ', heading).strip(' .[]'),
                            'chapter': chapter, 'paragraphs': [f'{pending_letter}. {body}'.strip()]}
@@ -358,7 +401,7 @@ def parse_inline_pdf(pdf_path: str, merge_fragments: bool = False, bare_headings
                 label_y = r['y0']
                 continue
             # Label and a bare heading on one line (IT Act: '1.' + 'Short Title, Extent ...').
-            if pending_label == expected and abs(r['y0'] - label_y) < 3 and not HEAD_SPLIT.match(t) \
+            if pending_label == expected and abs(r['y0'] - label_y) < 3 and not _head(t) \
                     and len(t) < 200 and t[:1].isupper() and not t.endswith((',', ';')):
                 expected += 1
                 current = {'number': str(pending_label), 'heading': re.sub(r'\s+', ' ', t).strip(' .[]'),
@@ -367,10 +410,10 @@ def parse_inline_pdf(pdf_path: str, merge_fragments: bool = False, bare_headings
                 pending_label = None
                 continue
             # Label and 'Heading.—Text' printed as separate fragments on one line.
-            if pending_label == expected and abs(r['y0'] - label_y) < 3 and HEAD_SPLIT.match(t):
+            if pending_label == expected and abs(r['y0'] - label_y) < 3 and _head(t):
                 m = INLINE.match(f'{expected}. {t}')
                 expected += 1
-                h = HEAD_SPLIT.match(t)
+                h = _head(t)
                 current = {'number': str(pending_label), 'heading': re.sub(r'\s+', ' ', h.group(1)).strip(' .[]'),
                            'chapter': chapter, 'paragraphs': [f'{pending_label}. {h.group(2)}'.strip()]}
                 sections.append(current)
@@ -400,11 +443,11 @@ def parse_inline_pdf(pdf_path: str, merge_fragments: bool = False, bare_headings
     # pass 2 can recognise the next section's heading run onto this one.
     for sec in sections:
         paras = [_clean_inline(p) for p in sec['paragraphs'] if p.strip()]
-        sec['paragraphs'] = [p for p in paras if p and not re.fullmatch(r'\d{1,3}[A-Z]{0,3}\.?', p)]
+        sec['paragraphs'] = [p for p in paras if p and not re.fullmatch(r'\d{1,3}[A-Z]{0,3}\.?|\*+', p)]
         if not sec['heading'] and sec['paragraphs']:
             first = sec['paragraphs'][0]
             num = re.match(r'^\d{1,3}[A-Z]{0,3}\.?\s*', first)
-            h = HEAD_SPLIT.match(first[num.end():] if num else first)
+            h = _head(first[num.end():] if num else first)
             if h and len(h.group(1)) < 240:
                 sec['heading'] = re.sub(r'\s+', ' ', h.group(1)).strip(' .[]')
                 sec['paragraphs'][0] = f"{sec['number']}. {h.group(2)}".strip()
@@ -445,6 +488,24 @@ CHAPTER_FIXES = {
     ('property', 'CHAPTER II'): 'Of Transfers of Property by Act of Parties',
     ('property', 'CHAPTER IV'): 'Of Mortgages of Immoveable Property and Charges',
     ('dv', 'CHAPTER III'): 'Powers and Duties of Protection Officers, Service Providers, etc.',
+    ('pocso', 'CHAPTER II'): 'Sexual Offences Against Children',
+    ('pocso', 'CHAPTER IV'): 'Abetment of and Attempt to Commit an Offence',
+    ('pocso', 'CHAPTER VII'): 'Special Courts',
+    ('pocso', 'CHAPTER VIII'): 'Procedure and Powers of Special Courts and Recording of Evidence',
+    ('rti', 'CHAPTER I'): 'Preliminary',
+    ('rti', 'CHAPTER III'): 'The Central Information Commission',
+    ('cheque', 'CHAPTER II'): 'Of Notes, Bills and Cheques',
+    ('cheque', 'CHAPTER III'): 'Parties to Notes, Bills and Cheques',
+    ('cheque', 'CHAPTER V'): 'Of Presentment',
+    ('cheque', 'CHAPTER VI'): 'Of Payment and Interest',
+    ('cheque', 'CHAPTER IX'): 'Of Noting and Protest',
+    ('cheque', 'CHAPTER X'): 'Of Reasonable Time',
+    ('cheque', 'CHAPTER XII'): 'Of Compensation',
+    ('cheque', 'CHAPTER XIII'): 'Special Rules of Evidence',
+    ('cheque', 'CHAPTER XIV'): 'Of Crossed Cheques',
+    ('cheque', 'CHAPTER XV'): 'Of Bills in Sets',
+    ('cheque', 'CHAPTER XVI'): 'Of International Law',
+    ('cheque', 'CHAPTER XVII'): 'Of Penalties in Case of Dishonour of Certain Cheques for Insufficiency of Funds in the Accounts',
 }
 
 
@@ -473,8 +534,8 @@ def parse_act(act_id: str, pdf_path: str):
 # leftmost-margin and loose running-head rules), 'inline' (India Code 'N. Heading.—'),
 # 'inline-merge' (typewriter text split into word fragments), 'inline-bare' (number +
 # heading with no '.—', IT Act). Acts not listed are
-# not published: POCSO and RTI are poor OCR scans; CrPC and the NI Act lost their
-# line structure in conversion (see FUTURE_DELIVERABLES).
+# not published: CrPC and IPC — India Code dropped both after their repeal and the
+# bundled copies lost their line structure in conversion (see FUTURE_DELIVERABLES).
 MODES = {
     'bns': 'gazette', 'bnss': 'gazette', 'bsa': 'gazette', 'companies': 'gazette',
     'consumer': 'gazette-variant', 'rera': 'gazette-variant',
@@ -483,6 +544,8 @@ MODES = {
     'property': 'inline', 'limitation': 'inline', 'posh': 'inline', 'special-marriage': 'inline',
     'hindu-marriage': 'inline', 'legal-aid': 'inline', 'succession': 'inline', 'dv': 'inline',
     'ibc': 'inline', 'it': 'inline-bare',
+    # India Code 'as on' editions downloaded 31 Oct 2026 (indiacode.gov.in, DSpace API).
+    'pocso': 'inline', 'rti': 'inline', 'cheque': 'inline',
 }
 
 
@@ -500,6 +563,8 @@ def act_meta():
 
 
 def extract(act_id: str):
+    global _footnote_ref
+    _footnote_ref = FOOTNOTE_REF_SPACED if act_id in INDIA_CODE_EDITIONS else FOOTNOTE_REF
     mode = MODES[act_id]
     path = f'public/bare-acts/{act_id}.pdf'
     if mode == 'gazette':
