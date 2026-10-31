@@ -127,9 +127,28 @@ _ALD_COUNSEL_RE = re.compile(
 _PH_PRESENT_RE = re.compile(
     r"Present\s*:\s*(?P<block>.*?)(?=\s*\*{3,}|(?-i:\s+[A-Z][A-Z .]+,\s*J\.)|$)", re.I | re.S
 )
-# One "Mr. X, Advocate for the petitioners." segment of a P&H "Present:" block.
+# One "Mr. X, Advocate for the petitioners." segment of a P&H "Present:" block
+# (Uttarakhand writes "learned counsel for petitioner(s)", without "the").
 _PH_SEGMENT_RE = re.compile(
-    rf"(?P<names>.+?)\s+for\s+the\s+(?P<side>{_PET_WORDS}|{_RESP_WORDS})\b[^.]*\.?",
+    rf"(?P<names>.+?)\s+for\s+(?:the\s+)?(?P<side>{_PET_WORDS}|{_RESP_WORDS})\b[^.]*\.?",
+    re.I | re.S,
+)
+# Uttarakhand judgments: "Presence:- Mr. A, Mr. B and Mr. C, learned counsel for
+# petitioner(s). Mr. D, learned counsel for respondents-University." up to the judge.
+_UK_PRESENCE_RE = re.compile(r"Presence\s*:-?\s*(?P<block>.*?)(?=\s*Hon[’']?ble\b|$)", re.I | re.S)
+# Uttarakhand order sheets print the appearances right after the judge's name:
+# "Hon'ble X, J. Mr. A, Advocate for the petitioners. Mr. B, Brief Holder for the
+# State." and then the first numbered paragraph or "Learned counsel …".
+_UK_SHEET_RE = re.compile(
+    r"Hon[’']?ble\s+[^\n]{3,80}?,\s*J\.\s*(?:\(Oral\))?\s*(?P<block>(?:Mr|Ms|Mrs|Dr|Shri|Smt|Sh)\b.*?)"
+    r"(?=\s+\d{1,2}\.\s+(?!(?:Mr|Ms|Mrs|Dr|Shri|Smt|Sh)\b)[A-Z]|\s+Learned\s+counsel\b|\s+Heard\b|\s+This\b|$)",
+    re.I | re.S,
+)
+# Delhi judgments: "Advocates who appeared in this case  For the Petitioner : Mr. X …
+# Advocates.  For the Respondents : Mr. Y … CORAM:".
+_DEL_FOR_RE = re.compile(
+    rf"\bFor\s+the\s+(?P<side>{_PET_WORDS}|{_RESP_WORDS})\s*:\s*(?P<counsel>.*?)"
+    rf"(?=\s+For\s+the\s+(?:{_PET_WORDS}|{_RESP_WORDS})\s*:|\s+CORAM\b|$)",
     re.I | re.S,
 )
 
@@ -149,7 +168,7 @@ _COUNSEL_SPLIT_RE = re.compile(
 _COUNSEL_STRIP_RE = re.compile(
     r"^(?:(?:learned|advocate|shri|smt|mrs|adv|mr|mt|ms|dr|sh|ld)(?:\.|\b)[\s.]*)+|"
     r"\s*\b(?:sr\.?\s+advocates?|senior\s+advocates?|advocates?|advs?\.?|counsel|ld\.?|learned|"
-    r"standing\s+counsel|ASC|APP|SPP|CGSC|DAG|AAG|A\.?G\.?|Addl\.?\s+A\.?G\.?|proxy\s+counsel|"
+    r"standing\s+counsel|brief\s+holder|ASC|APP|SPP|CGSC|SSC|JSCs?|SPC|DAG|AAG|A\.?G\.?|Addl\.?\s+A\.?G\.?|proxy\s+counsel|"
     r"amicus\s+curiae|\(.*\))\b.*$",
     re.I,
 )
@@ -184,6 +203,10 @@ def _counsel_names(block: str) -> list[str]:
     )
     # Parentheticals are never part of a name: "(thru VC)", "(Sr. Adv.)", "(DHCLSC)".
     block = re.sub(r"\([^)]*\)", " ", block)
+    # ", assisted by Mr. X" / ", with Mr. X": the comma would win the split and leave
+    # the joining words on the next name; numbered appearances ("2. Mr. X") lose the number.
+    block = re.sub(r",\s*(?:assisted\s+by|along\s*with|with|and)\s+", ", ", block, flags=re.I)
+    block = re.sub(r"(^|\s)\d{1,2}\.\s+(?=(?:Mr|Ms|Mrs|Dr|Shri|Smt|Sh)\b)", r"\1", block)
     for piece in _COUNSEL_SPLIT_RE.split(block):
         piece = " ".join(piece.split())  # pypdf breaks names across lines
         bare = _COUNSEL_STRIP_RE.sub("", piece.strip()).strip(" .,;:-")
@@ -234,6 +257,31 @@ def parse_counsel(description: str | None) -> tuple[list[str], list[str]]:
     pm = _PH_PRESENT_RE.search(head)
     if pm:
         for seg in _PH_SEGMENT_RE.finditer(pm.group("block")):
+            target = pet if _is_petitioner_side(seg.group("side")) else resp
+            target.extend(n for n in _counsel_names(seg.group("names")) if n not in target)
+        if pet or resp:
+            return pet, resp
+
+    # Uttarakhand judgments: "Presence:-" block with "learned counsel for <side>" segments.
+    um = _UK_PRESENCE_RE.search(head)
+    if um:
+        for seg in _PH_SEGMENT_RE.finditer(um.group("block")):
+            target = pet if _is_petitioner_side(seg.group("side")) else resp
+            target.extend(n for n in _counsel_names(seg.group("names")) if n not in target)
+        if pet or resp:
+            return pet, resp
+
+    # Delhi judgments: "For the Petitioner : names  For the Respondents : names".
+    for m in _DEL_FOR_RE.finditer(head[: (re.search(r"\bCORAM\b", head, re.I) or re.search(r"$", head)).start()]):
+        target = pet if _is_petitioner_side(m.group("side")) else resp
+        target.extend(n for n in _counsel_names(m.group("counsel")) if n not in target)
+    if pet or resp:
+        return pet, resp
+
+    # Uttarakhand order sheets: appearances straight after "Hon'ble X, J.".
+    sm = _UK_SHEET_RE.search(head)
+    if sm:
+        for seg in _PH_SEGMENT_RE.finditer(sm.group("block")):
             target = pet if _is_petitioner_side(seg.group("side")) else resp
             target.extend(n for n in _counsel_names(seg.group("names")) if n not in target)
         if pet or resp:

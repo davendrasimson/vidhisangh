@@ -405,3 +405,40 @@ async def test_acts_sections_and_sc_body_parsers() -> None:
     assert parse_sc_counsel(old) == (["S.K. Dholakia", "S.K. Chachra", "Kailash Chand"], ["Bhaskar Bhattacharjee"])
     # No boundary found -> nothing stored (never the headnote).
     assert sc_judgment_body("[2010] 1 S.C.R. 1 Headnote only, no jurisdiction line") is None
+
+
+async def test_counsel_parse_uttarakhand_and_delhi_judgment_formats() -> None:
+    """Uttarakhand's "Presence:-" judgments and order sheets, and Delhi's judgment header
+    ("For the Petitioner : …") — the formats behind 232,000 High Court texts without counsel."""
+    from app.modules.research.normalise import parse_counsel
+
+    presence = ("2026:UHC:3285\n1\nHIGH COURT OF UTTARAKHAND AT NAINITAL\n1. Writ Petition Misc. Single No.1164 of 2026\n"
+                "Rahul Joshi --Petitioner\nVersus\nG.B. Pant University Of Agriculture And Technology\nPantnagar and Another --Respondents\n"
+                "----------\nPresence:-\nMr. D.C.S. Rawat, Mr. Hemant Singh Mahra and Mr.\nKetan Joshi, learned counsel for petitioner(s).\n"
+                "Mr. S.S. Lingwal, learned counsel for respondents-\nUniversity, through V.C.\n\nHon’ble Pankaj Purohit, J. (Oral)\n\nSince all the writ petitions")
+    assert parse_counsel(presence) == (["D.C.S. Rawat", "Hemant Singh Mahra", "Ketan Joshi"], ["S.S. Lingwal"])
+
+    sheet = ("SL.\nNo Date\nCOURT’S OR JUDGES’S ORDERS\n42\n\nBCA No. 21 of 2025\nHon’ble Ravindra Maithani, J.\n"
+             "Ms. Stuti Pandey , Advocate for the\napplicant.\nMr. Rakesh Negi , Brief Holder for the\nState.\n"
+             "Learned counsel for the applicant submits\nthat proclamation has already been issued")
+    assert parse_counsel(sheet) == (["Stuti Pandey"], ["Rakesh Negi"])
+
+    numbered = ("2026:UHC:3202\nWPSS/ 1134 / 2022\nHon’ble Manoj Kumar Tiwari, J.\n\nMr. M.C. Kandpal, Senior Advocate, assisted\n"
+                "by Mr. Devesh Kandpal, Mr. Vinod Tiwari, Mr. Atul\nTripathi, Mr. Vinay Bhushan Pathak and Mr.\nDevendra Singh Negi, Advocates for the\n"
+                "petitioners.\n2. Mr. Sushil Vashistha, Standing Counsel for\nthe State of Uttarakhand.\n3. Since common questions of law and fact\nare involved")
+    assert parse_counsel(numbered) == (
+        ["M.C. Kandpal", "Devesh Kandpal", "Vinod Tiwari", "Atul Tripathi", "Vinay Bhushan Pathak", "Devendra Singh Negi"],
+        ["Sushil Vashistha"],
+    )
+
+    judgment = ("* IN THE HIGH COURT OF DELHI AT NEW DELHI\n+ W.P.(C) 15970/2023\nM/S HUAWEI TELECOMMUNICATIONS\n(INDIA) COMPANY PVT. LTD. .....Petitioner\n"
+                "versus\nASSISTANT COMMISSIONER OF INCOME\nTAX, CENTRAL CIRCLE-2, DELHI & ANR .....Respondents\n\nAdvocates who appeared in this case\n\n"
+                "For the Petitioner : Mr. Arvind Datar and Mr. Tarun Gulati,\nSenior Advocates with Mr. Kishore Kunal,\nMs. Ankita Prakash and Mr. Anuj Kumar,\nAdvocates.\n\n"
+                "For the Respondents : Mr. Indruj Singh Rai SSC, Mr.Sanjeev\nMenon, Mr. Rahul Singh JSCs and Mr.\nGaurav Kumar, Mr.Siddharth Burman,\nAdvocates.\n\n"
+                "CORAM:\nHON'BLE MR. JUSTICE V. KAMESWAR RAO\nJUDGMENT\nFor the Petitioner : nothing after the coram counts")
+    assert parse_counsel(judgment) == (
+        ["Arvind Datar", "Tarun Gulati", "Kishore Kunal", "Ankita Prakash", "Anuj Kumar"],
+        ["Indruj Singh Rai", "Sanjeev Menon", "Rahul Singh", "Gaurav Kumar", "Siddharth Burman"],
+    )
+    # An order with nobody appearing stays empty; prose "Hon'ble" lines are not appearances.
+    assert parse_counsel("Through: None\nversus\nX .....Respondent\nThrough: None\nCORAM:\nHON'BLE MS. JUSTICE N\nO R D E R") == ([], [])
