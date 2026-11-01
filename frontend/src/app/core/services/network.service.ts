@@ -17,6 +17,7 @@ import {
   ReactionType,
   TrendingTag,
   PostImage,
+  HomeNetwork
 } from '@core/models/network.models';
 
 @Injectable({ providedIn: 'root' })
@@ -109,6 +110,16 @@ export class NetworkService {
   // ── Directory & graph ─────────────────────────────────────────
   directory(page = 1, size = 30): Observable<DirectoryPerson[]> {
     return this.http.get<DirectoryPerson[]>(`${this.api}/directory`, { params: { page, size } });
+  }
+
+  /** The home screen's people card: fraternity numbers, colleagues in my city, newest members. */
+  home(): Observable<HomeNetwork> {
+    return this.http.get<HomeNetwork>(`${this.api}/home`);
+  }
+
+  /** Appear in (or leave) the People directory. */
+  setDiscoverable(on: boolean): Observable<{ discoverable: boolean }> {
+    return this.http.patch<{ discoverable: boolean }>(`${this.api}/me/visibility`, { discoverable: on });
   }
 
   person(userId: string): Observable<PublicProfile> {

@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 import uuid
 from collections import Counter
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -602,6 +602,9 @@ class NetworkService:
     async def directory(self, limit: int, offset: int) -> list[tuple[NetworkIdentity, str | None, bool]]:
         await self.ensure_my_identity()
         people = await self.identities.list_directory(self.user_id, limit, offset)
+        return await self._with_relationship(people)
+
+    async def _with_relationship(self, people: list[NetworkIdentity]) -> list[tuple[NetworkIdentity, str | None, bool]]:
         following = await self.follows.following_ids(self.user_id)
         annotated: list[tuple[NetworkIdentity, str | None, bool]] = []
         for person in people:
@@ -614,3 +617,17 @@ class NetworkService:
                     status = "pending_out" if conn.requester_id == self.user_id else "pending_in"
             annotated.append((person, status, person.user_id in following))
         return annotated
+
+    async def home(self, limit: int = 5) -> dict:
+        """The people-first home card: fraternity numbers, colleagues in my city and the newest members
+        (people I am already connected with, or have asked, are left out of the suggestions)."""
+        me = await self.ensure_my_identity()
+        counts = await self.identities.counts(me.city, datetime.now(UTC) - timedelta(days=7))
+        nearby = await self.identities.nearby(self.user_id, me.city, limit) if me.city else []
+        recent = await self.identities.recent(self.user_id, limit, exclude_ids={p.user_id for p in nearby})
+        def fresh(rows: list[tuple[NetworkIdentity, str | None, bool]]):
+            return [(p, s, f) for p, s, f in rows if s is None]
+        return {
+            **counts, "city": me.city, "discoverable": me.discoverable,
+            "nearby": fresh(await self._with_relationship(nearby)), "recent": fresh(await self._with_relationship(recent)),
+        }

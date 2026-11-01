@@ -79,7 +79,67 @@ GROUPS: tuple[OfficialGroup, ...] = (
     OfficialGroup("calcutta-high-court", "Calcutta High Court",
         "Members practising before the Calcutta High Court and the courts of West Bengal and the Andaman and Nicobar Islands.",
         "Welcome! Introduce yourself and the courts where you usually appear."),
+    # Added 1 Nov 2026 so every High Court bar has a room before the invitations reach it.
+    *(OfficialGroup(slug, name, f"Members practising before the {name} and the district courts of {region}.",
+                    "Welcome! Introduce yourself and the courts where you usually appear.")
+      for slug, name, region in (
+          ("gujarat-high-court", "Gujarat High Court", "Gujarat"),
+          ("rajasthan-high-court", "Rajasthan High Court", "Rajasthan (Jodhpur and Jaipur)"),
+          ("madhya-pradesh-high-court", "Madhya Pradesh High Court", "Madhya Pradesh (Jabalpur, Indore and Gwalior)"),
+          ("chhattisgarh-high-court", "Chhattisgarh High Court", "Chhattisgarh"),
+          ("patna-high-court", "Patna High Court", "Bihar"),
+          ("jharkhand-high-court", "Jharkhand High Court", "Jharkhand"),
+          ("orissa-high-court", "Orissa High Court", "Odisha"),
+          ("telangana-high-court", "Telangana High Court", "Telangana"),
+          ("andhra-pradesh-high-court", "Andhra Pradesh High Court", "Andhra Pradesh"),
+          ("kerala-high-court", "Kerala High Court", "Kerala and Lakshadweep"),
+          ("gauhati-high-court", "Gauhati High Court", "Assam, Nagaland, Mizoram and Arunachal Pradesh"),
+          ("jammu-kashmir-ladakh-high-court", "High Court of J&K and Ladakh", "Jammu & Kashmir and Ladakh"),
+          ("himachal-pradesh-high-court", "Himachal Pradesh High Court", "Himachal Pradesh"),
+          ("uttarakhand-high-court", "Uttarakhand High Court", "Uttarakhand"),
+          ("tripura-high-court", "Tripura High Court", "Tripura"),
+          ("meghalaya-high-court", "Meghalaya High Court", "Meghalaya"),
+          ("manipur-high-court", "Manipur High Court", "Manipur"),
+          ("sikkim-high-court", "Sikkim High Court", "Sikkim"),
+      )),
 )
+
+# Which official group a court name (as written on the public lists the invitations come from, or on a
+# member's profile) belongs to. Checked in order; the first keyword found wins.
+COURT_GROUPS: tuple[tuple[str, str], ...] = (
+    ("supreme court", "supreme-court-of-india"),
+    ("delhi", "delhi-high-court"),
+    ("punjab", "punjab-and-haryana-high-court"), ("haryana", "punjab-and-haryana-high-court"), ("chandigarh", "punjab-and-haryana-high-court"),
+    ("allahabad", "allahabad-high-court"), ("lucknow", "allahabad-high-court"), ("uttar pradesh", "allahabad-high-court"),
+    ("bombay", "bombay-high-court"), ("maharashtra", "bombay-high-court"), ("goa", "bombay-high-court"),
+    ("madras", "madras-high-court"), ("tamil nadu", "madras-high-court"),
+    ("karnataka", "karnataka-high-court"),
+    ("calcutta", "calcutta-high-court"), ("west bengal", "calcutta-high-court"),
+    ("gujarat", "gujarat-high-court"),
+    ("rajasthan", "rajasthan-high-court"),
+    ("madhya pradesh", "madhya-pradesh-high-court"),
+    ("chhattisgarh", "chhattisgarh-high-court"),
+    ("patna", "patna-high-court"), ("bihar", "patna-high-court"),
+    ("jharkhand", "jharkhand-high-court"),
+    ("orissa", "orissa-high-court"), ("odisha", "orissa-high-court"),
+    ("telangana", "telangana-high-court"), ("hyderabad", "telangana-high-court"),
+    ("andhra", "andhra-pradesh-high-court"),
+    ("kerala", "kerala-high-court"),
+    ("gauhati", "gauhati-high-court"), ("assam", "gauhati-high-court"),
+    ("kashmir", "jammu-kashmir-ladakh-high-court"), ("ladakh", "jammu-kashmir-ladakh-high-court"), ("jammu", "jammu-kashmir-ladakh-high-court"),
+    ("himachal", "himachal-pradesh-high-court"),
+    ("uttarakhand", "uttarakhand-high-court"),
+    ("tripura", "tripura-high-court"),
+    ("meghalaya", "meghalaya-high-court"),
+    ("manipur", "manipur-high-court"),
+    ("sikkim", "sikkim-high-court"),
+)
+
+
+def court_group_slug(court: str | None) -> str | None:
+    """The official group for a court name ('Allahabad High Court, Lucknow Bench' → allahabad-high-court)."""
+    text = (court or "").lower()
+    return next((slug for key, slug in COURT_GROUPS if key in text), None) if text else None
 
 
 async def seed(session: AsyncSession) -> dict[str, int]:

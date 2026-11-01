@@ -239,3 +239,44 @@ async def test_daily_limit_never_exceeds_the_configured_ceiling(session_factory)
         cfg = await service.update_settings(s, paused=False, daily_limit=500)
         assert cfg.daily_limit == 100
         assert await service.sent_today(s, datetime.now(UTC)) == 0
+
+
+async def test_invitation_names_the_court_group_and_colleagues_and_prefills_the_profile(client: AsyncClient, session_factory, strong_password) -> None:
+    from app.modules.groups import official
+
+    admin = await _admin(client, session_factory, strong_password)
+    async with session_factory() as s:
+        await official.seed(s)
+        await s.commit()
+    rows = "\n".join(f"adv{i}@lko.law,Adv. Lucknow {i},,Lucknow,\"Allahabad High Court, Lucknow Bench\",the Allahabad HC list" for i in range(7))
+    csv_text = "email,name,mobile,city,court,source\n" + rows + "\nsolo@kochi.law,Adv. Solo,,Kochi,Kerala High Court,the Kerala list\n"
+    r = await client.post("/api/v1/platform-admin/outreach/contacts", headers=admin, files={"file": ("c.csv", csv_text.encode(), "text/csv")})
+    assert r.json()["added"] == 8
+
+    # Five invitees from the court have joined: the next invitation from that court says so and names the group.
+    async with session_factory() as s:
+        for i in range(5):
+            c = await s.scalar(select(OutreachContact).where(OutreachContact.email == f"adv{i}@lko.law"))
+            c.status = OutreachStatus.JOINED
+        await service.update_settings(s, paused=False, daily_limit=50)
+        await s.commit()
+        recorder = Recorder()
+        report = await service.send_batch(s, recorder)
+    assert report["sent"] == 3
+    lko = next(m for m in recorder.sent if m.to == "adv5@lko.law")
+    assert "Advocates from the Allahabad High Court, Lucknow Bench are already on VidhiSangh." in lko.text
+    assert "Allahabad High Court group" in lko.text and "/app/groups/" in lko.text and "/app/groups/" in lko.html
+    solo = next(m for m in recorder.sent if m.to == "solo@kochi.law")
+    assert "already on VidhiSangh" not in solo.text            # nobody from Kerala has joined yet
+    assert "Kerala High Court group" in solo.text                # but the room is ready
+
+    # Signing up with an invited address starts the profile from the list: city and court.
+    r = await client.post("/api/v1/auth/register", json={
+        "full_name": "Adv. Solo", "email": "solo@kochi.law", "password": strong_password, "accept_terms": True,
+        "professional_role": "advocate", "practice_type": "individual"})
+    assert r.status_code == 201, r.text
+    headers = {"Authorization": f"Bearer {r.json()['access_token']}"}
+    me = (await client.get("/api/v1/profiles/me", headers=headers)).json()
+    assert me["city"] == "Kochi" and me["headline"] == "Advocate, Kerala High Court"
+    overview = (await client.get("/api/v1/platform-admin/outreach", headers=admin)).json()
+    assert overview["counts"]["joined"] == 6

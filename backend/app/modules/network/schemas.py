@@ -64,6 +64,18 @@ class PublicProfile(DirectoryPerson):
     is_self: bool = False
 
 
+class HomeNetworkRead(BaseModel):
+    """The home screen's people card: fraternity numbers and colleagues to connect with."""
+
+    members: int
+    in_city: int
+    joined_7d: int
+    city: str | None
+    discoverable: bool
+    nearby: list[DirectoryPerson]
+    recent: list[DirectoryPerson]
+
+
 # ─── Connections ────────────────────────────────────────────────────
 class ConnectionRequestCreate(BaseModel):
     message: str | None = Field(default=None, max_length=300)

@@ -247,7 +247,21 @@ class AuthService:
         if user.email:
             from app.modules.outreach.service import mark_joined
 
-            await mark_joined(self.session, user.email, user.id)
+            contact = await mark_joined(self.session, user.email, user.id)
+            if contact is not None and (contact.city or contact.court):
+                # Invited from a public court list: start the profile with the city and court it named, so
+                # the home screen can show colleagues at once. The member can change both.
+                from app.modules.profile.models import ProfessionalProfile
+
+                profile = await self.session.scalar(select(ProfessionalProfile).where(ProfessionalProfile.user_id == user.id))
+                if profile is None:
+                    profile = ProfessionalProfile(tenant_id=tenant.id, user_id=user.id, professional_role=data.professional_role or "advocate")
+                    self.session.add(profile)
+                if contact.city and not profile.city:
+                    profile.city = contact.city[:120]
+                if contact.court and not profile.headline:
+                    profile.headline = f"Advocate, {contact.court}"[:200]
+                await self.session.flush()
 
         log.info("tenant_registered", tenant_id=str(tenant.id), user_id=str(user.id))
         self._audit(user, "auth.registered", f"Registered organisation {tenant.name}", meta={"ip": ip})

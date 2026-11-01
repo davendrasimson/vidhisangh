@@ -13,7 +13,7 @@
       <img class="vs-brand__mark" src="brand-mark.svg?v=4" alt="" width="38" height="38" />
       <span class="vs-brand__copy">
         <span class="vs-brand__name"><span>Vidhi</span><strong>Sangh</strong></span>
-        <span class="vs-brand__tagline">Legal practice platform</span>
+        <span class="vs-brand__tagline">India’s legal fraternity</span>
       </span>
     </a>
 
@@ -25,14 +25,14 @@
             type="button"
             mat-list-item
             class="vs-group-toggle"
-            (click)="toggleSettings()"
-            [attr.aria-expanded]="settingsExpanded()"
+            (click)="toggleGroup(group)"
+            [attr.aria-expanded]="isExpanded(group)"
           >
             <mat-icon matListItemIcon class="material-icons-outlined">{{ group.icon }}</mat-icon>
             <span matListItemTitle>{{ group.title }}</span>
-            <mat-icon matListItemMeta class="material-icons-outlined">{{ settingsExpanded() ? 'expand_less' : 'expand_more' }}</mat-icon>
+            <mat-icon matListItemMeta class="material-icons-outlined">{{ isExpanded(group) ? 'expand_less' : 'expand_more' }}</mat-icon>
           </button>
-          @if (settingsExpanded()) {
+          @if (isExpanded(group)) {
             @for (item of group.items; track item.label) {
               <a
                 mat-list-item

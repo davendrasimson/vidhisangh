@@ -266,3 +266,29 @@ async def test_cannot_connect_to_self(client: AsyncClient, strong_password: str)
     h1, me1 = await _user(client, "Firm A", "solo@firma.co", strong_password)
     resp = await client.post(f"/api/v1/network/connections/{me1['id']}", headers=h1, json={})
     assert resp.status_code == 422
+
+
+async def test_home_card_shows_colleagues_in_my_city_and_newest_members(client: AsyncClient, strong_password: str) -> None:
+    me, _ = await _user(client, "Me Chambers", "me@prayagraj.law", strong_password)
+    near, near_me = await _user(client, "Near Chambers", "near@prayagraj.law", strong_password)
+    far, far_me = await _user(client, "Far Chambers", "far@kochi.law", strong_password)
+    hidden, _ = await _user(client, "Hidden Chambers", "hidden@prayagraj.law", strong_password)
+    for headers, city in ((me, "Prayagraj"), (near, "Prayagraj"), (far, "Kochi"), (hidden, "Prayagraj")):
+        assert (await client.put("/api/v1/profiles/me", headers=headers, json={"city": city})).status_code == 200
+    for headers in (near, far):
+        await _discoverable(client, headers)
+    # Everyone's identity exists once they have touched the network (hidden opted out of the directory).
+    for headers in (me, near, far, hidden):
+        assert (await client.get("/api/v1/network/me/identity", headers=headers)).status_code == 200
+
+    home = (await client.get("/api/v1/network/home", headers=me)).json()
+    assert home["city"] == "Prayagraj" and home["discoverable"] is False
+    assert home["members"] == 4 and home["in_city"] == 3 and home["joined_7d"] == 4
+    assert [p["user_id"] for p in home["nearby"]] == [near_me["id"]]          # same city, discoverable
+    assert [p["user_id"] for p in home["recent"]] == [far_me["id"]]           # newest others, not repeated
+    assert all(p["connection_status"] is None for p in home["nearby"] + home["recent"])
+
+    # Once I have asked to connect, the colleague leaves the suggestions.
+    assert (await client.post(f"/api/v1/network/connections/{near_me['id']}", headers=me, json={})).status_code in (200, 201)
+    home = (await client.get("/api/v1/network/home", headers=me)).json()
+    assert home["nearby"] == []

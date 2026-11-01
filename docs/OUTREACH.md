@@ -13,6 +13,7 @@ Platform admin → **Outreach**. Built 16 Oct 2026 (migration `0067`).
 - **Hard bounce** (server refuses the address): suppressed the same way.
 - **Joins** are recognised at sign-up by email and counted as *Joined*.
 - Each email names its **source** ("your professional email address is publicly listed in …"), the company, and the grievance officer.
+- **Court-aware (1 Nov 2026)**: when a contact row has a `court`, the email adds "Advocates from the <court> are already on VidhiSangh" once five invitees from that court have joined (the exact number from 20), and "Your colleagues gather in the <court> group" linking the official group (`groups/official.court_group_slug`). At sign-up the invited member's profile starts with the list's city and "Advocate, <court>" as headline, so the home screen shows colleagues at once.
 
 ## Contacts list, removal flag, erasure (1 Nov 2026, migration `0084`)
 - **Contacts** section on the admin screen: every contact with name, email, **mobile** (new CSV column

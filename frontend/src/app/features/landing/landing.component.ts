@@ -75,9 +75,9 @@ import { countStep } from '@core/analytics/funnel';
       </section>
 
       <section class="stats" aria-label="VidhiSangh at a glance">
-        <div><strong>5.9 million</strong><span>Supreme Court and High Court judgments and orders</span></div>
-        <div><strong>25</strong><span>central Acts, including BNS, BNSS and BSA, readable offline</span></div>
-        <div><strong>Free</strong><span>to join and to network with the fraternity</span></div>
+        <div><strong>26 courts</strong><span>a community for the Supreme Court and every High Court bar, ready for you to join</span></div>
+        <div><strong>Free</strong><span>to join, to connect, to post and to message: no plans, no paywall for members</span></div>
+        <div><strong>Included</strong><span>5.9 million judgments, 25 Bare Acts and practice tools, free, for when you need them</span></div>
       </section>
 
       @for (f of features; track f.id; let odd = $odd) {

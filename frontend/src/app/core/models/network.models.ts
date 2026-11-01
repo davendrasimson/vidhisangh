@@ -97,6 +97,17 @@ export interface DirectoryPerson {
   is_following: boolean;
 }
 
+/** The home screen's people card. */
+export interface HomeNetwork {
+  members: number;
+  in_city: number;
+  joined_7d: number;
+  city: string | null;
+  discoverable: boolean;
+  nearby: DirectoryPerson[];
+  recent: DirectoryPerson[];
+}
+
 export interface PublicProfile extends DirectoryPerson {
   is_self: boolean;
 }

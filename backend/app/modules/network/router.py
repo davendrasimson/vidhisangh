@@ -42,6 +42,7 @@ from app.modules.network.schemas import (
     PublicPageUpdate,
     VisibilityUpdate,
 )
+from app.modules.network.schemas import HomeNetworkRead
 from app.modules.network.service import NetworkService
 from app.modules.support.service import SupportService
 
@@ -505,6 +506,27 @@ async def directory(
         person.is_following = following
         result.append(person)
     return result
+
+
+def _people(rows) -> list[DirectoryPerson]:  # noqa: ANN001
+    out = []
+    for identity, conn_status, following in rows:
+        person = DirectoryPerson.model_validate(identity)
+        person.connection_status = conn_status
+        person.is_following = following
+        out.append(person)
+    return out
+
+
+@router.get(
+    "/home",
+    dependencies=[require_permission("profile:read")],
+    response_model=HomeNetworkRead,
+    summary="Home: fraternity numbers, colleagues in my city, newest members",
+)
+async def home(current: CurrentUserDep, session: TenantSessionDep) -> HomeNetworkRead:
+    data = await _svc(current, session).home()
+    return HomeNetworkRead(**{**data, "nearby": _people(data["nearby"]), "recent": _people(data["recent"])})
 
 
 @router.get(

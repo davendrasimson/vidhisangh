@@ -153,8 +153,29 @@ async def sent_today(session: AsyncSession, now: datetime | None = None) -> int:
     ) or 0)
 
 
-def message_for(contact: OutreachContact) -> OutreachMessage:
-    subject, text, html = invitation.build(name=contact.name, source=contact.source, token=contact.token)
+async def court_context(session: AsyncSession, court: str | None) -> dict:
+    """How many invitees from the same court have joined, and the court's official group (name, url)."""
+    if not court or not court.strip():
+        return {}
+    joined = int(await session.scalar(
+        select(func.count()).select_from(OutreachContact)
+        .where(OutreachContact.court == court, OutreachContact.status == OutreachStatus.JOINED)
+    ) or 0)
+    out: dict = {"court": court, "colleagues": joined}
+    from app.modules.groups.models import Group
+    from app.modules.groups.official import court_group_slug
+
+    slug = court_group_slug(court)
+    if slug:
+        group = await session.scalar(select(Group).where(Group.slug == slug, Group.deleted_at.is_(None)))
+        if group is not None:
+            out["group_name"] = group.name
+            out["group_url"] = f"{settings.PUBLIC_APP_URL.rstrip('/')}/app/groups/{group.id}"
+    return out
+
+
+def message_for(contact: OutreachContact, **context) -> OutreachMessage:
+    subject, text, html = invitation.build(name=contact.name, source=contact.source, token=contact.token, **context)
     return OutreachMessage(
         to=contact.email, subject=subject, text=text, html=html,
         one_click_url=invitation.one_click_url(contact.token),
@@ -205,7 +226,7 @@ async def send_batch(
             report["skipped"] += 1
         else:
             try:
-                await sender.send(message_for(contact))
+                await sender.send(message_for(contact, **await court_context(session, contact.court)))
             except RecipientRefused as exc:
                 contact.status, contact.last_error = OutreachStatus.BOUNCED, str(exc)[:500]
                 await _suppress(session, contact.email, "bounced")
@@ -293,13 +314,15 @@ async def erase_contact(session: AsyncSession, contact_id: uuid.UUID) -> bool:
     return True
 
 
-async def mark_joined(session: AsyncSession, email: str | None, user_id: uuid.UUID) -> None:
-    """Called at sign-up: an invited (or queued) address became a member."""
+async def mark_joined(session: AsyncSession, email: str | None, user_id: uuid.UUID) -> OutreachContact | None:
+    """Called at sign-up: an invited (or queued) address became a member. Returns the contact, so the
+    new profile can start from what the public list said (city, court)."""
     if not email:
-        return
+        return None
     contact = await session.scalar(select(OutreachContact).where(OutreachContact.email == email.lower()))
     if contact is not None and contact.status in (OutreachStatus.QUEUED, OutreachStatus.SENT):
         contact.status, contact.joined_user_id = OutreachStatus.JOINED, user_id
+    return contact
 
 
 async def overview(session: AsyncSession) -> dict:

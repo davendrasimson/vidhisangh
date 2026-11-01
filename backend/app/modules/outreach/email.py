@@ -33,17 +33,30 @@ def join_url() -> str:
     return f"{_app_url()}/auth/register?utm_source=invitation&utm_medium=email"
 
 
-def build(*, name: str | None, source: str, token: str) -> tuple[str, str, str]:
-    """(subject, text, html) for one contact."""
+def court_line(court: str | None, colleagues: int) -> str:
+    """'Advocates from the Allahabad High Court are already on VidhiSangh' once a few colleagues have joined."""
+    if not court or colleagues < 5:
+        return ""
+    many = f"{colleagues:,} advocates" if colleagues >= 20 else "Advocates"
+    return f"{many} from the {court.strip()} are already on VidhiSangh."
+
+
+def build(*, name: str | None, source: str, token: str, court: str | None = None, colleagues: int = 0,
+          group_name: str | None = None, group_url: str | None = None) -> tuple[str, str, str]:
+    """(subject, text, html) for one contact. `court` and `colleagues` add the "already here" line; `group_*`
+    name the court's community group to join."""
     greeting = f"Dear {name.strip()}," if name and name.strip() else "Dear Colleague,"
     join, unsub = join_url(), unsubscribe_url(token)
     sender = settings.OUTREACH_SENDER_LINE
+    here = court_line(court, colleagues)
+    here_text = f"{here}\n\n" if here else ""
+    group_text = f"Your colleagues gather in the {group_name} group: {group_url}\n\n" if group_name and group_url else ""
 
     text = f"""{greeting}
 
 I am writing to invite you to VidhiSangh (vidhisangh.com), a professional network built for India's legal fraternity: advocates, judges, legal researchers, law students, munshis, law firms and corporate legal teams.
 
-It is free to join, and members use it to:
+{here_text}It is free to join, and members use it to:
 
 • Connect with colleagues across courts and cities, and follow practice updates in one feed
 • Read BNS, BNSS and BSA section by section, each linked to the corresponding IPC, CrPC or Evidence Act provision
@@ -53,7 +66,7 @@ It is free to join, and members use it to:
 Signing up takes about a minute, with your WhatsApp number or email:
 {join}
 
-VidhiSangh is a network and knowledge platform. It does not advertise or solicit work for advocates.
+{group_text}VidhiSangh is a network and knowledge platform. It does not advertise or solicit work for advocates.
 
 With regards,
 Team VidhiSangh
@@ -88,12 +101,14 @@ Unsubscribe: {unsub}
   <tr><td style="padding:28px 28px 8px;">
     <p style="margin:0 0 14px;font-size:16px;line-height:24px;color:#111827;">{e(greeting)}</p>
     <p style="margin:0 0 16px;font-size:15px;line-height:24px;color:#1f2937;">I am writing to invite you to <strong>VidhiSangh</strong>, a professional network built for India's legal fraternity: advocates, judges, legal researchers, law students, munshis, law firms and corporate legal teams.</p>
+    {f'<p style="margin:0 0 16px;font-size:15px;line-height:24px;color:#1f2937;"><strong>{e(here)}</strong></p>' if here else ''}
     <p style="margin:0 0 6px;font-size:15px;line-height:24px;color:#1f2937;">It is <strong>free to join</strong>, and members use it to:</p>
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 18px;">{bullets}</table>
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 18px;"><tr><td style="border-radius:999px;background:#215dcc;">
       <a href="{e(join)}" style="display:inline-block;padding:13px 28px;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:999px;">Join VidhiSangh free</a>
     </td></tr></table>
     <p style="margin:0 0 16px;font-size:14px;line-height:22px;color:#4b5563;">Signing up takes about a minute, with your WhatsApp number or email.</p>
+    {f'<p style="margin:0 0 16px;font-size:14px;line-height:22px;color:#4b5563;">Your colleagues gather in the <a href="{e(group_url)}" style="color:#215dcc;">{e(group_name)} group</a>.</p>' if group_name and group_url else ''}
     <p style="margin:0 0 20px;font-size:13px;line-height:20px;color:#6b7280;">VidhiSangh is a network and knowledge platform. It does not advertise or solicit work for advocates.</p>
     <p style="margin:0 0 24px;font-size:15px;line-height:24px;color:#1f2937;">With regards,<br><strong>Team VidhiSangh</strong></p>
   </td></tr>

@@ -6,7 +6,7 @@ import uuid
 from collections.abc import Sequence
 from datetime import UTC, datetime
 
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.network.models import (
@@ -56,6 +56,38 @@ class IdentityRepository:
             .offset(offset)
         )
         return list(res.scalars().all())
+
+    async def nearby(self, exclude_user: uuid.UUID, city: str, limit: int) -> list[NetworkIdentity]:
+        """Discoverable members in the same city, newest first."""
+        res = await self.session.execute(
+            select(NetworkIdentity)
+            .where(NetworkIdentity.user_id != exclude_user, NetworkIdentity.discoverable.is_(True),
+                   func.lower(NetworkIdentity.city) == city.strip().lower())
+            .order_by(NetworkIdentity.created_at.desc())
+            .limit(limit)
+        )
+        return list(res.scalars().all())
+
+    async def recent(self, exclude_user: uuid.UUID, limit: int, *, exclude_ids: set[uuid.UUID] = frozenset()) -> list[NetworkIdentity]:
+        """The newest discoverable members."""
+        res = await self.session.execute(
+            select(NetworkIdentity)
+            .where(NetworkIdentity.user_id != exclude_user, NetworkIdentity.discoverable.is_(True))
+            .order_by(NetworkIdentity.created_at.desc())
+            .limit(limit + len(exclude_ids))
+        )
+        return [i for i in res.scalars().all() if i.user_id not in exclude_ids][:limit]
+
+    async def counts(self, city: str | None, since: datetime) -> dict[str, int]:
+        """Fraternity numbers: members with a network identity, those in `city`, those who joined since `since`."""
+        total = await self.session.scalar(select(func.count()).select_from(NetworkIdentity))
+        in_city = 0
+        if city and city.strip():
+            in_city = await self.session.scalar(
+                select(func.count()).select_from(NetworkIdentity).where(func.lower(NetworkIdentity.city) == city.strip().lower())
+            )
+        recent = await self.session.scalar(select(func.count()).select_from(NetworkIdentity).where(NetworkIdentity.created_at >= since))
+        return {"members": int(total or 0), "in_city": int(in_city or 0), "joined_7d": int(recent or 0)}
 
     def add(self, identity: NetworkIdentity) -> None:
         self.session.add(identity)

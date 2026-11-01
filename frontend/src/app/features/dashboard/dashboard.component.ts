@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -19,7 +19,7 @@ import { TellAFriendService, whatsappInvite } from '@core/services/tell-a-friend
 import { NotificationService } from '@core/services/notification.service';
 import { AnalyticsOverview } from '@core/models/analytics.models';
 import { AgendaItem } from '@core/models/calendar.models';
-import { Connection, DailyCard, DailyRead } from '@core/models/network.models';
+import { Connection, DailyCard, DailyRead, DirectoryPerson, HomeNetwork } from '@core/models/network.models';
 import { Conversation } from '@core/models/messaging.models';
 import { profilePercent, profileSteps } from '@core/home/profile-progress';
 import { publicOrigin } from '@core/platform/platform';
@@ -63,7 +63,7 @@ export const QUICK_TOOLS = [
   selector: 'app-dashboard',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatIconModule, MatButtonModule, DatePipe, RouterLink, FormsModule, VsDateInputComponent, WhatsappUpdatesComponent],
+  imports: [MatIconModule, MatButtonModule, DatePipe, DecimalPipe, RouterLink, FormsModule, VsDateInputComponent, WhatsappUpdatesComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
@@ -108,6 +108,15 @@ export class DashboardComponent implements OnInit {
   protected readonly nextFor = signal<AgendaItem | null>(null);
   protected nextDate = '';
   protected readonly busy = signal<string | null>(null);
+
+  // ── People first: colleagues in my city, newest members, fraternity numbers ──
+  protected readonly homeNet = signal<HomeNetwork | null>(null);
+  /** Up to five people to connect with: same city first, then the newest members. */
+  protected readonly suggestions = computed<DirectoryPerson[]>(() => {
+    const h = this.homeNet();
+    return h ? [...h.nearby, ...h.recent].slice(0, 5) : [];
+  });
+  protected readonly asked = signal<Set<string>>(new Set());
 
   // ── Network: requests to answer, messages to read ─────────────────
   protected readonly requests = signal<Connection[]>([]);
@@ -190,6 +199,7 @@ export class DashboardComponent implements OnInit {
     if (this.auth.hasPermission('analytics:view')) {
       void firstValueFrom(this.analytics.overview()).then((o) => this.overview.set(o)).catch(() => undefined);
     }
+    void firstValueFrom(this.network.home()).then((h) => this.homeNet.set(h)).catch(() => undefined);
     void firstValueFrom(this.network.incomingRequests()).then((r) => this.requests.set(r)).catch(() => undefined);
     void firstValueFrom(this.messaging.list()).then((c) => this.unread.set(c.filter((x) => x.unread_count > 0))).catch(() => undefined);
     void firstValueFrom(this.profile.myProfile()).then((p) => this.steps.set(profileSteps(p))).catch(() => undefined);
@@ -207,6 +217,33 @@ export class DashboardComponent implements OnInit {
       this.requests.update((list) => list.filter((x) => x.id !== c.id));
       if (accept) this.notify.success(`You and ${c.requester?.display_name ?? 'they'} are now connected.`);
     } catch { /* handled */ } finally { this.busy.set(null); }
+  }
+
+  /** Ask a suggested colleague to connect, from the home card. */
+  protected async connect(p: DirectoryPerson): Promise<void> {
+    if (this.busy()) return;
+    this.busy.set(p.user_id);
+    try {
+      await firstValueFrom(this.network.connect(p.user_id));
+      this.asked.update((s) => new Set(s).add(p.user_id));
+      this.notify.success(`Request sent to ${p.display_name}.`);
+    } catch { /* handled */ } finally { this.busy.set(null); }
+  }
+
+  /** Appear in the People directory so colleagues can find me. */
+  protected async beFound(): Promise<void> {
+    if (this.busy()) return;
+    this.busy.set('discoverable');
+    try {
+      await firstValueFrom(this.network.setDiscoverable(true));
+      this.homeNet.update((h) => (h ? { ...h, discoverable: true } : h));
+      this.notify.success('You are now listed. Colleagues in your city can find you.');
+    } catch { /* handled */ } finally { this.busy.set(null); }
+  }
+
+  protected initials(name: string): string {
+    return name.split(/\s+/).filter((w) => /^[A-Za-z]/.test(w) && !/^(adv|advocate|dr|mr|ms|mrs|smt|shri|sh)\.?$/i.test(w))
+      .slice(0, 2).map((w) => w[0].toUpperCase()).join('') || name.slice(0, 1).toUpperCase();
   }
 
   /** The first line or so of a post, without markup. */

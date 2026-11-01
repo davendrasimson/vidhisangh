@@ -10,8 +10,67 @@
 <div class="grid gap-4 lg:grid-cols-3 lg:items-start [&>*]:min-w-0">
   <div class="grid gap-4 lg:col-span-2 [&>*]:min-w-0">
 
-    <!-- Today & tomorrow: hearings and deadlines, acted on here -->
-    <section class="rounded-card bg-surface-raised border border-line shadow-card p-4" aria-labelledby="board-title">
+    <!-- People first: the fraternity, colleagues to connect with (above the diary until there are matters) -->
+    @if (homeNet(); as h) {
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-4" aria-labelledby="people-title" [class.lg:order-2]="hasPractice()">
+        <div class="flex items-center justify-between gap-3 mb-2">
+          <h2 id="people-title" class="font-semibold text-content flex items-center gap-2"><mat-icon class="material-icons-outlined text-brand">groups</mat-icon> Your fraternity</h2>
+          <a routerLink="/app/people" class="text-sm text-brand">All people →</a>
+        </div>
+        <p class="text-sm text-content-muted">
+          <strong class="text-content">{{ h.members | number }}</strong> {{ h.members === 1 ? 'member' : 'members' }} on VidhiSangh
+          @if (h.city && h.in_city > 1) { · <strong class="text-content">{{ h.in_city | number }}</strong> in {{ h.city }} }
+          @if (h.joined_7d) { · <strong class="text-content">{{ h.joined_7d | number }}</strong> joined this week }
+        </p>
+        @if (!h.discoverable) {
+          <div class="mt-3 rounded-lg bg-brand/5 border border-brand/20 p-3 flex flex-wrap items-center gap-3">
+            <p class="text-sm text-content flex-1 min-w-[12rem]">You are not listed yet. Appear in the People directory so colleagues{{ h.city ? ' in ' + h.city : '' }} can find and connect with you.</p>
+            <button mat-flat-button color="primary" [disabled]="busy() === 'discoverable'" (click)="beFound()">Let colleagues find me</button>
+          </div>
+        }
+        @if (suggestions().length) {
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-content-muted mt-3 mb-1">{{ h.nearby.length ? 'Colleagues in ' + h.city : 'New on VidhiSangh' }}</h3>
+          <ul class="divide-y divide-line" aria-label="People to connect with">
+            @for (p of suggestions(); track p.user_id) {
+              <li class="py-2 flex items-center gap-3">
+                <a [routerLink]="['/app/people', p.user_id]" class="shrink-0">
+                  @if (p.avatar_url) { <img [src]="p.avatar_url" alt="" class="w-10 h-10 rounded-full object-cover" /> }
+                  @else { <span class="vs-avatar-sm w-10 h-10 text-sm">{{ initials(p.display_name) }}</span> }
+                </a>
+                <div class="min-w-0 flex-1">
+                  <a [routerLink]="['/app/people', p.user_id]" class="font-medium text-content hover:text-brand flex items-center gap-1">{{ p.display_name }}
+                    @if (p.is_verified) { <mat-icon class="material-icons-outlined text-brand" style="font-size:16px;height:16px;width:16px">verified</mat-icon> }
+                  </a>
+                  <p class="text-xs text-content-muted truncate">{{ p.headline || 'Legal professional' }}@if (p.city && p.city !== h.city) { · {{ p.city }} }</p>
+                </div>
+                @if (asked().has(p.user_id)) {
+                  <span class="text-xs text-content-muted shrink-0">Requested</span>
+                } @else {
+                  <button mat-stroked-button class="vs-board-btn shrink-0" [disabled]="busy() === p.user_id" (click)="connect(p)"><mat-icon class="material-icons-outlined">person_add</mat-icon> Connect</button>
+                }
+              </li>
+            }
+          </ul>
+        } @else if (!h.city) {
+          <p class="text-sm text-content-muted mt-3">Add your city and court on your profile and we will show the colleagues practising near you. <a routerLink="/app/profile" class="text-brand">Edit profile →</a></p>
+        }
+        <div class="flex flex-wrap gap-2 mt-3">
+          <a mat-stroked-button routerLink="/app/network"><mat-icon class="material-icons-outlined">dynamic_feed</mat-icon> Open the feed</a>
+          <a mat-stroked-button routerLink="/app/groups"><mat-icon class="material-icons-outlined">forum</mat-icon> Your court's group</a>
+          <a mat-stroked-button [href]="inviteLink()" target="_blank" rel="noopener"><mat-icon class="material-icons-outlined">chat</mat-icon> Invite a colleague</a>
+        </div>
+      </section>
+    }
+
+    <!-- Today & tomorrow: hearings and deadlines, acted on here (first once there are matters; a short line before that) -->
+    @if (!judge() && noMatters() && homeNet()) {
+      <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 flex flex-wrap items-center gap-3" aria-label="Practice tools">
+        <mat-icon class="material-icons-outlined text-brand">folder_shared</mat-icon>
+        <p class="text-sm text-content flex-1 min-w-[14rem]"><strong>Also free:</strong> keep your matters, hearings and documents here, and we remind you of every date.</p>
+        <a mat-stroked-button routerLink="/app/matters" [queryParams]="{ open: 'ecourts' }">Fetch a case by CNR</a>
+      </section>
+    } @else {
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-4" aria-labelledby="board-title" [class.lg:order-1]="hasPractice()">
       <div class="flex items-center justify-between gap-3 mb-2">
         <h2 id="board-title" class="font-semibold text-content flex items-center gap-2"><mat-icon class="material-icons-outlined text-brand">event_note</mat-icon> {{ judge() ? 'Your board' : 'Your day' }}</h2>
         <a routerLink="/app/calendar" class="text-sm text-brand">{{ judge() ? 'Cause list →' : 'Diary →' }}</a>
@@ -85,6 +144,7 @@
         }
       }
     </section>
+    }
 
     <!-- One search box: judgments or Bare Acts, plus the free tools -->
     <section class="rounded-card bg-surface-raised border border-line shadow-card p-4" aria-labelledby="search-title">

@@ -158,8 +158,12 @@ export class ShellComponent implements OnInit {
       ],
     },
     {
+      // Practice tools are the "also free" part of a network-first product: one expandable entry (open while
+      // you are inside it). A judicial officer's "Court" group stays open: cases and the cause list are their day.
       title: 'Practice',
       judicialTitle: 'Court',
+      icon: 'folder_shared',
+      collapsible: true,
       items: [
         { label: 'Matters', judicialLabel: 'Cases', icon: 'folder_shared', route: '/app/matters', permission: 'matter:read' },
         { label: 'Documents', icon: 'description', route: '/app/documents', permission: 'document:read' },
@@ -199,6 +203,7 @@ export class ShellComponent implements OnInit {
       .map((g) => ({
         ...g,
         title: (judge && g.judicialTitle) || g.title,
+        collapsible: g.collapsible && !judge,
         items: g.items.filter((n) => (!n.permission || this.auth.hasPermission(n.permission))
           && (!n.platformAdmin || this.user()?.is_superuser === true))
           .map((n) => (judge && n.judicialLabel ? { ...n, label: n.judicialLabel } : n)),
@@ -206,10 +211,24 @@ export class ShellComponent implements OnInit {
       .filter((g) => g.items.length > 0);
   });
 
-  /** The collapsible "Settings" group starts collapsed to keep the rail short. */
-  protected readonly settingsExpanded = signal(false);
-  protected toggleSettings(): void {
-    this.settingsExpanded.update((v) => !v);
+  /** Collapsible groups start closed, except the one holding the current page. */
+  protected readonly expandedGroups = signal<Set<string>>(new Set(this.initiallyExpanded()));
+  protected isExpanded(group: NavGroup): boolean {
+    return this.expandedGroups().has(group.title ?? '');
+  }
+  protected toggleGroup(group: NavGroup): void {
+    const key = group.title ?? '';
+    this.expandedGroups.update((set) => {
+      const next = new Set(set);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }
+  private initiallyExpanded(): string[] {
+    const url = typeof location !== 'undefined' ? location.pathname : '';
+    return this.navGroups
+      .filter((g) => g.collapsible && g.items.some((i) => url.startsWith(i.route)))
+      .map((g) => g.title ?? '');
   }
 
   protected toggle(): void {
