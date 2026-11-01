@@ -57,6 +57,8 @@ def clean_name(raw: str) -> str:
     raw = re.sub(r"^\s*\d+\.?\s+", "", raw)
     raw = re.sub(r"^(Sh\.?|Shri|Smt\.?|Ms\.?|Mr\.?|Mrs\.?|Dr\.?|Sri)\s+", "", raw, flags=re.I)
     raw = re.sub(r"\(.*?\)", "", raw)
+    raw = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", raw)              # 'JogramTejavath' -> 'Jogram Tejavath'
+    raw = re.sub(r"(?<=[A-Za-z]\.)(?=[A-Z][a-z]{2,})", " ", raw)  # 'C.V.Bhaskar' -> 'C.V. Bhaskar'
     raw = re.sub(r"\s+", " ", raw).strip(" ,.-")
     return title_case(raw) if raw.isupper() or raw.islower() else raw
 

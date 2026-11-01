@@ -94,6 +94,48 @@ panel-counsel profiles on legalaffairs.gov.in show a mobile but no email. The do
 notes are in the session scratchpad only. Mobiles are stored for the admin's reference and are not used for
 sending (WhatsApp outreach would need its own consent path and template approval).
 
+**Third and fourth imports (1 Nov 2026, the owner asked for the rest of India and for corporate legal
+professionals)**: 7,797 from the east and north-east, 13,390 from the west, centre and north (plus the Madhya
+Pradesh High Court directory, below). Scripts: `scripts/outreach_build_contacts_east.py`,
+`scripts/outreach_build_contacts_west.py`. Scanned (OCR) lists are only used where an address reads cleanly;
+no address is ever "repaired".
+
+| List | Where | Rows |
+|---|---|---|
+| Calcutta High Court, *Registered Advocates in CIS 1.0* (as on 04.01.2022, 23 weekly additions, and the Jalpaiguri master database up to 22.12.2022; mobiles masked) | `calcuttahighcourt.gov.in/Notice-Files/general-notice/<id>` ids 5371, 5463…6661, 7671, 7902 (found via `Notices/general-notice?page=26…62`) | 5,583 |
+| Jharkhand High Court, *List of Advocates* as on 30.11.2024 | https://jharkhandhighcourt.nic.in/display_pdf/all_pdf/Reg_Advocates_List_as_on_30112024.pdf (246 pp.) | 1,995 |
+| West Bengal SLSA panel lawyers, category A | https://cdnbbsr.s3waas.gov.in/s37f4bafbbbd694eeef3ab4c74cf22d8af/uploads/2025/10/202510102133873220.pdf | 106 |
+| Gauhati High Court senior advocates (30.06.2022) and amicus curiae panel (03.12.2024, scanned: 3 clean) | https://ghconline.gov.in/SeniorAdvocatesDetails30062022.pdf, https://ghconline.gov.in/General/Notification-04-12-2024.pdf | 56 |
+| Tripura HC Legal Services Committee empanelment, 27.06.2025 | https://hctlsc.tripura.gov.in/sites/default/files/data_notification/1174.pdf | 36 |
+| Telangana High Court, Special Government Pleaders / Government Pleaders (2020; the AG office's shared mailbox dropped) | https://tshc.gov.in/documents/admin_2_2021_01_08_16_13_14.pdf | 24 |
+| Maharashtra SLSA panel advocates and retainer lawyers, April 2026 (HCLSC Mumbai/Nagpur and every DLSA/TLSC) | https://cdnbbsr.s3waas.gov.in/s3cfdb78d53b9d4d154fc40a21f4794e71/uploads/2025/11/202607031858274862.pdf and …/20260703273438328.pdf, from https://maharashtra.nalsa.gov.in/list-of-panel-lawyers/ | 6,050 |
+| High Court of J&K and Ladakh, *Advocate List as on August 2026* (the Bar Council roll; emails mostly from 2011 enrolments on) | https://jkhighcourt.nic.in/Advocate%20List%20as%20on%20AUGUST%202026.pdf (436 pp.) | 3,620 |
+| J&K SLSA panel lawyers, June 2025 | https://cdnbbsr.s3waas.gov.in/s3b44f1f2aa18d557a3fecd5f8a0b0bb8c/uploads/2025/06/20250605903833802.pdf | 236 |
+| Himachal Pradesh High Court, *Advocate On Record* directory (POST `advocate_search/adv_search_ajax.php`, one request per initial) | https://highcourt.hp.gov.in/advocate_search.html | 2,453 |
+| Madhya Pradesh SLSA panel lawyers, June 2026 (rows wrap; name and email paired by proximity) | https://cdnbbsr.s3waas.gov.in/s370bfeb105a2a7019757b543303a2a79c/uploads/2026/06/20260603847617116.pdf | 818 |
+| Gujarat High Court panel advocates for Government and public bodies as on 29.08.2026 (firms' office mailboxes dropped) | https://gujarathighcourt.nic.in/hccms/sites/default/files/judicailnotice/PANEL_ADVOCATES_LIST_AS_ON_29.08.2026.pdf | 147 |
+| UT Chandigarh SLSA panel (Oct 2026) and P&H High Court arbitrator-advocate panels (2022, 2025) | https://cdnbbsr.s3waas.gov.in/s3a1e926947e6e1f41bee96af62f1cf811/uploads/2026/10/202610291954924640.pdf; https://www.highcourtchd.gov.in/sub_pages/common_upload/RulesOrders/ADRRules/ADVOCATES.pdf and …/Advocates.pdf | 73 |
+| Ladakh Legal Services Authority panel | https://ladakh.nalsa.gov.in/list-of-panel-lawyers/ | 11 |
+| Madhya Pradesh High Court advocates directory (`advocates-details/search?str=alpha&str1=<A–Z>&page=N`, `X-Requested-With: XMLHttpRequest`, 50 a page; the site's certificate chain is incomplete, so `curl -k --http1.1`) | https://mphc.gov.in/advocates-details | see PROJECT_STATUS (crawled 1 Nov 2026) |
+
+**No official source with advocate emails (1 Nov 2026)**: Tamil Nadu, Puducherry, Kerala, Karnataka, Andhra
+Pradesh, Bihar, Odisha (HCLSC list is a poor scan), Sikkim, Meghalaya, Manipur, Mizoram, Nagaland, Arunachal,
+Goa, Rajasthan, Chhattisgarh, Dadra & Nagar Haveli and Daman & Diu, besides Punjab, Uttarakhand and HP's bar
+council. Mobiles-only lists exist for Bihar (BSLSA district panels), Rajasthan (RHCLSC pro bono), Chhattisgarh
+(CGSLSA district panels, CG HC standing counsel), Gujarat (GSLSA panel, 2,006), Karnataka (none). Unreachable
+from the server and worth a retry from a browser: bombayhighcourt.nic.in, slsa.tripura.gov.in master list,
+mslsa.gov.in, cgslsa.gov.in, apslsa.ap.nic.in, sikkimslsa.nic.in, mslsa.gov.in (Meghalaya), slsa.uk.gov.in.
+
+**Corporate legal professionals (1 Nov 2026): nothing imported.** Stock-exchange LODR disclosures (BSE
+`CorpInfoNew` for 5,122 active scrips; NSE is a subset) give the Company Secretary / Compliance Officer's *name*
+but the only email is the company's statutory investor-grievance mailbox (10 of 10 sampled), which is not a
+professional contact address and should not be used. ICSI's member search is login-gated, MCA has no public
+KMP emails, the Bar Councils have no corporate-counsel rolls (employed advocates suspend practice). Two
+registers do carry individual emails but are not advocate lists: IBBI's insolvency professionals (~4,800,
+`insolvency-professional/details?fieldid=<base64 id>`, mostly CAs/CMAs; ICSI-IIP members ≈ a quarter are company
+secretaries; the email is published for insolvency-process contact) and SEBI's intermediary register (finance
+professionals; JS pagination). Both left for the owner's decision.
+
 Looked at and not usable (31 Oct): the Ministry's own panel-counsel PDFs on legalaffairs.gov.in (all 404 now),
 the DHCBA empanelled-advocates list (no emails), Delhi High Court senior-advocate designations (no emails).
 Next candidates when the queue runs low (~a month at 100/day): other High Courts' nominated-counsel

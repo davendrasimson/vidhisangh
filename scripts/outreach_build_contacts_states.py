@@ -27,7 +27,10 @@ MOBILE = re.compile(r"(?<!\d)(?:\+?91[\s-]?|0)?([6-9]\d{9})(?!\d)")
 
 
 def mobile_in(text: str) -> str | None:
-    text = re.sub(r"(?<=\d)[\s-]+(?=\d)", "", text)   # '97172 68371' -> '9717268371'
+    # Join only a mobile printed in two halves ('97172 68371', '98642-48331', '9864 054 183'); never digits of
+    # neighbouring columns ('769/89   9419193047' must stay apart).
+    text = re.sub(r"(?<!\d)(\d{5})[\s-](\d{5})(?!\d)", r"\1\2", text)
+    text = re.sub(r"(?<!\d)(\d{4})[\s-](\d{3})[\s-](\d{3})(?!\d)", r"\1\2\3", text)
     m = MOBILE.search(text)
     return m.group(1) if m else None
 
