@@ -47,7 +47,7 @@ def emails_in(line: str) -> list[str]:
 
 def title_case(name: str) -> str:
     def word(w: str) -> str:
-        if re.fullmatch(r"[A-Za-z]\.?", w):
+        if re.fullmatch(r"[A-Za-z]\.?", w) or re.fullmatch(r"(?:[A-Za-z]\.)+[A-Za-z]?\.?", w):  # initials: A., A.D., a.p.n.
             return w.upper()
         return "-".join(p[:1].upper() + p[1:].lower() for p in w.split("-"))
     return " ".join(word(w) for w in name.split())

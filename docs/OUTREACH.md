@@ -74,7 +74,27 @@ blank (the email then says "Dear Colleague"). Imported on production: **3,046 co
 | Delhi High Court, *nominated counsel for the Union of India* (Ministry of Law & Justice letter F.No. J-11017/19/2025-Judicial dated 11.09.2025; Lists A/B, standing and panel counsel) | https://delhihighcourt.nic.in/files/2026-08/nomcouncil/nominatedcounsel.pdf (380 pp.) | 711 (+102 already in the AOR list) |
 | Supreme Court Bar Association, *life members* directory | https://scbaindia.org/lifemem.pdf (71 pp.) | 16 (older list; most addresses are in the AOR list) |
 
-Looked at and not usable: the Ministry's own panel-counsel PDFs on legalaffairs.gov.in (all 404 now),
+**Second import (1 Nov 2026, the owner asked for UP, Haryana, Punjab, Uttarakhand and Himachal with
+mobiles): 21,351 contacts**, built with `scripts/outreach_build_contacts_states.py` (25 malformed addresses
+dropped by the importer, 12 duplicates). Queue after it: 24,397 (about 8 months at 100 a day).
+
+| List | Where | Rows |
+|---|---|---|
+| Allahabad High Court, *Roll of Advocates [Part-A] at Allahabad* (name, enrolment, address, mobile, email per advocate) | https://www.allahabadhighcourt.in/advocate/generateRollA.jsp?page=N, N = 1…317, 100 a page; crawled once, one page every 3 s | 21,194 (mobiles on ~99%) |
+| Allahabad High Court, *advance notice to the State* directory of standing/special counsel, Lucknow Bench (June 2024) | https://allahabadhighcourt.in/event/event_19030_27-06-2024.pdf (104 pp.) | 150 after dropping office mailboxes and roll duplicates |
+| Haryana State Legal Services Authority, *panel of advocates* (Panchkula) | https://cdnbbsr.s3waas.gov.in/s3e8ec28c8ef3e3c68482eef793edf3e50/uploads/2025/08/20250805223397979.pdf, linked from https://haryana.nalsa.gov.in/panel-of-advocates-retainers-and-plvs/ | 44 |
+
+No official source with advocate **emails** was found for **Punjab, Uttarakhand or Himachal Pradesh** (1 Nov 2026):
+P&H HC Legal Services Committee panels (2016 operative panel, 2025 pro-bono panel) and the Uttarakhand HC
+mediator panel / DLSA brochures carry **mobiles only**; the Haryana DLSA/SDLSC panel PDF (~1,200 advocates) is
+linked from the HSLSA page but 404s; slsa.uk.gov.in ("List of all panel lawyers") answered 503; the HP High
+Court site (highcourt.hp.gov.in) is script-rendered and could not be read without a browser; the Bar Councils
+of UP, Punjab & Haryana, Uttarakhand and HP publish no rolls with contact details; the Ministry's Union-of-India
+panel-counsel profiles on legalaffairs.gov.in show a mobile but no email. The downloaded files and the counting
+notes are in the session scratchpad only. Mobiles are stored for the admin's reference and are not used for
+sending (WhatsApp outreach would need its own consent path and template approval).
+
+Looked at and not usable (31 Oct): the Ministry's own panel-counsel PDFs on legalaffairs.gov.in (all 404 now),
 the DHCBA empanelled-advocates list (no emails), Delhi High Court senior-advocate designations (no emails).
 Next candidates when the queue runs low (~a month at 100/day): other High Courts' nominated-counsel
 lists on their own sites, and bar associations that publish member directories with emails
