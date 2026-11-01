@@ -121,6 +121,24 @@ no address is ever "repaired".
 | Ladakh Legal Services Authority panel | https://ladakh.nalsa.gov.in/list-of-panel-lawyers/ | 11 |
 | Madhya Pradesh High Court advocates directory (`advocates-details/search?str=alpha&str1=<A–Z>&page=N`, `X-Requested-With: XMLHttpRequest`, 50 a page; the site's certificate chain is incomplete, so `curl -k --http1.1`) | https://mphc.gov.in/advocates-details | see PROJECT_STATUS (crawled 1 Nov 2026) |
 
+**Fifth to seventh imports (1–2 Nov 2026)**: the Madhya Pradesh High Court directory (27,434 after the crawl of all
+3,151 pages; a file is capped at 20,000 rows, so it went in two parts), **district court CIS exports** (25,921: the
+eCourts district sites publish "Advocate details" exports with name, mobile and email under
+`<district>.dcourts.gov.in/document-category/pleaders-and-bar-association/`; first batch Pune 14,215, Gurugram 2,115,
+Rohtak 1,305, Hisar 1,076, Kangra 743, Bokaro 816, Shimla 621, Paschim Medinipur 664, Hazaribagh 459, Giridih 376 and
+25 smaller districts of Haryana, HP, Jharkhand, WB, Punjab; a sweep of all ~750 district sites followed), and
+**8,577 from other official lists** (`scripts/outreach_build_contacts_professions.py`): the Department of Legal Affairs'
+*Consolidated List of Panel Counsel for the Union of India* (April 2026, 556 pp., 4,759 parsed;
+`legalaffairs.gov.in/cms/wp-json/wp/v2/central_documents?search=…` → `acf.pdf` → `/media/<id>`), its Law Officers and
+DSGI lists (Aug 2026), Karnataka SLSA district panels (2,044), DSLSA panels (896), Assam SLSA panels (448), HP SLSA
+trained mediators (361) and panels of legal practitioners (427), Rajasthan SLSA mediators (482; judicial officers left
+out), the Odisha Law Department's law officers (105), IP India's trade marks agents as of 30.11.2020 (628; dated, expect
+bounces), and law faculty from institutional directories: NLSIU (186), TNNLU (32), HPNLU (36), DNLU (28), DBRANLU (20),
+ILI (8), NLUO (69), NUJS (56), NUSRL (31), NLU Tripura (9). Faculty rows carry no "Adv." and name the university as
+their "court"; judicial academies were left out (serving judicial officers). Not done yet: GNLU (57) and NLU Jodhpur (55)
+per-person pages, NALSAR (51), Kashmir Law (41). Found but unusable: notary lists (no contacts), patent agents register
+(masked phones, no email), DIAC and High Court mediation panels (names only), prosecutors (mobiles only), BCI.
+
 **No official source with advocate emails (1 Nov 2026)**: Tamil Nadu, Puducherry, Kerala, Karnataka, Andhra
 Pradesh, Bihar, Odisha (HCLSC list is a poor scan), Sikkim, Meghalaya, Manipur, Mizoram, Nagaland, Arunachal,
 Goa, Rajasthan, Chhattisgarh, Dadra & Nagar Haveli and Daman & Diu, besides Punjab, Uttarakhand and HP's bar

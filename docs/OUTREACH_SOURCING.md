@@ -64,6 +64,20 @@ Do not re-fetch anything listed there.
    ```
 5. Record the list (URL, title/date, pages, rows) in OUTREACH.md → Sources, commit the script and the doc.
 
+## Found on 1–2 Nov 2026 (so you do not look again)
+
+- **eCourts district sites** are the richest vein: `https://<district>.dcourts.gov.in/document-category/pleaders-and-bar-association/`
+  lists PDFs; the CIS "Advocate details" exports carry code, name, mobile, email, bar registration. Subdomains are the
+  district name in lower case without spaces (Wikipedia's district list via the API `action=parse&page=List_of_districts_in_India&prop=links`
+  gives ~730). The sweep script and its `results.tsv` / `files.tsv` live in the scratchpad of the session that ran it;
+  `scripts/outreach_build_contacts_district.py` parses the exports (files named `<sub>__<original>.pdf.txt`).
+- **legalaffairs.gov.in** moved to WordPress: `…/cms/wp-json/wp/v2/central_documents?search=<term>&per_page=100` →
+  `acf.pdf` (media id) → `…/wp-json/wp/v2/media/<id>?_fields=source_url`. The consolidated panel-counsel list is there.
+- **<state>.nalsa.gov.in/list-of-panel-lawyers/** PDFs: emails in HP, Karnataka, Delhi, Assam, Maharashtra, MP, J&K, WB
+  (cat. A), Manipur (xlsx); mobiles only in Gujarat, Uttarakhand, Bihar, Chhattisgarh, Rajasthan (panel), Tripura.
+- Law faculty: one-page directories at NLSIU (`&#64;` entity for @), HPNLU, DBRANLU, ILI, TNNLU (JSON in page), DNLU (PDF);
+  per-person pages at NLUO, NUJS, NUSRL, NLU Tripura (done), GNLU, NLU Jodhpur, NALSAR, Kashmir (not yet).
+
 ## Where to look next (not yet done)
 
 - **District bar associations** (their own sites or `<district>.dcourts.gov.in`), **DLSA panel lists with
