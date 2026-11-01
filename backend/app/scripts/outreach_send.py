@@ -1,6 +1,6 @@
 """Send today's invitation emails (systemd timer vidhisangh-outreach, daily).
 
-    python -m app.scripts.outreach_send            # send, spaced 20-60 s apart
+    python -m app.scripts.outreach_send            # send, spaced 10-30 s apart
     python -m app.scripts.outreach_send --dry-run  # show what would go out
 
 Does nothing while sending is paused in Platform admin → Outreach, or until the
@@ -26,14 +26,18 @@ async def run(dry_run: bool) -> dict:
         cfg = await service.get_settings(session)
         await session.commit()
         if dry_run:
-            queued = (await session.scalars(select(OutreachContact.email).where(
-                OutreachContact.status == OutreachStatus.QUEUED).order_by(OutreachContact.created_at).limit(cfg.daily_limit))).all()
-            return {"paused": cfg.paused, "daily_limit": cfg.daily_limit,
+            where = [OutreachContact.status == OutreachStatus.QUEUED]
+            if cfg.focus:
+                where.append(service.focus_clause(cfg.focus))
+            queued = (await session.scalars(select(OutreachContact.email).where(*where)
+                                            .order_by(OutreachContact.created_at).limit(cfg.daily_limit))).all()
+            return {"paused": cfg.paused, "daily_limit": cfg.daily_limit, "focus": cfg.focus,
+                    "queued_in_focus": await service.queued_count(session, focus=cfg.focus),
                     "sent_today": await service.sent_today(session), "next": list(queued)}
         sender = get_outreach_sender()
         if sender is None:
             return {"skipped": "VS_OUTREACH_SMTP_HOST is not set"}
-        return await service.send_batch(session, sender, pause=lambda: asyncio.sleep(random.uniform(20, 60)))
+        return await service.send_batch(session, sender, pause=lambda: asyncio.sleep(random.uniform(10, 30)))
 
 
 if __name__ == "__main__":

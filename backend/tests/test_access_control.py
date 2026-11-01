@@ -302,13 +302,16 @@ async def test_directory_is_opt_in(client: AsyncClient, strong_password: str) ->
     a_h, _ = await _owner(client, "Firm A", "a@dir.co", strong_password)
     b_h, b = await _owner(client, "Firm B", "b@dir.co", strong_password)
 
-    # New sign-ups are not listed and have no public page for strangers.
+    # New sign-ups are listed by default (owner, 1 Nov 2026) and can opt out at once; opting out hides the
+    # public page from strangers too.
+    me = (await client.get(f"{API}/network/me/identity", headers=b_h)).json()
+    assert me["discoverable"] is True and me["audience"] == "everyone"
+    off = await client.patch(f"{API}/network/me/visibility", headers=b_h, json={"discoverable": False})
+    assert off.status_code == 200 and off.json()["discoverable"] is False
     assert b["id"] not in {p["user_id"] for p in (await client.get(f"{API}/network/directory", headers=a_h)).json()}
     assert (await client.get(f"{API}/network/people/{b['id']}", headers=a_h)).status_code == 404
-    me = (await client.get(f"{API}/network/me/identity", headers=b_h)).json()
-    assert me["discoverable"] is False
 
-    # Opt in → listed and viewable.
+    # Opt in again → listed and viewable.
     on = await client.patch(f"{API}/network/me/visibility", headers=b_h, json={"discoverable": True})
     assert on.status_code == 200 and on.json()["discoverable"] is True
     assert b["id"] in {p["user_id"] for p in (await client.get(f"{API}/network/directory", headers=a_h)).json()}

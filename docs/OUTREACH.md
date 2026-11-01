@@ -7,6 +7,13 @@ Platform admin → **Outreach**. Built 16 Oct 2026 (migration `0067`).
 - **One invitation per address, ever.** No follow-ups or reminders.
 - **At most 100 a day** (`VS_OUTREACH_DAILY_LIMIT`, a ceiling the admin can only lower; 50 until the owner raised it on 31 Oct 2026), counted by India date; sent Monday–Saturday from about 10:30 IST, spaced 20–60 s apart (about 100 minutes for a full day) (`vidhisangh-outreach.timer`).
 - **Starts paused.** Nothing goes out on the timer until the admin presses *Start scheduled sending* and the mail service is configured.
+- **Court by court (owner, 2 Nov 2026; migration `0086`, `outreach_settings.focus`)**: the admin sets a **Focus** (a city or
+  court name) on the Outreach screen; while it is set, the morning batch and *Send now* take only contacts whose city or court
+  contains it, the screen shows how many are waiting in the focus, and when they run out nothing is sent until the focus is
+  changed or cleared. The reasoning: a network needs density in one bar before breadth; a new member should find
+  colleagues from their own court. First focus: **Prayagraj** (the Allahabad roll). Pace: the ceiling is now 500 a day
+  (`VS_OUTREACH_DAILY_LIMIT`), the daily number stays 100 for week one; raise to 200, then 500, only if bounces stay under
+  3 % and no complaints arrive (the sending domain is new). The job spaces messages 10–30 s apart.
 - **Send now** (added 31 Oct 2026): the admin screen can send the rest of today's number straight away (`POST /platform-admin/outreach/send-now`), even while scheduled sending is paused. It runs inside the API process (`app/modules/outreach/runner.py`), 5–10 s apart, and the screen refreshes every 5 s until `sent_today` stops moving. The batch re-checks the day's budget before every message, so a run in two API workers, or alongside the morning timer, still stops at the daily number; each contact is committed as it is sent, so a worker restart mid-run leaves the rest queued and never re-sends. With nobody queued, or today's number already out, the button is disabled and the API answers 409 with the reason.
 - **Skipped automatically:** existing members, anyone who unsubscribed or bounced before, duplicates, malformed addresses, rows without a source.
 - **Unsubscribe**: the mail app's own button (RFC 8058 `List-Unsubscribe-Post`, no page) or the link in the footer (`/unsubscribe/:token`, one tap; not on page load, because mail scanners open links). Either puts a peppered hash of the address on `outreach_suppressions`, which outlives the contact row: the address can never be re-imported.
@@ -126,7 +133,7 @@ no address is ever "repaired".
 eCourts district sites publish "Advocate details" exports with name, mobile and email under
 `<district>.dcourts.gov.in/document-category/pleaders-and-bar-association/`; first batch Pune 14,215, Gurugram 2,115,
 Rohtak 1,305, Hisar 1,076, Kangra 743, Bokaro 816, Shimla 621, Paschim Medinipur 664, Hazaribagh 459, Giridih 376 and
-25 smaller districts of Haryana, HP, Jharkhand, WB, Punjab; a sweep of all ~750 district sites followed), and
+25 smaller districts of Haryana, HP, Jharkhand, WB, Punjab; the **sweep of all 750 district sites** that followed found lists with emails on 95 of them and added 10,660 more — Beed 1,961, Saran 781, Madhubani 764, Sonbhadra 732, Ayodhya 725, Kushinagar 630, Buxar 456, Bhadohi 425, Gaya 407, Wardha 281 and 85 others; about a fifth of the UP and Bihar rows carry no readable name and are greeted "Dear Colleague"), and
 **8,577 from other official lists** (`scripts/outreach_build_contacts_professions.py`): the Department of Legal Affairs'
 *Consolidated List of Panel Counsel for the Union of India* (April 2026, 556 pp., 4,759 parsed;
 `legalaffairs.gov.in/cms/wp-json/wp/v2/central_documents?search=…` → `acf.pdf` → `/media/<id>`), its Law Officers and

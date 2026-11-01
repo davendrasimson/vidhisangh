@@ -62,12 +62,16 @@ async def get_settings(session: AsyncSession) -> OutreachSettings:
     return row
 
 
-async def update_settings(session: AsyncSession, *, paused: bool | None, daily_limit: int | None) -> OutreachSettings:
+async def update_settings(
+    session: AsyncSession, *, paused: bool | None, daily_limit: int | None, focus: str | None = None,
+) -> OutreachSettings:
     row = await get_settings(session)
     if paused is not None:
         row.paused = paused
     if daily_limit is not None:
         row.daily_limit = max(0, min(daily_limit, settings.OUTREACH_DAILY_LIMIT))
+    if focus is not None:
+        row.focus = focus.strip()[:200] or None
     await session.flush()
     return row
 
@@ -189,11 +193,17 @@ async def budget_today(session: AsyncSession, now: datetime | None = None) -> in
     return max(0, min(cfg.daily_limit, settings.OUTREACH_DAILY_LIMIT) - await sent_today(session, now))
 
 
-async def queued_count(session: AsyncSession) -> int:
-    return int(await session.scalar(
-        select(func.count()).select_from(OutreachContact)
-        .where(OutreachContact.status == OutreachStatus.QUEUED, OutreachContact.deleted_at.is_(None))
-    ) or 0)
+def focus_clause(focus: str | None):
+    """The contacts a focus covers: city or court containing the text (case-insensitive)."""
+    needle = f"%{focus.strip()}%"
+    return OutreachContact.city.ilike(needle) | OutreachContact.court.ilike(needle)
+
+
+async def queued_count(session: AsyncSession, *, focus: str | None = None) -> int:
+    where = [OutreachContact.status == OutreachStatus.QUEUED, OutreachContact.deleted_at.is_(None)]
+    if focus and focus.strip():
+        where.append(focus_clause(focus))
+    return int(await session.scalar(select(func.count()).select_from(OutreachContact).where(*where)) or 0)
 
 
 async def send_batch(
@@ -211,9 +221,12 @@ async def send_batch(
     cfg = await get_settings(session)
     if cfg.paused and not force:
         return report
+    where = [OutreachContact.status == OutreachStatus.QUEUED, OutreachContact.deleted_at.is_(None)]
+    if cfg.focus and cfg.focus.strip():
+        where.append(focus_clause(cfg.focus))  # court by court: only the bar in focus
     while (budget := await budget_today(session, now)) > 0:
         contact = await session.scalar(
-            select(OutreachContact).where(OutreachContact.status == OutreachStatus.QUEUED, OutreachContact.deleted_at.is_(None))
+            select(OutreachContact).where(*where)
             .order_by(OutreachContact.created_at, OutreachContact.id).limit(1).with_for_update(skip_locked=True)
         )
         if contact is None:
@@ -338,6 +351,8 @@ async def overview(session: AsyncSession) -> dict:
     return {
         "paused": cfg.paused,
         "daily_limit": cfg.daily_limit,
+        "focus": cfg.focus,
+        "queued_in_focus": await queued_count(session, focus=cfg.focus) if cfg.focus else None,
         "max_daily_limit": settings.OUTREACH_DAILY_LIMIT,
         "sender_configured": bool(settings.OUTREACH_SMTP_HOST),
         "from_address": settings.OUTREACH_FROM,

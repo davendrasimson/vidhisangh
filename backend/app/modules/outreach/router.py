@@ -37,6 +37,8 @@ async def unsubscribe(token: str, session: AuthSessionDep) -> Response:
 class OutreachSettingsUpdate(BaseModel):
     paused: bool | None = None
     daily_limit: int | None = Field(default=None, ge=0, le=500)
+    # A city or court name ("Prayagraj", "Allahabad High Court"); "" clears it. Unset (None) leaves it as is.
+    focus: str | None = Field(default=None, max_length=200)
 
 
 class TestSend(BaseModel):
@@ -85,7 +87,7 @@ async def outreach_overview(current: CurrentUserDep, session: AuthSessionDep) ->
 @router.patch("/platform-admin/outreach/settings", summary="Pause/resume and the daily number")
 async def outreach_settings(data: OutreachSettingsUpdate, current: CurrentUserDep, session: AuthSessionDep) -> dict:
     require_platform_admin(current.is_superuser)
-    await service.update_settings(session, paused=data.paused, daily_limit=data.daily_limit)
+    await service.update_settings(session, paused=data.paused, daily_limit=data.daily_limit, focus=data.focus)
     return await _overview(session)
 
 
@@ -98,10 +100,15 @@ async def outreach_send_now(current: CurrentUserDep, session: AuthSessionDep) ->
     sender = get_outreach_sender()
     if sender is None:
         raise HTTPException(status_code=503, detail="The invitation mail service is not set up yet (VS_OUTREACH_SMTP_HOST).")
-    planned = min(await service.budget_today(session), await service.queued_count(session))
+    cfg = await service.get_settings(session)
+    in_scope = await service.queued_count(session, focus=cfg.focus)
+    planned = min(await service.budget_today(session), in_scope)
     if planned <= 0:
-        detail = ("Nobody is waiting to be invited: upload a CSV of contacts first."
-                  if await service.queued_count(session) == 0 else "Today's number has already gone out; the rest go tomorrow.")
+        if in_scope == 0:
+            detail = (f"Nobody from {cfg.focus} is waiting: change or clear the focus." if cfg.focus
+                      else "Nobody is waiting to be invited: upload a CSV of contacts first.")
+        else:
+            detail = "Today's number has already gone out; the rest go tomorrow."
         raise HTTPException(status_code=409, detail=detail)
     if not runner.start(sender):
         raise HTTPException(status_code=409, detail="Today's invitations are already being sent.")

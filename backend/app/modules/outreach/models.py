@@ -65,3 +65,5 @@ class OutreachSettings(AuditedBase):
 
     paused: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     daily_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=100)
+    # Court by court (owner, 2 Nov 2026): while set, only contacts whose city or court matches are sent.
+    focus: Mapped[str | None] = mapped_column(String(200), nullable=True)

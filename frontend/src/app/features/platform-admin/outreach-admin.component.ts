@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -12,6 +12,7 @@ import { problemMessage } from '@core/http/problem-message';
 
 interface OutreachOverview {
   paused: boolean; daily_limit: number; max_daily_limit: number; sender_configured: boolean; from_address: string;
+  focus: string | null; queued_in_focus: number | null;
   sent_today: number; sent_last_7_days: number; suppressed_total: number; sending: boolean;
   counts: Record<'queued' | 'sent' | 'joined' | 'unsubscribed' | 'bounced' | 'skipped' | 'removal_requested', number>;
   recent: { email: string; name: string | null; status: string; source: string; sent_at: string | null; updated_at: string }[];
@@ -34,7 +35,7 @@ const STATUS_LABEL: Record<ContactStatus, string> = {
   selector: 'app-outreach-admin',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, FormsModule, MatButtonModule, MatIconModule],
+  imports: [DatePipe, DecimalPipe, FormsModule, MatButtonModule, MatIconModule],
   template: `
     <header class="flex flex-wrap items-end gap-3">
       <div class="flex-1 min-w-0">
@@ -62,6 +63,11 @@ const STATUS_LABEL: Record<ContactStatus, string> = {
         <div class="flex-1 min-w-[14rem]">
           <h2 class="font-semibold">Scheduled sending is {{ d.paused ? 'paused' : 'on' }}</h2>
           <p class="text-sm text-content-muted">From {{ d.from_address }}. Sent at about 10:30 am, Monday to Saturday.</p>
+          @if (d.focus) {
+            <p class="text-sm mt-1" [class.text-warning]="d.queued_in_focus === 0" [class.text-content-muted]="d.queued_in_focus !== 0">
+              Focus: <strong class="text-content">{{ d.focus }}</strong> · {{ d.queued_in_focus | number }} waiting there@if (d.queued_in_focus === 0) {: change or clear the focus to continue}.
+            </p>
+          }
           @if (sendingNow() || d.sending) {
             <p class="text-sm text-brand mt-1" role="status"><mat-icon class="material-icons-outlined align-middle text-base animate-pulse">schedule_send</mat-icon> Sending now… {{ d.sent_today }} sent today.</p>
           } @else if (d.counts.queued === 0) {
@@ -73,7 +79,10 @@ const STATUS_LABEL: Record<ContactStatus, string> = {
         <label class="text-sm flex items-center gap-2">Per day
           <input class="vs-input w-20" type="number" min="0" [max]="d.max_daily_limit" [(ngModel)]="limit" />
         </label>
-        <button mat-stroked-button (click)="save({ daily_limit: limit })">Save</button>
+        <label class="text-sm flex items-center gap-2" title="Court by court: while set, only contacts whose city or court matches go out">Focus
+          <input class="vs-input w-44" [(ngModel)]="focus" maxlength="200" placeholder="city or court, e.g. Prayagraj" />
+        </label>
+        <button mat-stroked-button (click)="save({ daily_limit: limit, focus: focus })">Save</button>
         <button mat-stroked-button [color]="d.paused ? 'primary' : 'warn'" (click)="save({ paused: !d.paused })">
           <mat-icon class="material-icons-outlined">{{ d.paused ? 'play_arrow' : 'pause' }}</mat-icon> {{ d.paused ? 'Start scheduled sending' : 'Pause' }}
         </button>
@@ -176,6 +185,7 @@ export class OutreachAdminComponent implements OnInit {
   /** True from the Send now click until the batch stops growing `sent_today`. */
   protected readonly sendingNow = signal(false);
   protected limit = 50;
+  protected focus = '';
   protected source = '';
 
   protected readonly daysLeft = computed(() => {
@@ -185,7 +195,8 @@ export class OutreachAdminComponent implements OnInit {
   /** How many Send now would send: the rest of today's number, capped by the queue. */
   protected readonly remainingToday = computed(() => {
     const d = this.o();
-    return d ? Math.max(0, Math.min(d.daily_limit - d.sent_today, d.counts.queued)) : 0;
+    const waiting = d ? (d.focus ? (d.queued_in_focus ?? 0) : d.counts.queued) : 0;
+    return d ? Math.max(0, Math.min(d.daily_limit - d.sent_today, waiting)) : 0;
   });
   protected readonly joinRate = computed(() => {
     const d = this.o();
@@ -225,6 +236,7 @@ export class OutreachAdminComponent implements OnInit {
       const d = await firstValueFrom(this.http.get<OutreachOverview>(this.api));
       this.o.set(d);
       this.limit = d.daily_limit;
+      this.focus = d.focus ?? '';
     } catch { /* toast shown */ }
   }
 
@@ -278,13 +290,14 @@ export class OutreachAdminComponent implements OnInit {
     }
   }
 
-  protected async save(change: { paused?: boolean; daily_limit?: number }): Promise<void> {
+  protected async save(change: { paused?: boolean; daily_limit?: number; focus?: string }): Promise<void> {
     if (change.paused === false && !window.confirm('Start sending invitation emails? Each address is invited once, at most the daily number each morning.')) return;
     try {
       const d = await firstValueFrom(this.http.patch<OutreachOverview>(`${this.api}/settings`, change));
       this.o.set(d);
       this.limit = d.daily_limit;
-      this.notify.success(change.paused === undefined ? 'Daily number saved.' : d.paused ? 'Sending paused.' : 'Sending is on.');
+      this.focus = d.focus ?? '';
+      this.notify.success(change.paused === undefined ? (d.focus ? `Saved. Sending only to ${d.focus}.` : 'Saved.') : d.paused ? 'Sending paused.' : 'Sending is on.');
     } catch { /* toast shown */ }
   }
 

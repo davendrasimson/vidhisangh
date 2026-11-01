@@ -243,7 +243,7 @@ class Settings(BaseSettings):
     OUTREACH_FROM: str = "VidhiSangh <invite@news.vidhisangh.com>"
     OUTREACH_REPLY_TO: str = "grievance@vidhisangh.com"
     # Hard ceiling; the admin can lower it, never raise it above this.
-    OUTREACH_DAILY_LIMIT: int = 100  # raised from 50 by the owner, 31 Oct 2026
+    OUTREACH_DAILY_LIMIT: int = 500  # ceiling; 50 → 100 (31 Oct 2026) → 500 (2 Nov 2026, owner: pace rises as the domain warms)
     # Who the email says it is from (footer); the owner chose not to name the company.
     OUTREACH_SENDER_LINE: str = "Sent by VidhiSangh, India"
 

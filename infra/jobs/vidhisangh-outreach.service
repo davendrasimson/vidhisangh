@@ -1,5 +1,5 @@
 [Unit]
-Description=VidhiSangh invitation emails (at most 100 a day; paused/resumed in Platform admin)
+Description=VidhiSangh invitation emails (at most 500 a day; paused/resumed in Platform admin)
 After=network-online.target postgresql.service
 OnFailure=vidhisangh-job-failed@%n.service
 
@@ -10,8 +10,8 @@ WorkingDirectory=/opt/vidhisangh/backend
 EnvironmentFile=/opt/vidhisangh/backend/.env
 Environment=PYTHONPATH=/opt/vidhisangh/backend
 ExecStart=/opt/vidhisangh/backend/.venv/bin/python -m app.scripts.outreach_send
-# 100 messages spaced 20-60 s apart take up to ~100 minutes.
-TimeoutStartSec=9000
+# 500 messages spaced 10-30 s apart take up to ~4 hours.
+TimeoutStartSec=16000
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict

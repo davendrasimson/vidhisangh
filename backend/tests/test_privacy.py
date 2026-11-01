@@ -323,7 +323,7 @@ async def test_registration_records_terms_and_user_can_export_and_erase(
     bundle = export.json()
     assert bundle["user"]["email"] == "self@firm.co" and "hashed_password" not in bundle["user"]
     assert bundle["sessions"] and "token_hash" not in bundle["sessions"][0]
-    assert bundle["network_identity"] and bundle["network_identity"]["discoverable"] is False
+    assert bundle["network_identity"] and bundle["network_identity"]["discoverable"] is True  # listed by default (1 Nov 2026)
 
     # Wrong password → 401; sole org_admin → 409.
     assert (await client.post(f"{API}/privacy/me/delete", headers=h, json={"password": "Wrong!Pass#1"})).status_code == 401

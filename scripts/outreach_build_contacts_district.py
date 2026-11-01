@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from outreach_build_contacts import clean_name, emails_in  # noqa: E402
 from outreach_build_contacts_states import mobile_in  # noqa: E402
 
-NAME_FIELD = re.compile(r"^[A-Za-z][A-Za-z .'\-()]{3,60}$")
+NAME_FIELD = re.compile(r"^[A-Za-z\u0900-\u097F][A-Za-z\u0900-\u097F .'\-()]{3,60}$")  # Latin or Devanagari (UP/Bihar exports)
 NOT_NAMES = re.compile(r"^(male|female|other|advocate|advocates|yes|no|null|none|n/?a|sri|smt|shri|mr|ms|mrs|llb|ll\.b|b\.a|ba|bcom|m\.a|ma|senior|junior|active|inactive|"
                        r"jharkhand|haryana|bihar|punjab|assam|maharashtra|gujarat|rajasthan|karnataka|kerala|odisha|delhi|chhattisgarh|"
                        r"west bengal|himachal pradesh|madhya pradesh|uttar pradesh|tamil nadu|andhra pradesh|telangana|manipur|tripura|"
@@ -100,7 +100,7 @@ def main() -> None:
         for addr, name, mob in found:
             if addr in shared or addr in seen:
                 continue
-            if not re.fullmatch(r"[A-Za-z][A-Za-z .'\-]{3,44}", name or ""):
+            if not re.fullmatch(r"[A-Za-z\u0900-\u097F][A-Za-z\u0900-\u097F .'\-]{3,44}", name or ""):
                 name = ""
             seen.add(addr)
             rows.append({"email": addr, "name": f"Adv. {name}" if name else "", "mobile": mob or "", "city": city,
