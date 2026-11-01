@@ -2,18 +2,23 @@
 
 from __future__ import annotations
 
+import csv
+import io
+import uuid
+from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, File, Form, HTTPException, Response, UploadFile, status
-from pydantic import BaseModel, EmailStr, Field
-
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile, status
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from sqlalchemy import select
 
 from app.core.deps import AuthSessionDep, CurrentUserDep
 from app.core.outreach_mail import OutreachMessage, get_outreach_sender
+from app.core.pagination import Page, PageParams, page_params
 from app.modules.identity.models import User
 from app.modules.outreach import email as invitation
 from app.modules.outreach import runner, service
+from app.modules.outreach.models import OutreachStatus
 from app.modules.support.service import require_platform_admin
 
 router = APIRouter(tags=["Outreach"])
@@ -36,6 +41,35 @@ class OutreachSettingsUpdate(BaseModel):
 
 class TestSend(BaseModel):
     to: EmailStr | None = None
+
+
+class RemovalRequest(BaseModel):
+    note: str | None = Field(default=None, max_length=300)
+
+
+class ContactRow(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    email: str
+    name: str | None
+    mobile: str | None
+    city: str | None
+    court: str | None
+    source: str
+    status: OutreachStatus
+    sent_at: datetime | None          # "approached on"
+    unsubscribed_at: datetime | None
+    joined_user_id: uuid.UUID | None
+    removal_requested_at: datetime | None
+    removal_note: str | None
+    last_error: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+Pagination = Annotated[PageParams, Depends(page_params)]
+CONTACT_CSV_COLUMNS = ("email", "name", "mobile", "city", "court", "source", "status", "sent_at",
+                       "unsubscribed_at", "removal_requested_at", "removal_note", "added_on")
 
 
 async def _overview(session) -> dict:  # noqa: ANN001
@@ -90,6 +124,59 @@ async def outreach_import(
         return await service.import_contacts(session, data, source)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/platform-admin/outreach/contacts", response_model=Page[ContactRow],
+            summary="The contacts list: who is queued, who was approached and when, who asked out")
+async def outreach_contacts(
+    current: CurrentUserDep, session: AuthSessionDep, page: Pagination,
+    q: Annotated[str | None, Query(max_length=120)] = None,
+    status_filter: Annotated[OutreachStatus | None, Query(alias="status")] = None,
+) -> Page[ContactRow]:
+    require_platform_admin(current.is_superuser)
+    rows, total = await service.list_contacts(session, q=q, status=status_filter, limit=page.limit, offset=page.offset)
+    return Page.create([ContactRow.model_validate(r) for r in rows], total, page)
+
+
+@router.get("/platform-admin/outreach/contacts.csv", summary="The same list as a CSV (filters apply)")
+async def outreach_contacts_csv(
+    current: CurrentUserDep, session: AuthSessionDep,
+    q: Annotated[str | None, Query(max_length=120)] = None,
+    status_filter: Annotated[OutreachStatus | None, Query(alias="status")] = None,
+) -> Response:
+    require_platform_admin(current.is_superuser)
+    rows, _ = await service.list_contacts(session, q=q, status=status_filter, limit=50_000, offset=0)
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(CONTACT_CSV_COLUMNS)
+    for r in rows:
+        writer.writerow([
+            r.email, r.name or "", r.mobile or "", r.city or "", r.court or "", r.source, r.status,
+            r.sent_at.isoformat() if r.sent_at else "", r.unsubscribed_at.isoformat() if r.unsubscribed_at else "",
+            r.removal_requested_at.isoformat() if r.removal_requested_at else "", r.removal_note or "",
+            r.created_at.isoformat(),
+        ])
+    return Response(content=buf.getvalue(), media_type="text/csv",
+                    headers={"Content-Disposition": 'attachment; filename="outreach-contacts.csv"'})
+
+
+@router.post("/platform-admin/outreach/contacts/{contact_id}/removal-request", response_model=ContactRow,
+             summary="Flag a contact who asked to be taken off (suppressed, never emailed)")
+async def outreach_removal_request(contact_id: uuid.UUID, data: RemovalRequest, current: CurrentUserDep, session: AuthSessionDep) -> ContactRow:
+    require_platform_admin(current.is_superuser)
+    contact = await service.request_removal(session, contact_id, data.note)
+    if contact is None:
+        raise HTTPException(status_code=404, detail="No such contact.")
+    return ContactRow.model_validate(contact)
+
+
+@router.delete("/platform-admin/outreach/contacts/{contact_id}", status_code=204,
+               summary="Erase a contact's details for good (the address stays suppressed)")
+async def outreach_erase(contact_id: uuid.UUID, current: CurrentUserDep, session: AuthSessionDep) -> Response:
+    require_platform_admin(current.is_superuser)
+    if not await service.erase_contact(session, contact_id):
+        raise HTTPException(status_code=404, detail="No such contact.")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/platform-admin/outreach/preview", summary="The invitation as recipients see it (HTML)")

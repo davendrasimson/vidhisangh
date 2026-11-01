@@ -26,6 +26,7 @@ class OutreachStatus(StrEnum):
     UNSUBSCRIBED = "unsubscribed"
     BOUNCED = "bounced"          # the mail server refused the address
     SKIPPED = "skipped"          # already a member or suppressed when its turn came
+    REMOVAL_REQUESTED = "removal_requested"  # asked (by reply, call, grievance) to be taken off: suppressed
 
 
 class OutreachContact(AuditedBase):
@@ -33,6 +34,8 @@ class OutreachContact(AuditedBase):
 
     email: Mapped[str] = mapped_column(String(320), nullable=False, unique=True)
     name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # Published alongside the email on some lists; shown to the admin, never used for sending.
+    mobile: Mapped[str | None] = mapped_column(String(20), nullable=True)
     city: Mapped[str | None] = mapped_column(String(120), nullable=True)
     court: Mapped[str | None] = mapped_column(String(200), nullable=True)
     # Where the address was found, shown in the email ("publicly listed in …").
@@ -44,6 +47,8 @@ class OutreachContact(AuditedBase):
     unsubscribed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     joined_user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    removal_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    removal_note: Mapped[str | None] = mapped_column(String(300), nullable=True)
 
 
 class OutreachSuppression(AuditedBase):

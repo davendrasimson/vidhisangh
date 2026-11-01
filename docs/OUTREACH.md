@@ -14,6 +14,20 @@ Platform admin → **Outreach**. Built 16 Oct 2026 (migration `0067`).
 - **Joins** are recognised at sign-up by email and counted as *Joined*.
 - Each email names its **source** ("your professional email address is publicly listed in …"), the company, and the grievance officer.
 
+## Contacts list, removal flag, erasure (1 Nov 2026, migration `0084`)
+- **Contacts** section on the admin screen: every contact with name, email, **mobile** (new CSV column
+  `mobile`/`phone`, kept as 10 digits when it looks like an Indian mobile; shown, never used for sending),
+  city · court, source, status and **Approached on** (`sent_at`). Search by name, email or mobile; filter by
+  status; 50 a page, newest activity first; **CSV** export of the filtered list
+  (`GET /platform-admin/outreach/contacts[.csv]?q=&status=&page=&size=`).
+- **Asked to be removed**: when someone asks (by reply, call, grievance) to be taken off, the admin flags the
+  row (`POST …/contacts/{id}/removal-request` with a note of how and when they asked). Status becomes
+  `removal_requested`, the address goes on the suppression list like an unsubscribe, so it is never emailed
+  and never re-importable; the flag, date and note show in the list and the counts.
+- **Erase** (`DELETE …/contacts/{id}`): deletes the row (name, address, mobile, source) for good for a DPDP
+  erasure request; the peppered suppression hash stays, so the address cannot come back through a later import.
+- Statuses: waiting (`queued`), approached (`sent`), joined, unsubscribed, bounced, skipped, asked to be removed.
+
 ## DPDP note (owner's decision, 16 Oct 2026)
 Addresses come from public directories collected by the owner. There is no
 consent from recipients, so: keep each row's source accurate, send only to

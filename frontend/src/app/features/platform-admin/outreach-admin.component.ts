@@ -13,10 +13,21 @@ import { problemMessage } from '@core/http/problem-message';
 interface OutreachOverview {
   paused: boolean; daily_limit: number; max_daily_limit: number; sender_configured: boolean; from_address: string;
   sent_today: number; sent_last_7_days: number; suppressed_total: number; sending: boolean;
-  counts: Record<'queued' | 'sent' | 'joined' | 'unsubscribed' | 'bounced' | 'skipped', number>;
+  counts: Record<'queued' | 'sent' | 'joined' | 'unsubscribed' | 'bounced' | 'skipped' | 'removal_requested', number>;
   recent: { email: string; name: string | null; status: string; source: string; sent_at: string | null; updated_at: string }[];
 }
 type ImportReport = Record<'added' | 'duplicate' | 'member' | 'unsubscribed' | 'invalid' | 'no_source', number>;
+type ContactStatus = 'queued' | 'sent' | 'joined' | 'unsubscribed' | 'bounced' | 'skipped' | 'removal_requested';
+interface Contact {
+  id: string; email: string; name: string | null; mobile: string | null; city: string | null; court: string | null; source: string;
+  status: ContactStatus; sent_at: string | null; unsubscribed_at: string | null; removal_requested_at: string | null;
+  removal_note: string | null; last_error: string | null; created_at: string; updated_at: string;
+}
+interface ContactPage { items: Contact[]; total: number; page: number; size: number }
+const STATUS_LABEL: Record<ContactStatus, string> = {
+  queued: 'Waiting', sent: 'Approached', joined: 'Joined', unsubscribed: 'Unsubscribed', bounced: 'Bounced',
+  skipped: 'Skipped', removal_requested: 'Asked to be removed',
+};
 
 /** Platform admin → Outreach: the daily invitation emails to non-members. */
 @Component({
@@ -75,7 +86,7 @@ type ImportReport = Record<'added' | 'duplicate' | 'member' | 'unsubscribed' | '
       <div class="grid lg:grid-cols-2 gap-4 mt-4">
         <section class="rounded-card border border-line bg-surface-raised p-5">
           <h2 class="font-semibold">Add contacts</h2>
-          <p class="text-sm text-content-muted mt-1">A CSV with a header row: <code>email</code> (required), <code>name</code>, <code>city</code>, <code>court</code>, <code>source</code>.
+          <p class="text-sm text-content-muted mt-1">A CSV with a header row: <code>email</code> (required), <code>name</code>, <code>mobile</code>, <code>city</code>, <code>court</code>, <code>source</code>.
             The source (where the address is publicly listed) is printed in the email; give it per row or for the whole file below.</p>
           <label class="block text-sm mt-3">Source for rows without one
             <input class="vs-input w-full mt-1" [(ngModel)]="source" maxlength="300" placeholder="e.g. the Delhi High Court Bar Association directory" />
@@ -101,22 +112,54 @@ type ImportReport = Record<'added' | 'duplicate' | 'member' | 'unsubscribed' | '
       </div>
 
       <section class="rounded-card border border-line bg-surface-raised p-5 mt-4">
-        <h2 class="font-semibold">Recent activity</h2>
+        <div class="flex flex-wrap items-center gap-3">
+          <h2 class="font-semibold flex-1">Contacts <span class="text-content-muted font-normal text-sm">{{ contacts()?.total ?? 0 }} shown</span></h2>
+          <input class="vs-input w-56" type="search" placeholder="Search name, email or mobile" [ngModel]="query()" (ngModelChange)="search($event)" />
+          <select class="vs-input" [ngModel]="statusFilter()" (ngModelChange)="filterStatus($event)" aria-label="Status">
+            <option value="">All statuses</option>
+            @for (s of statuses; track s) { <option [value]="s">{{ statusLabel[s] }} ({{ d.counts[s] }})</option> }
+          </select>
+          <a mat-stroked-button [href]="csvUrl()" target="_blank" rel="noopener"><mat-icon class="material-icons-outlined">download</mat-icon> CSV</a>
+        </div>
         <div class="overflow-x-auto mt-3">
           <table class="w-full text-sm">
-            <thead class="text-left text-content-muted"><tr><th class="py-2 pr-3">Email</th><th class="pr-3">Name</th><th class="pr-3">Status</th><th class="pr-3">Source</th><th>When</th></tr></thead>
+            <thead class="text-left text-content-muted"><tr>
+              <th class="py-2 pr-3">Name</th><th class="pr-3">Email</th><th class="pr-3">Mobile</th><th class="pr-3">City · Court</th>
+              <th class="pr-3">Source</th><th class="pr-3">Status</th><th class="pr-3">Approached on</th><th></th>
+            </tr></thead>
             <tbody>
-              @for (r of d.recent; track r.email) {
-                <tr class="border-t border-line">
-                  <td class="py-2 pr-3">{{ r.email }}</td><td class="pr-3">{{ r.name || '—' }}</td>
-                  <td class="pr-3"><span class="vs-chip capitalize" [class.vs-chip--danger]="r.status === 'bounced' || r.status === 'unsubscribed'">{{ r.status }}</span></td>
-                  <td class="pr-3 max-w-[16rem] truncate" [title]="r.source">{{ r.source }}</td>
-                  <td class="whitespace-nowrap">{{ (r.sent_at || r.updated_at) | date:'dd/MM/yyyy, h:mm a' }}</td>
+              @for (c of contacts()?.items ?? []; track c.id) {
+                <tr class="border-t border-line align-top" [class.opacity-60]="c.status === 'removal_requested' || c.status === 'unsubscribed'">
+                  <td class="py-2 pr-3 whitespace-nowrap">{{ c.name || '—' }}</td>
+                  <td class="pr-3">{{ c.email }}</td>
+                  <td class="pr-3 whitespace-nowrap">{{ c.mobile || '—' }}</td>
+                  <td class="pr-3 whitespace-nowrap">{{ c.city || '—' }}@if (c.court) { · {{ c.court }} }</td>
+                  <td class="pr-3 max-w-[14rem] truncate" [title]="c.source">{{ c.source }}</td>
+                  <td class="pr-3 whitespace-nowrap">
+                    <span class="vs-chip" [class.vs-chip--danger]="c.status === 'bounced' || c.status === 'unsubscribed' || c.status === 'removal_requested'"
+                          [class.vs-chip--success]="c.status === 'joined'">{{ statusLabel[c.status] }}</span>
+                    @if (c.removal_requested_at) { <div class="text-xs text-danger mt-1">{{ c.removal_requested_at | date:'dd/MM/yyyy' }}@if (c.removal_note) { · {{ c.removal_note }} }</div> }
+                    @if (c.last_error && c.status === 'bounced') { <div class="text-xs text-content-muted mt-1 max-w-[14rem] truncate" [title]="c.last_error">{{ c.last_error }}</div> }
+                  </td>
+                  <td class="pr-3 whitespace-nowrap">{{ c.sent_at ? (c.sent_at | date:'dd/MM/yyyy, h:mm a') : '—' }}</td>
+                  <td class="whitespace-nowrap text-right">
+                    @if (c.status !== 'removal_requested') {
+                      <button mat-button class="!min-w-0" (click)="flagRemoval(c)" title="They asked not to be contacted: flag and never email them">Asked to be removed</button>
+                    }
+                    <button mat-icon-button (click)="erase(c)" title="Erase this contact's details for good"><mat-icon class="material-icons-outlined">delete_forever</mat-icon></button>
+                  </td>
                 </tr>
-              } @empty { <tr><td colspan="5" class="py-3 text-content-muted">Nothing sent yet.</td></tr> }
+              } @empty { <tr><td colspan="8" class="py-3 text-content-muted">No contacts match.</td></tr> }
             </tbody>
           </table>
         </div>
+        @if ((contacts()?.total ?? 0) > pageSize) {
+          <div class="flex items-center justify-end gap-2 mt-3 text-sm">
+            <button mat-stroked-button [disabled]="page() <= 1" (click)="goTo(page() - 1)">Previous</button>
+            <span>Page {{ page() }} of {{ pages() }}</span>
+            <button mat-stroked-button [disabled]="page() >= pages()" (click)="goTo(page() + 1)">Next</button>
+          </div>
+        }
       </section>
     } @else { <p class="mt-6 text-content-muted">Loading…</p> }
   `,
@@ -150,8 +193,26 @@ export class OutreachAdminComponent implements OnInit {
     return invited ? Math.round((d!.counts.joined / invited) * 100) : 0;
   });
 
+  // Contacts list
+  protected readonly contacts = signal<ContactPage | null>(null);
+  protected readonly query = signal('');
+  protected readonly statusFilter = signal<ContactStatus | ''>('');
+  protected readonly page = signal(1);
+  protected readonly pageSize = 50;
+  protected readonly statuses: ContactStatus[] = ['queued', 'sent', 'joined', 'unsubscribed', 'bounced', 'skipped', 'removal_requested'];
+  protected readonly statusLabel = STATUS_LABEL;
+  protected readonly pages = computed(() => Math.max(1, Math.ceil((this.contacts()?.total ?? 0) / this.pageSize)));
+  protected readonly csvUrl = computed(() => {
+    const p = new URLSearchParams();
+    if (this.query().trim()) p.set('q', this.query().trim());
+    if (this.statusFilter()) p.set('status', this.statusFilter());
+    const qs = p.toString();
+    return `${this.api}/contacts.csv${qs ? '?' + qs : ''}`;
+  });
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
+
   async ngOnInit(): Promise<void> {
-    await this.load();
+    await Promise.all([this.load(), this.loadContacts()]);
     try {
       const html = await firstValueFrom(this.http.get(`${this.api}/preview`, { responseType: 'text' }));
       // Our own server-built email, shown in a sandboxed frame (no scripts).
@@ -165,6 +226,56 @@ export class OutreachAdminComponent implements OnInit {
       this.o.set(d);
       this.limit = d.daily_limit;
     } catch { /* toast shown */ }
+  }
+
+  async loadContacts(): Promise<void> {
+    const params: Record<string, string> = { page: String(this.page()), size: String(this.pageSize) };
+    if (this.query().trim()) params['q'] = this.query().trim();
+    if (this.statusFilter()) params['status'] = this.statusFilter();
+    try {
+      this.contacts.set(await firstValueFrom(this.http.get<ContactPage>(`${this.api}/contacts`, { params })));
+    } catch { /* toast shown */ }
+  }
+
+  protected search(value: string): void {
+    this.query.set(value);
+    this.page.set(1);
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => void this.loadContacts(), 300);
+  }
+
+  protected filterStatus(value: ContactStatus | ''): void {
+    this.statusFilter.set(value);
+    this.page.set(1);
+    void this.loadContacts();
+  }
+
+  protected goTo(page: number): void {
+    this.page.set(page);
+    void this.loadContacts();
+  }
+
+  protected async flagRemoval(c: Contact): Promise<void> {
+    const note = window.prompt(`Flag ${c.name || c.email} as "asked to be removed"? They will never be emailed again. Add a note (how and when they asked):`, '');
+    if (note === null) return;
+    try {
+      await firstValueFrom(this.http.post<Contact>(`${this.api}/contacts/${c.id}/removal-request`, { note: note.trim() || null }));
+      this.notify.success('Flagged. The address is on the do-not-email list.');
+      await Promise.all([this.load(), this.loadContacts()]);
+    } catch (err) {
+      this.notify.error(problemMessage(err, 'Could not flag the contact.'));
+    }
+  }
+
+  protected async erase(c: Contact): Promise<void> {
+    if (!window.confirm(`Erase ${c.name || c.email} for good? Name, address and mobile are deleted; the address stays on the do-not-email list.`)) return;
+    try {
+      await firstValueFrom(this.http.delete(`${this.api}/contacts/${c.id}`));
+      this.notify.success('Erased.');
+      await Promise.all([this.load(), this.loadContacts()]);
+    } catch (err) {
+      this.notify.error(problemMessage(err, 'Could not erase the contact.'));
+    }
   }
 
   protected async save(change: { paused?: boolean; daily_limit?: number }): Promise<void> {
@@ -187,7 +298,7 @@ export class OutreachAdminComponent implements OnInit {
     this.uploading.set(true);
     try {
       this.report.set(await firstValueFrom(this.http.post<ImportReport>(`${this.api}/contacts`, form)));
-      await this.load();
+      await Promise.all([this.load(), this.loadContacts()]);
     } catch (err) {
       this.notify.error(problemMessage(err, 'Could not read that file.'));
     } finally { this.uploading.set(false); }
@@ -222,7 +333,7 @@ export class OutreachAdminComponent implements OnInit {
     const started = Date.now();
     while (Date.now() - started < 15 * 60_000) {
       await new Promise(res => setTimeout(res, 5_000));
-      await this.load();
+      await Promise.all([this.load(), this.loadContacts()]);
       const now = this.o()?.sent_today ?? 0;
       still = now === last ? still + 1 : 0;
       last = now;

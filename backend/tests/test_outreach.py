@@ -172,6 +172,68 @@ async def test_admin_test_send_and_send_now(client: AsyncClient, session_factory
     assert r.status_code == 409 and "already gone out" in r.json()["detail"]
 
 
+async def test_contacts_list_removal_flag_and_erasure(client: AsyncClient, session_factory, strong_password) -> None:
+    admin = await _admin(client, session_factory, strong_password)
+    csv_text = (
+        "email,name,mobile,city,court,source\n"
+        "arjun@chambers.in,Adv. Arjun Mehta,+91 98765-43210,Lucknow,Allahabad High Court,the Allahabad HC nominated counsel list\n"
+        "neha@lawfirm.in,Adv. Neha Rao,0172-2740001,Chandigarh,P&H High Court,the P&H HC panel list\n"
+        "kabir@adv.in,Adv. Kabir Singh,09812345678,Shimla,HP High Court,the HP HC list\n"
+    )
+    r = await client.post("/api/v1/platform-admin/outreach/contacts", headers=admin,
+                          files={"file": ("states.csv", csv_text.encode(), "text/csv")})
+    assert r.json()["added"] == 3
+
+    # The list: mobiles normalised to 10 digits (a landline is dropped), searchable by name/email/mobile.
+    page = (await client.get("/api/v1/platform-admin/outreach/contacts", headers=admin, params={"size": 2})).json()
+    assert page["total"] == 3 and len(page["items"]) == 2
+    by_email = {c["email"]: c for c in (await client.get("/api/v1/platform-admin/outreach/contacts", headers=admin)).json()["items"]}
+    assert by_email["arjun@chambers.in"]["mobile"] == "9876543210"
+    assert by_email["neha@lawfirm.in"]["mobile"] is None
+    assert by_email["kabir@adv.in"]["mobile"] == "9812345678" and by_email["kabir@adv.in"]["sent_at"] is None
+    hit = (await client.get("/api/v1/platform-admin/outreach/contacts", headers=admin, params={"q": "98123"})).json()
+    assert [c["email"] for c in hit["items"]] == ["kabir@adv.in"]
+    assert (await client.get("/api/v1/platform-admin/outreach/contacts", headers=admin, params={"q": "neha"})).json()["total"] == 1
+
+    # Approached: after a send, the row shows when.
+    recorder = Recorder()
+    async with session_factory() as s:
+        await service.update_settings(s, paused=False, daily_limit=1)
+        await s.commit()
+        assert (await service.send_batch(s, recorder))["sent"] == 1
+    sent = (await client.get("/api/v1/platform-admin/outreach/contacts", headers=admin, params={"status": "sent"})).json()
+    assert sent["total"] == 1 and sent["items"][0]["email"] == recorder.sent[0].to and sent["items"][0]["sent_at"]
+
+    # Someone asks to be removed: flagged with a note, suppressed, never sent, never re-importable.
+    kabir = by_email["kabir@adv.in"]["id"]
+    r = await client.post(f"/api/v1/platform-admin/outreach/contacts/{kabir}/removal-request", headers=admin,
+                          json={"note": "Phoned on 31/10, asked not to be contacted"})
+    assert r.status_code == 200 and r.json()["status"] == "removal_requested" and r.json()["removal_requested_at"]
+    assert r.json()["removal_note"].startswith("Phoned")
+    async with session_factory() as s:
+        await service.update_settings(s, paused=False, daily_limit=50)
+        await s.commit()
+        await service.send_batch(s, recorder)
+    assert "kabir@adv.in" not in [m.to for m in recorder.sent]
+    flagged = (await client.get("/api/v1/platform-admin/outreach/contacts", headers=admin, params={"status": "removal_requested"})).json()
+    assert [c["email"] for c in flagged["items"]] == ["kabir@adv.in"]
+    overview = (await client.get("/api/v1/platform-admin/outreach", headers=admin)).json()
+    assert overview["counts"]["removal_requested"] == 1 and overview["suppressed_total"] == 1
+
+    # CSV export carries the same rows and the flag.
+    export = await client.get("/api/v1/platform-admin/outreach/contacts.csv", headers=admin)
+    assert export.status_code == 200 and export.headers["content-type"].startswith("text/csv")
+    assert "kabir@adv.in" in export.text and "removal_requested" in export.text and "9876543210" in export.text
+
+    # Erase: the row is gone, the suppression stays, re-import is refused.
+    assert (await client.delete(f"/api/v1/platform-admin/outreach/contacts/{kabir}", headers=admin)).status_code == 204
+    assert (await client.delete(f"/api/v1/platform-admin/outreach/contacts/{kabir}", headers=admin)).status_code == 404
+    assert (await client.get("/api/v1/platform-admin/outreach/contacts", headers=admin)).json()["total"] == 2
+    again = await client.post("/api/v1/platform-admin/outreach/contacts", headers=admin,
+                              files={"file": ("again.csv", b"email,source\nkabir@adv.in,Some list\n", "text/csv")})
+    assert again.json()["unsubscribed"] == 1 and again.json()["added"] == 0
+
+
 async def test_daily_limit_never_exceeds_the_configured_ceiling(session_factory) -> None:
     async with session_factory() as s:
         cfg = await service.update_settings(s, paused=False, daily_limit=500)

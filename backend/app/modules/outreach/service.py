@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import io
+import re
 import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -40,6 +41,16 @@ def _normalise(raw: str) -> str | None:
         return validate_email(raw.strip(), check_deliverability=False).normalized.lower()
     except EmailNotValidError:
         return None
+
+
+def normalise_mobile(raw: str | None) -> str | None:
+    """An Indian mobile as 10 digits ('+91 98765-43210', '09876543210' → '9876543210'); else None."""
+    digits = re.sub(r"\D", "", raw or "")
+    if len(digits) == 12 and digits.startswith("91"):
+        digits = digits[2:]
+    elif len(digits) == 11 and digits.startswith("0"):
+        digits = digits[1:]
+    return digits if re.fullmatch(r"[6-9]\d{9}", digits) else None
 
 
 async def get_settings(session: AsyncSession) -> OutreachSettings:
@@ -79,11 +90,12 @@ async def _member_id(session: AsyncSession, email: str) -> uuid.UUID | None:
 
 
 async def import_contacts(session: AsyncSession, data: bytes, default_source: str | None) -> dict[str, int]:
-    """CSV with a header row: email (required), name, city, court, source.
+    """CSV with a header row: email (required), name, mobile, city, court, source.
 
     `source` (where the address was found) is required per row or as the
     default for the file: it is printed in the email. Duplicates, members and
-    suppressed addresses are counted and not added.
+    suppressed addresses are counted and not added. `mobile` (or `phone`) is
+    kept as 10 digits when it looks like an Indian mobile.
     """
     text = data.decode("utf-8-sig", errors="replace")
     reader = csv.DictReader(io.StringIO(text))
@@ -120,6 +132,7 @@ async def import_contacts(session: AsyncSession, data: bytes, default_source: st
             continue
         session.add(OutreachContact(
             email=email, name=get("name")[:200] or None, city=get("city")[:120] or None,
+            mobile=normalise_mobile(get("mobile") or get("phone")),
             court=get("court")[:200] or None, source=source, status=OutreachStatus.QUEUED,
             token=secrets.token_urlsafe(32), created_at=stamp + timedelta(microseconds=i),
         ))
@@ -228,6 +241,58 @@ async def unsubscribe(session: AsyncSession, token: str) -> bool:
     return True
 
 
+async def list_contacts(
+    session: AsyncSession, *, q: str | None = None, status: OutreachStatus | None = None,
+    limit: int = 50, offset: int = 0,
+) -> tuple[list[OutreachContact], int]:
+    """The admin's contacts list: newest activity first (sent/unsubscribed/flagged), then the queue.
+
+    `q` matches email, name or mobile (case-insensitive, anywhere in the value)."""
+    where = [OutreachContact.deleted_at.is_(None)]
+    if status is not None:
+        where.append(OutreachContact.status == status)
+    if q and q.strip():
+        needle = f"%{q.strip()}%"
+        where.append(OutreachContact.email.ilike(needle) | OutreachContact.name.ilike(needle) | OutreachContact.mobile.ilike(needle))
+    total = int(await session.scalar(select(func.count()).select_from(OutreachContact).where(*where)) or 0)
+    rows = (await session.scalars(
+        select(OutreachContact).where(*where)
+        .order_by(OutreachContact.updated_at.desc(), OutreachContact.created_at)
+        .limit(limit).offset(offset)
+    )).all()
+    return list(rows), total
+
+
+async def request_removal(session: AsyncSession, contact_id: uuid.UUID, note: str | None) -> OutreachContact | None:
+    """Flag a contact who asked to be taken off; suppressed like an unsubscribe, so never emailed."""
+    contact = await session.get(OutreachContact, contact_id)
+    if contact is None or contact.deleted_at is not None:
+        return None
+    if contact.status != OutreachStatus.REMOVAL_REQUESTED:
+        contact.status = OutreachStatus.REMOVAL_REQUESTED
+        contact.removal_requested_at = datetime.now(UTC)
+    if note and note.strip():
+        contact.removal_note = note.strip()[:300]
+    await _suppress(session, contact.email, "requested")
+    await session.flush()
+    await session.refresh(contact)  # server-side updated_at is read by the response schema
+    log.info("outreach_removal_requested")
+    return contact
+
+
+async def erase_contact(session: AsyncSession, contact_id: uuid.UUID) -> bool:
+    """Delete the contact's row (name, address, mobile, source) for good; the
+    peppered suppression hash stays, so the address can never come back."""
+    contact = await session.get(OutreachContact, contact_id)
+    if contact is None:
+        return False
+    await _suppress(session, contact.email, "erased")
+    await session.delete(contact)
+    await session.flush()
+    log.info("outreach_contact_erased")
+    return True
+
+
 async def mark_joined(session: AsyncSession, email: str | None, user_id: uuid.UUID) -> None:
     """Called at sign-up: an invited (or queued) address became a member."""
     if not email:
@@ -259,7 +324,7 @@ async def overview(session: AsyncSession) -> dict:
         "counts": {s.value: int(counts.get(s.value, counts.get(s, 0))) for s in OutreachStatus},
         "suppressed_total": int(await session.scalar(select(func.count()).select_from(OutreachSuppression)) or 0),
         "recent": [
-            {"email": c.email, "name": c.name, "status": c.status, "source": c.source,
+            {"email": c.email, "name": c.name, "mobile": c.mobile, "status": c.status, "source": c.source,
              "sent_at": c.sent_at, "updated_at": c.updated_at}
             for c in recent
         ],
