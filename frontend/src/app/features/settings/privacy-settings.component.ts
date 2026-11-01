@@ -8,6 +8,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { environment } from '@env/environment';
 import { AuthService } from '@core/auth/auth.service';
+import { problemMessage } from '@core/http/problem-message';
+
+type Audience = 'everyone' | 'connections' | 'groups' | 'bar' | 'none';
 import { NotificationService } from '@core/services/notification.service';
 import { saveBlob } from '@features/clients/client-privacy.service';
 import { PrivacyNoticeFacts } from '@features/legal/legal-page.component';
@@ -46,6 +49,16 @@ export class PrivacySettingsComponent implements OnInit {
   protected readonly facts = signal<PrivacyNoticeFacts | null>(null);
   protected readonly busy = signal<string | null>(null);
   protected readonly discoverable = signal<boolean | null>(null);
+  /** Who may see me once listed (a judicial officer's choice; hidden until they pick one). */
+  protected readonly audience = signal<Audience>('everyone');
+  protected readonly isJudicial = this.auth.isJudicial;
+  protected readonly audiences: { value: Audience; label: string; hint: string }[] = [
+    { value: 'none', label: 'Nobody', hint: 'You can see everyone; nobody can find you.' },
+    { value: 'connections', label: 'My connections', hint: 'Only members you are connected with.' },
+    { value: 'groups', label: 'Members of my groups', hint: 'Anyone who shares a group with you.' },
+    { value: 'bar', label: 'My bar', hint: 'Members whose profile is in your State.' },
+    { value: 'everyone', label: 'Everyone', hint: 'Every member of VidhiSangh.' },
+  ];
   protected readonly isAdmin = this.auth.hasPermission('tenant:manage');
   protected readonly tenantSettings = signal<TenantPrivacySettings | null>(null);
   protected readonly tenantSlug = signal<string>('');
@@ -60,8 +73,9 @@ export class PrivacySettingsComponent implements OnInit {
   async ngOnInit(): Promise<void> {
     try { this.facts.set(await firstValueFrom(this.http.get<PrivacyNoticeFacts>(`${this.api}/privacy/notice`))); } catch { /* shown without facts */ }
     try {
-      const v = await firstValueFrom(this.http.get<{ discoverable: boolean }>(`${this.api}/network/me/visibility`));
+      const v = await firstValueFrom(this.http.get<{ discoverable: boolean; audience: Audience }>(`${this.api}/network/me/visibility`));
       this.discoverable.set(v.discoverable);
+      this.audience.set(v.audience ?? 'everyone');
     } catch { this.discoverable.set(true); }
     if (this.isAdmin) {
       try {
@@ -89,6 +103,19 @@ export class PrivacySettingsComponent implements OnInit {
       await saveBlob(blob, `vidhisangh-my-data-${new Date().toISOString().slice(0, 10)}.json`);
       this.notify.success('Your data export has been downloaded.');
     } catch { /* handled */ } finally { this.busy.set(null); }
+  }
+
+  /** Choose who may see me; for a judicial officer this also lists (or hides) them. */
+  protected async setAudience(value: Audience): Promise<void> {
+    this.busy.set('directory');
+    try {
+      const v = await firstValueFrom(this.http.patch<{ discoverable: boolean; audience: Audience }>(`${this.api}/network/me/visibility`, { audience: value }));
+      this.discoverable.set(v.discoverable);
+      this.audience.set(v.audience);
+      this.notify.success(value === 'none' ? 'You are hidden from other members.' : `Visible to ${this.audiences.find((a) => a.value === value)?.label.toLowerCase()}.`);
+    } catch (err) {
+      this.notify.error(problemMessage(err, 'Could not save your choice.'));
+    } finally { this.busy.set(null); }
   }
 
   protected async toggleDirectory(on: boolean): Promise<void> {

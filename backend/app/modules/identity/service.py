@@ -213,22 +213,32 @@ class AuthService:
 
         # Publish a directory identity so the user is discoverable in the
         # (cross-tenant) professional network from day one.
-        from app.modules.network.models import NetworkIdentity
+        from app.modules.network.models import Audience, NetworkIdentity
 
+        # Listed by default (owner, 1 Nov 2026); a judicial officer stays hidden until they choose an audience.
+        judicial = is_judicial(data.professional_role)
         self.session.add(
             NetworkIdentity(
                 user_id=user.id,
                 tenant_id=tenant.id,
                 display_name=user.full_name,
                 avatar_url=user.avatar_url,
+                city=(data.city or "").strip()[:120] or None,
+                is_judicial=judicial,
+                discoverable=not judicial,
+                audience=Audience.NONE if judicial else Audience.EVERYONE,
             )
         )
-        if data.professional_role:
+        city = (data.city or "").strip()[:120] or None
+        court = (data.court or "").strip()[:200] or None
+        if data.professional_role or city or court:
             from app.modules.profile.models import ProfessionalProfile
 
             self.session.add(ProfessionalProfile(
                 tenant_id=tenant.id, user_id=user.id, professional_role=data.professional_role,
                 visibility_settings={"professional": data.role_visibility},
+                city=city, courts=[court] if court else [],
+                headline=(f"Advocate, {court}" if court and data.professional_role == "advocate" else None),
             ))
         await self.session.flush()
 

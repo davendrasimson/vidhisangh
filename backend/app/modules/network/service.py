@@ -22,8 +22,10 @@ from app.core.exceptions import (
     ValidationError,
 )
 from app.core.storage import Storage
+from app.modules.identity.rbac import is_judicial
 from app.modules.identity.repository import UserRepository
 from app.modules.network.models import (
+    Audience,
     Comment,
     Connection,
     ConnectionStatus,
@@ -103,8 +105,11 @@ class NetworkService:
         identity = await self.identities.get(self.user_id)
         headline = profile.headline if profile else None
         city = profile.city if profile else None
+        judicial = bool(profile and is_judicial(profile.professional_role))
+        state = (profile.judicial_state if judicial and profile.judicial_state else profile.state) if profile else None
         verified = bool(profile and profile.is_verified)
         if identity is None:
+            # Listed by default (owner, 1 Nov 2026); a judicial officer is hidden until they choose an audience.
             identity = NetworkIdentity(
                 user_id=self.user_id,
                 tenant_id=self.tenant_id,
@@ -112,7 +117,11 @@ class NetworkService:
                 headline=headline,
                 avatar_url=user.avatar_url,
                 city=city,
+                state=state,
                 is_verified=verified,
+                is_judicial=judicial,
+                discoverable=not judicial,
+                audience=Audience.NONE if judicial else Audience.EVERYONE,
             )
             self.identities.add(identity)
             await self.session.flush()
@@ -121,7 +130,13 @@ class NetworkService:
             identity.headline = headline
             identity.avatar_url = user.avatar_url
             identity.city = city
+            identity.state = state
             identity.is_verified = verified
+            if judicial and not identity.is_judicial:
+                # Became (or was found to be) a judicial officer: hide until they choose.
+                identity.is_judicial, identity.discoverable, identity.audience = True, False, Audience.NONE
+            elif not judicial and identity.is_judicial:
+                identity.is_judicial = False
         # A profile the user made non-public always overrides the directory
         # opt-in (ProfessionalProfile.visibility is tenant-scoped, so it is
         # enforced here — at sync time — rather than in the cross-tenant query).
@@ -169,16 +184,29 @@ class NetworkService:
             candidate = f"{base}-{n}"
         return candidate
 
-    async def set_discoverable(self, discoverable: bool) -> NetworkIdentity:
-        """Directory opt-in / opt-out (audit P-10). Opting in requires a public
-        professional profile (or none)."""
+    async def set_discoverable(self, discoverable: bool | None, audience: str | None = None) -> NetworkIdentity:
+        """Directory opt-in / opt-out (audit P-10) and the audience who may see a listed member.
+        Opting in requires a public professional profile (or none). A judicial officer is listed by
+        choosing an audience; choosing `none` hides them again."""
         identity = await self.ensure_my_identity()
+        if audience is not None:
+            identity.audience = Audience(audience)
+            if identity.is_judicial:
+                discoverable = audience != Audience.NONE
+            elif audience == Audience.NONE:
+                discoverable = False
+        if discoverable is None:
+            discoverable = identity.discoverable
         if discoverable:
             profile = await ProfileRepository(self.session).get_by_user(self.user_id)
             if profile is not None and profile.visibility != ProfileVisibility.PUBLIC:
                 raise ValidationError(
                     "Set your professional profile to public before joining the directory."
                 )
+            if identity.is_judicial and identity.audience == Audience.NONE:
+                raise ValidationError("Choose who may see you: your connections, your groups, your bar or everyone.")
+            if not identity.is_judicial and identity.audience == Audience.NONE:
+                identity.audience = Audience.EVERYONE
         identity.discoverable = discoverable
         return identity
 
@@ -591,6 +619,12 @@ class NetworkService:
         # already in a relationship with them (self, connections incl. pending).
         if not identity.discoverable and user_id != self.user_id and conn is None:
             raise NotFoundError("This person is not on the network.")
+        # A listed member's audience (a judicial officer's choice) applies to the profile page too,
+        # unless a relationship already exists.
+        if user_id != self.user_id and conn is None:
+            me = await self.ensure_my_identity()
+            if not await self.visible_to(me, identity):
+                raise NotFoundError("This person is not on the network.")
         status: str | None = None
         if conn is not None:
             if conn.status == ConnectionStatus.ACCEPTED:
@@ -600,9 +634,46 @@ class NetworkService:
         return identity, status, following
 
     async def directory(self, limit: int, offset: int) -> list[tuple[NetworkIdentity, str | None, bool]]:
-        await self.ensure_my_identity()
+        me = await self.ensure_my_identity()
         people = await self.identities.list_directory(self.user_id, limit, offset)
-        return await self._with_relationship(people)
+        return await self._with_relationship(await self._visible(me, people))
+
+    async def _visible(self, me: NetworkIdentity, people: list[NetworkIdentity]) -> list[NetworkIdentity]:
+        """Drop the members whose audience does not include me (a judicial officer's choice)."""
+        out = []
+        for person in people:
+            if await self.visible_to(me, person):
+                out.append(person)
+        return out
+
+    async def visible_to(self, viewer: NetworkIdentity, target: NetworkIdentity) -> bool:
+        """May `viewer` see `target` in the directory and on their profile page?
+        everyone: yes; connections: an accepted connection; groups: an active membership of a shared
+        group; bar: both in the same State; none: no."""
+        if viewer.user_id == target.user_id:
+            return True
+        audience = target.audience or Audience.EVERYONE
+        if audience == Audience.EVERYONE:
+            return True
+        if audience == Audience.NONE:
+            return False
+        if audience == Audience.CONNECTIONS:
+            conn = await self.connections.between(viewer.user_id, target.user_id)
+            return conn is not None and conn.status == ConnectionStatus.ACCEPTED
+        if audience == Audience.BAR:
+            return bool(viewer.state and target.state and viewer.state.strip().lower() == target.state.strip().lower())
+        if audience == Audience.GROUPS:
+            from app.modules.groups.models import GroupMembership, MemberStatus
+
+            mine = select(GroupMembership.group_id).where(
+                GroupMembership.user_id == viewer.user_id, GroupMembership.status == MemberStatus.ACTIVE)
+            shared = await self.session.scalar(
+                select(GroupMembership.id).where(
+                    GroupMembership.user_id == target.user_id, GroupMembership.status == MemberStatus.ACTIVE,
+                    GroupMembership.group_id.in_(mine)).limit(1)
+            )
+            return shared is not None
+        return False
 
     async def _with_relationship(self, people: list[NetworkIdentity]) -> list[tuple[NetworkIdentity, str | None, bool]]:
         following = await self.follows.following_ids(self.user_id)
@@ -623,8 +694,10 @@ class NetworkService:
         (people I am already connected with, or have asked, are left out of the suggestions)."""
         me = await self.ensure_my_identity()
         counts = await self.identities.counts(me.city, datetime.now(UTC) - timedelta(days=7))
-        nearby = await self.identities.nearby(self.user_id, me.city, limit) if me.city else []
-        recent = await self.identities.recent(self.user_id, limit, exclude_ids={p.user_id for p in nearby})
+        nearby = await self._visible(me, await self.identities.nearby(self.user_id, me.city, limit * 2)) if me.city else []
+        nearby = nearby[:limit]
+        recent = await self._visible(me, await self.identities.recent(self.user_id, limit * 2, exclude_ids={p.user_id for p in nearby}))
+        recent = recent[:limit]
         def fresh(rows: list[tuple[NetworkIdentity, str | None, bool]]):
             return [(p, s, f) for p, s, f in rows if s is None]
         return {

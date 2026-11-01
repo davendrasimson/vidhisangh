@@ -55,6 +55,14 @@ class PostType(StrEnum):
     ANNOUNCEMENT = "announcement"
 
 
+class Audience(StrEnum):
+    EVERYONE = "everyone"
+    CONNECTIONS = "connections"
+    GROUPS = "groups"
+    BAR = "bar"
+    NONE = "none"
+
+
 class NetworkIdentity(AuditedBase):
     """Public directory projection of a user — the cross-tenant identity used
     for discovery, feeds and connections. Upserted when a user registers or
@@ -73,7 +81,14 @@ class NetworkIdentity(AuditedBase):
     headline: Mapped[str | None] = mapped_column(String(200), nullable=True)
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     city: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    # The member's State (from the profile; a judicial officer's judicial_state), for the "my bar" audience.
+    state: Mapped[str | None] = mapped_column(String(120), nullable=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Judicial officers are hidden from the directory unless they choose an audience (owner, 1 Nov 2026).
+    is_judicial: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Who may see this member in the directory and on their profile page once listed:
+    # everyone | connections | groups (members of a shared group) | bar (members in the same State) | none.
+    audience: Mapped[str] = mapped_column(String(20), default="everyone", nullable=False)
     # Directory opt-in (audit P-10). New identities start hidden; the user opts in
     # via PATCH /network/me/visibility. Existing rows were grandfathered to true
     # by migration 0048. Connections, mentions and posts work regardless.

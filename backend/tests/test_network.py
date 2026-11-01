@@ -275,14 +275,14 @@ async def test_home_card_shows_colleagues_in_my_city_and_newest_members(client: 
     hidden, _ = await _user(client, "Hidden Chambers", "hidden@prayagraj.law", strong_password)
     for headers, city in ((me, "Prayagraj"), (near, "Prayagraj"), (far, "Kochi"), (hidden, "Prayagraj")):
         assert (await client.put("/api/v1/profiles/me", headers=headers, json={"city": city})).status_code == 200
-    for headers in (near, far):
-        await _discoverable(client, headers)
+    # Members are listed by default (1 Nov 2026); "hidden" opts out.
+    assert (await client.patch("/api/v1/network/me/visibility", headers=hidden, json={"discoverable": False})).status_code == 200
     # Everyone's identity exists once they have touched the network (hidden opted out of the directory).
     for headers in (me, near, far, hidden):
         assert (await client.get("/api/v1/network/me/identity", headers=headers)).status_code == 200
 
     home = (await client.get("/api/v1/network/home", headers=me)).json()
-    assert home["city"] == "Prayagraj" and home["discoverable"] is False
+    assert home["city"] == "Prayagraj" and home["discoverable"] is True  # listed by default
     assert home["members"] == 4 and home["in_city"] == 3 and home["joined_7d"] == 4
     assert [p["user_id"] for p in home["nearby"]] == [near_me["id"]]          # same city, discoverable
     assert [p["user_id"] for p in home["recent"]] == [far_me["id"]]           # newest others, not repeated
@@ -292,3 +292,54 @@ async def test_home_card_shows_colleagues_in_my_city_and_newest_members(client: 
     assert (await client.post(f"/api/v1/network/connections/{near_me['id']}", headers=me, json={})).status_code in (200, 201)
     home = (await client.get("/api/v1/network/home", headers=me)).json()
     assert home["nearby"] == []
+
+
+async def test_members_are_listed_by_default_and_judicial_officers_choose_their_audience(client: AsyncClient, strong_password: str) -> None:
+    adv, adv_me = await _user(client, "Adv Chambers", "adv@lko.law", strong_password)
+    peer, peer_me = await _user(client, "Peer Chambers", "peer@lko.law", strong_password)
+    resp = await client.post("/api/v1/auth/register", json={
+        "organisation_name": "Court", "full_name": "Hon'ble Judge", "email": "judge@court.gov", "password": strong_password,
+        "accept_terms": True, "professional_role": "judicial_officer"})
+    assert resp.status_code == 201, resp.text
+    judge = {"Authorization": f"Bearer {resp.json()['access_token']}"}
+    judge_me = (await client.get("/api/v1/auth/me", headers=judge)).json()
+
+    # An advocate is listed by default (owner, 1 Nov 2026); a judicial officer is hidden with no audience.
+    mine = (await client.get("/api/v1/network/me/visibility", headers=adv)).json()
+    assert mine["discoverable"] is True and mine["audience"] == "everyone" and mine["is_judicial"] is False
+    theirs = (await client.get("/api/v1/network/me/visibility", headers=judge)).json()
+    assert theirs["discoverable"] is False and theirs["audience"] == "none" and theirs["is_judicial"] is True
+    listed = {p["user_id"] for p in (await client.get("/api/v1/network/directory", headers=judge)).json()}
+    assert adv_me["id"] in listed and peer_me["id"] in listed            # the judge sees everyone
+    listed = {p["user_id"] for p in (await client.get("/api/v1/network/directory", headers=adv)).json()}
+    assert judge_me["id"] not in listed
+    assert (await client.get(f"/api/v1/network/people/{judge_me['id']}", headers=adv)).status_code == 404
+
+    # A judge cannot be "listed" without choosing an audience; choosing one lists them to that audience only.
+    r = await client.patch("/api/v1/network/me/visibility", headers=judge, json={"discoverable": True})
+    assert r.status_code in (400, 422)
+    r = await client.patch("/api/v1/network/me/visibility", headers=judge, json={"audience": "connections"})
+    assert r.status_code == 200 and r.json()["discoverable"] is True and r.json()["audience"] == "connections"
+    assert judge_me["id"] not in {p["user_id"] for p in (await client.get("/api/v1/network/directory", headers=adv)).json()}
+    # ...so the judge connects with the advocate: now the advocate sees them, the peer still does not.
+    assert (await client.post(f"/api/v1/network/connections/{adv_me['id']}", headers=judge, json={})).status_code in (200, 201)
+    req = next(c for c in (await client.get("/api/v1/network/connections/requests", headers=adv)).json())
+    assert (await client.post(f"/api/v1/network/connections/{req['id']}/accept", headers=adv)).status_code in (200, 204)
+    assert judge_me["id"] in {p["user_id"] for p in (await client.get("/api/v1/network/directory", headers=adv)).json()}
+    assert judge_me["id"] not in {p["user_id"] for p in (await client.get("/api/v1/network/directory", headers=peer)).json()}
+    assert (await client.get(f"/api/v1/network/people/{judge_me['id']}", headers=peer)).status_code == 404
+
+    # Bar: members in the same State.
+    for headers, state in ((judge, "Uttar Pradesh"), (peer, "Uttar Pradesh")):
+        assert (await client.put("/api/v1/profiles/me", headers=headers, json={"state": state, "judicial_state": state})).status_code == 200
+    r = await client.patch("/api/v1/network/me/visibility", headers=judge, json={"audience": "bar"})
+    assert r.status_code == 200
+    assert judge_me["id"] in {p["user_id"] for p in (await client.get("/api/v1/network/directory", headers=peer)).json()}
+    # Everyone, then none again.
+    assert (await client.patch("/api/v1/network/me/visibility", headers=judge, json={"audience": "none"})).json()["discoverable"] is False
+    assert judge_me["id"] not in {p["user_id"] for p in (await client.get("/api/v1/network/directory", headers=peer)).json()}
+
+    # An advocate can still opt out, and back in.
+    assert (await client.patch("/api/v1/network/me/visibility", headers=adv, json={"discoverable": False})).json()["discoverable"] is False
+    assert adv_me["id"] not in {p["user_id"] for p in (await client.get("/api/v1/network/directory", headers=peer)).json()}
+    assert (await client.patch("/api/v1/network/me/visibility", headers=adv, json={"discoverable": True})).json()["audience"] == "everyone"

@@ -67,6 +67,8 @@ export class RegisterComponent implements OnInit {
     // keyboards add after an autocompleted address (trimmed on submit).
     email: ['', [Validators.required, Validators.pattern(STRICT_EMAIL)]],
     professional_role: ['', [Validators.required]],
+    city: [''],
+    court: [''],
     password: ['', [Validators.required, Validators.pattern(STRONG_PASSWORD)]],
     add_sample_data: [true],
     accept_terms: [false, [Validators.requiredTrue]],
@@ -153,6 +155,8 @@ export class RegisterComponent implements OnInit {
         full_name: values.full_name,
         email: values.email.trim(),
         professional_role: values.professional_role,
+        city: values.city.trim() || undefined,
+        court: values.court.trim() || undefined,
         password: values.password,
         // The guided sample workspace is for practice tools; a firm sets that up.
         add_sample_data: values.firm && values.add_sample_data,

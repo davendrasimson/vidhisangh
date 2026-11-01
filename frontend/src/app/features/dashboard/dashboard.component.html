@@ -24,8 +24,13 @@
         </p>
         @if (!h.discoverable) {
           <div class="mt-3 rounded-lg bg-brand/5 border border-brand/20 p-3 flex flex-wrap items-center gap-3">
-            <p class="text-sm text-content flex-1 min-w-[12rem]">You are not listed yet. Appear in the People directory so colleagues{{ h.city ? ' in ' + h.city : '' }} can find and connect with you.</p>
-            <button mat-flat-button color="primary" [disabled]="busy() === 'discoverable'" (click)="beFound()">Let colleagues find me</button>
+            @if (judge()) {
+              <p class="text-sm text-content flex-1 min-w-[12rem]">You are not visible to other members. You can see everyone; choose who may see you: your connections, your groups, your bar, or everyone.</p>
+              <a mat-stroked-button routerLink="/app/settings/privacy">Choose who sees me</a>
+            } @else {
+              <p class="text-sm text-content flex-1 min-w-[12rem]">You are not listed yet. Appear in the People directory so colleagues{{ h.city ? ' in ' + h.city : '' }} can find and connect with you.</p>
+              <button mat-flat-button color="primary" [disabled]="busy() === 'discoverable'" (click)="beFound()">Let colleagues find me</button>
+            }
           </div>
         }
         @if (suggestions().length) {

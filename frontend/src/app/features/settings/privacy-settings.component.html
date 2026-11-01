@@ -19,15 +19,32 @@
   <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
-        <h2 class="font-semibold">Directory listing</h2>
-        <p class="text-sm text-content-muted">Whether other advocates on VidhiSangh can find your profile in the cross-firm directory. You can withdraw at any time.</p>
+        <h2 class="font-semibold">{{ isJudicial() ? 'Who may see me' : 'Directory listing' }}</h2>
+        @if (isJudicial()) {
+          <p class="text-sm text-content-muted">As a judicial officer you can see every member, but you appear to others only if you choose to, and only to the audience you choose. You can change this at any time.</p>
+        } @else {
+          <p class="text-sm text-content-muted">Members are listed in the People directory so colleagues can find them. You can withdraw at any time, or narrow who sees you.</p>
+        }
       </div>
-      @if (discoverable() !== null) {
+      @if (!isJudicial() && discoverable() !== null) {
         <mat-slide-toggle [checked]="discoverable()!" [disabled]="busy() === 'directory'" (change)="toggleDirectory($event.checked)">
           {{ discoverable() ? 'Listed' : 'Hidden' }}
         </mat-slide-toggle>
       }
     </div>
+    @if (discoverable() !== null && (isJudicial() || discoverable())) {
+      <fieldset class="mt-4 grid gap-2 sm:grid-cols-2" [disabled]="busy() === 'directory'">
+        <legend class="text-sm font-medium text-content mb-1">{{ isJudicial() ? 'Visible to' : 'Who can see me in the directory' }}</legend>
+        @for (a of audiences; track a.value) {
+          @if (isJudicial() || a.value !== 'none') {
+            <label class="flex items-start gap-2 rounded-lg border p-3 cursor-pointer" [class.border-brand]="audience() === a.value" [class.border-line]="audience() !== a.value">
+              <input type="radio" name="audience" class="mt-1" [value]="a.value" [checked]="audience() === a.value" (change)="setAudience(a.value)" />
+              <span><span class="block text-sm font-medium text-content">{{ a.label }}</span><span class="block text-xs text-content-muted">{{ a.hint }}</span></span>
+            </label>
+          }
+        }
+      </fieldset>
+    }
   </section>
 
   <vs-public-page-card />

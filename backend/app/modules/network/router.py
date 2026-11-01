@@ -562,15 +562,20 @@ async def my_identity(
 # ─── Directory opt-in / opt-out (audit P-10) ────────────────────────
 # Deliberately unguarded beyond authentication: every user may always control
 # whether they appear in the directory, whatever their role.
+@router.get("/me/visibility", response_model=MyIdentityRead, summary="My directory listing and audience")
+async def get_visibility(current: CurrentUserDep, session: TenantSessionDep) -> MyIdentityRead:
+    return MyIdentityRead.model_validate(await _svc(current, session).ensure_my_identity())
+
+
 @router.patch(
     "/me/visibility",
     response_model=MyIdentityRead,
-    summary="Opt in to / out of the people directory",
+    summary="Opt in to / out of the people directory; choose who may see me",
 )
 async def set_visibility(
     data: VisibilityUpdate, current: CurrentUserDep, session: TenantSessionDep
 ) -> MyIdentityRead:
-    identity = await _svc(current, session).set_discoverable(data.discoverable)
+    identity = await _svc(current, session).set_discoverable(data.discoverable, data.audience)
     return MyIdentityRead.model_validate(identity)
 
 

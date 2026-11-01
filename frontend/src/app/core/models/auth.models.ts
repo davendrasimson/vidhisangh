@@ -27,6 +27,8 @@ export interface RegisterRequest {
   referral_code?: string | null;
   professional_role?: string | null;
   role_visibility?: RoleVisibility;
+  city?: string | null;
+  court?: string | null;
 }
 
 export interface LoginRequest {

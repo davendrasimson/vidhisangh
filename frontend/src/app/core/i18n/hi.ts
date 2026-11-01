@@ -169,4 +169,8 @@ export const HI: Record<string, string> = {
   'Hindi PDF': 'हिन्दी PDF',
   'Official source': 'आधिकारिक स्रोत',
   'Opening the English PDF…': 'अंग्रेज़ी PDF खुल रही है…',
+  'City': 'शहर',
+  'Court you mostly appear in': 'जिस न्यायालय में आप प्रायः पेश होते हैं',
+  'e.g. Allahabad High Court': 'जैसे इलाहाबाद उच्च न्यायालय',
+  'Optional. We use them to show you colleagues practising near you.': 'वैकल्पिक। इनसे हम आपके आस-पास कार्यरत सहयोगी दिखाते हैं।',
 };

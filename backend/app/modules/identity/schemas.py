@@ -45,6 +45,9 @@ class RegisterRequest(BaseModel):
     # older app versions and API clients keep working.
     professional_role: str | None = Field(default=None, max_length=80)
     role_visibility: Literal["everyone", "connections", "none"] = "everyone"
+    # Where they practise, so the first home screen can show colleagues (optional, 1 Nov 2026).
+    city: str | None = Field(default=None, max_length=120)
+    court: str | None = Field(default=None, max_length=200)
 
     @field_validator("professional_role")
     @classmethod

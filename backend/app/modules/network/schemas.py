@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Literal
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -27,15 +28,19 @@ class IdentityRead(BaseModel):
 
 
 class MyIdentityRead(IdentityRead):
-    """The caller's own identity, including the directory opt-in flag."""
+    """The caller's own identity, including the directory opt-in flag and audience."""
 
     discoverable: bool = False
+    is_judicial: bool = False
+    audience: str = "everyone"
 
 
 class VisibilityUpdate(BaseModel):
-    """Directory opt-in/out (audit P-10)."""
+    """Directory opt-in/out (audit P-10). `audience` narrows who sees a listed member; a judicial officer
+    is listed by choosing an audience other than none."""
 
-    discoverable: bool
+    discoverable: bool | None = None
+    audience: Literal["everyone", "connections", "groups", "bar", "none"] | None = None
 
 
 class PublicPageUpdate(BaseModel):

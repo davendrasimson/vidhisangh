@@ -77,6 +77,18 @@
           <mat-error>{{ 'Choose what best describes you.' | t }}</mat-error>
         </mat-form-field>
 
+        <div class="grid grid-cols-2 gap-2">
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'City' | t }}</mat-label>
+            <input matInput formControlName="city" autocomplete="address-level2" maxlength="120" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'Court you mostly appear in' | t }}</mat-label>
+            <input matInput formControlName="court" maxlength="200" [placeholder]="'e.g. Allahabad High Court' | t" />
+          </mat-form-field>
+        </div>
+        <p class="text-xs text-content-muted -mt-2 mb-2">{{ 'Optional. We use them to show you colleagues practising near you.' | t }}</p>
+
         <mat-form-field appearance="outline">
           <mat-label>{{ 'Password' | t }}</mat-label>
           <input matInput [type]="hidePassword() ? 'password' : 'text'" formControlName="password" autocomplete="new-password" required />
