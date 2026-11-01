@@ -41,6 +41,21 @@ def court_line(court: str | None, colleagues: int) -> str:
     return f"{many} from the {court.strip()} are already on VidhiSangh."
 
 
+def subject_for(court: str | None) -> str:
+    """Court-aware subject: 'Advocates of the Allahabad High Court: an invitation to VidhiSangh'."""
+    return f"Advocates of the {court.strip()}: an invitation to VidhiSangh, the fraternity's free network" if court and court.strip() else SUBJECT
+
+
+# What members do on VidhiSangh, network first; practice tools and research are the free extras.
+POINTS: tuple[tuple[str, str], ...] = (
+    ("Find your colleagues", "from your court, your city and your bar, and connect with seniors, peers and juniors across India"),
+    ("Join your court's group", "and communities by practice area: ask a senior, help a junior, share a notice or a judgment"),
+    ("Follow the fraternity's feed", "of what advocates are discussing today, and message colleagues directly"),
+    ("Find local counsel", "in another city or before another bench, with no referral fee"),
+)
+ALSO_FREE = "Also free, for when you want them: 5.9 million Supreme Court and High Court judgments, Bare Acts including BNS, BNSS and BSA, and tools to keep your matters and dates."
+
+
 def build(*, name: str | None, source: str, token: str, court: str | None = None, colleagues: int = 0,
           group_name: str | None = None, group_url: str | None = None) -> tuple[str, str, str]:
     """(subject, text, html) for one contact. `court` and `colleagues` add the "already here" line; `group_*`
@@ -48,20 +63,21 @@ def build(*, name: str | None, source: str, token: str, court: str | None = None
     greeting = f"Dear {name.strip()}," if name and name.strip() else "Dear Colleague,"
     join, unsub = join_url(), unsubscribe_url(token)
     sender = settings.OUTREACH_SENDER_LINE
+    subject = subject_for(court)
     here = court_line(court, colleagues)
     here_text = f"{here}\n\n" if here else ""
     group_text = f"Your colleagues gather in the {group_name} group: {group_url}\n\n" if group_name and group_url else ""
+    points_text = "\n".join(f"• {lead} {rest}" for lead, rest in POINTS)
 
     text = f"""{greeting}
 
-I am writing to invite you to VidhiSangh (vidhisangh.com), a professional network built for India's legal fraternity: advocates, judges, legal researchers, law students, munshis, law firms and corporate legal teams.
+I am writing to invite you to VidhiSangh (vidhisangh.com), the free professional network for India's legal fraternity: a place to find and stay in touch with the advocates you work alongside, and the ones you should know.
 
 {here_text}It is free to join, and members use it to:
 
-• Connect with colleagues across courts and cities, and follow practice updates in one feed
-• Read BNS, BNSS and BSA section by section, each linked to the corresponding IPC, CrPC or Evidence Act provision
-• Search Supreme Court and High Court judgments by party, advocate, judge, Act or section
-• Keep matters, hearings, documents and invoices in one place, if you want practice tools as well
+{points_text}
+
+{ALSO_FREE}
 
 Signing up takes about a minute, with your WhatsApp number or email:
 {join}
@@ -80,16 +96,11 @@ Unsubscribe: {unsub}
     e = html.escape
     bullets = "".join(
         f'<tr><td style="padding:6px 10px 6px 0;vertical-align:top;color:#215dcc;font-size:18px;line-height:22px;">&#10003;</td>'
-        f'<td style="padding:6px 0;font-size:15px;line-height:22px;color:#1f2937;">{item}</td></tr>'
-        for item in (
-            "<strong>Connect with colleagues</strong> across courts and cities, and follow practice updates in one feed",
-            "<strong>Read BNS, BNSS and BSA</strong> section by section, each linked to the corresponding IPC, CrPC or Evidence Act provision",
-            "<strong>Search Supreme Court and High Court judgments</strong> by party, advocate, judge, Act or section",
-            "<strong>Keep matters, hearings, documents and invoices</strong> in one place, if you want practice tools as well",
-        )
+        f'<td style="padding:6px 0;font-size:15px;line-height:22px;color:#1f2937;"><strong>{e(lead)}</strong> {e(rest)}</td></tr>'
+        for lead, rest in POINTS
     )
     body = f"""<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{e(SUBJECT)}</title></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{e(subject)}</title></head>
 <body style="margin:0;padding:0;background:#f3f5f9;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f5f9;padding:24px 12px;">
 <tr><td align="center">
@@ -100,10 +111,11 @@ Unsubscribe: {unsub}
   </td></tr>
   <tr><td style="padding:28px 28px 8px;">
     <p style="margin:0 0 14px;font-size:16px;line-height:24px;color:#111827;">{e(greeting)}</p>
-    <p style="margin:0 0 16px;font-size:15px;line-height:24px;color:#1f2937;">I am writing to invite you to <strong>VidhiSangh</strong>, a professional network built for India's legal fraternity: advocates, judges, legal researchers, law students, munshis, law firms and corporate legal teams.</p>
+    <p style="margin:0 0 16px;font-size:15px;line-height:24px;color:#1f2937;">I am writing to invite you to <strong>VidhiSangh</strong>, the free professional network for India's legal fraternity: a place to find and stay in touch with the advocates you work alongside, and the ones you should know.</p>
     {f'<p style="margin:0 0 16px;font-size:15px;line-height:24px;color:#1f2937;"><strong>{e(here)}</strong></p>' if here else ''}
     <p style="margin:0 0 6px;font-size:15px;line-height:24px;color:#1f2937;">It is <strong>free to join</strong>, and members use it to:</p>
-    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 18px;">{bullets}</table>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 14px;">{bullets}</table>
+    <p style="margin:0 0 18px;font-size:14px;line-height:22px;color:#4b5563;">{e(ALSO_FREE)}</p>
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 18px;"><tr><td style="border-radius:999px;background:#215dcc;">
       <a href="{e(join)}" style="display:inline-block;padding:13px 28px;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:999px;">Join VidhiSangh free</a>
     </td></tr></table>
@@ -120,4 +132,4 @@ Unsubscribe: {unsub}
 </table>
 </td></tr></table>
 </body></html>"""
-    return SUBJECT, text, body
+    return subject, text, body

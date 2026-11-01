@@ -63,6 +63,8 @@ priya@lawchambers.in,Adv. Priya Sharma,Delhi,Delhi High Court,the Delhi High Cou
 ```
 
 ## Sources (first import, 31 Oct 2026)
+Adding more lists? Read [OUTREACH_SOURCING.md](OUTREACH_SOURCING.md) first (rules, de-duplication, how to import, where to look next).
+
 Addresses come only from official lists that publish professional contact details, each row
 naming its list (the email prints it). Built with `scripts/outreach_build_contacts.py` from
 `pdftotext -layout` output; role mailboxes (gov.in / nic.in, info@ …) and entries remarked
