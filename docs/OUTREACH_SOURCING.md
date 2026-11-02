@@ -88,6 +88,14 @@ Do not re-fetch anything listed there.
 - **Dead links to retry**: Haryana DLSA/SDLSC panel (404), slsa.uk.gov.in panel lawyers (503),
   bombayhighcourt.nic.in (refused), slsa.tripura.gov.in master list, mslsa.gov.in (Meghalaya), apslsa.ap.nic.in,
   sikkimslsa.nic.in, cgslsa.gov.in, karnatakajudiciary.kar.nic.in/hlsa/pdfs/advslist/.
+- **Saharanpur (checked 2 Nov 2026, nothing usable)**: `saharanpur.dcourts.gov.in` has an empty
+  "Pleaders and Bar Association" category and 17 documents in all (holidays, PoSH committee, a scanned
+  one-page list of differently-abled advocates with no text layer, not to be used anyway); its WP REST API
+  answers 401. `saharanpur.nic.in` documents are administrative. UPSLSA (`upslsa.up.gov.in`) resolves to an
+  intranet address and `upslsa.up.nic.in` has no DNS. The UP Bar Council site is a JavaScript app with
+  name-by-name search and no emails. The Union panel-counsel list has three Saharanpur government counsel,
+  all with mobiles only. The Allahabad roll holds one Saharanpur-based advocate (already queued). The
+  Saharanpur Bar Association has no website of its own that a search finds.
 - **Not to be used**: BSE/NSE compliance-officer mailboxes (statutory grievance addresses), PLV lists, anything
   with only mobiles (we do not send WhatsApp to non-members; mobiles are stored for the admin's reference only).
 
