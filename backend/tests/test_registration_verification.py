@@ -86,6 +86,12 @@ async def test_email_signup_requires_single_use_link(
         assert await deliver_verification_next(session)
         await session.commit()
     assert len(email_provider.sent) == 1
+    # The link lasts 30 days (owner, 2 Nov 2026; was 48 hours) and the email says so.
+    assert "This link expires in 30 days." in email_provider.sent[0].body
+    async with session_factory() as session:
+        pending = await session.scalar(select(User).where(User.email == data["email"]))
+        expires = pending.email_verification_expires_at.replace(tzinfo=UTC)
+        assert timedelta(days=29, hours=23) < expires - datetime.now(UTC) <= timedelta(days=30)
     token = email_provider.sent[0].link.rsplit("/", 1)[-1]
     response = await client.post(f"{API}/verify-email/{token}")
     assert response.status_code == 200

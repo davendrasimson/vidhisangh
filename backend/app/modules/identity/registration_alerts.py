@@ -25,6 +25,15 @@ from app.modules.tenancy.models import Tenant
 log = structlog.get_logger(__name__)
 
 
+def verification_validity() -> str:
+    """How long the activation link lasts, as the email says it: '30 days' (or 'N hours' when not whole days)."""
+    hours = settings.EMAIL_VERIFICATION_EXPIRE_HOURS
+    if hours >= 24 and hours % 24 == 0:
+        days = hours // 24
+        return f"{days} day{'s' if days != 1 else ''}"
+    return f"{hours} hour{'s' if hours != 1 else ''}"
+
+
 def queue_registration_alert(session: AsyncSession, user: User, sample_data: bool) -> None:
     if settings.REGISTRATION_ALERT_EMAIL:
         session.add(
@@ -138,7 +147,7 @@ async def deliver_verification_next(session: AsyncSession) -> bool:
                 body=(
                     f"Hello {user.full_name},\n\nOpen the link below to verify your email "
                     "and activate your VidhiSangh account. You can sign in after verification.\n"
-                    f"This link expires in {settings.EMAIL_VERIFICATION_EXPIRE_HOURS} hours. "
+                    f"This link expires in {verification_validity()}. "
                     "If you did not register, ignore this email."
                 ),
                 link=f"{settings.PUBLIC_APP_URL.rstrip('/')}/auth/verify-email/"

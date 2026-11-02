@@ -632,7 +632,7 @@ keep working) and nulls the clear-text column.
 | `VS_REFRESH_TOKEN_IN_BODY` | `false` | Keep `false` for browser sessions so refresh tokens travel only in the HttpOnly cookie. Enable only for a separately reviewed non-browser client. |
 | `VS_REFRESH_COOKIE_NAME` | `vs_refresh` | — |
 | `VS_INVITES_RETURN_TEMP_PASSWORD` | `false` | Keep `false`: admins get an invitation link (7 days) instead of a temporary password. |
-| `VS_INVITE_TOKEN_EXPIRE_DAYS` / `VS_PASSWORD_RESET_EXPIRE_MINUTES` / `VS_EMAIL_VERIFICATION_EXPIRE_HOURS` | 7 / 30 / 48 | — |
+| `VS_INVITE_TOKEN_EXPIRE_DAYS` / `VS_PASSWORD_RESET_EXPIRE_MINUTES` / `VS_EMAIL_VERIFICATION_EXPIRE_HOURS` | 7 / 30 / 720 (30 days; 48 until 2 Nov 2026) | — |
 | `VS_PORTAL_ACCESS_EXPIRE_DAYS` | `90` | Existing links get 90 days from the migration. |
 | `VS_OAUTH_MOCK_ENABLED` | `false` | Never `true` in production (start-up refuses). |
 | `VS_OAUTH_ALLOWED_REDIRECT_ORIGINS` | `` | Extra origins for SSO `redirect_uri`; `VS_PUBLIC_APP_URL` and `VS_BACKEND_CORS_ORIGINS` are always allowed. |

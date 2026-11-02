@@ -129,7 +129,8 @@ class Settings(BaseSettings):
     LOGIN_LOCKOUT_MINUTES: int = 15
     PASSWORD_RESET_EXPIRE_MINUTES: int = 30
     INVITE_TOKEN_EXPIRE_DAYS: int = 7
-    EMAIL_VERIFICATION_EXPIRE_HOURS: int = 48
+    # 30 days (owner, 2 Nov 2026; was 48 hours): advocates open the mail days later.
+    EMAIL_VERIFICATION_EXPIRE_HOURS: int = 720
     # Admin "add user" returns a temporary password in the API response only
     # when this is on; the default hands off via an invitation link instead.
     INVITES_RETURN_TEMP_PASSWORD: bool = False
