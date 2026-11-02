@@ -18,7 +18,23 @@ Platform admin → **Outreach**. Built 16 Oct 2026 (migration `0067`).
 - **Skipped automatically:** existing members, anyone who unsubscribed or bounced before, duplicates, malformed addresses, rows without a source.
 - **Unsubscribe**: the mail app's own button (RFC 8058 `List-Unsubscribe-Post`, no page) or the link in the footer (`/unsubscribe/:token`, one tap; not on page load, because mail scanners open links). Either puts a peppered hash of the address on `outreach_suppressions`, which outlives the contact row: the address can never be re-imported.
 - **Hard bounce** (server refuses the address): suppressed the same way.
-- **Joins** are recognised at sign-up by email and counted as *Joined*.
+- **Joins** are recognised at sign-up by email and counted as *Joined*; a sign-up that arrives through the email's
+  join link (`?invite=<token>`, carried by the register page as `invite_token`) is attributed to the invitation even
+  with a different address.
+- **Who reads it and who joins (2 Nov 2026, migration `0087`)**: `outreach_contacts` records the first
+  `delivered_at`, `opened_at`, `clicked_at`, `complained_at`. The email's **join link** is
+  `/api/v1/outreach/j/<token>` (records the click, 302 to `/auth/register?invite=<token>&utm_…`; unknown tokens still
+  land on sign-up); a 1×1 **tracking image** `/api/v1/outreach/o/<token>.gif` records opens (Gmail and Apple fetch it
+  for everyone, so opens read as "at least"); the relay's **webhook** `POST /api/v1/outreach/events/<secret>`
+  (`VS_OUTREACH_WEBHOOK_SECRET`; 404 without it; Brevo does not sign webhooks, so the secret is the URL) records
+  `delivered`, `opened`/`unique_opened`, `click`, `hard_bounce`/`invalid_email`/`blocked` (→ bounced + suppressed),
+  `soft_bounce`/`deferred` (last_error), `spam` (→ complained, unsubscribed + suppressed) and `unsubscribed`. Every
+  message carries `X-Mailin-Tag: invitation` so Brevo's own statistics can be filtered to the campaign. The Outreach
+  screen shows the funnel sent → delivered → opened → clicked → joined (with "through the email's link"), the same by
+  the day the email went out (last 14 days, a day's figures grow as it is read) and by court, and a *Read* column per
+  contact; the CSV export carries the four new columns. Register the webhook with
+  `python -m app.scripts.brevo_webhook --create` (needs a Brevo **v3 API key**, `BREVO_API_KEY`; the SMTP key does
+  not work for the API).
 - Each email names its **source** ("your professional email address is publicly listed in …"), the company, and the grievance officer.
 - **Court-aware (1 Nov 2026)**: when a contact row has a `court`, the email adds "Advocates from the <court> are already on VidhiSangh" once five invitees from that court have joined (the exact number from 20), and "Your colleagues gather in the <court> group" linking the official group (`groups/official.court_group_slug`). At sign-up the invited member's profile starts with the list's city and "Advocate, <court>" as headline, so the home screen shows colleagues at once.
 
@@ -60,6 +76,12 @@ Brevo, kept off the main domain's reputation: invitations come from
 - Rotate the SMTP key (it was pasted in a chat): new key in Brevo, then
   `printf %s NEWKEY | sudo systemd-creds encrypt --name=outreach_smtp - /etc/credstore.encrypted/vidhisangh.outreach_smtp`
   and restart both units.
+- **Webhook (2 Nov 2026)**: the API drop-in also sets `VS_OUTREACH_WEBHOOK_SECRET` (a random 32+ character string;
+  `openssl rand -hex 24`). Register Brevo's transactional webhook to
+  `https://vidhisangh.com/api/v1/outreach/events/<secret>` either in Brevo → Transactional → Settings → Webhooks (events:
+  delivered, hard bounce, soft bounce, blocked, spam, invalid, deferred, opened, click, unsubscribed) or with
+  `BREVO_API_KEY=xkeysib-… python -m app.scripts.brevo_webhook --create` on the server. Open and click tracking in
+  Brevo are optional: the email's own link and image record them without rewriting links.
 
 ## CSV format
 Header row required: `email` (required), `name`, `city`, `court`, `source`.
@@ -176,4 +198,6 @@ directory page for the links).
 - Units: `infra/jobs/vidhisangh-outreach.{service,timer}`
 - **"The morning job runs but sends 0"** — in order: (1) `outreach_contacts` is empty (nothing has been uploaded; the admin screen now says "Nobody is waiting to be invited"); (2) scheduled sending is paused; (3) today's number has already gone out (IST day). `journalctl -u vidhisangh-outreach` prints `outreach_batch sent=… skipped=… bounced=… failed=…` for each run; `failed=1` means the relay refused the connection and the run stopped (the contact's `last_error` has the reason).
 - **"Send me a test" fails** — a failed relay call now comes back as 502 with the SMTP error text (before 31 Oct 2026 it was a 500: the route read a name field the token principal does not carry).
+- **Bounce rate for the ramp rule**: until the Brevo webhook is registered, the screen's *bounced* counts only addresses refused at hand-over; Brevo → Transactional → Statistics (tag `invitation`) has the true hard-bounce figure. Once the webhook is on, the screen is the one to read.
+- **Webhook check**: `python -m app.scripts.brevo_webhook` lists the account's transactional webhooks and says whether ours is registered; `journalctl -u vidhisangh-api | grep outreach_provider_event` shows events arriving.
 - State on 31 Oct 2026: relay configured for the API and the job, scheduled sending **on**, limit 50, **no contacts ever imported**, so nothing has been sent yet.

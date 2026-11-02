@@ -246,6 +246,9 @@ class Settings(BaseSettings):
     OUTREACH_DAILY_LIMIT: int = 500  # ceiling; 50 → 100 (31 Oct 2026) → 500 (2 Nov 2026, owner: pace rises as the domain warms)
     # Who the email says it is from (footer); the owner chose not to name the company.
     OUTREACH_SENDER_LINE: str = "Sent by VidhiSangh, India"
+    # The relay (Brevo) posts delivery/bounce/complaint events to
+    # POST /api/v1/outreach/events/<this secret>. Unset = the route answers 404.
+    OUTREACH_WEBHOOK_SECRET: str | None = None
 
     @property
     def outreach_smtp_password(self) -> str:

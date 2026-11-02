@@ -48,6 +48,9 @@ class RegisterRequest(BaseModel):
     # Where they practise, so the first home screen can show colleagues (optional, 1 Nov 2026).
     city: str | None = Field(default=None, max_length=120)
     court: str | None = Field(default=None, max_length=200)
+    # From an invitation email's join link (?invite=): the join is attributed to that invitation even
+    # when the member signs up with another address. Unknown tokens are ignored.
+    invite_token: str | None = Field(default=None, max_length=64)
 
     @field_validator("professional_role")
     @classmethod

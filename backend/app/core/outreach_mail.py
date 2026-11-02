@@ -61,6 +61,8 @@ class SmtpOutreachSender:
         email["Message-ID"] = make_msgid(domain=domain)
         email["List-Unsubscribe"] = f"<{message.one_click_url}>, <{message.unsubscribe_page}>"
         email["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
+        # Brevo groups transactional statistics and webhook events by this tag.
+        email["X-Mailin-Tag"] = "invitation"
         email.set_content(message.text)
         email.add_alternative(message.html, subtype="html")
         connection = (

@@ -29,8 +29,19 @@ def one_click_url(token: str) -> str:
     return f"{_app_url()}/api/v1/outreach/unsubscribe/{token}"
 
 
-def join_url() -> str:
-    return f"{_app_url()}/auth/register?utm_source=invitation&utm_medium=email"
+def join_url(token: str) -> str:
+    """Through the API, which records the click and redirects to sign-up with the invitation token."""
+    return f"{_app_url()}/api/v1/outreach/j/{token}"
+
+
+def register_url(token: str | None) -> str:
+    """Where the join link lands: sign-up, carrying the token so the join is attributed."""
+    invite = f"invite={token}&" if token else ""
+    return f"{_app_url()}/auth/register?{invite}utm_source=invitation&utm_medium=email"
+
+
+def open_pixel_url(token: str) -> str:
+    return f"{_app_url()}/api/v1/outreach/o/{token}.gif"
 
 
 def court_line(court: str | None, colleagues: int) -> str:
@@ -61,7 +72,7 @@ def build(*, name: str | None, source: str, token: str, court: str | None = None
     """(subject, text, html) for one contact. `court` and `colleagues` add the "already here" line; `group_*`
     name the court's community group to join."""
     greeting = f"Dear {name.strip()}," if name and name.strip() else "Dear Colleague,"
-    join, unsub = join_url(), unsubscribe_url(token)
+    join, unsub = join_url(token), unsubscribe_url(token)
     sender = settings.OUTREACH_SENDER_LINE
     subject = subject_for(court)
     here = court_line(court, colleagues)
@@ -131,5 +142,6 @@ Unsubscribe: {unsub}
   </td></tr>
 </table>
 </td></tr></table>
+<img src="{e(open_pixel_url(token))}" width="1" height="1" alt="" style="display:block;border:0;">
 </body></html>"""
     return subject, text, body

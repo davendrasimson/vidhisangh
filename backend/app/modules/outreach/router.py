@@ -4,14 +4,16 @@ from __future__ import annotations
 
 import csv
 import io
+import secrets
 import uuid
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, Response, UploadFile, status
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from sqlalchemy import select
 
+from app.core.config import settings
 from app.core.deps import AuthSessionDep, CurrentUserDep
 from app.core.outreach_mail import OutreachMessage, get_outreach_sender
 from app.core.pagination import Page, PageParams, page_params
@@ -31,6 +33,45 @@ async def unsubscribe(token: str, session: AuthSessionDep) -> Response:
     # here (RFC 8058). Unknown tokens answer the same, so the route reveals nothing.
     if len(token) <= 64:
         await service.unsubscribe(session, token)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+NO_STORE = {"Cache-Control": "no-store, no-cache, max-age=0", "Pragma": "no-cache"}
+# A 1×1 transparent GIF (43 bytes).
+PIXEL = (b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,"
+         b"\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;")
+
+
+@router.get("/outreach/j/{token}", status_code=302, summary="The email's join link: records the click, then opens sign-up")
+async def join_link(token: str, session: AuthSessionDep) -> Response:
+    """Unknown tokens still land on sign-up (without attribution), so an old or mangled link never dead-ends."""
+    contact = await service.record_click(session, token)
+    url = invitation.register_url(contact.token if contact is not None else None)
+    return Response(status_code=status.HTTP_302_FOUND, headers={"Location": url, **NO_STORE})
+
+
+@router.get("/outreach/o/{token}.gif", summary="The email's tracking image: records that it was opened")
+async def open_pixel(token: str, session: AuthSessionDep) -> Response:
+    await service.record_open(session, token)
+    return Response(content=PIXEL, media_type="image/gif", headers=NO_STORE)
+
+
+@router.post("/outreach/events/{secret}", status_code=204, summary="Relay webhook (Brevo): delivered, bounced, opened, clicked, complained")
+async def provider_events(secret: str, session: AuthSessionDep, request: Request) -> Response:
+    """Brevo posts one JSON object per event (a list is accepted too). The URL carries a shared secret,
+    since Brevo does not sign webhooks; a wrong or unset secret answers 404. Always 204 on a readable
+    body, so the relay does not retry events we chose to ignore."""
+    expected = settings.OUTREACH_WEBHOOK_SECRET or ""
+    if not expected or len(secret) > 128 or not secrets.compare_digest(secret, expected):
+        raise HTTPException(status_code=404)
+    try:
+        payload = await request.json()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="The body must be JSON.") from exc
+    events = payload if isinstance(payload, list) else [payload]
+    for event in events[:200]:
+        if isinstance(event, dict):
+            await service.apply_provider_event(session, event)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -65,13 +106,18 @@ class ContactRow(BaseModel):
     removal_requested_at: datetime | None
     removal_note: str | None
     last_error: str | None
+    delivered_at: datetime | None
+    opened_at: datetime | None
+    clicked_at: datetime | None
+    complained_at: datetime | None
     created_at: datetime
     updated_at: datetime
 
 
 Pagination = Annotated[PageParams, Depends(page_params)]
-CONTACT_CSV_COLUMNS = ("email", "name", "mobile", "city", "court", "source", "status", "sent_at",
-                       "unsubscribed_at", "removal_requested_at", "removal_note", "added_on")
+CONTACT_CSV_COLUMNS = ("email", "name", "mobile", "city", "court", "source", "status", "sent_at", "delivered_at",
+                       "opened_at", "clicked_at", "unsubscribed_at", "complained_at", "removal_requested_at",
+                       "removal_note", "added_on")
 
 
 async def _overview(session) -> dict:  # noqa: ANN001
@@ -156,12 +202,12 @@ async def outreach_contacts_csv(
     buf = io.StringIO()
     writer = csv.writer(buf)
     writer.writerow(CONTACT_CSV_COLUMNS)
+    iso = lambda value: value.isoformat() if value else ""  # noqa: E731
     for r in rows:
         writer.writerow([
             r.email, r.name or "", r.mobile or "", r.city or "", r.court or "", r.source, r.status,
-            r.sent_at.isoformat() if r.sent_at else "", r.unsubscribed_at.isoformat() if r.unsubscribed_at else "",
-            r.removal_requested_at.isoformat() if r.removal_requested_at else "", r.removal_note or "",
-            r.created_at.isoformat(),
+            iso(r.sent_at), iso(r.delivered_at), iso(r.opened_at), iso(r.clicked_at), iso(r.unsubscribed_at),
+            iso(r.complained_at), iso(r.removal_requested_at), r.removal_note or "", iso(r.created_at),
         ])
     return Response(content=buf.getvalue(), media_type="text/csv",
                     headers={"Content-Disposition": 'attachment; filename="outreach-contacts.csv"'})

@@ -75,12 +75,15 @@ export class RegisterComponent implements OnInit {
   });
 
   private readonly route = inject(ActivatedRoute);
+  private inviteToken: string | null = null;
 
   async ngOnInit(): Promise<void> {
     countStep('register_view');
     // Came from a public page ("save this section"): go there once signed in,
     // even when sign-in happens later (email verification) or on another screen.
     rememberNext(this.route.snapshot.queryParamMap.get('returnUrl'));
+    // From an invitation email's join link: the join is counted against that invitation.
+    this.inviteToken = (this.route.snapshot.queryParamMap.get('invite') || '').slice(0, 64) || null;
     if (!isNativeApp()) {
       firstValueFrom(this.auth.ssoProviders())
         .then(list => this.googleAvailable.set(list.some(p => p.name === 'google')))
@@ -157,6 +160,7 @@ export class RegisterComponent implements OnInit {
         professional_role: values.professional_role,
         city: values.city.trim() || undefined,
         court: values.court.trim() || undefined,
+        invite_token: this.inviteToken ?? undefined,
         password: values.password,
         // The guided sample workspace is for practice tools; a firm sets that up.
         add_sample_data: values.firm && values.add_sample_data,

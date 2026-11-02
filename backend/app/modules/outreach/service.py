@@ -12,7 +12,7 @@ from zoneinfo import ZoneInfo
 
 import structlog
 from email_validator import EmailNotValidError, validate_email
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import security
@@ -338,6 +338,158 @@ async def mark_joined(session: AsyncSession, email: str | None, user_id: uuid.UU
     return contact
 
 
+async def mark_joined_by_token(session: AsyncSession, token: str | None, user_id: uuid.UUID) -> OutreachContact | None:
+    """Sign-up that came through the email's join link (`?invite=<token>`), possibly with another
+    address than the one invited: the invitation still counts as the reason they joined."""
+    if not token or len(token) > 64:
+        return None
+    contact = await session.scalar(select(OutreachContact).where(OutreachContact.token == token))
+    if contact is not None and contact.status in (OutreachStatus.QUEUED, OutreachStatus.SENT):
+        contact.status, contact.joined_user_id = OutreachStatus.JOINED, user_id
+        if contact.clicked_at is None:
+            contact.clicked_at = datetime.now(UTC)
+    return contact
+
+
+# ─── Engagement: our own click link and tracking image, and the relay's webhook ──────
+async def _by_token(session: AsyncSession, token: str) -> OutreachContact | None:
+    if not token or len(token) > 64:
+        return None
+    return await session.scalar(select(OutreachContact).where(OutreachContact.token == token))
+
+
+async def record_click(session: AsyncSession, token: str, now: datetime | None = None) -> OutreachContact | None:
+    """The join link in the email was followed. First time only; a click is also an open."""
+    contact = await _by_token(session, token)
+    if contact is not None:
+        now = now or datetime.now(UTC)
+        contact.clicked_at = contact.clicked_at or now
+        contact.opened_at = contact.opened_at or now
+        await session.flush()
+    return contact
+
+
+async def record_open(session: AsyncSession, token: str, now: datetime | None = None) -> bool:
+    """The tracking image was fetched (mail apps that load images; Gmail and Apple fetch it for everyone,
+    so this overstates reading). First time only."""
+    contact = await _by_token(session, token)
+    if contact is None:
+        return False
+    if contact.opened_at is None:
+        contact.opened_at = now or datetime.now(UTC)
+        await session.flush()
+    return True
+
+
+# Brevo transactional webhook event names → what we record.
+_EVENT_DELIVERED = {"delivered"}
+_EVENT_OPENED = {"opened", "unique_opened", "proxy_open", "loaded_by_proxy"}
+_EVENT_CLICKED = {"click"}
+_EVENT_HARD_BOUNCE = {"hard_bounce", "invalid_email", "blocked"}
+_EVENT_SOFT = {"soft_bounce", "deferred", "error"}
+_EVENT_COMPLAINT = {"spam", "complaint"}
+_EVENT_UNSUBSCRIBED = {"unsubscribed", "unsubscribe"}
+
+
+async def apply_provider_event(session: AsyncSession, event: dict, now: datetime | None = None) -> str:
+    """Record one relay event (`{"event": "delivered", "email": "…", "reason": "…", …}`) against the
+    contact with that address. Returns what was done ("delivered", "opened", "clicked", "bounced",
+    "soft_bounce", "complained", "unsubscribed", "ignored", "unknown").
+
+    Hard bounces and complaints suppress the address like an unsubscribe. Events for addresses
+    we never invited (sign-up mail goes through another relay account) are ignored."""
+    kind = str(event.get("event") or "").strip().lower()
+    email = _normalise(str(event.get("email") or "")) if event.get("email") else None
+    if not kind or not email:
+        return "ignored"
+    contact = await session.scalar(select(OutreachContact).where(OutreachContact.email == email))
+    if contact is None or contact.sent_at is None:
+        return "unknown"
+    now = now or datetime.now(UTC)
+    reason = str(event.get("reason") or event.get("error") or kind)[:500]
+    if kind in _EVENT_DELIVERED:
+        contact.delivered_at = contact.delivered_at or now
+        result = "delivered"
+    elif kind in _EVENT_OPENED:
+        contact.opened_at = contact.opened_at or now
+        result = "opened"
+    elif kind in _EVENT_CLICKED:
+        contact.clicked_at = contact.clicked_at or now
+        contact.opened_at = contact.opened_at or now
+        result = "clicked"
+    elif kind in _EVENT_HARD_BOUNCE:
+        if contact.status in (OutreachStatus.SENT, OutreachStatus.QUEUED):
+            contact.status = OutreachStatus.BOUNCED
+        contact.last_error = reason
+        await _suppress(session, contact.email, "bounced")
+        result = "bounced"
+    elif kind in _EVENT_SOFT:
+        contact.last_error = reason
+        result = "soft_bounce"
+    elif kind in _EVENT_COMPLAINT:
+        contact.complained_at = contact.complained_at or now
+        if contact.status in (OutreachStatus.SENT, OutreachStatus.QUEUED):
+            contact.status, contact.unsubscribed_at = OutreachStatus.UNSUBSCRIBED, contact.unsubscribed_at or now
+        await _suppress(session, contact.email, "complaint")
+        result = "complained"
+    elif kind in _EVENT_UNSUBSCRIBED:
+        if contact.status in (OutreachStatus.SENT, OutreachStatus.QUEUED):
+            contact.status, contact.unsubscribed_at = OutreachStatus.UNSUBSCRIBED, now
+        await _suppress(session, contact.email, "unsubscribed")
+        result = "unsubscribed"
+    else:
+        return "ignored"
+    await session.flush()
+    log.info("outreach_provider_event", kind=kind, result=result)
+    return result
+
+
+def _ist_day(moment: datetime) -> str:
+    if moment.tzinfo is None:  # SQLite hands back naive UTC
+        moment = moment.replace(tzinfo=UTC)
+    return moment.astimezone(IST).date().isoformat()
+
+
+async def funnel(session: AsyncSession, *, days: int = 14, courts: int = 8) -> dict:
+    """Sent → delivered → opened → clicked → joined, in total, for each of the last `days` sending days
+    (by the day the email went out, so a day's figures grow as its recipients read it), and by court."""
+    C = OutreachContact
+    invited = [C.sent_at.isnot(None), C.deleted_at.is_(None)]
+    joined = C.status == OutreachStatus.JOINED
+
+    def n(cond):  # noqa: ANN001
+        return func.coalesce(func.sum(case((cond, 1), else_=0)), 0)
+
+    totals = (await session.execute(select(
+        func.count(), n(C.delivered_at.isnot(None)), n(C.opened_at.isnot(None)), n(C.clicked_at.isnot(None)),
+        n(joined), n(joined & C.clicked_at.isnot(None)), n(C.status == OutreachStatus.BOUNCED),
+        n(C.complained_at.isnot(None)), n(C.status == OutreachStatus.UNSUBSCRIBED),
+    ).where(*invited))).one()
+    keys = ("sent", "delivered", "opened", "clicked", "joined", "joined_via_email", "bounced", "complained", "unsubscribed")
+    total = {k: int(v or 0) for k, v in zip(keys, totals, strict=True)}
+
+    since = _today_ist_start(datetime.now(UTC)) - timedelta(days=days - 1)
+    rows = (await session.execute(
+        select(C.sent_at, C.delivered_at, C.opened_at, C.clicked_at, C.status).where(*invited, C.sent_at >= since)
+    )).all()
+    by_day: dict[str, dict[str, int]] = {}
+    for sent_at, delivered_at, opened_at, clicked_at, status in rows:
+        d = by_day.setdefault(_ist_day(sent_at), {"sent": 0, "delivered": 0, "opened": 0, "clicked": 0, "joined": 0})
+        d["sent"] += 1
+        d["delivered"] += delivered_at is not None
+        d["opened"] += opened_at is not None
+        d["clicked"] += clicked_at is not None
+        d["joined"] += status == OutreachStatus.JOINED
+    days_out = [{"day": day, **d} for day, d in sorted(by_day.items(), reverse=True)]
+
+    court_rows = (await session.execute(select(
+        C.court, func.count(), n(C.delivered_at.isnot(None)), n(C.opened_at.isnot(None)), n(C.clicked_at.isnot(None)), n(joined),
+    ).where(*invited, C.court.isnot(None)).group_by(C.court).order_by(func.count().desc()).limit(courts))).all()
+    by_court = [{"court": r[0], "sent": int(r[1]), "delivered": int(r[2] or 0), "opened": int(r[3] or 0),
+                 "clicked": int(r[4] or 0), "joined": int(r[5] or 0)} for r in court_rows]
+    return {"total": total, "by_day": days_out, "by_court": by_court}
+
+
 async def overview(session: AsyncSession) -> dict:
     counts = dict((await session.execute(
         select(OutreachContact.status, func.count()).group_by(OutreachContact.status)
@@ -355,7 +507,9 @@ async def overview(session: AsyncSession) -> dict:
         "queued_in_focus": await queued_count(session, focus=cfg.focus) if cfg.focus else None,
         "max_daily_limit": settings.OUTREACH_DAILY_LIMIT,
         "sender_configured": bool(settings.OUTREACH_SMTP_HOST),
+        "webhook_configured": bool(settings.OUTREACH_WEBHOOK_SECRET),
         "from_address": settings.OUTREACH_FROM,
+        "funnel": await funnel(session),
         "sent_today": await sent_today(session),
         "sent_last_7_days": int(await session.scalar(
             select(func.count()).select_from(OutreachContact).where(OutreachContact.sent_at >= week_ago)) or 0),

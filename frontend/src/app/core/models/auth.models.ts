@@ -29,6 +29,8 @@ export interface RegisterRequest {
   role_visibility?: RoleVisibility;
   city?: string | null;
   court?: string | null;
+  /** From an invitation email's join link (?invite=); attributes the join to that invitation. */
+  invite_token?: string | null;
 }
 
 export interface LoginRequest {

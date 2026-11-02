@@ -254,10 +254,12 @@ class AuthService:
                 raise RuntimeError("Storage is required when sample data is requested.")
             await SampleDataService(self.session, tenant.id, user.id, sample_storage).create()
 
-        if user.email:
-            from app.modules.outreach.service import mark_joined
+        if user.email or data.invite_token:
+            from app.modules.outreach.service import mark_joined, mark_joined_by_token
 
             contact = await mark_joined(self.session, user.email, user.id)
+            if contact is None:
+                contact = await mark_joined_by_token(self.session, data.invite_token, user.id)
             if contact is not None and (contact.city or contact.court):
                 # Invited from a public court list: start the profile with the city and court it named, so
                 # the home screen can show colleagues at once. The member can change both.

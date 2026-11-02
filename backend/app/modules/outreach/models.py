@@ -49,6 +49,13 @@ class OutreachContact(AuditedBase):
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     removal_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     removal_note: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    # Engagement (migration 0087): first time each happened. `delivered_at` and `complained_at` come from the
+    # relay's webhook; `opened_at` from our tracking image or the webhook; `clicked_at` from our own join link
+    # (`/outreach/j/<token>`) or the webhook. A click counts as an open.
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    opened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    clicked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    complained_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class OutreachSuppression(AuditedBase):

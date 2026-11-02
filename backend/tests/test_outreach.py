@@ -308,3 +308,100 @@ async def test_focus_sends_one_bar_at_a_time(client: AsyncClient, session_factor
     async with session_factory() as s:
         assert (await service.send_batch(s, recorder))["sent"] == 1
     assert recorder.sent[-1].to == "c@pune.law"
+
+
+ENGAGEMENT_CSV = (
+    "email,name,city,court,source\n"
+    "asha@alld.in,Adv. Asha Singh,Prayagraj,Allahabad High Court,the Allahabad roll\n"
+    "bharat@alld.in,Adv. Bharat Rao,Prayagraj,Allahabad High Court,the Allahabad roll\n"
+    "chitra@alld.in,Adv. Chitra Das,Prayagraj,Allahabad High Court,the Allahabad roll\n"
+)
+
+
+async def test_engagement_click_open_webhook_and_join_through_the_link(client: AsyncClient, session_factory, strong_password, monkeypatch) -> None:
+    """Who read the invitation, who clicked, who joined through it; the relay's webhook fills delivery and bounces."""
+    from app.core.config import settings
+
+    admin = await _admin(client, session_factory, strong_password)
+    r = await client.post("/api/v1/platform-admin/outreach/contacts", headers=admin,
+                          files={"file": ("alld.csv", ENGAGEMENT_CSV.encode(), "text/csv")})
+    assert r.json()["added"] == 3
+    recorder = Recorder()
+    async with session_factory() as s:
+        await service.update_settings(s, paused=False, daily_limit=10)
+        await s.commit()
+        assert (await service.send_batch(s, recorder))["sent"] == 3
+    by_to = {m.to: m for m in recorder.sent}
+    token = {to: m.one_click_url.rsplit("/", 1)[-1] for to, m in by_to.items()}
+    asha = by_to["asha@alld.in"]
+    # The join link goes through the API with the contact's token; the tracking image carries it too.
+    assert f"/api/v1/outreach/j/{token['asha@alld.in']}" in asha.html and f"/api/v1/outreach/j/{token['asha@alld.in']}" in asha.text
+    assert f"/api/v1/outreach/o/{token['asha@alld.in']}.gif" in asha.html
+
+    # Opened (image fetched), then clicked (redirects to sign-up carrying the token).
+    pixel = await client.get(f"/api/v1/outreach/o/{token['asha@alld.in']}.gif")
+    assert pixel.status_code == 200 and pixel.headers["content-type"] == "image/gif" and "no-store" in pixel.headers["cache-control"]
+    click = await client.get(f"/api/v1/outreach/j/{token['asha@alld.in']}")
+    assert click.status_code == 302
+    assert click.headers["location"].endswith(f"/auth/register?invite={token['asha@alld.in']}&utm_source=invitation&utm_medium=email")
+    stray = await client.get("/api/v1/outreach/j/not-a-token")
+    assert stray.status_code == 302 and "invite=" not in stray.headers["location"]
+    # Bharat only clicked: a click counts as an open too.
+    assert (await client.get(f"/api/v1/outreach/j/{token['bharat@alld.in']}")).status_code == 302
+    async with session_factory() as s:
+        a = await s.scalar(select(OutreachContact).where(OutreachContact.email == "asha@alld.in"))
+        b = await s.scalar(select(OutreachContact).where(OutreachContact.email == "bharat@alld.in"))
+        assert a.opened_at and a.clicked_at and b.opened_at and b.clicked_at
+
+    # The relay webhook: 404 until a secret is configured, and with the wrong one.
+    assert (await client.post("/api/v1/outreach/events/x", json={"event": "delivered", "email": "asha@alld.in"})).status_code == 404
+    monkeypatch.setattr(settings, "OUTREACH_WEBHOOK_SECRET", "s3cret")
+    assert (await client.post("/api/v1/outreach/events/wrong", json={"event": "delivered", "email": "asha@alld.in"})).status_code == 404
+    events = [
+        {"event": "delivered", "email": "asha@alld.in", "tag": "invitation"},
+        {"event": "delivered", "email": "Bharat@alld.in"},
+        {"event": "hard_bounce", "email": "bharat@alld.in", "reason": "550 user unknown"},
+        {"event": "spam", "email": "chitra@alld.in"},
+        {"event": "delivered", "email": "stranger@elsewhere.in"},  # never invited: ignored
+        {"event": "weird", "email": "asha@alld.in"},
+    ]
+    assert (await client.post("/api/v1/outreach/events/s3cret", json=events)).status_code == 204
+    assert (await client.post("/api/v1/outreach/events/s3cret", json={"event": "opened", "email": "asha@alld.in"})).status_code == 204
+    assert (await client.post("/api/v1/outreach/events/s3cret", content=b"not json", headers={"content-type": "application/json"})).status_code == 400
+    async with session_factory() as s:
+        a = await s.scalar(select(OutreachContact).where(OutreachContact.email == "asha@alld.in"))
+        b = await s.scalar(select(OutreachContact).where(OutreachContact.email == "bharat@alld.in"))
+        c = await s.scalar(select(OutreachContact).where(OutreachContact.email == "chitra@alld.in"))
+        assert a.delivered_at and a.status == OutreachStatus.SENT
+        assert b.delivered_at and b.status == OutreachStatus.BOUNCED and "550" in b.last_error
+        assert c.complained_at and c.status == OutreachStatus.UNSUBSCRIBED and c.unsubscribed_at
+        assert await service._suppressed(s, "bharat@alld.in") and await service._suppressed(s, "chitra@alld.in")
+
+    # Asha signs up through the link with a different address: the join is still hers.
+    r = await client.post("/api/v1/auth/register", json={
+        "organisation_name": "Asha", "full_name": "Asha Singh", "email": "asha.personal@gmail.com", "password": strong_password,
+        "accept_terms": True, "practice_type": "individual", "invite_token": token["asha@alld.in"]})
+    assert r.status_code == 201, r.text
+    async with session_factory() as s:
+        a = await s.scalar(select(OutreachContact).where(OutreachContact.email == "asha@alld.in"))
+        assert a.status == OutreachStatus.JOINED and a.joined_user_id is not None
+    # An unknown token at sign-up is ignored.
+    r = await client.post("/api/v1/auth/register", json={
+        "organisation_name": "Nobody", "full_name": "No Body", "email": "nobody@x.in", "password": strong_password,
+        "accept_terms": True, "practice_type": "individual", "invite_token": "nope"})
+    assert r.status_code == 201
+
+    overview = (await client.get("/api/v1/platform-admin/outreach", headers=admin)).json()
+    assert overview["webhook_configured"] is True
+    total = overview["funnel"]["total"]
+    assert total == {"sent": 3, "delivered": 2, "opened": 2, "clicked": 2, "joined": 1, "joined_via_email": 1,
+                     "bounced": 1, "complained": 1, "unsubscribed": 1}
+    [day] = overview["funnel"]["by_day"]
+    assert day["sent"] == 3 and day["clicked"] == 2 and day["joined"] == 1 and len(day["day"]) == 10
+    [court] = overview["funnel"]["by_court"]
+    assert court["court"] == "Allahabad High Court" and court["sent"] == 3 and court["joined"] == 1
+
+    rows = (await client.get("/api/v1/platform-admin/outreach/contacts", headers=admin, params={"q": "asha@alld"})).json()["items"]
+    assert rows[0]["clicked_at"] and rows[0]["opened_at"] and rows[0]["delivered_at"] and rows[0]["complained_at"] is None
+    csv_text = (await client.get("/api/v1/platform-admin/outreach/contacts.csv", headers=admin)).text
+    assert csv_text.splitlines()[0].startswith("email,name,mobile,city,court,source,status,sent_at,delivered_at,opened_at,clicked_at")

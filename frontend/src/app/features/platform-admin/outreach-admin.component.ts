@@ -10,11 +10,18 @@ import { environment } from '@env/environment';
 import { NotificationService } from '@core/services/notification.service';
 import { problemMessage } from '@core/http/problem-message';
 
+interface FunnelRow { sent: number; delivered: number; opened: number; clicked: number; joined: number }
+interface Funnel {
+  total: FunnelRow & { joined_via_email: number; bounced: number; complained: number; unsubscribed: number };
+  by_day: (FunnelRow & { day: string })[];
+  by_court: (FunnelRow & { court: string })[];
+}
 interface OutreachOverview {
-  paused: boolean; daily_limit: number; max_daily_limit: number; sender_configured: boolean; from_address: string;
+  paused: boolean; daily_limit: number; max_daily_limit: number; sender_configured: boolean; webhook_configured: boolean; from_address: string;
   focus: string | null; queued_in_focus: number | null;
   sent_today: number; sent_last_7_days: number; suppressed_total: number; sending: boolean;
   counts: Record<'queued' | 'sent' | 'joined' | 'unsubscribed' | 'bounced' | 'skipped' | 'removal_requested', number>;
+  funnel: Funnel;
   recent: { email: string; name: string | null; status: string; source: string; sent_at: string | null; updated_at: string }[];
 }
 type ImportReport = Record<'added' | 'duplicate' | 'member' | 'unsubscribed' | 'invalid' | 'no_source', number>;
@@ -23,6 +30,7 @@ interface Contact {
   id: string; email: string; name: string | null; mobile: string | null; city: string | null; court: string | null; source: string;
   status: ContactStatus; sent_at: string | null; unsubscribed_at: string | null; removal_requested_at: string | null;
   removal_note: string | null; last_error: string | null; created_at: string; updated_at: string;
+  delivered_at: string | null; opened_at: string | null; clicked_at: string | null; complained_at: string | null;
 }
 interface ContactPage { items: Contact[]; total: number; page: number; size: number }
 const STATUS_LABEL: Record<ContactStatus, string> = {
@@ -58,6 +66,51 @@ const STATUS_LABEL: Record<ContactStatus, string> = {
         <div class="rounded-card border border-line bg-surface-raised p-4"><small class="text-content-muted">Joined</small><strong class="block text-3xl mt-1 text-success">{{ d.counts.joined }}</strong><span class="text-xs text-content-muted">{{ joinRate() }}% of those invited</span></div>
         <div class="rounded-card border border-line bg-surface-raised p-4"><small class="text-content-muted">Unsubscribed · bounced</small><strong class="block text-3xl mt-1">{{ d.counts.unsubscribed }} <span class="text-lg text-content-muted">· {{ d.counts.bounced }}</span></strong><span class="text-xs text-content-muted">{{ d.suppressed_total }} on the do-not-email list</span></div>
       </div>
+
+      <section class="rounded-card border border-line bg-surface-raised p-5 mt-4">
+        <div class="flex flex-wrap items-baseline gap-3">
+          <h2 class="font-semibold flex-1">Who reads it and who joins</h2>
+          <span class="text-xs text-content-muted">Opens count mail apps that fetched the image (Gmail and Apple do this for everyone, so read it as "at least"). Clicks and joins are exact.</span>
+        </div>
+        @if (!d.webhook_configured) {
+          <p class="text-sm text-warning mt-2">Delivered, bounces and complaints come from the mail relay's webhook, which is not connected yet; until then the bounce figure here undercounts and Brevo's dashboard is the one to trust.</p>
+        }
+        <div class="flex flex-wrap items-stretch gap-2 mt-3">
+          @for (step of funnelSteps(); track step.label) {
+            <div class="flex-1 min-w-[7rem] rounded-lg border border-line p-3" [class.border-success]="step.label === 'Joined'">
+              <small class="text-content-muted">{{ step.label }}</small>
+              <strong class="block text-2xl" [class.text-success]="step.label === 'Joined'">{{ step.value | number }}</strong>
+              <span class="text-xs text-content-muted">{{ step.hint }}</span>
+            </div>
+          }
+        </div>
+        @if (d.funnel.by_day.length) {
+          <div class="grid lg:grid-cols-2 gap-4 mt-4">
+            <div>
+              <h3 class="text-sm font-semibold text-content-muted">By the day the email went out (last 14 days)</h3>
+              <table class="w-full text-sm mt-2">
+                <thead class="text-left text-content-muted"><tr><th class="py-1 pr-3">Day</th><th class="pr-3 text-right">Sent</th><th class="pr-3 text-right">Delivered</th><th class="pr-3 text-right">Opened</th><th class="pr-3 text-right">Clicked</th><th class="text-right">Joined</th></tr></thead>
+                <tbody>
+                  @for (r of d.funnel.by_day; track r.day) {
+                    <tr class="border-t border-line"><td class="py-1 pr-3 whitespace-nowrap">{{ r.day | date:'dd/MM/yyyy' }}</td><td class="pr-3 text-right">{{ r.sent }}</td><td class="pr-3 text-right">{{ r.delivered }}</td><td class="pr-3 text-right">{{ r.opened }} <span class="text-content-muted">({{ pct(r.opened, r.sent) }}%)</span></td><td class="pr-3 text-right">{{ r.clicked }} <span class="text-content-muted">({{ pct(r.clicked, r.sent) }}%)</span></td><td class="text-right" [class.text-success]="r.joined">{{ r.joined }}</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <h3 class="text-sm font-semibold text-content-muted">By court</h3>
+              <table class="w-full text-sm mt-2">
+                <thead class="text-left text-content-muted"><tr><th class="py-1 pr-3">Court</th><th class="pr-3 text-right">Sent</th><th class="pr-3 text-right">Opened</th><th class="pr-3 text-right">Clicked</th><th class="text-right">Joined</th></tr></thead>
+                <tbody>
+                  @for (r of d.funnel.by_court; track r.court) {
+                    <tr class="border-t border-line"><td class="py-1 pr-3">{{ r.court }}</td><td class="pr-3 text-right">{{ r.sent }}</td><td class="pr-3 text-right">{{ r.opened }} <span class="text-content-muted">({{ pct(r.opened, r.sent) }}%)</span></td><td class="pr-3 text-right">{{ r.clicked }} <span class="text-content-muted">({{ pct(r.clicked, r.sent) }}%)</span></td><td class="text-right" [class.text-success]="r.joined">{{ r.joined }}</td></tr>
+                  } @empty { <tr><td colspan="5" class="py-2 text-content-muted">No court on the rows sent so far.</td></tr> }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        }
+      </section>
 
       <section class="rounded-card border border-line bg-surface-raised p-5 mt-4 flex flex-wrap items-center gap-4">
         <div class="flex-1 min-w-[14rem]">
@@ -134,7 +187,7 @@ const STATUS_LABEL: Record<ContactStatus, string> = {
           <table class="w-full text-sm">
             <thead class="text-left text-content-muted"><tr>
               <th class="py-2 pr-3">Name</th><th class="pr-3">Email</th><th class="pr-3">Mobile</th><th class="pr-3">City · Court</th>
-              <th class="pr-3">Source</th><th class="pr-3">Status</th><th class="pr-3">Approached on</th><th></th>
+              <th class="pr-3">Source</th><th class="pr-3">Status</th><th class="pr-3">Approached on</th><th class="pr-3">Read</th><th></th>
             </tr></thead>
             <tbody>
               @for (c of contacts()?.items ?? []; track c.id) {
@@ -151,6 +204,13 @@ const STATUS_LABEL: Record<ContactStatus, string> = {
                     @if (c.last_error && c.status === 'bounced') { <div class="text-xs text-content-muted mt-1 max-w-[14rem] truncate" [title]="c.last_error">{{ c.last_error }}</div> }
                   </td>
                   <td class="pr-3 whitespace-nowrap">{{ c.sent_at ? (c.sent_at | date:'dd/MM/yyyy, h:mm a') : '—' }}</td>
+                  <td class="pr-3 whitespace-nowrap text-xs">
+                    @if (c.clicked_at) { <span class="text-success" [title]="'Clicked ' + (c.clicked_at | date:'dd/MM/yyyy, h:mm a')">Clicked {{ c.clicked_at | date:'dd/MM' }}</span> }
+                    @else if (c.opened_at) { <span [title]="'Opened ' + (c.opened_at | date:'dd/MM/yyyy, h:mm a')">Opened {{ c.opened_at | date:'dd/MM' }}</span> }
+                    @else if (c.delivered_at) { <span class="text-content-muted">Delivered</span> }
+                    @else { <span class="text-content-muted">—</span> }
+                    @if (c.complained_at) { <div class="text-danger">Marked as spam</div> }
+                  </td>
                   <td class="whitespace-nowrap text-right">
                     @if (c.status !== 'removal_requested') {
                       <button mat-button class="!min-w-0" (click)="flagRemoval(c)" title="They asked not to be contacted: flag and never email them">Asked to be removed</button>
@@ -158,7 +218,7 @@ const STATUS_LABEL: Record<ContactStatus, string> = {
                     <button mat-icon-button (click)="erase(c)" title="Erase this contact's details for good"><mat-icon class="material-icons-outlined">delete_forever</mat-icon></button>
                   </td>
                 </tr>
-              } @empty { <tr><td colspan="8" class="py-3 text-content-muted">No contacts match.</td></tr> }
+              } @empty { <tr><td colspan="9" class="py-3 text-content-muted">No contacts match.</td></tr> }
             </tbody>
           </table>
         </div>
@@ -203,6 +263,23 @@ export class OutreachAdminComponent implements OnInit {
     const invited = d ? d.counts.sent + d.counts.joined + d.counts.unsubscribed + d.counts.bounced : 0;
     return invited ? Math.round((d!.counts.joined / invited) * 100) : 0;
   });
+  /** Sent → delivered → opened → clicked → joined, each as a share of those sent. */
+  protected readonly funnelSteps = computed(() => {
+    const t = this.o()?.funnel.total;
+    if (!t) return [];
+    const share = (n: number) => `${this.pct(n, t.sent)}% of sent`;
+    return [
+      { label: 'Sent', value: t.sent, hint: `${t.bounced} bounced · ${t.complained} marked as spam` },
+      { label: 'Delivered', value: t.delivered, hint: share(t.delivered) },
+      { label: 'Opened', value: t.opened, hint: share(t.opened) },
+      { label: 'Clicked', value: t.clicked, hint: share(t.clicked) },
+      { label: 'Joined', value: t.joined, hint: `${t.joined_via_email} through the email's link` },
+    ];
+  });
+
+  protected pct(part: number, whole: number): number {
+    return whole ? Math.round((part / whole) * 100) : 0;
+  }
 
   // Contacts list
   protected readonly contacts = signal<ContactPage | null>(null);
