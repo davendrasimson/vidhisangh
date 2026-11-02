@@ -47,7 +47,7 @@ After the email digest, the same run sends the **WhatsApp digest** (`app.modules
 
 Who gets it: members whose **email digest for that IST day was sent** (so both channels describe the same orders), with an enabled subscription, a verified number and a **"yes" to WhatsApp updates** (the consent ledger; "no" or "not asked" means no message). One per member per day, claimed in `whatsapp_campaign_sends` under campaign `sc-daily-<date>` before the API call; a failed send is recorded and not retried that day. The report in the job's JSON output is `whatsapp: {sent, already, failed, eligible, no_consent, no_number}`; `whatsapp_skipped` means the unit lacks the number's token.
 
-Timing: the 19:30 IST run fetches, exports and delivers whatever is ready; a second unit, `vidhisangh-sc-daily-send.{service,timer}` at **21:00 IST**, runs `--execute --send-only` so headnotes imported in the ninety minutes between go out the same evening. A manual `--send-only` after a later import delivers at once (both channels). Both units load the `wa_access_token` credential and set `VS_WA_PHONE_NUMBER_ID`. Tests: `tests/test_daily_sc_whatsapp.py`.
+Timing: the 17:30 and 19:30 IST runs fetch, export and deliver whatever is ready; a second unit, `vidhisangh-sc-daily-send.{service,timer}` at **21:00 IST**, runs `--execute --send-only` so headnotes imported in the ninety minutes between go out the same evening. A manual `--send-only` after a later import delivers at once (both channels). Both units load the `wa_access_token` credential and set `VS_WA_PHONE_NUMBER_ID`. Tests: `tests/test_daily_sc_whatsapp.py`.
 
 ## Enable the daily schedule
 
@@ -58,7 +58,7 @@ Production deployment completed on 2 November 2026. Revision `0088_sc_daily_orde
 3. Make `/opt/vidhisangh/backups` writable by the `ubuntu` service user. The service exports to `backups/orders/daily-sc-headnotes` and loads the existing encrypted SMTP credential from `/etc/credstore.encrypted/vidhisangh.smtp_password`.
 4. Install `infra/jobs/vidhisangh-sc-daily.{service,timer}` and `vidhisangh-sc-daily-send.{service,timer}` in `/etc/systemd/system`, reload systemd, then enable/start both timers.
 
-The supplied timer runs daily at **19:30 Asia/Kolkata** (20:30 until 2 Nov 2026), including catch-up after downtime. It retrieves, exports the pending queue, and delivers headnotes already imported. Writing/import is still the established offline step chosen by the owner; unattended headnote generation is not enabled. Use `--send-only` after an import when delivery is needed before the next scheduled run. Each member still receives at most one digest per IST day.
+The supplied timer runs twice daily, at **17:30 and 19:30 Asia/Kolkata** (once at 20:30 until 2 Nov 2026), including catch-up after downtime. It retrieves, exports the pending queue, and delivers headnotes already imported. Writing/import is still the established offline step chosen by the owner; unattended headnote generation is not enabled. Use `--send-only` after an import when delivery is needed before the next scheduled run. Each member still receives at most one digest per IST day.
 
 ## Source coverage and verification
 

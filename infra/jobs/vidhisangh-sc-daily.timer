@@ -2,6 +2,8 @@
 Description=Read Supreme Court listings and send the evening subscriber digest
 
 [Timer]
+# Twice: an afternoon pass and the evening one; intake ignores orders already seen.
+OnCalendar=*-*-* 17:30:00 Asia/Kolkata
 OnCalendar=*-*-* 19:30:00 Asia/Kolkata
 Persistent=true
 RandomizedDelaySec=120
