@@ -1,0 +1,11 @@
+[Unit]
+Description=Read Supreme Court listings and send the evening subscriber digest
+
+[Timer]
+OnCalendar=*-*-* 20:30:00 Asia/Kolkata
+Persistent=true
+RandomizedDelaySec=120
+Unit=vidhisangh-sc-daily.service
+
+[Install]
+WantedBy=timers.target

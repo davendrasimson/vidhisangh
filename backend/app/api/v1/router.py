@@ -42,6 +42,7 @@ from app.modules.portal.router import router as portal_router
 from app.modules.privacy.router import router as privacy_router
 from app.modules.profile.router import router as profile_router
 from app.modules.rates.router import router as rates_router
+from app.modules.research.daily_router import router as daily_orders_router
 from app.modules.research.router import router as research_router
 from app.modules.sampledata.router import router as sampledata_router
 from app.modules.signing.router import public_router as esign_public_router
@@ -61,6 +62,7 @@ api_router.include_router(outreach_router)
 api_router.include_router(groups_router)
 api_router.include_router(messaging_router)
 api_router.include_router(notifications_router)
+api_router.include_router(daily_orders_router)
 api_router.include_router(matters_router)
 api_router.include_router(matter_fields_router)
 api_router.include_router(documents_router)

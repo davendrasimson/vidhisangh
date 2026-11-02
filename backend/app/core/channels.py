@@ -50,6 +50,8 @@ class ChannelMessage:
     subject: str
     body: str
     link: str | None = None
+    html: str | None = None
+    unsubscribe_url: str | None = None
 
 
 @runtime_checkable
@@ -117,10 +119,15 @@ class EmailSmtpProvider:
         email["Subject"] = message.subject
         email["Date"] = formatdate(localtime=False, usegmt=True)
         email["Message-ID"] = make_msgid(domain=self.sender.rsplit("@", 1)[-1])
+        if message.unsubscribe_url:
+            email["List-Unsubscribe"] = f"<{message.unsubscribe_url}>"
+            email["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
         body = message.body
         if message.link:
             body = f"{body}\n\n{message.link}"
         email.set_content(body)
+        if message.html:
+            email.add_alternative(message.html, subtype="html")
         # Run blocking SMTP I/O in a thread so requests remain responsive.
         if self.use_ssl:
             connection = smtplib.SMTP_SSL(

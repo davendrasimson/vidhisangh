@@ -38,6 +38,9 @@ export class NotificationSettingsComponent implements OnInit {
   protected readonly deliveries = signal<NotificationDelivery[]>([]);
   protected readonly loading = signal(true);
   protected readonly saving = signal<NotificationChannel | null>(null);
+  protected readonly dailyOrders = signal({ enabled: false, email_verified: false });
+  protected readonly savingDailyOrders = signal(false);
+  protected readonly dailyOrdersAvailable = signal(false);
 
   protected readonly channels: ChannelMeta[] = [
     { channel: 'in_app', label: 'In-app', icon: 'notifications', hint: 'Always on — the bell in your header.', live: true },
@@ -49,8 +52,29 @@ export class NotificationSettingsComponent implements OnInit {
   ];
 
   async ngOnInit(): Promise<void> {
-    await Promise.all([this.loadPrefs(), this.loadDeliveries()]);
+    await Promise.all([this.loadPrefs(), this.loadDeliveries(), this.loadDailyOrders()]);
     this.loading.set(false);
+  }
+
+  private async loadDailyOrders(): Promise<void> {
+    try {
+      this.dailyOrders.set(await firstValueFrom(this.feed.dailyOrders()));
+      this.dailyOrdersAvailable.set(true);
+    } catch {
+      this.dailyOrdersAvailable.set(false);
+    }
+  }
+
+  protected async toggleDailyOrders(enabled: boolean): Promise<void> {
+    this.savingDailyOrders.set(true);
+    try {
+      this.dailyOrders.set(await firstValueFrom(this.feed.setDailyOrders(enabled)));
+      this.notify.success(enabled ? 'Subscribed to Supreme Court order emails.' : 'Supreme Court order emails stopped.');
+    } catch {
+      await this.loadDailyOrders();
+    } finally {
+      this.savingDailyOrders.set(false);
+    }
   }
 
   private async loadPrefs(): Promise<void> {

@@ -232,6 +232,10 @@ class Settings(BaseSettings):
     SMTP_TLS: bool = True  # STARTTLS; only ever false against a local relay
     SMTP_SSL: bool = False  # implicit TLS, normally port 465
 
+    # Daily official-order retrieval and opted-in digest. Headnotes use the
+    # established external export/import workflow; no model API is called.
+    SC_DAILY_ENABLED: bool = False
+
     # ─── Outreach (invitation emails to non-members) ────────────────
     # A separate mail service on its own sub-domain (news.vidhisangh.com), so
     # complaints about invitations never touch the deliverability of sign-up

@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
 
 from app.core.deps import CurrentUserDep, TenantSessionDep, client_ip, require_permission
@@ -29,6 +29,43 @@ router = APIRouter(
 )
 
 Pagination = Annotated[PageParams, Depends(page_params)]
+
+
+class DailyOrdersPreference(BaseModel):
+    enabled: bool
+    email_verified: bool = False
+
+
+class DailyOrdersUpdate(BaseModel):
+    enabled: bool
+
+
+@router.get("/daily-orders", response_model=DailyOrdersPreference)
+async def get_daily_orders(
+    current: CurrentUserDep, session: TenantSessionDep,
+) -> DailyOrdersPreference:
+    from app.modules.identity.models import User
+    from app.modules.research.daily_orders import subscription
+
+    row = await subscription(session, current.id)
+    user = await session.get(User, current.id)
+    return DailyOrdersPreference(
+        enabled=bool(row and row.enabled),
+        email_verified=bool(user and user.email and user.is_email_verified),
+    )
+
+
+@router.put("/daily-orders", response_model=DailyOrdersPreference)
+async def set_daily_orders(
+    data: DailyOrdersUpdate, current: CurrentUserDep, session: TenantSessionDep,
+) -> DailyOrdersPreference:
+    from app.modules.research.daily_orders import subscribe
+
+    try:
+        await subscribe(session, current.id, data.enabled)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return await get_daily_orders(current, session)
 
 
 def _svc(current: CurrentUserDep, session: TenantSessionDep) -> NotificationService:

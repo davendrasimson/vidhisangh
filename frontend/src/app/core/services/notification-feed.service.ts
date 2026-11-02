@@ -53,6 +53,14 @@ export class NotificationFeedService {
     return this.http.put<WhatsAppUpdates>(`${this.api}/whatsapp-updates`, { granted, source });
   }
 
+  dailyOrders(): Observable<{ enabled: boolean; email_verified: boolean }> {
+    return this.http.get<{ enabled: boolean; email_verified: boolean }>(`${this.api}/daily-orders`);
+  }
+
+  setDailyOrders(enabled: boolean): Observable<{ enabled: boolean; email_verified: boolean }> {
+    return this.http.put<{ enabled: boolean; email_verified: boolean }>(`${this.api}/daily-orders`, { enabled });
+  }
+
   deliveries(page = 1, size = 20): Observable<NotificationDelivery[]> {
     return this.http.get<NotificationDelivery[]>(`${this.api}/deliveries`, {
       params: { page, size },

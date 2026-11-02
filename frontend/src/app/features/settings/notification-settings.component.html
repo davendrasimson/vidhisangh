@@ -7,6 +7,23 @@
   } @else {
     <vs-whatsapp-reminders class="block mb-6" />
     <vs-whatsapp-updates class="block mb-6" />
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-6 flex items-center gap-3">
+      <mat-icon class="material-icons-outlined text-content-muted">gavel</mat-icon>
+      <div class="flex-1">
+        <h2 class="font-medium text-content">Supreme Court order emails</h2>
+        <p class="text-sm text-content-muted">Receive newly available orders with AI-generated headnotes and links to the official PDFs. You can unsubscribe at any time.</p>
+        @if (!dailyOrdersAvailable()) {
+          <p class="text-sm text-content-muted">Subscription settings are temporarily unavailable.</p>
+        } @else if (!dailyOrders().email_verified) {
+          <p class="text-sm text-content-muted">Verify your account email to subscribe.</p>
+        } @else if (prefs()['email']?.enabled === false) {
+          <p class="text-sm text-content-muted">If Email is switched off below, this digest is paused too.</p>
+        }
+      </div>
+      <mat-slide-toggle [checked]="dailyOrders().enabled"
+        [disabled]="!dailyOrdersAvailable() || savingDailyOrders() || (!dailyOrders().email_verified && !dailyOrders().enabled)"
+        (change)="toggleDailyOrders($event.checked)" aria-label="Supreme Court order emails" />
+    </section>
     <section class="rounded-card bg-surface-raised border border-line shadow-card divide-y divide-line mb-8">
       @for (c of channels; track c.channel) {
         <div class="flex items-center gap-3 p-4">
