@@ -2,9 +2,9 @@
 Description=Deliver the Supreme Court digest (email and WhatsApp) once the day's headnotes are in
 
 [Timer]
-# An hour after the 20:30 fetch, leaving time to write and import the day's
+# Ninety minutes after the 19:30 fetch, leaving time to write and import the day's
 # headnotes; a manual `--send-only` after a later import delivers at once.
-OnCalendar=*-*-* 21:30:00 Asia/Kolkata
+OnCalendar=*-*-* 21:00:00 Asia/Kolkata
 Persistent=true
 RandomizedDelaySec=60
 Unit=vidhisangh-sc-daily-send.service

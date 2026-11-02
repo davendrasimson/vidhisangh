@@ -1,6 +1,6 @@
 [Unit]
 # Evening delivery of the Supreme Court digest after the day's headnotes have
-# been imported (the 20:30 run fetches and exports; writing happens offline).
+# been imported (the 19:30 run fetches and exports; writing happens offline).
 # Sends the email digest, then the WhatsApp digest, each at most once per
 # member per IST day; a run with nothing ready sends nothing.
 Description=VidhiSangh Supreme Court digest delivery (email and WhatsApp)

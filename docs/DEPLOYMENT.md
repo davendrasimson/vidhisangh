@@ -808,7 +808,7 @@ Check status: `GET /1631376525208862/message_templates?name=fraternity_invite&fi
 five parameters (first name, count, date, leading case, result), footer pointing to Settings →
 Notifications, static buttons to `/judgments/` and `/app/dashboard`. Sent by the daily orders job to
 members with an enabled Supreme Court subscription and a "yes" to WhatsApp updates; see
-DAILY_SC_ORDERS.md. Units `vidhisangh-sc-daily` (20:30 IST) and `vidhisangh-sc-daily-send` (21:30 IST).
+DAILY_SC_ORDERS.md. Units `vidhisangh-sc-daily` (19:30 IST) and `vidhisangh-sc-daily-send` (21:00 IST).
 
 **Fee sweep** (retainer periods and dated milestones fall due): install
 `infra/jobs/vidhisangh-fee-sweep.{service,timer}` the same way and
