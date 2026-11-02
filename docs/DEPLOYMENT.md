@@ -792,6 +792,17 @@ the unit to "test" it**: on 25 Oct 2026 an unquoted `CAMPAIGN_FLAGS=--owner-appr
 instead of 9:00 the next morning (logged as campaign `selftest-dry-run`). Replies to the number are not received
 (no webhook), so the templates use buttons, not "reply here".
 
+**Fraternity invitation template** (2 Nov 2026): `fraternity_invite`, MARKETING, submitted in
+`en` (id 1845519873133320) and `hi` (id 4539728182910068) through the Business Management
+API (`POST /1631376525208862/message_templates`, run on the server with the `wa_access_token`
+credential). Header text, body with two parameters (first name, court name), footer pointing
+to Settings → Notifications (no "reply STOP": replies are not received), URL buttons "Join
+VidhiSangh" (`/auth/register?utm_source=invitation&utm_medium=whatsapp`) and "Get the app".
+It is for **opted-in members and people who message the number first only**: Meta's
+Business Messaging Policy needs each recipient's prior opt-in for marketing templates, and the
+outreach contacts' mobiles are reference data, never a WhatsApp audience (see OUTREACH.md).
+Check status: `GET /1631376525208862/message_templates?name=fraternity_invite&fields=status,rejected_reason`.
+
 **Fee sweep** (retainer periods and dated milestones fall due): install
 `infra/jobs/vidhisangh-fee-sweep.{service,timer}` the same way and
 `systemctl enable --now vidhisangh-fee-sweep.timer` (00:30 UTC daily, catches up
