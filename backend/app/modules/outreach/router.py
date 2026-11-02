@@ -9,7 +9,18 @@ import uuid
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, Response, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    UploadFile,
+    status,
+)
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from sqlalchemy import select
 
@@ -37,7 +48,7 @@ async def unsubscribe(token: str, session: AuthSessionDep) -> Response:
 
 
 NO_STORE = {"Cache-Control": "no-store, no-cache, max-age=0", "Pragma": "no-cache"}
-# A 1×1 transparent GIF (43 bytes).
+# A 1x1 transparent GIF (43 bytes).
 PIXEL = (b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,"
          b"\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;")
 
@@ -120,7 +131,7 @@ CONTACT_CSV_COLUMNS = ("email", "name", "mobile", "city", "court", "source", "st
                        "removal_note", "added_on")
 
 
-async def _overview(session) -> dict:  # noqa: ANN001
+async def _overview(session) -> dict:
     return {**await service.overview(session), "sending": runner.is_running()}
 
 
@@ -202,7 +213,7 @@ async def outreach_contacts_csv(
     buf = io.StringIO()
     writer = csv.writer(buf)
     writer.writerow(CONTACT_CSV_COLUMNS)
-    iso = lambda value: value.isoformat() if value else ""  # noqa: E731
+    iso = lambda value: value.isoformat() if value else ""
     for r in rows:
         writer.writerow([
             r.email, r.name or "", r.mobile or "", r.city or "", r.court or "", r.source, r.status,
@@ -255,6 +266,6 @@ async def outreach_test(data: TestSend, current: CurrentUserDep, session: AuthSe
         await sender.send(OutreachMessage(to=to, subject="[Test] " + subject, text=text, html=html,
                                           one_click_url=invitation.one_click_url("test"),
                                           unsubscribe_page=invitation.unsubscribe_url("test")))
-    except Exception as exc:  # noqa: BLE001 - say what the relay said, instead of a bare 500
+    except Exception as exc:
         raise HTTPException(status_code=502, detail=f"The mail service refused the test: {type(exc).__name__}: {exc}"[:400]) from exc
     return {"sent_to": to}

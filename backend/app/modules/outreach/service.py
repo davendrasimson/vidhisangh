@@ -115,7 +115,7 @@ async def import_contacts(session: AsyncSession, data: bytes, default_source: st
     for i, row in enumerate(reader):
         if i >= MAX_IMPORT_ROWS:
             break
-        get = lambda key: (row.get(fields[key]) or "").strip() if key in fields else ""  # noqa: E731
+        get = lambda key: (row.get(fields[key]) or "").strip() if key in fields else ""
         email = _normalise(get("email"))
         if not email:
             report["invalid"] += 1
@@ -244,7 +244,7 @@ async def send_batch(
                 contact.status, contact.last_error = OutreachStatus.BOUNCED, str(exc)[:500]
                 await _suppress(session, contact.email, "bounced")
                 report["bounced"] += 1
-            except Exception as exc:  # noqa: BLE001 - the provider is down: stop, try tomorrow
+            except Exception as exc:
                 contact.last_error = f"{type(exc).__name__}: {exc}"[:500]
                 await session.commit()
                 log.warning("outreach_send_failed", error=type(exc).__name__)
@@ -457,7 +457,7 @@ async def funnel(session: AsyncSession, *, days: int = 14, courts: int = 8) -> d
     invited = [C.sent_at.isnot(None), C.deleted_at.is_(None)]
     joined = C.status == OutreachStatus.JOINED
 
-    def n(cond):  # noqa: ANN001
+    def n(cond):
         return func.coalesce(func.sum(case((cond, 1), else_=0)), 0)
 
     totals = (await session.execute(select(

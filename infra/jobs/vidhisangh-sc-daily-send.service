@@ -1,0 +1,29 @@
+[Unit]
+# Evening delivery of the Supreme Court digest after the day's headnotes have
+# been imported (the 20:30 run fetches and exports; writing happens offline).
+# Sends the email digest, then the WhatsApp digest, each at most once per
+# member per IST day; a run with nothing ready sends nothing.
+Description=VidhiSangh Supreme Court digest delivery (email and WhatsApp)
+After=network-online.target postgresql.service
+OnFailure=vidhisangh-job-failed@%n.service
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/opt/vidhisangh/backend
+EnvironmentFile=/opt/vidhisangh/backend/.env
+Environment=PYTHONPATH=/opt/vidhisangh/backend
+LoadCredentialEncrypted=smtp_password:/etc/credstore.encrypted/vidhisangh.smtp_password
+Environment=VS_SMTP_PASSWORD_FILE=%d/smtp_password
+# VidhiSangh's WhatsApp number (+91 73411 00692); the same encrypted token
+# the API, the hearing reminders and the product updates use.
+LoadCredentialEncrypted=wa_access_token:/etc/credstore.encrypted/vidhisangh.wa_access_token
+Environment=VS_WA_ACCESS_TOKEN_FILE=%d/wa_access_token
+Environment=VS_WA_PHONE_NUMBER_ID=1414403508414088
+ExecStart=/opt/vidhisangh/backend/.venv/bin/python -m app.scripts.daily_sc_orders --execute --send-only
+TimeoutStartSec=1800
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/opt/vidhisangh/backups

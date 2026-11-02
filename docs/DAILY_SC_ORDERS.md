@@ -41,6 +41,14 @@ The SMTP provider sends both plain text and HTML with one-click unsubscribe head
 
 `sc_daily_emails` claims each member/day before SMTP, under a unique database constraint. A PostgreSQL advisory lock also prevents overlapping CLI jobs. `sent` means SMTP accepted the message, not that the recipient read it. `sending` after a crash, or `uncertain` after an SMTP exception, is **not automatically retried**: inspect the mail server's delivery records before manually reconciling the claim. Those order IDs stay excluded from later digests to prevent duplicates after ambiguous acceptance. An uncertain send or retryable PDF retrieval failure exits nonzero for the systemd failure alert.
 
+## WhatsApp digest (2 Nov 2026)
+
+After the email digest, the same run sends the **WhatsApp digest** (`app.modules.research.daily_whatsapp.send_whatsapp_digests`), Meta-approved MARKETING template `sc_daily_orders` in `en` (id 1657367549377686) and `hi` (id 1021228031043552) on +91 73411 00692. Five body parameters: first name, number of orders, date, leading case (the first order of the member's email digest, folded to one line, ≤120 chars), its headnote's result (≤150 chars); static buttons "Read today's headnotes" (`/judgments/`) and "Open the app". Hindi when the profile lists Hindi but not English.
+
+Who gets it: members whose **email digest for that IST day was sent** (so both channels describe the same orders), with an enabled subscription, a verified number and a **"yes" to WhatsApp updates** (the consent ledger; "no" or "not asked" means no message). One per member per day, claimed in `whatsapp_campaign_sends` under campaign `sc-daily-<date>` before the API call; a failed send is recorded and not retried that day. The report in the job's JSON output is `whatsapp: {sent, already, failed, eligible, no_consent, no_number}`; `whatsapp_skipped` means the unit lacks the number's token.
+
+Timing: the 20:30 IST run fetches, exports and delivers whatever is ready; a second unit, `vidhisangh-sc-daily-send.{service,timer}` at **21:30 IST**, runs `--execute --send-only` so headnotes imported in the hour between go out the same evening. A manual `--send-only` after a later import delivers at once (both channels). Both units load the `wa_access_token` credential and set `VS_WA_PHONE_NUMBER_ID`. Tests: `tests/test_daily_sc_whatsapp.py`.
+
 ## Enable the daily schedule
 
 Production deployment completed on 2 November 2026. Revision `0088_sc_daily_orders` is applied, the API and production frontend are deployed, and the timer is enabled. The first service run exited successfully with zero discovered orders and zero emails. No launch email was sent. For future installations:
@@ -48,7 +56,7 @@ Production deployment completed on 2 November 2026. Revision `0088_sc_daily_orde
 1. Deploy the backend/frontend and apply `alembic upgrade head` (revision 0088).
 2. Set `VS_SC_DAILY_ENABLED=true`, `VS_PUBLIC_APP_URL`, and the existing `VS_SMTP_*` configuration. No AI API credentials are needed.
 3. Make `/opt/vidhisangh/backups` writable by the `ubuntu` service user. The service exports to `backups/orders/daily-sc-headnotes` and loads the existing encrypted SMTP credential from `/etc/credstore.encrypted/vidhisangh.smtp_password`.
-4. Install `infra/jobs/vidhisangh-sc-daily.{service,timer}` in `/etc/systemd/system`, reload systemd, then enable/start `vidhisangh-sc-daily.timer`.
+4. Install `infra/jobs/vidhisangh-sc-daily.{service,timer}` and `vidhisangh-sc-daily-send.{service,timer}` in `/etc/systemd/system`, reload systemd, then enable/start both timers.
 
 The supplied timer runs daily at **20:30 Asia/Kolkata**, including catch-up after downtime. It retrieves, exports the pending queue, and delivers headnotes already imported. Writing/import is still the established offline step chosen by the owner; unattended headnote generation is not enabled. Use `--send-only` after an import when delivery is needed before the next scheduled run. Each member still receives at most one digest per IST day.
 

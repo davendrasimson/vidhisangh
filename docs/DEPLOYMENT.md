@@ -803,6 +803,13 @@ Business Messaging Policy needs each recipient's prior opt-in for marketing temp
 outreach contacts' mobiles are reference data, never a WhatsApp audience (see OUTREACH.md).
 Check status: `GET /1631376525208862/message_templates?name=fraternity_invite&fields=status,rejected_reason`.
 
+**Supreme Court digest template** (2 Nov 2026): `sc_daily_orders`, MARKETING, approved in `en`
+(id 1657367549377686) and `hi` (id 1021228031043552) within minutes of submission. Header, body with
+five parameters (first name, count, date, leading case, result), footer pointing to Settings →
+Notifications, static buttons to `/judgments/` and `/app/dashboard`. Sent by the daily orders job to
+members with an enabled Supreme Court subscription and a "yes" to WhatsApp updates; see
+DAILY_SC_ORDERS.md. Units `vidhisangh-sc-daily` (20:30 IST) and `vidhisangh-sc-daily-send` (21:30 IST).
+
 **Fee sweep** (retainer periods and dated milestones fall due): install
 `infra/jobs/vidhisangh-fee-sweep.{service,timer}` the same way and
 `systemctl enable --now vidhisangh-fee-sweep.timer` (00:30 UTC daily, catches up

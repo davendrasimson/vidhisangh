@@ -11,6 +11,10 @@ EnvironmentFile=/opt/vidhisangh/backend/.env
 Environment=PYTHONPATH=/opt/vidhisangh/backend
 LoadCredentialEncrypted=smtp_password:/etc/credstore.encrypted/vidhisangh.smtp_password
 Environment=VS_SMTP_PASSWORD_FILE=%d/smtp_password
+# WhatsApp digest follows the email digest (template sc_daily_orders).
+LoadCredentialEncrypted=wa_access_token:/etc/credstore.encrypted/vidhisangh.wa_access_token
+Environment=VS_WA_ACCESS_TOKEN_FILE=%d/wa_access_token
+Environment=VS_WA_PHONE_NUMBER_ID=1414403508414088
 ExecStart=/opt/vidhisangh/backend/.venv/bin/python -m app.scripts.daily_sc_orders --execute --send --export-pending /opt/vidhisangh/backups/orders/daily-sc-headnotes
 TimeoutStartSec=3600
 NoNewPrivileges=true

@@ -3,6 +3,8 @@
 Default is a read-only discovery preview. --execute performs intake/extraction;
 --send additionally sends email. Both require VS_SC_DAILY_ENABLED=true.
 --send-only delivers headnotes imported through the established offline flow.
+Delivery is the email digest, then the WhatsApp digest (template sc_daily_orders)
+to members who said yes to WhatsApp updates, once per member per IST day.
 """
 
 from __future__ import annotations
@@ -21,6 +23,7 @@ import app.db.base  # noqa: F401
 from app.core.channels import EmailSmtpProvider
 from app.core.config import settings
 from app.core.database import get_engine, session_scope
+from app.core.whatsapp import get_whatsapp_sender
 from app.modules.research.daily_orders import (
     IST,
     export_pending,
@@ -29,6 +32,7 @@ from app.modules.research.daily_orders import (
     send_digests,
 )
 from app.modules.research.daily_source import SupremeCourtSource
+from app.modules.research.daily_whatsapp import send_whatsapp_digests
 
 
 async def run(
@@ -70,13 +74,19 @@ async def run(
                     if export_dir is not None:
                         report["exported_for_writing"] = await export_pending(session, export_dir)
                     if send or send_only:
+                        day = now.astimezone(IST).date()
                         sender = EmailSmtpProvider()
                         if not sender.configured:
                             report["email_skipped"] = "SMTP is not configured"
                         else:
-                            report["email"] = await send_digests(
-                                session, sender, now.astimezone(IST).date()
-                            )
+                            report["email"] = await send_digests(session, sender, day)
+                        # WhatsApp follows the email: the same orders, to members who said yes to
+                        # WhatsApp updates (needs the number's token in the unit's environment).
+                        whatsapp = get_whatsapp_sender()
+                        if whatsapp is None:
+                            report["whatsapp_skipped"] = "WhatsApp is not configured"
+                        else:
+                            report["whatsapp"] = await send_whatsapp_digests(session, whatsapp, day)
                     return report
         finally:
             if postgres:
