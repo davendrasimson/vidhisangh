@@ -111,7 +111,9 @@ export class ThemeService {
   }
 
   private initialMode(): ThemeMode {
-    return (BROWSER && (localStorage.getItem(STORAGE_KEY) as ThemeMode)) || 'system';
+    // Light unless the member chose otherwise (owner, 3 Nov 2026: phones in dark mode made the
+    // whole app dark; the clean reference look is light). The toggle still offers dark and system.
+    return (BROWSER && (localStorage.getItem(STORAGE_KEY) as ThemeMode)) || 'light';
   }
 
   private initialAccent(): Accent {

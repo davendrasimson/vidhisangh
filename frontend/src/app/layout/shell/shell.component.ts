@@ -235,6 +235,15 @@ export class ShellComponent implements OnInit {
     this.opened.update((v) => !v);
   }
 
+  /** The phone tab bar: the five network places, for everyone; practice tools stay in the drawer. */
+  protected readonly tabs = computed(() => [
+    { label: 'Home', icon: 'home', route: '/app/dashboard' },
+    { label: 'Feed', icon: 'dynamic_feed', route: '/app/network' },
+    { label: 'People', icon: 'groups', route: '/app/people' },
+    { label: 'Groups', icon: 'forum', route: '/app/groups' },
+    { label: 'Messages', icon: 'chat_bubble_outline', route: '/app/messages' },
+  ]);
+
   /** Account menu in the app: which version is running, and "Update app". */
   protected readonly nativeApp = isNativeApp();
   protected readonly appVersion = signal<string | null>(null);

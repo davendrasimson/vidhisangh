@@ -116,7 +116,7 @@ $vs-devanagari: U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+20F0, U
   /* Surfaces (light) */
   --vs-surface: 255 255 255;
   --vs-surface-raised: 255 255 255;
-  --vs-surface-sunken: 246 247 249;
+  --vs-surface-sunken: 244 242 238;  /* warm light grey behind white cards (3 Nov 2026) */
 
   /* Text */
   --vs-text: 17 24 39;            /* slate-900 */
@@ -513,23 +513,22 @@ h2, h3 { font-weight: 650; }
    Premium visual layer — gradients, depth & motion (whole-app "wow").
    ════════════════════════════════════════════════════════════════════ */
 
-/* Branded, gradient primary buttons everywhere (also makes them follow the
-   chosen accent, which Material's own theme colour did not). */
+/* Primary buttons in the chosen accent, flat (3 Nov 2026: no gradient, no glow; the
+   accent follows the member's choice, which Material's own theme colour did not). */
 .mat-mdc-unelevated-button.mat-primary,
 .mat-mdc-raised-button.mat-primary,
 button[color='primary'].mat-mdc-unelevated-button {
-  background: var(--vs-gradient-brand) !important;
+  background: rgb(var(--vs-brand)) !important;
   --mdc-filled-button-container-color: transparent;
   --mdc-filled-button-label-text-color: rgb(var(--vs-brand-fg));
   color: rgb(var(--vs-brand-fg)) !important;
-  border-radius: 10px;
-  box-shadow: var(--vs-glow) !important;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  border-radius: 999px;
+  box-shadow: none !important;
+  transition: filter 0.15s ease;
 }
 .mat-mdc-unelevated-button.mat-primary:hover,
 .mat-mdc-raised-button.mat-primary:hover {
-  transform: translateY(-1px);
-  filter: saturate(1.08) brightness(1.04);
+  filter: brightness(1.08);
 }
 
 /* Lift interactive surfaces on hover. Opt-in via .vs-lift. */
