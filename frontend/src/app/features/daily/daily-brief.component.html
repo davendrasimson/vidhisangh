@@ -85,7 +85,9 @@
                 <h2 class="font-semibold text-content mt-1">{{ o.case }}</h2>
                 <p class="text-xs text-content-muted mt-0.5">Decided {{ o.decided | date: 'dd/MM/yyyy' }}@if (o.citation) { · {{ o.citation }}}</p>
                 <p class="text-sm text-content mt-2">{{ o.holding }}</p>
-                @if (o.source === 'corpus') { <p class="text-xs text-content-muted mt-1">AI-generated summary: read the judgment before relying on it.</p> }
+                @if (o.basis === 'ai') {
+                  <p class="text-xs text-content-muted mt-1">@if (o.cited) { Cited in {{ o.cited | number }} later judgments. } AI-generated summary: read the judgment before relying on it.</p>
+                }
                 @if (o.judgment_id) {
                   <div class="flex flex-wrap gap-2 mt-3">
                     <a mat-stroked-button [routerLink]="['/app/research', o.judgment_id]">Read the judgment</a>

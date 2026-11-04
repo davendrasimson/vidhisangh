@@ -33,6 +33,8 @@ class OnThisDayRead(BaseModel):
     holding: str
     judgment_id: uuid.UUID | None = None
     source: str  # curated | corpus
+    basis: str | None = None  # corpus picks: ai (AI headnote) | scr (the SCR headnote)
+    cited: int | None = None  # corpus picks: how often later judgments cite it (mined)
 
 
 class FraternityRead(BaseModel):

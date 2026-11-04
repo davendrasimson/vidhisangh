@@ -25,6 +25,9 @@ export interface OnThisDay {
   holding: string;
   judgment_id: string | null;
   source: 'curated' | 'corpus';
+  /** Corpus picks: what the holding is taken from, and how often later judgments cite it. */
+  basis: 'ai' | 'cited' | null;
+  cited: number | null;
 }
 
 export interface BriefFraternity {

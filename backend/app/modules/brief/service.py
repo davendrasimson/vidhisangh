@@ -45,7 +45,7 @@ from app.modules.network.models import NetworkIdentity
 from app.modules.network.official import case_title, daily_cards, post_daily
 from app.modules.network.repository import IdentityRepository
 from app.modules.notifications.models import NotificationChannel, NotificationPreference, PushDevice
-from app.modules.research.models import CaseCitation, CourtLevel, Judgment
+from app.modules.research.models import CourtLevel, Judgment, JudgmentAlias
 
 log = structlog.get_logger("app.daily_brief")
 IST = ZoneInfo("Asia/Kolkata")
@@ -54,6 +54,7 @@ SHUFFLE_SEED = 20261104
 LEADS = {0: "section", 1: "judgment", 2: "quiz", 3: "on_this_day", 4: "news", 5: "fraternity", 6: "on_this_day"}
 PUSH_WEEKDAYS = range(0, 6)         # Monday to Saturday
 PAGE = "/app/daily"
+MIN_CITED = 3                       # corpus fallback needs this many later citations
 _HERE = Path(__file__).parent
 _quiz_cache: list[dict] | None = None
 _landmark_cache: list[dict] | None = None
@@ -161,7 +162,8 @@ async def on_this_day(session: AsyncSession, day: date) -> dict | None:
         )
         return {"case": curated["case"], "decided": decided, "citation": curated.get("citation"),
                 "holding": curated["holding"], "judgment_id": jid, "source": "curated"}
-    # Otherwise the most-cited Supreme Court judgment with an AI headnote decided on this date in any earlier year.
+    # Otherwise the Supreme Court judgment decided on this date in any earlier year that later judgments
+    # cite most (the mined citation aliases' support counts), when there is a clear signal.
     dates = []
     for year in range(1950, day.year):
         try:
@@ -170,23 +172,32 @@ async def on_this_day(session: AsyncSession, day: date) -> dict | None:
             continue  # 29 February
     if not dates:
         return None
-    cited = (select(CaseCitation.to_judgment_id, func.count().label("n"))
-             .group_by(CaseCitation.to_judgment_id).subquery())
+    cited = (select(JudgmentAlias.judgment_id, func.sum(JudgmentAlias.support).label("n"))
+             .group_by(JudgmentAlias.judgment_id).subquery())
     row = (await session.execute(
-        select(Judgment, func.coalesce(cited.c.n, 0).label("n"))
-        .outerjoin(cited, cited.c.to_judgment_id == Judgment.id)
-        .where(Judgment.court_level == CourtLevel.SUPREME_COURT, Judgment.judgment_date.in_(dates),
-               Judgment.ai_headnote.is_not(None))
-        .order_by(func.coalesce(cited.c.n, 0).desc(), Judgment.judgment_date.desc()).limit(1)
+        select(Judgment, cited.c.n)
+        .join(cited, cited.c.judgment_id == Judgment.id)
+        .where(Judgment.court_level == CourtLevel.SUPREME_COURT, Judgment.judgment_date.in_(dates), cited.c.n >= MIN_CITED)
+        .order_by(cited.c.n.desc(), Judgment.judgment_date.asc()).limit(1)
     )).first()
     if row is None:
         return None
     j: Judgment = row[0]
-    summary = (j.ai_headnote or {}).get("summary") or (j.ai_headnote or {}).get("result") or ""
-    if not summary:
-        return None
+    n = int(row[1] or 0)
+    holding, basis = _holding(j, n)
     return {"case": case_title(j.cause_title or j.case_name), "decided": j.judgment_date, "citation": j.citation,
-            "holding": summary, "judgment_id": j.id, "source": "corpus"}
+            "holding": holding, "judgment_id": j.id, "source": "corpus", "basis": basis, "cited": n}
+
+
+def _holding(j: Judgment, cited: int) -> tuple[str, str]:
+    """The one-paragraph holding: the AI headnote's summary (basis 'ai'); without one, what we can say for
+    certain (basis 'cited'). The registry's ``headnote`` column is a fragment of the text, not a holding,
+    so it is never shown."""
+    ai = (j.ai_headnote or {}).get("summary") or (j.ai_headnote or {}).get("result")
+    if ai:
+        return ai.strip(), "ai"
+    return (f"Of the Supreme Court judgments decided on this date, this is the one later judgments cite most: "
+            f"{cited} citations in the VidhiSangh corpus. Open it to read what it decided."), "cited"
 
 
 # ── The brief ───────────────────────────────────────────────────────────

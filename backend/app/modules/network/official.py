@@ -111,7 +111,9 @@ _SMALL = {"and", "of", "the", "for", "in", "on", "by", "through", "v.", "vs.", "
 
 
 def case_title(raw: str) -> str:
-    """A readable cause title from the registry's capitals: 'A.K. Ghosh & Co. v. Biman Bose'."""
+    """A readable cause title from the registry's capitals: 'A.K. Ghosh & Co. v. Biman Bose'.
+    The registry sometimes appends the respondents again as 'R1: … R2: …'; that tail is dropped."""
+    raw = re.split(r"\s+R1:\s", raw, maxsplit=1)[0]
     words = re.sub(r"\s+", " ", raw).strip().split(" ")
     out: list[str] = []
     for i, w in enumerate(words):

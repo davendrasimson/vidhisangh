@@ -107,19 +107,20 @@ async def test_on_this_day_prefers_the_curated_landmark_and_falls_back_to_the_mo
         # 24 April: Kesavananda is curated; the corpus copy carries the registry's spelling and is linked.
         k = Judgment(case_name="HIS HOLINESS KESAVANANDA BHARATI SRIPADAGALAVARU versus STATE OF KERALA", court="Supreme Court",
                      court_level=CourtLevel.SUPREME_COURT, judgment_date=date(1973, 4, 24), added_by=actor)
-        # 3 June in two earlier years: the one cited more wins the fallback.
-        a = Judgment(case_name="ALPHA versus STATE", court="Supreme Court", court_level=CourtLevel.SUPREME_COURT,
+        # 3 June in two earlier years: the one later judgments cite more (mined alias support) wins the fallback;
+        # Gamma is cited too rarely to count; Beta has no AI headnote, so the card says only what is certain.
+        a = Judgment(case_name="ALPHA versus STATE R1: STATE R2: SOMEONE", court="Supreme Court", court_level=CourtLevel.SUPREME_COURT,
                      judgment_date=date(1990, 6, 3), ai_headnote={**HEADNOTE, "summary": "Alpha holding."}, added_by=actor)
         b = Judgment(case_name="BETA versus STATE", court="Supreme Court", court_level=CourtLevel.SUPREME_COURT,
-                     judgment_date=date(2001, 6, 3), ai_headnote={**HEADNOTE, "summary": "Beta holding."}, added_by=actor)
+                     judgment_date=date(2001, 6, 3), headnote="In the result, the appeal is allowed.", added_by=actor)
         plain = Judgment(case_name="GAMMA versus STATE", court="Supreme Court", court_level=CourtLevel.SUPREME_COURT,
                          judgment_date=date(2005, 6, 3), added_by=actor)
         s.add_all([k, a, b, plain])
         await s.flush()
-        from app.modules.research.models import CaseCitation, CitationRelationship
-        for _ in range(2):
-            s.add(CaseCitation(from_judgment_id=plain.id, to_judgment_id=a.id, relationship_type=CitationRelationship.REFERRED, added_by=actor))
-        s.add(CaseCitation(from_judgment_id=plain.id, to_judgment_id=b.id, relationship_type=CitationRelationship.REFERRED, added_by=actor))
+        from app.modules.research.models import JudgmentAlias
+        s.add(JudgmentAlias(judgment_id=a.id, citation="(1990) 2 SCC 1", reporter="SCC", support=5))
+        s.add(JudgmentAlias(judgment_id=b.id, citation="(2001) 4 SCC 9", reporter="SCC", support=3))
+        s.add(JudgmentAlias(judgment_id=plain.id, citation="(2005) 1 SCC 7", reporter="SCC", support=2))
         await s.commit()
         kid, aid = k.id, a.id
 
@@ -128,7 +129,17 @@ async def test_on_this_day_prefers_the_curated_landmark_and_falls_back_to_the_mo
         assert curated["source"] == "curated" and curated["judgment_id"] == kid and curated["decided"] == date(1973, 4, 24)
         corpus = await service.on_this_day(s, date(2027, 6, 3))
         assert corpus["source"] == "corpus" and corpus["judgment_id"] == aid and corpus["holding"] == "Alpha holding."
-        assert corpus["case"] == "Alpha v. State"
+        assert corpus["case"] == "Alpha v. State" and corpus["basis"] == "ai" and corpus["cited"] == 5
+        # With Alpha gone, Beta is next; the registry's text fragment is never shown as a holding.
+        await s.delete(await s.get(Judgment, aid))
+        await s.flush()
+        beta = await service.on_this_day(s, date(2027, 6, 3))
+        assert beta["case"] == "Beta v. State" and beta["basis"] == "cited" and beta["cited"] == 3
+        assert "3 citations" in beta["holding"] and "In the result" not in beta["holding"]
+        # Gamma alone (2 citations) is below the bar: no card rather than a weak one.
+        await s.delete(await s.get(Judgment, beta["judgment_id"]))
+        await s.flush()
+        assert await service.on_this_day(s, date(2027, 6, 3)) is None
         assert await service.on_this_day(s, date(2027, 2, 2)) is None
 
 
