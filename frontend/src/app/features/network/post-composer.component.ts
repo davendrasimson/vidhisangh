@@ -132,6 +132,11 @@ export class PostComposerComponent implements AfterViewInit, OnDestroy {
     this.images().forEach(i => URL.revokeObjectURL(i.localUrl));
   }
 
+  /** Put the cursor in the editor (the phone's collapsed prompt opens straight into typing). */
+  focus(): void {
+    this.editor?.commands.focus('end');
+  }
+
   /** Empty the composer after publishing. */
   clear(): void {
     this.editor?.commands.clearContent(true);

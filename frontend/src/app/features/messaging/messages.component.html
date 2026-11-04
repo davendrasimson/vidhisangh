@@ -1,4 +1,4 @@
-<div class="mx-auto w-full h-[calc(100vh-7rem)] flex gap-4">
+<div class="mx-auto w-full vs-messages flex gap-4">
   <!-- Conversation list -->
   <!-- On phones only one pane shows: the list, or the open thread. -->
   <aside class="w-full md:w-72 shrink-0 rounded-card bg-surface-raised border border-line shadow-card flex-col overflow-hidden md:flex"
@@ -99,7 +99,7 @@
       <div class="flex gap-2 items-center p-3 border-t border-line">
         <input class="vs-comment-input" placeholder="Write a message…"
                [ngModel]="draft()" (ngModelChange)="onType($event)" (keyup.enter)="send()" />
-        <button mat-flat-button color="primary" [disabled]="!draft().trim() || sending()" (click)="send()">
+        <button type="button" class="vs-send-btn" [disabled]="!draft().trim() || sending()" (click)="send()" aria-label="Send">
           <mat-icon class="material-icons-outlined">send</mat-icon>
         </button>
       </div>

@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal, viewChild } from '@angular/core';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -50,6 +52,30 @@ export class FeedComponent implements OnInit {
   protected readonly posting = signal(false);
   protected readonly view = signal<'all' | 'saved' | 'mentions'>('all');
   protected readonly trending = signal<TrendingTag[]>([]);
+
+  // Phones (3 Nov 2026): the composer is a one-line prompt until tapped, and long posts are clamped.
+  protected readonly compact = signal(false);
+  protected readonly composerOpen = signal(false);
+  protected readonly expanded = signal<Set<string>>(new Set());
+
+  constructor() {
+    inject(BreakpointObserver).observe('(max-width: 767px)').pipe(takeUntilDestroyed())
+      .subscribe(({ matches }) => this.compact.set(matches));
+  }
+
+  protected openComposer(): void {
+    this.composerOpen.set(true);
+    setTimeout(() => this.composer()?.focus(), 50);
+  }
+
+  /** A long post shows its first lines with "See more" until opened. */
+  protected clamped(post: FeedItem): boolean {
+    return !this.expanded().has(post.id) && (post.content?.length ?? 0) > 420;
+  }
+
+  protected expand(post: FeedItem): void {
+    this.expanded.update((s) => new Set(s).add(post.id));
+  }
 
   // Link preview (LinkedIn/Facebook-style unfurl) for a URL in the draft.
   protected readonly linkPreview = signal<LinkPreview | null>(null);

@@ -94,8 +94,9 @@ async def post_section(session: AsyncSession, now: datetime) -> bool:
     if s is None:
         return False
     old = f"Earlier: {s['old']}." if s["old"] else f"New in the {s['short']}: no earlier equivalent."
+    # The post's title already says "Section of the day"; the body starts with the section itself.
     html = (
-        f"<p><strong>Section of the day: {escape(s['short'])} {escape(s['section'])} — {escape(s['heading'])}</strong></p>"
+        f"<p><strong>{escape(s['short'])} {escape(s['section'])} — {escape(s['heading'])}</strong></p>"
         f"<blockquote><p>{escape(s['text'])}</p></blockquote><p>{escape(old)}</p>"
     )
     await _record(session, "section", f"{s['act']}:{s['section']}", _post(
@@ -106,8 +107,30 @@ async def post_section(session: AsyncSession, now: datetime) -> bool:
     return True
 
 
+_SMALL = {"and", "of", "the", "for", "in", "on", "by", "through", "v.", "vs.", "versus"}
+
+
+def case_title(raw: str) -> str:
+    """A readable cause title from the registry's capitals: 'A.K. Ghosh & Co. v. Biman Bose'."""
+    words = re.sub(r"\s+", " ", raw).strip().split(" ")
+    out: list[str] = []
+    for i, w in enumerate(words):
+        low = w.lower()
+        if low in ("versus", "vs.", "vs", "v."):
+            out.append("v.")
+        elif low == "m/s" or low == "m/s.":
+            out.append("M/s")
+        elif i and low in _SMALL:
+            out.append(low)
+        elif len(w) <= 2 and w.isalpha():  # initials without dots: "K S Puttaswamy"
+            out.append(w.upper())
+        else:
+            out.append(w.title())
+    return " ".join(out)
+
+
 def _title(j: Judgment) -> str:
-    return re.sub(r"\s+", " ", j.cause_title or j.case_name).strip()
+    return case_title(j.cause_title or j.case_name)
 
 
 async def post_judgment(session: AsyncSession, now: datetime) -> bool:
@@ -125,7 +148,7 @@ async def post_judgment(session: AsyncSession, now: datetime) -> bool:
     decided = f"decided {j.judgment_date.strftime('%d/%m/%Y')}" if j.judgment_date else ""
     meta = " · ".join(x for x in (j.citation, decided) if x)
     html = (
-        f"<p><strong>Supreme Court: {escape(_title(j))}</strong></p>"
+        f"<p><strong>{escape(_title(j))}</strong></p>"
         + (f"<p>{escape(meta)}</p>" if meta else "")
         + f"<p>{escape(summary)}</p>"
         + "<p><em>AI-generated summary. Read the judgment before relying on it.</em></p>"

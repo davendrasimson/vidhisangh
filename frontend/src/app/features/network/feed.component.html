@@ -8,23 +8,20 @@
   <!-- Content fills the full page width, fluid at every breakpoint. -->
   <div class="w-full">
     <div class="min-w-0">
-      @if (view() === 'all' && trending().length) {
-        <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-4">
-          <h2 class="text-sm font-semibold text-content-muted mb-2">Trending now</h2>
-          <div class="flex flex-wrap gap-2">
-            @for (t of trending(); track t.tag) {
-              <span class="vs-chip"><span class="text-brand">#{{ t.tag }}</span> · {{ t.count }}</span>
-            }
-          </div>
-        </section>
-      }
-
-  <!-- Composer -->
-  @if (view() === 'all') {
-    <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-6">
+  <!-- Composer: on phones a one-line prompt until tapped (3 Nov 2026), the full editor on wide screens. -->
+  @if (view() === 'all' && compact() && !composerOpen()) {
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-3 mb-4 flex items-center gap-3">
+      <span class="vs-avatar-sm">{{ myInitials() }}</span>
+      <button type="button" class="vs-composer-prompt" (click)="openComposer()">Share an update, a judgment or a question…</button>
+      <button type="button" class="vs-composer-photo" (click)="openComposer()" aria-label="Add a photo">
+        <mat-icon class="material-icons-outlined">add_photo_alternate</mat-icon>
+      </button>
+    </section>
+  } @else if (view() === 'all') {
+    <section class="rounded-card bg-surface-raised border border-line shadow-card p-4 mb-4">
       <div class="flex gap-3">
-        <span class="vs-avatar-sm">{{ myInitials() }}</span>
-        <div class="flex-1">
+        <span class="vs-avatar-sm hidden sm:inline-grid">{{ myInitials() }}</span>
+        <div class="flex-1 min-w-0">
           <app-post-composer (changed)="onComposed($event)" />
           @if (taggedPeople().length) {
             <div class="flex flex-wrap gap-2 mt-2">
@@ -65,13 +62,16 @@
             </div>
           }
 
-          <div class="flex justify-between items-center mt-2">
+          <div class="flex justify-between items-center mt-2 gap-2">
             <button mat-button (click)="toggleTagPicker()">
               <mat-icon class="material-icons-outlined">alternate_email</mat-icon> Tag people
             </button>
-            <button mat-flat-button color="primary" (click)="publish()" [disabled]="!canPost()">
-              <mat-icon class="material-icons-outlined">send</mat-icon> {{ composed().uploading ? 'Uploading photo…' : 'Post' }}
-            </button>
+            <span class="flex items-center gap-1">
+              @if (compact()) { <button mat-button (click)="composerOpen.set(false)">Cancel</button> }
+              <button mat-flat-button color="primary" (click)="publish()" [disabled]="!canPost()">
+                <mat-icon class="material-icons-outlined">send</mat-icon> {{ composed().uploading ? 'Uploading photo…' : 'Post' }}
+              </button>
+            </span>
           </div>
 
           @if (showTagPicker()) {
@@ -95,6 +95,15 @@
         </div>
       </div>
     </section>
+  }
+
+  <!-- Trending: one scrollable line below the composer, so the first post is never far down. -->
+  @if (view() === 'all' && trending().length) {
+    <div class="vs-trend mb-4" aria-label="Trending now">
+      @for (t of trending(); track t.tag) {
+        <span class="vs-chip"><span class="text-brand">#{{ t.tag }}</span> · {{ t.count }}</span>
+      }
+    </div>
   }
 
   @if (loading()) {
@@ -152,8 +161,11 @@
 
       @if (post.title) { <h3 class="font-semibold mt-3">{{ post.title }}</h3> }
       @if (post.content_html) {
-        <div class="vs-post-body mt-2 text-content" [innerHTML]="post.content_html"></div>
-      } @else if (post.content) { <p class="mt-2 text-content whitespace-pre-line">{{ post.content }}</p> }
+        <div class="vs-post-body mt-2 text-content" [class.vs-post-body--clamp]="clamped(post)" [innerHTML]="post.content_html"></div>
+      } @else if (post.content) { <p class="mt-2 text-content whitespace-pre-line" [class.vs-post-body--clamp]="clamped(post)">{{ post.content }}</p> }
+      @if (clamped(post)) {
+        <button type="button" class="vs-see-more" (click)="expand(post)">See more</button>
+      }
       @if (post.images?.length) {
         <div class="vs-post-images mt-3" [class.vs-post-images--single]="post.images!.length === 1">
           @for (img of post.images; track img.id; let n = $index) {
@@ -224,11 +236,11 @@
         @if (post.share_count) { <span>· {{ post.share_count }} {{ post.share_count === 1 ? 'share' : 'shares' }}</span> }
       </div>
 
-      <div class="flex items-center gap-1 border-t border-line mt-2 pt-1">
+      <div class="vs-post-actions border-t border-line mt-2 pt-1">
         <div class="vs-reaction-control">
-          <button mat-button (click)="reactionPickerPost.set(reactionPickerPost() === post.id ? null : post.id)" [class.vs-liked]="post.my_reaction">
-            <span class="text-lg leading-none">{{ reactionFor(post.my_reaction).emoji }}</span>
-            {{ reactionFor(post.my_reaction).label }}
+          <button type="button" class="vs-act" (click)="reactionPickerPost.set(reactionPickerPost() === post.id ? null : post.id)" [class.vs-liked]="post.my_reaction">
+            <span class="vs-act__emoji">{{ reactionFor(post.my_reaction).emoji }}</span>
+            <span>{{ reactionFor(post.my_reaction).label }}</span>
           </button>
           @if (reactionPickerPost() === post.id) {
             <div class="vs-reaction-picker" role="menu" aria-label="Choose a reaction">
@@ -241,18 +253,18 @@
             </div>
           }
         </div>
-        <button mat-button (click)="toggleComments(post)">
-          <mat-icon class="material-icons-outlined">chat_bubble_outline</mat-icon> Comment
+        <button type="button" class="vs-act" (click)="toggleComments(post)">
+          <mat-icon class="material-icons-outlined">chat_bubble_outline</mat-icon><span>Comment</span>
         </button>
-        <button mat-button (click)="share(post)">
-          <mat-icon class="material-icons-outlined">repeat</mat-icon> Repost
+        <button type="button" class="vs-act" (click)="share(post)">
+          <mat-icon class="material-icons-outlined">repeat</mat-icon><span>Repost</span>
         </button>
-        <a mat-button [href]="whatsapp(post)" target="_blank" rel="noopener" aria-label="Share on WhatsApp">
-          <mat-icon class="material-icons-outlined">chat</mat-icon> WhatsApp
+        <a class="vs-act" [href]="whatsapp(post)" target="_blank" rel="noopener" aria-label="Share on WhatsApp">
+          <mat-icon class="material-icons-outlined">share</mat-icon><span>WhatsApp</span>
         </a>
-        <button mat-button class="ml-auto" (click)="toggleBookmark(post)" [class.vs-liked]="post.bookmarked">
+        <button type="button" class="vs-act" (click)="toggleBookmark(post)" [class.vs-liked]="post.bookmarked">
           <mat-icon class="material-icons-outlined">{{ post.bookmarked ? 'bookmark' : 'bookmark_border' }}</mat-icon>
-          {{ post.bookmarked ? 'Saved' : 'Save' }}
+          <span>{{ post.bookmarked ? 'Saved' : 'Save' }}</span>
         </button>
       </div>
 

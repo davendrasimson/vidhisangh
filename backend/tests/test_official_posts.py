@@ -71,7 +71,11 @@ async def test_a_morning_of_official_posts_reaches_every_feed_once(
     assert [p["title"] for p in official_posts] == ["Section of the day", "Supreme Court judgment", "Legal news"]
     section, judgment, news = official_posts
     assert section["author_name"] == "VidhiSangh" and section["visibility"] == "public"
-    assert section["content_html"].startswith("<p><strong>Section of the day: ")
+    # The title says "Section of the day"; the body does not repeat it.
+    assert section["content_html"].startswith("<p><strong>B")
+    assert "Section of the day" not in section["content_html"]
+    assert official.case_title("A.K. GHOSH & COMPANY AND OTHERS versus BIMAN BOSE AND OTHERS") == "A.K. Ghosh & Company and Others v. Biman Bose and Others"
+    assert official.case_title("JUSTICE K S PUTTASWAMY (RETD.) versus UNION OF INDIA") == "Justice K S Puttaswamy (Retd.) v. Union of India"
     assert section["link_url"].startswith("https://vidhisangh.com/acts/") and section["link_site_name"] == "VidhiSangh Bare Acts"
     assert "Newest v. State" in judgment["content_html"] and "AI-generated summary" in judgment["content_html"]
     assert judgment["link_url"] == f"https://vidhisangh.com/judgments/{ids['newest']}/newest-v-state/"

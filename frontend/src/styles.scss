@@ -632,3 +632,15 @@ button[color='primary'].mat-mdc-unelevated-button {
 .dark { --vs-wordmark-red: #ff5a5f; }
 .vs-wordmark { font-family: var(--vs-font-display); font-weight: 650; letter-spacing: -0.02em; line-height: 1; color: rgb(var(--vs-text)); white-space: nowrap; }
 .vs-wordmark b { font-weight: 760; color: var(--vs-wordmark-red); }
+
+/* Messages page: fills the space under the top bar; on phones it also leaves
+   room for the tab bar so the composer is never hidden behind it (3 Nov 2026). */
+.vs-messages { height: calc(100dvh - 7rem); }
+@media (max-width: 767px) {
+  .vs-messages { height: calc(100dvh - 56px - 0.75rem - 72px - env(safe-area-inset-bottom, 0px)); }
+}
+.vs-send-btn {
+  flex-shrink: 0; width: 42px; height: 42px; border: 0; border-radius: 50%;
+  background: rgb(var(--vs-brand)); color: rgb(var(--vs-brand-fg)); display: grid; place-items: center; cursor: pointer;
+  &:disabled { opacity: 0.45; cursor: default; }
+}
