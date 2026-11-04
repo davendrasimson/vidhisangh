@@ -5,6 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { firstValueFrom } from 'rxjs';
 import { BriefService } from '@core/services/brief.service';
+import { WhatsappDailyComponent } from '@shared/whatsapp-daily/whatsapp-daily.component';
 import { NetworkService } from '@core/services/network.service';
 import { NotificationService } from '@core/services/notification.service';
 import { publicOrigin } from '@core/platform/platform';
@@ -20,7 +21,7 @@ import { DailyCard, DirectoryPerson } from '@core/models/network.models';
   selector: 'app-daily-brief',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, DecimalPipe, RouterLink, MatButtonModule, MatIconModule],
+  imports: [DatePipe, DecimalPipe, RouterLink, MatButtonModule, MatIconModule, WhatsappDailyComponent],
   templateUrl: './daily-brief.component.html',
 })
 export class DailyBriefComponent implements OnInit {

@@ -30,7 +30,8 @@ def _people(rows) -> list[DirectoryPerson]:  # noqa: ANN001
 async def brief(
     current: CurrentUserDep, session: TenantSessionDep,
     day: date | None = Query(default=None, description="Defaults to today in India"),
-    source: str | None = Query(default=None, alias="from", max_length=20, description="push when opened from the morning message"),
+    source: str | None = Query(default=None, alias="from", max_length=20,
+                               description="push or whatsapp when opened from the morning message"),
 ) -> BriefRead:
     today = service.today_ist()
     day = day or today
@@ -44,7 +45,7 @@ async def brief(
         fraternity = {"members": home["members"], "in_city": home["in_city"], "joined_7d": home["joined_7d"],
                       "city": home["city"], "people": people[:3]}
     if day == today:
-        await service.mark_opened(session, current.id, day, "push" if source == "push" else "app")
+        await service.mark_opened(session, current.id, day, source if source in ("push", "whatsapp") else "app")
     return BriefRead.model_validate({**data, "fraternity": fraternity})
 
 

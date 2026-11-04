@@ -92,7 +92,38 @@ A platform-admin view of these is not built yet (FUTURE_DELIVERABLES). For now:
 
 - **Email** version for members without the app (needs its own preference and
   unsubscribe; Brevo's daily cap is shared with the invitations).
-- **WhatsApp** version: a new Meta marketing template and a separate opt-in
-  toggle; the existing product-updates consent is not stretched to a daily
-  message.
 - Admin statistics screen; a weekly "week in review" on Sunday if members want it.
+
+## On WhatsApp (4 November 2026)
+
+The owner asked for the brief on WhatsApp the day the push went live. Members
+who say yes get the lead as the Meta MARKETING template **`vidhisangh_daily`**
+(`en` and `hi`; header "VidhiSangh Daily", body with three parameters: first
+name, the lead's title, one line; footer pointing to Settings; one URL button
+to `/app/daily?from=whatsapp`) on their verified number, after the push, once a
+day, Monday to Saturday.
+
+- **Consent is its own topic.** The WhatsApp consent ledger
+  (`whatsapp_updates_consents`) gained a `topic` column (migration **0090**):
+  `updates` for product updates (the old rows) and `daily` for this. A yes to
+  one never covers the other. `GET/PUT /notifications/whatsapp-daily` (same
+  shape as `/whatsapp-updates`; `source` is `settings` or `daily`). The Daily
+  page asks once ("Get VidhiSangh Daily on WhatsApp?", shown while unasked and
+  the number is verified); Settings → Notifications has the switch
+  (`vs-whatsapp-daily`).
+- **Sending.** `service.send_whatsapp_briefs` runs in the same job after the
+  push: recipients are active members with a verified number whose latest
+  `daily` choice is yes, one per number; each send is claimed in
+  `whatsapp_campaign_sends` (campaign `daily-brief-<date>`, template, language,
+  basis `consent`, HMAC of the number) before the API call. A provider refusal
+  is recorded as `failed` with the error code. The job reports the push and the
+  WhatsApp step separately; either channel is skipped when unconfigured
+  (`VS_WA_DAILY_TEMPLATE` empty disables WhatsApp). The unit carries the
+  `wa_access_token` credential and `VS_WA_PHONE_NUMBER_ID`.
+- **Template management.** `python -m app.scripts.whatsapp_template --submit
+  vidhisangh_daily` creates the languages that do not exist yet; `--status`
+  shows Meta's status and rejection reason; `--show` prints the definition.
+  Run on the server inside a transient unit with the token credential (see
+  DEPLOYMENT.md). Earlier templates were submitted by hand; this script holds
+  the definition in the repo.
+- Opening the page from the button is recorded as `opened_via = whatsapp`.

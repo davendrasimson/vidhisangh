@@ -221,6 +221,11 @@ class Settings(BaseSettings):
     # no WhatsApp template approved yet, so the digest goes by push only.
     WA_BOARD_DIGEST_TEMPLATE: str = ""
     WA_BOARD_DIGEST_TEMPLATE_LANG: str = "en"
+    # VidhiSangh Daily on WhatsApp (MARKETING template, en + hi; three body parameters:
+    # first name, the lead's title, one line). Empty disables the WhatsApp step of the job.
+    WA_DAILY_TEMPLATE: str = "vidhisangh_daily"
+    # The WhatsApp Business Account that owns the templates (Business Management API).
+    WA_BUSINESS_ACCOUNT_ID: str = "1631376525208862"
     SMTP_HOST: str | None = None
     SMTP_PORT: int = 587
     SMTP_USER: str | None = None

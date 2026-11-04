@@ -6,6 +6,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { NotificationFeedService } from '@core/services/notification-feed.service';
 import { WhatsappRemindersComponent } from '@shared/whatsapp-reminders/whatsapp-reminders.component';
 import { WhatsappUpdatesComponent } from '@shared/whatsapp-updates/whatsapp-updates.component';
+import { WhatsappDailyComponent } from '@shared/whatsapp-daily/whatsapp-daily.component';
 import { NotificationService } from '@core/services/notification.service';
 import {
   ChannelPreference,
@@ -25,7 +26,7 @@ interface ChannelMeta {
   selector: 'app-notification-settings',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, MatIconModule, MatSlideToggleModule, WhatsappRemindersComponent, WhatsappUpdatesComponent],
+  imports: [DatePipe, MatIconModule, MatSlideToggleModule, WhatsappRemindersComponent, WhatsappUpdatesComponent, WhatsappDailyComponent],
   templateUrl: './notification-settings.component.html',
 })
 export class NotificationSettingsComponent implements OnInit {

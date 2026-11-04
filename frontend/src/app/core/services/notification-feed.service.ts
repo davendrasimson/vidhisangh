@@ -53,6 +53,15 @@ export class NotificationFeedService {
     return this.http.put<WhatsAppUpdates>(`${this.api}/whatsapp-updates`, { granted, source });
   }
 
+  /** VidhiSangh Daily on WhatsApp every morning: a separate choice from product updates. */
+  whatsappDaily(): Observable<WhatsAppUpdates> {
+    return this.http.get<WhatsAppUpdates>(`${this.api}/whatsapp-daily`);
+  }
+
+  setWhatsappDaily(granted: boolean, source: 'settings' | 'daily'): Observable<WhatsAppUpdates> {
+    return this.http.put<WhatsAppUpdates>(`${this.api}/whatsapp-daily`, { granted, source });
+  }
+
   dailyOrders(): Observable<{ enabled: boolean; email_verified: boolean }> {
     return this.http.get<{ enabled: boolean; email_verified: boolean }>(`${this.api}/daily-orders`);
   }

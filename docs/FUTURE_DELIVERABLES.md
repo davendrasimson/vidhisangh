@@ -11,7 +11,7 @@ Legend: 🟢 built, needs only config/credentials to go live · 🟡 needs an ex
 ## 📰 VidhiSangh Daily — next deliverables (plan agreed 4 Nov 2026)
 The push version is live ([DAILY_BRIEF.md](DAILY_BRIEF.md)). Still to build, in this order:
 - **Email version** for members without the app: a per-member preference (default on for members with no registered phone), one-tap unsubscribe, the same lead-first layout. Watch Brevo's daily cap: invitations already use 250 of it, so member mail needs a separate account or a paid plan as the fraternity grows.
-- **WhatsApp version**: a new Meta marketing template (`daily_brief`: name, headline, one line, link button) and a separate opt-in toggle under Settings → Notifications; about 78 paise per message and Meta's per-user marketing limits apply. The existing product-updates consent must not be stretched to a daily message.
+- ~~**WhatsApp version**~~ built 4 Nov 2026 (template `vidhisangh_daily`, consent topic `daily`, see DAILY_BRIEF.md). Still open: Meta's per-user marketing limits and about 78 paise per message; watch `whatsapp_campaign_sends` failures once members opt in in numbers.
 - **Admin statistics** (platform admin): sends, opens by source, quiz answers and accuracy per day and per weekday lead, so the rotation can be tuned to what members open.
 - Quiz bank refresh every 90 days (the bank wraps); a Sunday "week in review" if members ask for one.
 

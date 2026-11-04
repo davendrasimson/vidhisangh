@@ -7,12 +7,17 @@ from datetime import UTC, date, datetime
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from app.core.push import PushMessage
+from app.core.whatsapp import WhatsAppError
 from app.modules.brief import service
 from app.modules.brief.models import DailyBriefSend, DailyQuizAnswer
+from app.modules.identity.models import User
 from app.modules.network import official
+from app.modules.notifications.models import WhatsAppCampaignSend
+from app.modules.notifications.whatsapp_updates import record_choice
+from app.modules.profile.models import ProfessionalProfile
 from app.modules.research.models import CourtLevel, Judgment
 from tests.test_official_posts import HEADNOTE, NOW, _member, _seed
 
@@ -177,3 +182,85 @@ async def test_the_morning_push_goes_once_per_member_and_not_on_sunday(
         row = await s.scalar(select(DailyBriefSend).where(DailyBriefSend.for_date == today))
         assert row is not None and row.opened_via == "push" and row.opened_at is not None
         assert row.opened_at.replace(tzinfo=UTC) <= datetime.now(UTC)
+
+
+class WaRecorder:
+    def __init__(self, fail: set[str] | None = None) -> None:
+        self.sent: list[tuple[str, str, str, list[str]]] = []
+        self.fail = fail or set()
+
+    async def send_template(self, phone, template, lang, body):  # noqa: ANN001
+        if phone in self.fail:
+            raise WhatsAppError("HTTP 400 code 131026")
+        self.sent.append((phone, template, lang, body))
+        return "wamid.test"
+
+
+async def _second_member(client: AsyncClient, pw: str, email: str, name: str) -> dict:
+    r = await client.post(f"{API}/auth/register", json={"organisation_name": f"{name} chambers", "full_name": name,
+                                                         "email": email, "password": pw, "accept_terms": True})
+    assert r.status_code == 201, r.text
+    return {"Authorization": f"Bearer {r.json()['access_token']}"}
+
+
+async def _verified_phone(session_factory, email: str, phone: str, languages: list | None = None) -> uuid.UUID:
+    async with session_factory() as s:
+        user = await s.scalar(select(User).where(User.email == email))
+        user.phone, user.is_phone_verified = phone, True
+        if languages is not None:
+            await s.execute(update(ProfessionalProfile).where(ProfessionalProfile.user_id == user.id).values(languages=languages))
+        await s.commit()
+        return user.id
+
+
+async def test_whatsapp_daily_is_its_own_consent_and_goes_once_to_members_who_said_yes(
+    client: AsyncClient, strong_password: str, session_factory,
+) -> None:
+    rao = await _member(client, strong_password)                                   # says yes to the daily brief
+    asha = await _second_member(client, strong_password, "asha@example.com", "Asha Verma")  # yes to product updates only
+    bina = await _second_member(client, strong_password, "bina@example.com", "Bina Das")    # yes, but no verified number
+    await _seed(session_factory)
+
+    # The daily choice is separate from product updates and starts unasked.
+    assert (await client.get(f"{API}/notifications/whatsapp-daily", headers=rao)).json() == {"status": "unasked", "phone_verified": False}
+    await _verified_phone(session_factory, "rao@example.com", "+919876500001")
+    await _verified_phone(session_factory, "asha@example.com", "+919876500002")
+    yes = await client.put(f"{API}/notifications/whatsapp-daily", headers=rao, json={"granted": True, "source": "daily"})
+    assert yes.status_code == 200 and yes.json() == {"status": "granted", "phone_verified": True}
+    assert (await client.get(f"{API}/notifications/whatsapp-updates", headers=rao)).json()["status"] == "unasked"
+    assert (await client.put(f"{API}/notifications/whatsapp-updates", headers=asha, json={"granted": True})).json()["status"] == "granted"
+    assert (await client.get(f"{API}/notifications/whatsapp-daily", headers=asha)).json()["status"] == "unasked"
+    assert (await client.put(f"{API}/notifications/whatsapp-daily", headers=bina, json={"granted": True})).json()["status"] == "granted"
+
+    wa = WaRecorder()
+    async with session_factory() as s:
+        assert await service.send_whatsapp_briefs(s, wa, SUNDAY) == {"sent": 0, "already": 0, "failed": 0, "skipped": 0}
+        assert await service.send_whatsapp_briefs(s, wa, WEDNESDAY) == {"sent": 1, "already": 0, "failed": 0, "skipped": 0}
+        assert await service.send_whatsapp_briefs(s, wa, WEDNESDAY) == {"sent": 0, "already": 1, "failed": 0, "skipped": 0}
+        (phone, template, lang, body), = wa.sent
+        assert phone == "+919876500001" and template == "vidhisangh_daily" and lang == "en"  # Hindi: language_for, tested with product updates
+        assert body[0] == "Rao" and body[1] == "Today's question"  # "Adv." dropped; the lead's title
+        assert body[2].startswith(service.quiz_for(WEDNESDAY)["question"][:40]) and "\n" not in body[2]
+        row = await s.scalar(select(WhatsAppCampaignSend).where(WhatsAppCampaignSend.campaign == "daily-brief-2026-11-04"))
+        assert row.status == "sent" and row.template == "vidhisangh_daily" and row.basis == "consent"
+        assert row.phone_hash != "+919876500001"  # the number is never stored
+
+        # A withdrawn yes stops the next day's message; a provider refusal is recorded, not raised.
+        rao_id = await s.scalar(select(User.id).where(User.email == "rao@example.com"))
+        await record_choice(s, rao_id, False, "settings", None, "daily")
+        await s.commit()
+        assert await service.send_whatsapp_briefs(s, wa, SATURDAY) == {"sent": 0, "already": 0, "failed": 0, "skipped": 0}
+        await record_choice(s, rao_id, True, "settings", None, "daily")
+        await s.commit()
+        failing = WaRecorder(fail={"+919876500001"})
+        assert await service.send_whatsapp_briefs(s, failing, SATURDAY) == {"sent": 0, "already": 0, "failed": 1, "skipped": 0}
+        failed = await s.scalar(select(WhatsAppCampaignSend).where(WhatsAppCampaignSend.campaign == "daily-brief-2026-11-07"))
+        assert failed.status == "failed" and "131026" in failed.detail
+
+    # Opening the page from the WhatsApp button is recorded as such.
+    today = service.today_ist()
+    r = await client.get(f"{API}/brief", headers=rao, params={"from": "whatsapp"})
+    assert r.status_code == 200
+    async with session_factory() as s:
+        row = await s.scalar(select(DailyBriefSend).where(DailyBriefSend.for_date == today, DailyBriefSend.user_id == rao_id))
+        assert row.opened_via == "whatsapp"

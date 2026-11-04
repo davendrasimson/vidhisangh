@@ -21,7 +21,10 @@ date in any earlier year.
 The ``daily_brief`` job (07:30 IST, Monday to Saturday) pushes the lead to every
 member with the app; ``daily_brief_sends`` is claimed before each push so a
 rerun never sends twice, and records who opened the page. Quiz answers are
-stored once per member and question.
+stored once per member and question. Members who said yes to **VidhiSangh Daily
+on WhatsApp** (consent topic ``daily``, separate from product updates) also get
+the lead as the Meta template ``vidhisangh_daily`` on their verified number,
+once a day, claimed in ``whatsapp_campaign_sends`` (campaign ``daily-brief-<date>``).
 """
 
 from __future__ import annotations
@@ -38,14 +41,18 @@ import structlog
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import apply_rls_context
 from app.core.push import PushMessage, PushSender
+from app.core.whatsapp import WhatsAppError, WhatsAppSender
 from app.modules.brief.models import DailyBriefSend, DailyQuizAnswer
 from app.modules.identity.models import User
 from app.modules.network.models import NetworkIdentity
 from app.modules.network.official import case_title, daily_cards, post_daily
 from app.modules.network.repository import IdentityRepository
-from app.modules.notifications.models import NotificationChannel, NotificationPreference, PushDevice
+from app.modules.notifications.models import NotificationChannel, NotificationPreference, PushDevice, WhatsAppCampaignSend
+from app.modules.notifications.whatsapp_updates import DAILY, first_name, language_for, latest_choices, phone_hash
+from app.modules.profile.models import ProfessionalProfile
 from app.modules.research.models import CourtLevel, Judgment, JudgmentAlias
 
 log = structlog.get_logger("app.daily_brief")
@@ -321,4 +328,75 @@ async def send_briefs(session: AsyncSession, push: PushSender, day: date) -> dic
         report["sent" if sent else "failed"] += 1
         await _commit(session)
     log.info("daily_brief", day=day.isoformat(), lead=lead, **report)
+    return report
+
+
+# ── The morning WhatsApp message ────────────────────────────────────────
+TITLE_MAX, LINE_MAX = 60, 180  # template parameters: no new lines, short enough for a phone
+
+
+def whatsapp_campaign(day: date) -> str:
+    return f"daily-brief-{day.isoformat()}"
+
+
+async def whatsapp_recipients(session: AsyncSession) -> list[tuple[User, str]]:
+    """Members who said yes to VidhiSangh Daily on WhatsApp and have a verified number, with the
+    template language (Hindi when the profile lists Hindi but not English). One per number: a
+    number shared by two accounts is messaged once. Needs RLS bypass."""
+    users = list(await session.scalars(select(User).where(
+        User.deleted_at.is_(None), User.is_active.is_(True), User.phone.is_not(None), User.is_phone_verified.is_(True),
+    )))
+    if not users:
+        return []
+    choices = await latest_choices(session, [u.id for u in users], DAILY)
+    users = [u for u in users if choices.get(u.id) is True]
+    if not users:
+        return []
+    profiles = {p.user_id: p for p in await session.scalars(
+        select(ProfessionalProfile).where(ProfessionalProfile.user_id.in_([u.id for u in users])))}
+    by_number: dict[str, tuple[User, str]] = {}
+    for user in sorted(users, key=lambda u: u.created_at):
+        profile = profiles.get(user.id)
+        by_number.setdefault(phone_hash(user.phone), (user, language_for(profile.languages if profile else None)))
+    return list(by_number.values())
+
+
+async def send_whatsapp_briefs(session: AsyncSession, sender: WhatsAppSender, day: date) -> dict[str, int]:
+    """Sends the day's lead as the ``vidhisangh_daily`` template to every consenting member, once.
+    Runs after ``send_briefs`` (which posts the official items); quiet on Sunday. Parameters:
+    first name, the lead's title, one line. Claimed before the API call, so a rerun never sends twice."""
+    report = {"sent": 0, "already": 0, "failed": 0, "skipped": 0}
+    template = settings.WA_DAILY_TEMPLATE
+    if not pushes_on(day) or not template:
+        return report
+    lead = lead_for(day)
+    brief = await compose(session, day, None)
+    campaign = whatsapp_campaign(day)
+    for user, language in await whatsapp_recipients(session):
+        key = phone_hash(user.phone)
+        if await session.scalar(select(WhatsAppCampaignSend.id).where(
+                WhatsAppCampaignSend.campaign == campaign, WhatsAppCampaignSend.phone_hash == key)):
+            report["already"] += 1
+            continue
+        fraternity = await _fraternity_counts(session, user.id) if lead == "fraternity" else None
+        message = _message(lead, brief, fraternity)
+        if message is None:
+            report["skipped"] += 1
+            continue
+        title, body = message
+        row = WhatsAppCampaignSend(campaign=campaign, user_id=user.id, phone_hash=key, template=template,
+                                   language=language, basis="consent", status="sending")
+        session.add(row)
+        await _commit(session)  # claimed before sending
+        try:
+            await sender.send_template(user.phone, template, language,
+                                       [first_name(user.full_name, language), _clean(title, TITLE_MAX), _clean(body, LINE_MAX)])
+            row.status, row.detail = "sent", None
+            report["sent"] += 1
+        except WhatsAppError as exc:
+            row.status, row.detail = "failed", str(exc)[:200]
+            report["failed"] += 1
+            log.warning("daily_brief_whatsapp_failed", campaign=campaign, error=str(exc))
+        await _commit(session)
+    log.info("daily_brief_whatsapp", campaign=campaign, lead=lead, **report)
     return report

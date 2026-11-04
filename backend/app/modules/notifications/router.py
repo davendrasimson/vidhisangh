@@ -123,18 +123,34 @@ class WhatsAppUpdatesRead(BaseModel):
 
 class WhatsAppUpdatesUpdate(BaseModel):
     granted: bool
-    source: Literal["settings", "home"] = "settings"
+    source: Literal["settings", "home", "daily"] = "settings"
 
 
-async def _whatsapp_updates(current: CurrentUserDep, session: TenantSessionDep) -> WhatsAppUpdatesRead:
+async def _whatsapp_updates(current: CurrentUserDep, session: TenantSessionDep, topic: str = "updates") -> WhatsAppUpdatesRead:
     from app.modules.identity.repository import UserRepository
     from app.modules.notifications.whatsapp_updates import choice_of
 
     user = await UserRepository(session).get_for_tenant(current.tenant_id, current.id)
     return WhatsAppUpdatesRead(
-        status=await choice_of(session, current.id),
+        status=await choice_of(session, current.id, topic),
         phone_verified=bool(user and user.phone and user.is_phone_verified),
     )
+
+
+@router.get("/whatsapp-daily", response_model=WhatsAppUpdatesRead, summary="Do I get VidhiSangh Daily on WhatsApp?")
+async def get_whatsapp_daily(current: CurrentUserDep, session: TenantSessionDep) -> WhatsAppUpdatesRead:
+    return await _whatsapp_updates(current, session, "daily")
+
+
+@router.put("/whatsapp-daily", response_model=WhatsAppUpdatesRead, summary="Say yes or no to VidhiSangh Daily on WhatsApp")
+async def set_whatsapp_daily(
+    data: WhatsAppUpdatesUpdate, request: Request, current: CurrentUserDep, session: TenantSessionDep,
+) -> WhatsAppUpdatesRead:
+    """A separate choice from product updates: the morning brief is a daily message."""
+    from app.modules.notifications.whatsapp_updates import record_choice
+
+    await record_choice(session, current.id, data.granted, data.source, client_ip(request), "daily")
+    return await _whatsapp_updates(current, session, "daily")
 
 
 @router.get("/whatsapp-updates", response_model=WhatsAppUpdatesRead, summary="Do I get product updates on WhatsApp?")

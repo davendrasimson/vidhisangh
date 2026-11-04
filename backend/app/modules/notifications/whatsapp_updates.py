@@ -47,11 +47,19 @@ Basis = Literal["consent", "owner_approved"]
 
 
 # ─── Consent ────────────────────────────────────────────────────────
-async def latest_choices(session: AsyncSession, user_ids: list[uuid.UUID] | None = None) -> dict[uuid.UUID, bool]:
-    """Each member's current choice (True yes / False no); absent = not asked."""
-    query = select(WhatsAppUpdatesConsent).where(WhatsAppUpdatesConsent.deleted_at.is_(None)).order_by(
-        WhatsAppUpdatesConsent.recorded_at
-    )
+# What a choice is about. Each topic is its own yes or no.
+Topic = Literal["updates", "daily"]
+UPDATES: Topic = "updates"  # product updates, once or twice a month
+DAILY: Topic = "daily"  # VidhiSangh Daily, every morning Monday to Saturday
+
+
+async def latest_choices(
+    session: AsyncSession, user_ids: list[uuid.UUID] | None = None, topic: Topic = UPDATES,
+) -> dict[uuid.UUID, bool]:
+    """Each member's current choice on ``topic`` (True yes / False no); absent = not asked."""
+    query = select(WhatsAppUpdatesConsent).where(
+        WhatsAppUpdatesConsent.deleted_at.is_(None), WhatsAppUpdatesConsent.topic == topic,
+    ).order_by(WhatsAppUpdatesConsent.recorded_at)
     if user_ids is not None:
         query = query.where(WhatsAppUpdatesConsent.user_id.in_(user_ids))
     choices: dict[uuid.UUID, bool] = {}
@@ -60,16 +68,16 @@ async def latest_choices(session: AsyncSession, user_ids: list[uuid.UUID] | None
     return choices
 
 
-async def choice_of(session: AsyncSession, user_id: uuid.UUID) -> Choice:
-    granted = (await latest_choices(session, [user_id])).get(user_id)
+async def choice_of(session: AsyncSession, user_id: uuid.UUID, topic: Topic = UPDATES) -> Choice:
+    granted = (await latest_choices(session, [user_id], topic)).get(user_id)
     return "unasked" if granted is None else "granted" if granted else "refused"
 
 
 async def record_choice(
-    session: AsyncSession, user_id: uuid.UUID, granted: bool, source: str, ip: str | None,
+    session: AsyncSession, user_id: uuid.UUID, granted: bool, source: str, ip: str | None, topic: Topic = UPDATES,
 ) -> None:
     session.add(WhatsAppUpdatesConsent(
-        user_id=user_id, granted=granted, source=source,
+        user_id=user_id, topic=topic, granted=granted, source=source,
         notice_version=str(privacy_setting("CURRENT_PRIVACY_NOTICE_VERSION")), ip_coarse=coarse_ip(ip),
         recorded_at=datetime.now(UTC),
     ))

@@ -132,12 +132,16 @@ class WhatsAppUpdatesConsent(AuditedBase):
     row means "not asked yet". Separate from the WhatsApp channel preference,
     which only means hearing reminders. ``source`` is where the choice was
     made (``settings`` or ``home``); ``notice_version`` the privacy notice in
-    force; ``ip_coarse`` a coarsened address, never the raw IP.
+    force; ``ip_coarse`` a coarsened address, never the raw IP. ``topic`` says
+    what the choice is about: ``updates`` (product updates, once or twice a
+    month) or ``daily`` (VidhiSangh Daily every morning, 4 Nov 2026); a yes to
+    one never covers the other.
     """
 
     __tablename__ = "whatsapp_updates_consents"
 
     user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, index=True)
+    topic: Mapped[str] = mapped_column(String(20), nullable=False, default="updates", server_default="updates")
     granted: Mapped[bool] = mapped_column(Boolean, nullable=False)
     source: Mapped[str] = mapped_column(String(20), nullable=False)
     notice_version: Mapped[str | None] = mapped_column(String(20), nullable=True)

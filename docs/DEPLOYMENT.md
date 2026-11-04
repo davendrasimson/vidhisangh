@@ -803,6 +803,21 @@ Business Messaging Policy needs each recipient's prior opt-in for marketing temp
 outreach contacts' mobiles are reference data, never a WhatsApp audience (see OUTREACH.md).
 Check status: `GET /1631376525208862/message_templates?name=fraternity_invite&fields=status,rejected_reason`.
 
+**VidhiSangh Daily template** (4 Nov 2026): `vidhisangh_daily`, MARKETING, `en` and `hi`, defined in
+`app/scripts/whatsapp_template.py` and submitted from the server with
+
+    sudo systemd-run --wait --pipe --collect --unit=wa-template -p User=ubuntu \
+      -p WorkingDirectory=/opt/vidhisangh/backend -p EnvironmentFile=/opt/vidhisangh/backend/.env \
+      -p LoadCredentialEncrypted=wa_access_token:/etc/credstore.encrypted/vidhisangh.wa_access_token \
+      -E PYTHONPATH=/opt/vidhisangh/backend /opt/vidhisangh/backend/.venv/bin/python \
+      -m app.scripts.whatsapp_template --submit vidhisangh_daily      # or --status vidhisangh_daily
+
+Three body parameters (first name, the lead's title, one line), one URL button to `/app/daily`.
+Sent by `vidhisangh-daily-brief` (07:30 IST Mon–Sat, after the push) to members whose
+`daily` WhatsApp consent is yes (DAILY_BRIEF.md). The unit holds the `wa_access_token`
+credential and `VS_WA_PHONE_NUMBER_ID`; `VS_WA_DAILY_TEMPLATE` (default `vidhisangh_daily`)
+empty disables the step.
+
 **Supreme Court digest template** (2 Nov 2026): `sc_daily_orders`, MARKETING, approved in `en`
 (id 1657367549377686) and `hi` (id 1021228031043552) within minutes of submission. Header, body with
 five parameters (first name, count, date, leading case, result), footer pointing to Settings →

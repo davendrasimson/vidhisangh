@@ -341,9 +341,10 @@ export const HELP_TOPICS: HelpTopic[] = [
       "Open the page from the morning notification, the home screen card, or the menu.",
       "The lead item changes with the day of the week: section on Monday, judgment on Tuesday, question on Wednesday, On this day on Thursday, news on Friday, your fraternity on Saturday.",
       "Tap an option to answer the question; the answer, the explanation and how other members did appear at once. One attempt per question.",
-      "Use the arrows at the top to read earlier days."
+      "Use the arrows at the top to read earlier days.",
+      "To get the morning message on WhatsApp as well, say yes on the Daily page or switch on \"VidhiSangh Daily on WhatsApp\" under Settings → Notifications (a verified mobile number is needed)."
     ],
-    "tip": "Turn the morning notification off under Settings → Notifications → Push if you would rather open the page yourself.",
+    "tip": "Turn the morning notification off under Settings → Notifications → Push, or the WhatsApp message off under Settings → Notifications, if you would rather open the page yourself.",
     "permission": null,
     "featured": true
   },
