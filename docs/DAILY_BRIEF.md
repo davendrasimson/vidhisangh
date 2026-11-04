@@ -37,8 +37,15 @@ registry's date may differ by a day) for the Read link. Every curated date was
 checked against the production corpus before going live (132 of 144 matched
 exactly; the 9 the corpus could not confirm were dropped; Rudul Sah and Kihoto
 Hollohan were corrected to the registry's dates). Days with no curated entry
-take the most-cited Supreme Court judgment with an AI headnote decided on that
-month-day in any earlier year (inbound `case_citations` count).
+take the Supreme Court judgment decided on that month-day in any earlier year
+that later judgments cite most: the sum of `judgment_aliases.support` (mined
+citations; `case_citations` is empty in production), at least 3. The card shows
+the AI summary when the judgment has one; otherwise only the citation count and
+a Read link, because the registry's `headnote` column is a fragment of the text,
+not a holding. A date with no judgment cited three times gets no card. The next
+two weeks were checked on production: Pepsi Foods (1997), Prafulla Kumar Samal
+(1978), Maru Ram (1980) and the curated Indira Gandhi, Kihoto Hollohan, Ajay
+Hasia, Essar Steel and Indra Sawhney.
 
 ## The morning push
 
