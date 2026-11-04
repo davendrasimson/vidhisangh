@@ -38,6 +38,7 @@ import structlog
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.database import apply_rls_context
 from app.core.push import PushMessage, PushSender
 from app.modules.brief.models import DailyBriefSend, DailyQuizAnswer
 from app.modules.identity.models import User
@@ -270,6 +271,14 @@ async def _fraternity_counts(session: AsyncSession, user_id: uuid.UUID) -> dict:
     return {**counts, "city": city}
 
 
+async def _commit(session: AsyncSession) -> None:
+    """Commit and keep working across tenants. The RLS bypass is transaction-local (``set_config(...,
+    is_local)``), so a plain commit would leave the next query (``users`` is tenant-scoped) seeing nothing:
+    the first live run on 4 November 2026 pushed to nobody for exactly this reason."""
+    await session.commit()
+    await apply_rls_context(session, None, bypass=True)
+
+
 async def send_briefs(session: AsyncSession, push: PushSender, day: date) -> dict[str, int]:
     """Pushes the day's lead to every member with the app, once. Posts the day's official items first
     (idempotent) so the section and judgment exist before anyone is told about them."""
@@ -278,7 +287,7 @@ async def send_briefs(session: AsyncSession, push: PushSender, day: date) -> dic
         log.info("daily_brief_quiet_day", day=day.isoformat())
         return report
     await post_daily(session)
-    await session.commit()
+    await _commit(session)
     lead = lead_for(day)
     brief = await compose(session, day, None)
     for user in await recipients(session):
@@ -298,7 +307,7 @@ async def send_briefs(session: AsyncSession, push: PushSender, day: date) -> dic
             session.add(row)
         else:  # a 'viewed' row from an early visit: the push still goes
             row.status, row.lead = "sending", lead
-        await session.commit()
+        await _commit(session)
         title, body = message
         sent = 0
         for device in (await session.scalars(select(PushDevice).where(PushDevice.user_id == user.id))).all():
@@ -310,6 +319,6 @@ async def send_briefs(session: AsyncSession, push: PushSender, day: date) -> dic
         row.status = "sent" if sent else "failed"
         row.detail = f"push x{sent}" if sent else "push: not delivered"
         report["sent" if sent else "failed"] += 1
-        await session.commit()
+        await _commit(session)
     log.info("daily_brief", day=day.isoformat(), lead=lead, **report)
     return report

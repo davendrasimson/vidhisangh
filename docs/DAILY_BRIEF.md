@@ -59,7 +59,10 @@ Hasia, Essar Steel and Indra Sawhney.
    registered phone (`push_devices`) and has not turned push off
    (`notification_preferences`, channel `push`), one row per member per day in
    `daily_brief_sends` claimed **before** sending (a rerun reports `already`);
-   `unregistered` tokens are deleted;
+   `unregistered` tokens are deleted. The job commits several times and re-applies
+   the RLS bypass after each (`_commit`): the bypass is transaction-local, and the
+   first live run (4 November, started by hand) pushed to nobody because the
+   recipient query ran under RLS after the first commit and saw no users;
 3. the push deep-links to `/app/daily?from=push&lead=<lead>`; opening the page
    that day stamps `opened_at` / `opened_via` on the row (a member who opens the
    page without a push gets a `viewed` row).
