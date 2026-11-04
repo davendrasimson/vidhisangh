@@ -20,6 +20,8 @@ import { NotificationService } from '@core/services/notification.service';
 import { AnalyticsOverview } from '@core/models/analytics.models';
 import { AgendaItem } from '@core/models/calendar.models';
 import { Connection, DailyCard, DailyRead, DirectoryPerson, HomeNetwork } from '@core/models/network.models';
+import { Brief, LEAD_TITLES, briefTeaser } from '@core/models/brief.models';
+import { BriefService } from '@core/services/brief.service';
 import { Conversation } from '@core/models/messaging.models';
 import { profilePercent, profileSteps } from '@core/home/profile-progress';
 import { publicOrigin } from '@core/platform/platform';
@@ -93,6 +95,11 @@ export class DashboardComponent implements OnInit {
   });
   protected readonly overview = signal<AnalyticsOverview | null>(null);
   protected readonly daily = signal<DailyRead | null>(null);
+  /** VidhiSangh Daily: the lead item, one tap to the page. */
+  private readonly briefs = inject(BriefService);
+  protected readonly brief = signal<Brief | null>(null);
+  protected readonly briefTeaser = briefTeaser;
+  protected leadTitle(b: Brief): string { return LEAD_TITLES[b.lead]; }
 
   // ── Today's board ─────────────────────────────────────────────────
   protected readonly agenda = signal<AgendaItem[] | null>(null);
@@ -196,6 +203,7 @@ export class DashboardComponent implements OnInit {
     void firstValueFrom(this.tenant.load()).catch(() => undefined);
     void this.loadAgenda();
     void firstValueFrom(this.network.daily()).then((d) => this.daily.set(d)).catch(() => undefined);
+    void firstValueFrom(this.briefs.get()).then((b) => this.brief.set(b)).catch(() => undefined);
     if (this.auth.hasPermission('analytics:view')) {
       void firstValueFrom(this.analytics.overview()).then((o) => this.overview.set(o)).catch(() => undefined);
     }

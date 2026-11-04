@@ -844,6 +844,12 @@ The credential was validated with a read-only Meta request. Both sites remain up
 If the shared source token is intentionally rotated later, update this encrypted
 copy too; do not rotate or migrate the shared account as part of a VidhiSangh deploy.
 
+## VidhiSangh Daily (4 November 2026)
+
+Unit `vidhisangh-daily-brief.service` + `.timer` (07:30 IST Mon–Sat), from
+`infra/jobs/`; carries the Firebase credential like the board digest. Needs
+migration `0089`. Dry run and tables in [DAILY_BRIEF.md](DAILY_BRIEF.md).
+
 ## Push notifications (Firebase)
 
 Firebase project `vidhisangh-2c038`, service account

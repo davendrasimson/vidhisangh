@@ -146,7 +146,10 @@ export class ShellComponent implements OnInit {
   // top-right account menu, not here.
   protected readonly navGroups: NavGroup[] = [
     {
-      items: [{ label: 'Dashboard', icon: 'dashboard', route: '/app/dashboard' }],
+      items: [
+        { label: 'Dashboard', icon: 'dashboard', route: '/app/dashboard' },
+        { label: 'VidhiSangh Daily', icon: 'today', route: '/app/daily' },
+      ],
     },
     {
       title: 'Network',

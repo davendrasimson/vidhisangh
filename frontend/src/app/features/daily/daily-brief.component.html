@@ -1,0 +1,152 @@
+<div class="mx-auto w-full max-w-2xl">
+  <header class="flex items-center justify-between gap-2 mb-3 px-1">
+    <div class="min-w-0">
+      <h1 class="text-xl font-semibold text-content leading-tight">VidhiSangh Daily</h1>
+      @if (brief(); as b) {
+        <p class="text-sm text-content-muted">{{ b.weekday }}, {{ b.day | date: 'dd/MM/yyyy' }}</p>
+      }
+    </div>
+    <div class="flex items-center gap-1">
+      <button mat-icon-button (click)="shift(-1)" aria-label="Previous day"><mat-icon class="material-icons-outlined">chevron_left</mat-icon></button>
+      <button mat-icon-button (click)="shift(1)" [disabled]="isToday()" aria-label="Next day"><mat-icon class="material-icons-outlined">chevron_right</mat-icon></button>
+    </div>
+  </header>
+
+  @if (loading() && !brief()) {
+    <p class="text-content-muted text-center py-10">Loading…</p>
+  } @else if (brief(); as b) {
+    <div class="grid gap-3">
+      @for (kind of order(); track kind) {
+        @switch (kind) {
+          @case ('quiz') {
+            @if (b.quiz; as q) {
+              <section class="rounded-card bg-surface-raised border border-line shadow-card p-4" aria-label="Today's question">
+                <p class="text-xs font-semibold uppercase tracking-wide text-brand">{{ titles.quiz }} · {{ q.topic }}</p>
+                <h2 class="font-semibold text-content mt-1 text-base">{{ q.question }}</h2>
+                <div class="grid gap-2 mt-3">
+                  @for (opt of q.options; track $index; let i = $index) {
+                    <button type="button" class="vs-quiz-opt" [class.vs-quiz-opt--right]="optionState(i) === 'right'"
+                            [class.vs-quiz-opt--wrong]="optionState(i) === 'wrong'" [disabled]="q.chosen !== null || answering()"
+                            (click)="answer(i)">
+                      <span class="vs-quiz-opt__key">{{ 'ABCD'[i] }}</span>
+                      <span class="flex-1 min-w-0">{{ opt }}</span>
+                      @if (optionState(i) === 'right') { <mat-icon class="material-icons-outlined text-success">check_circle</mat-icon> }
+                      @if (optionState(i) === 'wrong') { <mat-icon class="material-icons-outlined text-danger">cancel</mat-icon> }
+                    </button>
+                  }
+                </div>
+                @if (q.explanation) {
+                  <p class="mt-3 text-sm text-content" [class.text-success]="q.chosen === q.answer">
+                    <strong>{{ q.chosen === q.answer ? 'Correct.' : 'Not quite.' }}</strong> {{ q.explanation }}
+                  </p>
+                  <div class="flex flex-wrap items-center gap-3 mt-2 text-xs text-content-muted">
+                    <span>{{ q.stats.answers | number }} {{ q.stats.answers === 1 ? 'member has' : 'members have' }} answered · {{ pctRight() }}% right</span>
+                    @if (link(q.link); as href) { <a [href]="href" target="_blank" rel="noopener" class="text-brand">Read the section →</a> }
+                  </div>
+                } @else {
+                  <p class="mt-3 text-xs text-content-muted">
+                    @if (q.stats.answers) { {{ q.stats.answers | number }} {{ q.stats.answers === 1 ? 'member has' : 'members have' }} answered so far. } @else { Be the first to answer today. }
+                  </p>
+                }
+              </section>
+            }
+          }
+          @case ('section') {
+            @if (b.section; as s) {
+              <section class="rounded-card bg-surface-raised border border-line shadow-card p-4" aria-label="Section of the day">
+                <p class="text-xs font-semibold uppercase tracking-wide text-brand">{{ titles.section }}</p>
+                <h2 class="font-semibold text-content mt-1">{{ s.title }}</h2>
+                @if (s.description) { <p class="text-sm text-content-muted mt-1 vs-clamp-4">{{ s.description }}</p> }
+                <div class="flex flex-wrap gap-2 mt-3">
+                  <a mat-stroked-button routerLink="/app/knowledge/reader" [queryParams]="sectionLink(s)">Read</a>
+                  <a mat-button [href]="shareLink(s.title, '/acts/' + sectionLink(s).act + '/section-' + sectionLink(s).section + '/')" target="_blank" rel="noopener"><mat-icon class="material-icons-outlined">share</mat-icon> WhatsApp</a>
+                </div>
+              </section>
+            }
+          }
+          @case ('judgment') {
+            @if (b.judgment; as j) {
+              <section class="rounded-card bg-surface-raised border border-line shadow-card p-4" aria-label="Judgment of the day">
+                <p class="text-xs font-semibold uppercase tracking-wide text-brand">Supreme Court · {{ titles.judgment }}</p>
+                <h2 class="font-semibold text-content mt-1">{{ j.title }}</h2>
+                @if (j.description) { <p class="text-sm text-content-muted mt-1 vs-clamp-4">{{ j.description }}</p> }
+                <p class="text-xs text-content-muted mt-1">AI-generated summary: read the judgment before relying on it.</p>
+                <div class="flex flex-wrap gap-2 mt-3">
+                  <a mat-stroked-button [routerLink]="['/app/research', j.ref]">Read</a>
+                  <a mat-button [href]="shareLink(j.title, '/judgments/' + j.ref + '/')" target="_blank" rel="noopener"><mat-icon class="material-icons-outlined">share</mat-icon> WhatsApp</a>
+                </div>
+              </section>
+            }
+          }
+          @case ('on_this_day') {
+            @if (b.on_this_day; as o) {
+              <section class="rounded-card bg-surface-raised border border-line shadow-card p-4" aria-label="On this day">
+                <p class="text-xs font-semibold uppercase tracking-wide text-brand">{{ titles.on_this_day }} in {{ o.decided | date: 'yyyy' }}</p>
+                <h2 class="font-semibold text-content mt-1">{{ o.case }}</h2>
+                <p class="text-xs text-content-muted mt-0.5">Decided {{ o.decided | date: 'dd/MM/yyyy' }}@if (o.citation) { · {{ o.citation }}}</p>
+                <p class="text-sm text-content mt-2">{{ o.holding }}</p>
+                @if (o.source === 'corpus') { <p class="text-xs text-content-muted mt-1">AI-generated summary: read the judgment before relying on it.</p> }
+                @if (o.judgment_id) {
+                  <div class="flex flex-wrap gap-2 mt-3">
+                    <a mat-stroked-button [routerLink]="['/app/research', o.judgment_id]">Read the judgment</a>
+                    <a mat-button [href]="shareLink(o.case + ' (' + (o.decided | date: 'yyyy') + ')', '/judgments/' + o.judgment_id + '/')" target="_blank" rel="noopener"><mat-icon class="material-icons-outlined">share</mat-icon> WhatsApp</a>
+                  </div>
+                }
+              </section>
+            }
+          }
+          @case ('news') {
+            @if (b.news.length) {
+              <section class="rounded-card bg-surface-raised border border-line shadow-card p-4" aria-labelledby="brief-news">
+                <div class="flex items-center justify-between gap-3 mb-1">
+                  <h2 id="brief-news" class="text-xs font-semibold uppercase tracking-wide text-brand">{{ b.lead === 'news' ? titles.news : 'Legal news' }}</h2>
+                  <a routerLink="/app/news" class="text-sm text-brand">More →</a>
+                </div>
+                <ul class="divide-y divide-line">
+                  @for (n of b.news; track n.post_id) {
+                    <li class="py-2"><a [href]="n.url" target="_blank" rel="noopener" class="text-sm text-content hover:text-brand">{{ n.title }}</a>
+                      @if (n.site) { <span class="block text-xs text-content-muted">{{ n.site }}</span> }</li>
+                  }
+                </ul>
+              </section>
+            }
+          }
+          @case ('fraternity') {
+            @if (b.fraternity; as f) {
+              <section class="rounded-card bg-surface-raised border border-line shadow-card p-4" aria-labelledby="brief-people">
+                <div class="flex items-center justify-between gap-3 mb-1">
+                  <h2 id="brief-people" class="text-xs font-semibold uppercase tracking-wide text-brand">{{ titles.fraternity }}</h2>
+                  <a routerLink="/app/people" class="text-sm text-brand">All people →</a>
+                </div>
+                <p class="text-sm text-content-muted">
+                  <strong class="text-content">{{ f.members | number }}</strong> {{ f.members === 1 ? 'member' : 'members' }}
+                  @if (f.city && f.in_city > 1) { · <strong class="text-content">{{ f.in_city | number }}</strong> in {{ f.city }} }
+                  @if (f.joined_7d) { · <strong class="text-content">{{ f.joined_7d | number }}</strong> joined this week }
+                </p>
+                @if (f.people.length) {
+                  <ul class="divide-y divide-line mt-2">
+                    @for (p of f.people; track p.user_id) {
+                      <li class="py-2 flex items-center gap-3">
+                        <a [routerLink]="['/app/people', p.user_id]" class="vs-avatar-sm shrink-0" style="width:36px;height:36px;font-size:.75rem">{{ initials(p.display_name) }}</a>
+                        <div class="flex-1 min-w-0">
+                          <a [routerLink]="['/app/people', p.user_id]" class="font-medium text-content truncate block">{{ p.display_name }}</a>
+                          @if (p.headline) { <p class="text-xs text-content-muted truncate">{{ p.headline }}</p> }
+                        </div>
+                        @if (p.connection_status === 'pending_out') {
+                          <span class="text-xs text-content-muted">Requested</span>
+                        } @else if (!p.connection_status) {
+                          <button mat-stroked-button (click)="connect(p)" [disabled]="connecting().has(p.user_id)">Connect</button>
+                        }
+                      </li>
+                    }
+                  </ul>
+                }
+              </section>
+            }
+          }
+        }
+      }
+    </div>
+    <p class="text-xs text-content-muted text-center mt-4 mb-2">A new brief every morning. Change what you get under Settings → Notifications.</p>
+  }
+</div>

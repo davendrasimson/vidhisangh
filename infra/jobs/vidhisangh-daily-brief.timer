@@ -1,0 +1,12 @@
+[Unit]
+Description=VidhiSangh Daily at 7.30 am India time, Monday to Saturday
+
+[Timer]
+# 07:30 IST. The job itself stays quiet on Sundays.
+OnCalendar=Mon..Sat *-*-* 07:30:00 Asia/Kolkata
+RandomizedDelaySec=120
+# Not Persistent: a run missed while the server was down must not push at an odd hour.
+Persistent=false
+
+[Install]
+WantedBy=timers.target

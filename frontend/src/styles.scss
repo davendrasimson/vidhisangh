@@ -644,3 +644,20 @@ button[color='primary'].mat-mdc-unelevated-button {
   background: rgb(var(--vs-brand)); color: rgb(var(--vs-brand-fg)); display: grid; place-items: center; cursor: pointer;
   &:disabled { opacity: 0.45; cursor: default; }
 }
+
+/* VidhiSangh Daily quiz options (4 Nov 2026). */
+.vs-quiz-opt {
+  display: flex; align-items: center; gap: 0.6rem; width: 100%; text-align: left;
+  padding: 0.55rem 0.75rem; border: 1px solid rgb(var(--vs-border)); border-radius: 10px;
+  background: rgb(var(--vs-surface-sunken)); color: rgb(var(--vs-text)); font: inherit; font-size: 0.9rem; cursor: pointer;
+  &:hover:not(:disabled) { border-color: rgb(var(--vs-brand)); }
+  &:disabled { cursor: default; }
+  mat-icon { flex-shrink: 0; }
+}
+.vs-quiz-opt__key {
+  flex-shrink: 0; width: 1.6rem; height: 1.6rem; border-radius: 50%; display: grid; place-items: center;
+  background: rgb(var(--vs-surface-raised)); border: 1px solid rgb(var(--vs-border)); font-size: 0.75rem; font-weight: 700; color: rgb(var(--vs-text-muted));
+}
+.vs-quiz-opt--right { border-color: rgb(var(--vs-success)); background: color-mix(in srgb, rgb(var(--vs-success)) 12%, transparent); }
+.vs-quiz-opt--wrong { border-color: rgb(var(--vs-danger)); background: color-mix(in srgb, rgb(var(--vs-danger)) 10%, transparent); }
+.vs-avatar-sm { display: inline-grid; place-items: center; border-radius: 50%; background: rgb(var(--vs-brand)); color: rgb(var(--vs-brand-fg)); font-weight: 700; width: 42px; height: 42px; font-size: 0.85rem; }

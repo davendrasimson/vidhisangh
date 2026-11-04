@@ -8,6 +8,13 @@ Legend: 🟢 built, needs only config/credentials to go live · 🟡 needs an ex
 
 ---
 
+## 📰 VidhiSangh Daily — next deliverables (plan agreed 4 Nov 2026)
+The push version is live ([DAILY_BRIEF.md](DAILY_BRIEF.md)). Still to build, in this order:
+- **Email version** for members without the app: a per-member preference (default on for members with no registered phone), one-tap unsubscribe, the same lead-first layout. Watch Brevo's daily cap: invitations already use 250 of it, so member mail needs a separate account or a paid plan as the fraternity grows.
+- **WhatsApp version**: a new Meta marketing template (`daily_brief`: name, headline, one line, link button) and a separate opt-in toggle under Settings → Notifications; about 78 paise per message and Meta's per-user marketing limits apply. The existing product-updates consent must not be stretched to a daily message.
+- **Admin statistics** (platform admin): sends, opens by source, quiz answers and accuracy per day and per weekday lead, so the rotation can be tuned to what members open.
+- Quiz bank refresh every 90 days (the bank wraps); a Sunday "week in review" if members ask for one.
+
 ## 🟢 Built already — just add credentials/config to go live
 These ship complete and mock/flow-tested; flip them on by setting env in `backend/.env`.
 - **Razorpay payments (go-live)** — `payments` module + `app/core/payments.py` (migration `0019`) are built & mock-tested. Set `VS_RAZORPAY_KEY_ID`/`_KEY_SECRET`/`_WEBHOOK_SECRET` (dashboard.razorpay.com → API Keys; start in Test Mode), point the webhook at `/api/v1/payments/webhook`, then test end-to-end (order → Checkout → verify → webhook). Provider auto-switches mock→live. Frontend nginx CSP already allows Razorpay.

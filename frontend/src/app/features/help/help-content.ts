@@ -333,6 +333,21 @@ export const HELP_TOPICS: HelpTopic[] = [
     "featured": true
   },
   {
+    "id": "daily",
+    "title": "VidhiSangh Daily",
+    "path": "/app/daily",
+    "summary": "One short brief every morning: a section of the new codes, a Supreme Court judgment, a question, a landmark decided on this date, legal news and who joined near you.",
+    "steps": [
+      "Open the page from the morning notification, the home screen card, or the menu.",
+      "The lead item changes with the day of the week: section on Monday, judgment on Tuesday, question on Wednesday, On this day on Thursday, news on Friday, your fraternity on Saturday.",
+      "Tap an option to answer the question; the answer, the explanation and how other members did appear at once. One attempt per question.",
+      "Use the arrows at the top to read earlier days."
+    ],
+    "tip": "Turn the morning notification off under Settings → Notifications → Push if you would rather open the page yourself.",
+    "permission": null,
+    "featured": true
+  },
+  {
     "id": "network",
     "title": "Professional feed",
     "path": "/app/network",

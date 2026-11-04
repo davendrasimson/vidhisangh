@@ -1,0 +1,20 @@
+[Unit]
+Description=VidhiSangh Daily: post today's official items and push the morning brief to members with the app
+After=network-online.target postgresql.service
+OnFailure=vidhisangh-job-failed@%n.service
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/opt/vidhisangh/backend
+EnvironmentFile=/opt/vidhisangh/backend/.env
+Environment=PYTHONPATH=/opt/vidhisangh/backend
+# Push to the app (Firebase key, the same credential the API uses).
+LoadCredentialEncrypted=fcm_key:/etc/credstore.encrypted/vidhisangh.fcm_key
+Environment=VS_FCM_CREDENTIALS_FILE=%d/fcm_key
+ExecStart=/opt/vidhisangh/backend/.venv/bin/python -m app.scripts.daily_brief
+TimeoutStartSec=1800
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only

@@ -208,6 +208,11 @@ export const routes: Routes = [
           import('@features/news/news.component').then((m) => m.NewsComponent),
       },
       {
+        path: 'daily',
+        loadComponent: () =>
+          import('@features/daily/daily-brief.component').then((m) => m.DailyBriefComponent),
+      },
+      {
         path: 'payments',
         loadComponent: () =>
           import('@features/payments/payments.component').then((m) => m.PaymentsComponent),
