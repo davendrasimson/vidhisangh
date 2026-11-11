@@ -310,6 +310,32 @@ async def test_focus_sends_one_bar_at_a_time(client: AsyncClient, session_factor
     assert recorder.sent[-1].to == "c@pune.law"
 
 
+async def test_focus_random_invites_from_every_court(client: AsyncClient, session_factory, strong_password) -> None:
+    """`Random` is not a city (11 Nov 2026 the owner typed it and nothing went out): it means the whole queue, in random order."""
+    admin = await _admin(client, session_factory, strong_password)
+    csv_text = ("email,name,city,court,source\n"
+                "a@pryj.law,Adv. A,Prayagraj,Allahabad High Court,the roll\n"
+                "b@lko.law,Adv. B,Lucknow,\"Allahabad High Court, Lucknow Bench\",the roll\n"
+                "c@pune.law,Adv. C,Pune,\"District Court, Pune\",the roll\n")
+    await client.post("/api/v1/platform-admin/outreach/contacts", headers=admin, files={"file": ("f.csv", csv_text.encode(), "text/csv")})
+    r = await client.patch("/api/v1/platform-admin/outreach/settings", headers=admin, json={"focus": " random ", "paused": False, "daily_limit": 2})
+    assert r.status_code == 200 and r.json()["focus"] == "Random" and r.json()["queued_in_focus"] == 3
+    recorder = Recorder()
+    set_outreach_sender(recorder)
+    async with session_factory() as s:
+        assert (await service.send_batch(s, recorder))["sent"] == 2
+    assert len({m.to for m in recorder.sent}) == 2 and {m.to for m in recorder.sent} <= {"a@pryj.law", "b@lko.law", "c@pune.law"}
+    assert (await client.get("/api/v1/platform-admin/outreach", headers=admin)).json()["queued_in_focus"] == 1
+    # Today's number is spent; and with the queue empty the message does not blame the focus.
+    r = await client.post("/api/v1/platform-admin/outreach/send-now", headers=admin)
+    assert r.status_code == 409 and "tomorrow" in r.json()["detail"]
+    await client.patch("/api/v1/platform-admin/outreach/settings", headers=admin, json={"daily_limit": 10})
+    async with session_factory() as s:
+        assert (await service.send_batch(s, recorder))["sent"] == 1
+    r = await client.post("/api/v1/platform-admin/outreach/send-now", headers=admin)
+    assert r.status_code == 409 and "upload a CSV" in r.json()["detail"] and "Random" not in r.json()["detail"]
+
+
 ENGAGEMENT_CSV = (
     "email,name,city,court,source\n"
     "asha@alld.in,Adv. Asha Singh,Prayagraj,Allahabad High Court,the Allahabad roll\n"

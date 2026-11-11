@@ -26,11 +26,9 @@ async def run(dry_run: bool) -> dict:
         cfg = await service.get_settings(session)
         await session.commit()
         if dry_run:
-            where = [OutreachContact.status == OutreachStatus.QUEUED]
-            if cfg.focus:
-                where.append(service.focus_clause(cfg.focus))
+            where = [OutreachContact.status == OutreachStatus.QUEUED, *service.focus_where(cfg.focus)]
             queued = (await session.scalars(select(OutreachContact.email).where(*where)
-                                            .order_by(OutreachContact.created_at).limit(cfg.daily_limit))).all()
+                                            .order_by(*service.pick_order(cfg.focus)).limit(cfg.daily_limit))).all()
             return {"paused": cfg.paused, "daily_limit": cfg.daily_limit, "focus": cfg.focus,
                     "queued_in_focus": await service.queued_count(session, focus=cfg.focus),
                     "sent_today": await service.sent_today(session), "next": list(queued)}

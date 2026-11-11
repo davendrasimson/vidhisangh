@@ -71,7 +71,7 @@ async def update_settings(
     if daily_limit is not None:
         row.daily_limit = max(0, min(daily_limit, settings.OUTREACH_DAILY_LIMIT))
     if focus is not None:
-        row.focus = focus.strip()[:200] or None
+        row.focus = (RANDOM if is_random(focus) else focus.strip()[:200]) or None
     await session.flush()
     return row
 
@@ -193,16 +193,31 @@ async def budget_today(session: AsyncSession, now: datetime | None = None) -> in
     return max(0, min(cfg.daily_limit, settings.OUTREACH_DAILY_LIMIT) - await sent_today(session, now))
 
 
+RANDOM = "Random"  # the focus that means "every court, picked at random" (owner, 11 Nov 2026)
+
+
+def is_random(focus: str | None) -> bool:
+    return bool(focus) and focus.strip().lower() == RANDOM.lower()
+
+
 def focus_clause(focus: str | None):
     """The contacts a focus covers: city or court containing the text (case-insensitive)."""
     needle = f"%{focus.strip()}%"
     return OutreachContact.city.ilike(needle) | OutreachContact.court.ilike(needle)
 
 
+def focus_where(focus: str | None) -> list:
+    """The WHERE clauses a focus adds: none when it is empty or `Random`."""
+    return [focus_clause(focus)] if focus and focus.strip() and not is_random(focus) else []
+
+
+def pick_order(focus: str | None) -> tuple:
+    """Who goes first: at random across the queue under `Random`, else the oldest rows (court by court)."""
+    return (func.random(),) if is_random(focus) else (OutreachContact.created_at, OutreachContact.id)
+
+
 async def queued_count(session: AsyncSession, *, focus: str | None = None) -> int:
-    where = [OutreachContact.status == OutreachStatus.QUEUED, OutreachContact.deleted_at.is_(None)]
-    if focus and focus.strip():
-        where.append(focus_clause(focus))
+    where = [OutreachContact.status == OutreachStatus.QUEUED, OutreachContact.deleted_at.is_(None), *focus_where(focus)]
     return int(await session.scalar(select(func.count()).select_from(OutreachContact).where(*where)) or 0)
 
 
@@ -221,13 +236,12 @@ async def send_batch(
     cfg = await get_settings(session)
     if cfg.paused and not force:
         return report
-    where = [OutreachContact.status == OutreachStatus.QUEUED, OutreachContact.deleted_at.is_(None)]
-    if cfg.focus and cfg.focus.strip():
-        where.append(focus_clause(cfg.focus))  # court by court: only the bar in focus
+    # Court by court: only the bar in focus; `Random`: anyone, in random order.
+    where = [OutreachContact.status == OutreachStatus.QUEUED, OutreachContact.deleted_at.is_(None), *focus_where(cfg.focus)]
     while (budget := await budget_today(session, now)) > 0:
         contact = await session.scalar(
             select(OutreachContact).where(*where)
-            .order_by(OutreachContact.created_at, OutreachContact.id).limit(1).with_for_update(skip_locked=True)
+            .order_by(*pick_order(cfg.focus)).limit(1).with_for_update(skip_locked=True)
         )
         if contact is None:
             break

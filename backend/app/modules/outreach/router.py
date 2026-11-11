@@ -162,7 +162,8 @@ async def outreach_send_now(current: CurrentUserDep, session: AuthSessionDep) ->
     planned = min(await service.budget_today(session), in_scope)
     if planned <= 0:
         if in_scope == 0:
-            detail = (f"Nobody from {cfg.focus} is waiting: change or clear the focus." if cfg.focus
+            detail = (f"Nobody from {cfg.focus} is waiting: change or clear the focus."
+                      if cfg.focus and not service.is_random(cfg.focus)
                       else "Nobody is waiting to be invited: upload a CSV of contacts first.")
         else:
             detail = "Today's number has already gone out; the rest go tomorrow."

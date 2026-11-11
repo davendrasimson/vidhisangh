@@ -14,6 +14,9 @@ Platform admin → **Outreach**. Built 16 Oct 2026 (migration `0067`).
   colleagues from their own court. First focus: **Prayagraj** (the Allahabad roll). Pace: the ceiling is now 500 a day
   (`VS_OUTREACH_DAILY_LIMIT`), the daily number stays 100 for week one; raise to 200, then 500, only if bounces stay under
   3 % and no complaints arrive (the sending domain is new). The job spaces messages 10–30 s apart.
+  **`Random`** as the focus (11 Nov 2026) means every court, each contact picked at random from the whole queue
+  (`ORDER BY random()`); an empty focus sends the oldest rows first. Any other text is matched against city and court,
+  so a word that is not a place sends nothing (that is what happened on 11 Nov with "Random" before this mode existed).
 - **Send now** (added 31 Oct 2026): the admin screen can send the rest of today's number straight away (`POST /platform-admin/outreach/send-now`), even while scheduled sending is paused. It runs inside the API process (`app/modules/outreach/runner.py`), 5–10 s apart, and the screen refreshes every 5 s until `sent_today` stops moving. The batch re-checks the day's budget before every message, so a run in two API workers, or alongside the morning timer, still stops at the daily number; each contact is committed as it is sent, so a worker restart mid-run leaves the rest queued and never re-sends. With nobody queued, or today's number already out, the button is disabled and the API answers 409 with the reason.
 - **Skipped automatically:** existing members, anyone who unsubscribed or bounced before, duplicates, malformed addresses, rows without a source.
 - **Unsubscribe**: the mail app's own button (RFC 8058 `List-Unsubscribe-Post`, no page) or the link in the footer (`/unsubscribe/:token`, one tap; not on page load, because mail scanners open links). Either puts a peppered hash of the address on `outreach_suppressions`, which outlives the contact row: the address can never be re-imported.

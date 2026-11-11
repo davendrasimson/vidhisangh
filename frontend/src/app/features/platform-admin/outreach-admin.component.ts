@@ -118,7 +118,7 @@ const STATUS_LABEL: Record<ContactStatus, string> = {
           <p class="text-sm text-content-muted">From {{ d.from_address }}. Sent at about 10:30 am, Monday to Saturday.</p>
           @if (d.focus) {
             <p class="text-sm mt-1" [class.text-warning]="d.queued_in_focus === 0" [class.text-content-muted]="d.queued_in_focus !== 0">
-              Focus: <strong class="text-content">{{ d.focus }}</strong> · {{ d.queued_in_focus | number }} waiting there@if (d.queued_in_focus === 0) {: change or clear the focus to continue}.
+              Focus: <strong class="text-content">{{ d.focus }}</strong> · {{ d.queued_in_focus | number }} waiting {{ d.focus.toLowerCase() === 'random' ? 'across every court, picked at random' : 'there' }}@if (d.queued_in_focus === 0 && d.focus.toLowerCase() !== 'random') {: change or clear the focus to continue}.
             </p>
           }
           @if (sendingNow() || d.sending) {
@@ -132,8 +132,8 @@ const STATUS_LABEL: Record<ContactStatus, string> = {
         <label class="text-sm flex items-center gap-2">Per day
           <input class="vs-input w-20" type="number" min="0" [max]="d.max_daily_limit" [(ngModel)]="limit" />
         </label>
-        <label class="text-sm flex items-center gap-2" title="Court by court: while set, only contacts whose city or court matches go out">Focus
-          <input class="vs-input w-44" [(ngModel)]="focus" maxlength="200" placeholder="city or court, e.g. Prayagraj" />
+        <label class="text-sm flex items-center gap-2" title="Court by court: while set, only contacts whose city or court matches go out. Type Random to invite from every court in random order; leave empty for the oldest rows first.">Focus
+          <input class="vs-input w-44" [(ngModel)]="focus" maxlength="200" placeholder="city or court, or Random" />
         </label>
         <button mat-stroked-button (click)="save({ daily_limit: limit, focus: focus })">Save</button>
         <button mat-stroked-button [color]="d.paused ? 'primary' : 'warn'" (click)="save({ paused: !d.paused })">
