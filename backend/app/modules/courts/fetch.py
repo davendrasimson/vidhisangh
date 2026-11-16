@@ -11,9 +11,10 @@ AOR search is submitted, and the CAPTCHA-protected searches are never touched.
   weekly list). Labels come from the column position, dates from the PDF
   path (``/jonew/cl/<date>/...``).
 * **Allahabad High Court** (``allahabad``): each bench's cause-list form
-  (``input1A.jsp`` / ``input1L.jsp``, list type D = daily) offers the dates a
-  daily list exists for. Lists are court-wise pages on the bench's own site,
-  so the link is the bench's index page.
+  (``input1A.jsp`` / ``input1L.jsp``, list type Z = the combined cause list;
+  type D, "daily", offers no dates) lists the dates a combined list exists
+  for, as unquoted ``<option value=dd-mm-yyyy>``. Lists are court-wise pages
+  on the bench's own site, so the link is the bench's index page.
 """
 
 from __future__ import annotations
@@ -44,7 +45,8 @@ _SCI_DATE = re.compile(r"/cl/(?:advance/|wk/)?(\d{4}-\d{2}-\d{2})")
 _ROW = re.compile(r"<tr[^>]*>(.*?)</tr>", re.S | re.I)
 _CELL = re.compile(r"<td[^>]*>(.*?)</td>", re.S | re.I)
 _HREF = re.compile(r'href="([^"]+\.pdf)"', re.I)
-_OPTION = re.compile(r"<option[^>]*value=\"([^\"]*)\"", re.I)
+_OPTION = re.compile(r"<option[^>]*\svalue=[\"']?([^\"'\s>]*)", re.I)  # quoted or bare values
+ALLAHABAD_LIST_TYPE = "Z"  # the combined cause list
 
 ALLAHABAD_BENCHES = (
     ("Allahabad", "https://www.allahabadhighcourt.in/causelist/input1A.jsp",
@@ -105,10 +107,10 @@ async def fetch_sci(http: httpx.AsyncClient, court: Court) -> dict[date, list[di
 async def fetch_allahabad(http: httpx.AsyncClient, court: Court) -> dict[date, list[dict]]:
     out: dict[date, list[dict]] = defaultdict(list)
     for bench, form_url, index_url in ALLAHABAD_BENCHES:
-        r = await http.post(form_url, data={"listType": "D"})
+        r = await http.post(form_url, data={"listType": ALLAHABAD_LIST_TYPE})
         r.raise_for_status()
         for day in parse_dates(r.text):
-            out[day].append({"label": f"Daily cause list, {bench} (court-wise)", "url": index_url})
+            out[day].append({"label": f"Combined cause list, {bench} (court-wise)", "url": index_url})
     return dict(out)
 
 

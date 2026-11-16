@@ -37,7 +37,7 @@ migration `0091` (`court_cause_lists`), card on the Daily page
 | Court | How | Lists |
 |---|---|---|
 | Supreme Court | `/cause-list/` "Cause lists at a glance" table (`fetch.parse_sci`): one row per listing day, fourteen columns in a fixed order; labels come from the column position, dates from the PDF path | advance; court-number-wise, judge-wise, chamber, single-judge, review & curative, registrar (main / supplementary); weekly |
-| Allahabad High Court | each bench's daily-list form (`input1A.jsp`, `input1L.jsp`, list type D) offers the dates a list exists for; the link is the bench's index page (lists are court-wise pages). On Sunday 16 Nov the form offered no dates; check the journal on the first weekday run (`court_desk_fetched court=allahabad-high-court days=…`) | "Daily cause list, Allahabad / Lucknow Bench" |
+| Allahabad High Court | each bench's cause-list form (`input1A.jsp`, `input1L.jsp`) with list type **Z, the combined cause list** (type D "daily" offers no dates) lists the dates a list exists for, as bare `<option value=dd-mm-yyyy>`; the link is the bench's index page (lists are court-wise pages) | "Combined cause list, Allahabad / Lucknow Bench" |
 
 Every other High Court in `registry.COURTS` (one per official group, website
 checked 16 Nov 2026) is link-only. Adding a court means a fetcher in

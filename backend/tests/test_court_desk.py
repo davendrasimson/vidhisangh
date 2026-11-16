@@ -47,8 +47,9 @@ def sci_html(today, tomorrow, supplementary: bool = False) -> str:
 
 
 def allahabad_html(today, tomorrow) -> str:
-    return (f'<select name="listDate"><option value="{today.strftime("%d-%m-%Y")}">x</option>'
-            f'<option value="{tomorrow.strftime("%d/%m/%Y")}">y</option><option value="">--</option></select>')
+    """As the site writes it: bare option values, newest first, one selected."""
+    return (f'<select class="form-control" name="listDate"><option value={tomorrow.strftime("%d-%m-%Y")} selected>x</option>'
+            f'<option value="{today.strftime("%d/%m/%Y")}">y</option><option value="">--</option></select>')
 
 
 def mock_http(today, tomorrow, *, allahabad_down: bool = False, supplementary: bool = False) -> httpx.AsyncClient:
@@ -60,7 +61,7 @@ def mock_http(today, tomorrow, *, allahabad_down: bool = False, supplementary: b
         if "input1A.jsp" in url or "input1L.jsp" in url:
             if allahabad_down:
                 raise httpx.ConnectError("down")
-            assert request.method == "POST" and b"listType=D" in request.content, "only the daily-list form, never a search"
+            assert request.method == "POST" and request.content == b"listType=Z", "only the combined-list form, never a search"
             return httpx.Response(200, text=allahabad_html(today, tomorrow) if "input1A" in url else '<select name="listDate"></select>')
         raise AssertionError(f"unexpected request {url}")
     return httpx.AsyncClient(transport=httpx.MockTransport(handler))
@@ -152,7 +153,7 @@ async def test_lists_are_recorded_once_posted_once_and_shown_to_the_courts_membe
     alld = await member("alld@example.com", "Adv. Tripathi", headline="Advocate, Allahabad High Court", city="Prayagraj")
     court = (await client.get(f"{API}/brief", headers=alld)).json()["court"]
     assert court["name"] == "Allahabad High Court" and court["ecourts_url"].startswith("https://hcservices.ecourts.gov.in/")
-    assert court["today"]["lists"] == [{"label": "Daily cause list, Allahabad (court-wise)",
+    assert court["today"]["lists"] == [{"label": "Combined cause list, Allahabad (court-wise)",
                                         "url": "https://www.allahabadhighcourt.in/causelist/indexA.html"}]
 
     kerala = await member("kochi@example.com", "Adv. Nair", courts=["Kerala High Court"])
