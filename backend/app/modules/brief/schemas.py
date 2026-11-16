@@ -5,6 +5,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
+from app.modules.courts.schemas import CourtCard
 from app.modules.network.schemas import DailyCard, DirectoryPerson
 
 
@@ -55,6 +56,7 @@ class BriefRead(BaseModel):
     quiz: QuizRead | None = None
     on_this_day: OnThisDayRead | None = None
     fraternity: FraternityRead | None = None
+    court: CourtCard | None = None  # the member's court (from their profile) and its cause lists
 
 
 class QuizAnswerIn(BaseModel):

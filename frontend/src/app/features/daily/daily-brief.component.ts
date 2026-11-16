@@ -9,7 +9,7 @@ import { WhatsappDailyComponent } from '@shared/whatsapp-daily/whatsapp-daily.co
 import { NetworkService } from '@core/services/network.service';
 import { NotificationService } from '@core/services/notification.service';
 import { publicOrigin } from '@core/platform/platform';
-import { Brief, BriefLead, LEAD_TITLES } from '@core/models/brief.models';
+import { Brief, BriefCardKind, BriefLead, LEAD_TITLES } from '@core/models/brief.models';
 import { DailyCard, DirectoryPerson } from '@core/models/network.models';
 
 /**
@@ -38,11 +38,12 @@ export class DailyBriefComponent implements OnInit {
   protected readonly titles = LEAD_TITLES;
   private readonly origin = publicOrigin();
 
-  /** The items in page order: the lead first, then the rest. */
-  protected readonly order = computed<BriefLead[]>(() => {
+  /** The items in page order: the lead first, then the member's court (when their profile names one), then the rest. */
+  protected readonly order = computed<BriefCardKind[]>(() => {
     const all: BriefLead[] = ['quiz', 'section', 'judgment', 'on_this_day', 'news', 'fraternity'];
     const lead = this.brief()?.lead;
-    return lead ? [lead, ...all.filter((k) => k !== lead)] : all;
+    const ordered: BriefLead[] = lead ? [lead, ...all.filter((k) => k !== lead)] : all;
+    return [ordered[0], 'court', ...ordered.slice(1)];
   });
 
   protected readonly today = new Date().toISOString().slice(0, 10);

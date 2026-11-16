@@ -865,6 +865,17 @@ Unit `vidhisangh-daily-brief.service` + `.timer` (07:30 IST Mon–Sat), from
 `infra/jobs/`; carries the Firebase credential like the board digest. Needs
 migration `0089`. Dry run and tables in [DAILY_BRIEF.md](DAILY_BRIEF.md).
 
+## Court desk (16 November 2026)
+
+Unit `vidhisangh-court-desk.service` + `.timer` (06:45 and 18:00 IST Mon–Sat),
+from `infra/jobs/`; plain `.env`, no credential (it only reads public court
+pages). Needs migration `0091`. Install like the other jobs:
+
+    sudo install -m 644 infra/jobs/vidhisangh-court-desk.service infra/jobs/vidhisangh-court-desk.timer /etc/systemd/system/
+    sudo systemctl daemon-reload && sudo systemctl enable --now vidhisangh-court-desk.timer
+
+Dry run and journal lines in [COURT_DESK.md](COURT_DESK.md).
+
 ## Push notifications (Firebase)
 
 Firebase project `vidhisangh-2c038`, service account

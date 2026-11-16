@@ -22,7 +22,10 @@ morning message is never the same two days running:
 | Sunday | no message; the page shows *On this day* first | |
 
 The other five items follow the lead in a fixed order (quiz, section, judgment,
-on this day, news, fraternity).
+on this day, news, fraternity). Since 16 November 2026 a **Your court** card
+sits second, for members whose profile names a court: the cause lists the court
+published for today and the next listing day, and links to the court's site and
+group ([COURT_DESK.md](COURT_DESK.md)).
 
 **Quiz.** One attempt per member and question. The answer and the explanation
 are never in the page until the member has answered (`QuizRead.answer` is null

@@ -38,6 +38,23 @@ export interface BriefFraternity {
   people: DirectoryPerson[];
 }
 
+export interface CauseListLink { label: string; url: string; }
+export interface CauseListDay { for_date: string; lists: CauseListLink[]; fetched_at: string; }
+
+/** backend app/modules/courts/schemas.py: the member's court and its published cause lists. */
+export interface BriefCourt {
+  slug: string;
+  name: string;
+  website: string;
+  cause_list_url: string;
+  ecourts_url: string | null;
+  group_id: string | null;
+  /** Whether VidhiSangh reads this court's cause-list index (else the card only links to the site). */
+  fetches: boolean;
+  today: CauseListDay | null;
+  next: CauseListDay | null;
+}
+
 export interface Brief {
   day: string;
   weekday: string;
@@ -48,7 +65,11 @@ export interface Brief {
   quiz: BriefQuiz | null;
   on_this_day: OnThisDay | null;
   fraternity: BriefFraternity | null;
+  court: BriefCourt | null;
 }
+
+/** The cards in page order: the lead, then the member's court, then the rest. */
+export type BriefCardKind = BriefLead | 'court';
 
 export interface QuizAnswer {
   quiz_id: string;

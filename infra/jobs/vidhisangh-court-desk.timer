@@ -1,0 +1,12 @@
+[Unit]
+Description=VidhiSangh court desk: morning (06:45 IST, before the Daily brief) and evening (18:00 IST, when the next day's lists are up), Monday to Saturday
+
+[Timer]
+OnCalendar=Mon..Sat *-*-* 01:15:00 UTC
+OnCalendar=Mon..Sat *-*-* 12:30:00 UTC
+RandomizedDelaySec=300
+# Idempotent: a day's lists are recorded and posted once, so catching up never doubles.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

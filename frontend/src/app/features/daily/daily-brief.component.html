@@ -51,6 +51,45 @@
               </section>
             }
           }
+          @case ('court') {
+            @if (b.court; as c) {
+              <section class="rounded-card bg-surface-raised border border-line shadow-card p-4" aria-label="Your court">
+                <div class="flex items-center justify-between gap-3">
+                  <p class="text-xs font-semibold uppercase tracking-wide text-brand">Your court</p>
+                  @if (c.group_id) { <a [routerLink]="['/app/groups', c.group_id]" class="text-sm text-brand">Court group →</a> }
+                </div>
+                <h2 class="font-semibold text-content mt-1">{{ c.name }}</h2>
+                @if (c.today; as t) {
+                  <p class="text-sm text-content mt-2">Cause lists for today:</p>
+                  <ul class="flex flex-wrap gap-2 mt-1">
+                    @for (l of t.lists; track l.url) {
+                      <li><a [href]="l.url" target="_blank" rel="noopener" class="vs-chip text-xs hover:text-brand">{{ l.label }}</a></li>
+                    }
+                  </ul>
+                } @else if (c.fetches) {
+                  <p class="text-sm text-content-muted mt-2">No cause list is published for today yet.</p>
+                } @else {
+                  <p class="text-sm text-content-muted mt-2">Today's cause list is on the court's website.</p>
+                }
+                @if (c.next; as n) {
+                  <p class="text-sm text-content mt-3">For {{ n.for_date | date: 'EEEE dd/MM/yyyy' }}:</p>
+                  <ul class="flex flex-wrap gap-2 mt-1">
+                    @for (l of n.lists; track l.url) {
+                      <li><a [href]="l.url" target="_blank" rel="noopener" class="vs-chip text-xs hover:text-brand">{{ l.label }}</a></li>
+                    }
+                  </ul>
+                }
+                <div class="flex flex-wrap gap-2 mt-3">
+                  <a mat-stroked-button [href]="c.cause_list_url" target="_blank" rel="noopener">Cause lists</a>
+                  <a mat-button [href]="c.website" target="_blank" rel="noopener">Court website</a>
+                  @if (c.ecourts_url) { <a mat-button [href]="c.ecourts_url" target="_blank" rel="noopener">eCourts</a> }
+                </div>
+                @if (c.today || c.next) {
+                  <p class="text-xs text-content-muted mt-2">Read from the court's public index. VidhiSangh opens no list and looks up no case.</p>
+                }
+              </section>
+            }
+          }
           @case ('section') {
             @if (b.section; as s) {
               <section class="rounded-card bg-surface-raised border border-line shadow-card p-4" aria-label="Section of the day">

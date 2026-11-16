@@ -3,12 +3,15 @@ from __future__ import annotations
 from datetime import date
 
 from fastapi import APIRouter, HTTPException, Query, status
+from sqlalchemy import select
 
 from app.core.deps import CurrentUserDep, TenantSessionDep, require_permission
 from app.modules.brief import service
 from app.modules.brief.schemas import BriefRead, QuizAnswerIn, QuizAnswerRead
+from app.modules.courts import service as courts
 from app.modules.network.schemas import DirectoryPerson
 from app.modules.network.service import NetworkService
+from app.modules.profile.models import ProfessionalProfile
 
 router = APIRouter(prefix="/brief", tags=["daily brief"])
 
@@ -44,9 +47,13 @@ async def brief(
         people = _people(home["nearby"]) or _people(home["recent"])
         fraternity = {"members": home["members"], "in_city": home["in_city"], "joined_7d": home["joined_7d"],
                       "city": home["city"], "people": people[:3]}
+    # The member's own profile picks the court card; nothing about them leaves the app.
+    profile = await session.scalar(select(ProfessionalProfile).where(ProfessionalProfile.user_id == current.id))
+    court = courts.court_for_profile(profile)
+    court_card = await courts.card_for(session, court, day) if court else None
     if day == today:
         await service.mark_opened(session, current.id, day, source if source in ("push", "whatsapp") else "app")
-    return BriefRead.model_validate({**data, "fraternity": fraternity})
+    return BriefRead.model_validate({**data, "fraternity": fraternity, "court": court_card})
 
 
 @router.post(
