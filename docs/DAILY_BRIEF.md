@@ -104,7 +104,9 @@ separate account from the invitations' `VS_OUTREACH_SMTP_*`.
   default, on for members with no registered phone and off for members who get
   the push; `GET/PUT /notifications/daily-email` (`enabled`, `email_verified`,
   `has_app`, `chosen`); the switch is under Settings → Notifications. The generic
-  Email channel switch pauses it too. Only verified addresses are mailed.
+  Email channel switch pauses it too. The address need **not** be verified (owner,
+  17 Nov 2026: members typed it at sign-up; 19 of the 37 members without the app
+  had never verified); a refusal from the mail server is recorded as `failed`.
 - **Unsubscribe**: every email carries `List-Unsubscribe` / one-click POST and a
   footer link to `/api/v1/brief/email/unsubscribe/<token>` (GET confirms, POST
   stops; the token rotates when the member switches it on again).

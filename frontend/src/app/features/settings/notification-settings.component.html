@@ -15,13 +15,11 @@
           <h2 class="font-medium text-content">VidhiSangh Daily by email</h2>
           <p class="text-sm text-content-muted">The morning brief in your inbox: the section, judgment, question, landmark and news of the day, with your court's cause lists.
             @if (!de.chosen) { {{ de.has_app ? 'Off by default because you get the morning notification in the app.' : 'On by default because you do not have the app yet.' }} }</p>
-          @if (!de.email_verified) {
-            <p class="text-sm text-content-muted">Verify your account email to receive it.</p>
-          } @else if (prefs()['email']?.enabled === false) {
+          @if (prefs()['email']?.enabled === false) {
             <p class="text-sm text-content-muted">If Email is switched off below, this is paused too.</p>
           }
         </div>
-        <mat-slide-toggle [checked]="de.enabled" [disabled]="savingDailyEmail() || (!de.email_verified && !de.enabled)"
+        <mat-slide-toggle [checked]="de.enabled" [disabled]="savingDailyEmail()"
           (change)="toggleDailyEmail($event.checked)" aria-label="VidhiSangh Daily by email" />
       </section>
     }

@@ -456,14 +456,16 @@ async def has_app(session: AsyncSession, user_id: uuid.UUID) -> bool:
 
 
 async def email_recipients(session: AsyncSession) -> list[User]:
-    """Active members with a verified email who have not switched email off, and who either chose
-    the email or have no app (no registered phone). Needs RLS bypass."""
+    """Active members with an email address who have not switched email off, and who either chose
+    the email or have no app (no registered phone). The address need not be verified (owner,
+    17 Nov 2026: members typed it at sign-up; a refusal is recorded as failed and the one-tap
+    unsubscribe is in every email). Needs RLS bypass."""
     email_off = set(await session.scalars(select(NotificationPreference.user_id).where(
         NotificationPreference.channel == NotificationChannel.EMAIL, NotificationPreference.enabled.is_(False))))
     with_app = set(await session.scalars(select(PushDevice.user_id).distinct()))
     prefs = {p.user_id: p.enabled for p in await session.scalars(select(DailyBriefEmailPreference))}
     users = await session.scalars(select(User).where(
-        User.deleted_at.is_(None), User.is_active.is_(True), User.is_email_verified.is_(True), User.email.is_not(None)))
+        User.deleted_at.is_(None), User.is_active.is_(True), User.email.is_not(None)))
     out = []
     for user in users:
         if user.id in email_off:

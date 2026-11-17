@@ -299,7 +299,7 @@ async def test_the_email_brief_goes_to_members_without_the_app_and_stops_on_one_
     unverified = await _second_member(client, strong_password, "new@example.com", "Adv. New")
     await _seed(session_factory)
 
-    # Defaults: on without the app, off with it; the unverified address never gets mail.
+    # Defaults: on without the app, off with it; an unverified address is mailed too (owner, 17 Nov 2026).
     d = (await client.get(f"{API}/notifications/daily-email", headers=no_app)).json()
     assert d == {"enabled": True, "email_verified": True, "has_app": False, "chosen": False}
     assert (await client.get(f"{API}/notifications/daily-email", headers=with_app)).json()["enabled"] is False
@@ -308,12 +308,12 @@ async def test_the_email_brief_goes_to_members_without_the_app_and_stops_on_one_
     mail = MailRecorder()
     async with session_factory() as s:
         assert await service.send_email_briefs(s, mail, SUNDAY) == {"sent": 0, "already": 0, "failed": 0, "skipped": 0}
-        assert await service.send_email_briefs(s, mail, WEDNESDAY) == {"sent": 1, "already": 0, "failed": 0, "skipped": 0}
-        assert await service.send_email_briefs(s, mail, WEDNESDAY) == {"sent": 0, "already": 1, "failed": 0, "skipped": 0}
+        assert await service.send_email_briefs(s, mail, WEDNESDAY) == {"sent": 2, "already": 0, "failed": 0, "skipped": 0}
+        assert await service.send_email_briefs(s, mail, WEDNESDAY) == {"sent": 0, "already": 2, "failed": 0, "skipped": 0}
         await s.commit()
-    assert len(mail.messages) == 1
-    m = mail.messages[0]
-    assert m.to_email == "mehta@example.com" and m.subject.startswith("Today's question: ")
+    assert {m.to_email for m in mail.messages} == {"mehta@example.com", "new@example.com"}
+    m = next(m for m in mail.messages if m.to_email == "mehta@example.com")
+    assert m.subject.startswith("Today's question: ")
     assert "Good morning, Mehta." in m.body and "SECTION OF THE DAY" in m.body and "Open today's brief" in m.html
     assert "/app/daily?from=email" in m.html and "Answer in the app" in m.html
     assert m.unsubscribe_url.startswith("https://vidhisangh.com/api/v1/brief/email/unsubscribe/") and m.unsubscribe_url in m.html
@@ -338,20 +338,21 @@ async def test_the_email_brief_goes_to_members_without_the_app_and_stops_on_one_
     assert r.json()["enabled"] is True and r.json()["has_app"] is True
     mail = MailRecorder()
     async with session_factory() as s:
-        assert await service.send_email_briefs(s, mail, SATURDAY) == {"sent": 1, "already": 0, "failed": 0, "skipped": 0}
+        assert await service.send_email_briefs(s, mail, SATURDAY) == {"sent": 2, "already": 0, "failed": 0, "skipped": 0}
         await s.commit()
-    assert mail.messages[0].to_email == "rao@example.com" and mail.messages[0].subject.startswith("Your fraternity: ")
+    rao = next(m for m in mail.messages if m.to_email == "rao@example.com")
+    assert rao.subject.startswith("Your fraternity: ") and {m.to_email for m in mail.messages} == {"rao@example.com", "new@example.com"}
     # Switching on again rotates the token, so the old link cannot stop the new choice.
     r = await client.put(f"{API}/notifications/daily-email", headers=no_app, json={"enabled": True})
     assert r.json()["enabled"] is True
     assert (await client.post(f"{API}/brief/email/unsubscribe/{token}")).status_code == 204
     assert (await client.get(f"{API}/notifications/daily-email", headers=no_app)).json()["enabled"] is True
     async with session_factory() as s:
-        assert len((await s.scalars(select(DailyBriefEmailPreference))).all()) == 2
+        assert len((await s.scalars(select(DailyBriefEmailPreference))).all()) == 3
 
     # A refusal from the mail server is recorded, not raised.
     failing = MailRecorder(fail=True)
     async with session_factory() as s:
-        assert await service.send_email_briefs(s, failing, date(2026, 11, 9)) == {"sent": 0, "already": 0, "failed": 2, "skipped": 0}
+        assert await service.send_email_briefs(s, failing, date(2026, 11, 9)) == {"sent": 0, "already": 0, "failed": 3, "skipped": 0}
         rows = (await s.scalars(select(DailyBriefEmail).where(DailyBriefEmail.for_date == date(2026, 11, 9)))).all()
         assert {r.status for r in rows} == {"failed"} and all("TimeoutError" in r.detail for r in rows)
