@@ -3,7 +3,7 @@ import { DatePipe } from '@angular/common';
 import { firstValueFrom } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { NotificationFeedService } from '@core/services/notification-feed.service';
+import { DailyEmailPreference, NotificationFeedService } from '@core/services/notification-feed.service';
 import { WhatsappRemindersComponent } from '@shared/whatsapp-reminders/whatsapp-reminders.component';
 import { WhatsappUpdatesComponent } from '@shared/whatsapp-updates/whatsapp-updates.component';
 import { WhatsappDailyComponent } from '@shared/whatsapp-daily/whatsapp-daily.component';
@@ -42,6 +42,9 @@ export class NotificationSettingsComponent implements OnInit {
   protected readonly dailyOrders = signal({ enabled: false, email_verified: false });
   protected readonly savingDailyOrders = signal(false);
   protected readonly dailyOrdersAvailable = signal(false);
+  /** VidhiSangh Daily by email: on by default for members without the app. */
+  protected readonly dailyEmail = signal<DailyEmailPreference | null>(null);
+  protected readonly savingDailyEmail = signal(false);
 
   protected readonly channels: ChannelMeta[] = [
     { channel: 'in_app', label: 'In-app', icon: 'notifications', hint: 'Always on — the bell in your header.', live: true },
@@ -53,8 +56,28 @@ export class NotificationSettingsComponent implements OnInit {
   ];
 
   async ngOnInit(): Promise<void> {
-    await Promise.all([this.loadPrefs(), this.loadDeliveries(), this.loadDailyOrders()]);
+    await Promise.all([this.loadPrefs(), this.loadDeliveries(), this.loadDailyOrders(), this.loadDailyEmail()]);
     this.loading.set(false);
+  }
+
+  private async loadDailyEmail(): Promise<void> {
+    try {
+      this.dailyEmail.set(await firstValueFrom(this.feed.dailyEmail()));
+    } catch {
+      this.dailyEmail.set(null);
+    }
+  }
+
+  protected async toggleDailyEmail(enabled: boolean): Promise<void> {
+    this.savingDailyEmail.set(true);
+    try {
+      this.dailyEmail.set(await firstValueFrom(this.feed.setDailyEmail(enabled)));
+      this.notify.success(enabled ? 'VidhiSangh Daily will arrive by email every morning.' : 'The morning email is off.');
+    } catch {
+      await this.loadDailyEmail();
+    } finally {
+      this.savingDailyEmail.set(false);
+    }
   }
 
   private async loadDailyOrders(): Promise<void> {

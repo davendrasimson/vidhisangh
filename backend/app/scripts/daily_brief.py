@@ -1,12 +1,14 @@
 """Send VidhiSangh Daily (systemd timer vidhisangh-daily-brief, 07:30 IST Mon-Sat).
 
     python -m app.scripts.daily_brief            # post today's official items if not yet posted, then
-                                                 # push to members with the app and send the WhatsApp
-                                                 # template to members who said yes to it
+                                                 # push to members with the app, send the WhatsApp
+                                                 # template to members who said yes to it, and email
+                                                 # the brief to members without the app
     python -m app.scripts.daily_brief --dry-run  # what today's message would say and to how many; nothing written or sent
 
 Each channel is skipped (and says so) when it is not configured: push needs
-VS_FCM_CREDENTIALS_FILE, WhatsApp the number's token and VS_WA_DAILY_TEMPLATE.
+VS_FCM_CREDENTIALS_FILE, WhatsApp the number's token and VS_WA_DAILY_TEMPLATE,
+email the notifications SMTP (VS_SMTP_HOST).
 """
 
 from __future__ import annotations
@@ -14,6 +16,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 
+from app.core.channels import EmailSmtpProvider
 from app.core.config import settings
 from app.core.database import session_scope
 from app.core.push import get_push_sender
@@ -29,6 +32,7 @@ async def run(dry_run: bool) -> dict:
             brief = await service.compose(session, day, None)
             report["members_with_app"] = len(await service.recipients(session))
             report["whatsapp_opted_in"] = len(await service.whatsapp_recipients(session))
+            report["email_recipients"] = len(await service.email_recipients(session))
             report["message"] = service._message(service.lead_for(day), brief, {"joined_7d": 0, "in_city": 0, "city": None})
             return report
         push = get_push_sender()
@@ -42,6 +46,11 @@ async def run(dry_run: bool) -> dict:
             report["whatsapp"] = "skipped: WhatsApp is not configured (token, VS_WA_PHONE_NUMBER_ID, VS_WA_DAILY_TEMPLATE)"
         else:
             report["whatsapp"] = await service.send_whatsapp_briefs(session, whatsapp, day)
+        email = EmailSmtpProvider()
+        if not email.configured:
+            report["email"] = "skipped: the notifications SMTP is not configured (VS_SMTP_HOST)"
+        else:
+            report["email"] = await service.send_email_briefs(session, email, day)
     return report
 
 

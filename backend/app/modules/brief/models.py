@@ -44,3 +44,30 @@ class DailyQuizAnswer(AuditedBase):
     for_date: Mapped[date] = mapped_column(Date, nullable=False)
     chosen: Mapped[int] = mapped_column(Integer, nullable=False)
     correct: Mapped[bool] = mapped_column(Boolean, nullable=False)
+
+
+class DailyBriefEmailPreference(AuditedBase):
+    """VidhiSangh Daily by email (migration 0092). No row means the default: on for
+    members without the app, off for members who get the push. ``token`` is the
+    one-tap unsubscribe secret, rotated whenever the member switches it on again."""
+
+    __tablename__ = "daily_brief_email_prefs"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, unique=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    token: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+
+
+class DailyBriefEmail(AuditedBase):
+    """One member's emailed brief for one day, claimed before sending.
+    ``status``: sending | sent | failed."""
+
+    __tablename__ = "daily_brief_emails"
+    __table_args__ = (UniqueConstraint("user_id", "for_date", name="uq_daily_brief_email_user_day"),)
+
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, index=True)
+    for_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    lead: Mapped[str] = mapped_column(String(20), nullable=False)
+    status: Mapped[str] = mapped_column(String(10), nullable=False)
+    detail: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    opened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -91,10 +91,30 @@ A platform-admin view of these is not built yet (FUTURE_DELIVERABLES). For now:
            count(*) filter (where opened_via = 'push') via_push
     from daily_brief_sends where status <> 'viewed' group by 1, 2 order by 1 desc;
 
+## By email (17 November 2026)
+
+Members **without the app** get the same brief by email every morning, in the
+same job after the push and the WhatsApp message (`service.send_email_briefs`,
+`brief/email.py` renders text and HTML, lead first, each item linked to its public
+page and the quiz to the app; the member's court card is included when its lists
+are known). Sent through the notifications SMTP (`VS_SMTP_*`, Brevo), which is a
+separate account from the invitations' `VS_OUTREACH_SMTP_*`.
+
+- **Preference** `daily_brief_email_prefs` (migration **0092**): no row means the
+  default, on for members with no registered phone and off for members who get
+  the push; `GET/PUT /notifications/daily-email` (`enabled`, `email_verified`,
+  `has_app`, `chosen`); the switch is under Settings → Notifications. The generic
+  Email channel switch pauses it too. Only verified addresses are mailed.
+- **Unsubscribe**: every email carries `List-Unsubscribe` / one-click POST and a
+  footer link to `/api/v1/brief/email/unsubscribe/<token>` (GET confirms, POST
+  stops; the token rotates when the member switches it on again).
+- **Log** `daily_brief_emails`: one row per member and day claimed before sending
+  (sending | sent | failed, detail); opening the page from the email
+  (`?from=email`) stamps `opened_at`. Journal line `daily_brief_email`.
+- Dry run reports `email_recipients`.
+
 ## Not yet
 
-- **Email** version for members without the app (needs its own preference and
-  unsubscribe; Brevo's daily cap is shared with the invitations).
 - Admin statistics screen; a weekly "week in review" on Sunday if members want it.
 
 ## On WhatsApp (4 November 2026)

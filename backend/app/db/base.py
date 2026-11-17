@@ -102,7 +102,7 @@ from app.modules.portal.models import (
     PortalDocument,
     PortalUpdate,
 )
-from app.modules.brief.models import DailyBriefSend, DailyQuizAnswer
+from app.modules.brief.models import DailyBriefEmail, DailyBriefEmailPreference, DailyBriefSend, DailyQuizAnswer
 from app.modules.courts.models import CourtCauseList
 from app.modules.research.daily_models import DailyOrder, DailyOrderEmail, DailyOrderSubscription
 from app.modules.research.models import CaseCitation, Judgment, JudgmentAlias

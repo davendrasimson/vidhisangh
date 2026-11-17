@@ -32,6 +32,7 @@ from __future__ import annotations
 import json
 import random
 import re
+import secrets
 import uuid
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -45,7 +46,10 @@ from app.core.config import settings
 from app.core.database import apply_rls_context
 from app.core.push import PushMessage, PushSender
 from app.core.whatsapp import WhatsAppError, WhatsAppSender
-from app.modules.brief.models import DailyBriefSend, DailyQuizAnswer
+from app.core.channels import ChannelProvider
+from app.modules.brief import email as brief_email
+from app.modules.brief.models import DailyBriefEmail, DailyBriefEmailPreference, DailyBriefSend, DailyQuizAnswer
+from app.modules.courts import service as courts
 from app.modules.identity.models import User
 from app.modules.network.models import NetworkIdentity
 from app.modules.network.official import case_title, daily_cards, post_daily
@@ -222,7 +226,12 @@ async def compose(session: AsyncSession, day: date, user_id: uuid.UUID | None) -
 
 
 async def mark_opened(session: AsyncSession, user_id: uuid.UUID, day: date, via: str) -> None:
-    """The member opened the page: note it on the day's send row (or add a 'viewed' row without a push)."""
+    """The member opened the page: note it on the day's send row (or add a 'viewed' row without a push).
+    Opened from the email: the day's email row is stamped too."""
+    if via == "email":
+        mail = await session.scalar(select(DailyBriefEmail).where(DailyBriefEmail.user_id == user_id, DailyBriefEmail.for_date == day))
+        if mail is not None and mail.opened_at is None:
+            mail.opened_at = datetime.now(UTC)
     row = await session.scalar(select(DailyBriefSend).where(DailyBriefSend.user_id == user_id, DailyBriefSend.for_date == day))
     if row is None:
         session.add(DailyBriefSend(user_id=user_id, for_date=day, lead=lead_for(day), status="viewed",
@@ -399,4 +408,105 @@ async def send_whatsapp_briefs(session: AsyncSession, sender: WhatsAppSender, da
             log.warning("daily_brief_whatsapp_failed", campaign=campaign, error=str(exc))
         await _commit(session)
     log.info("daily_brief_whatsapp", campaign=campaign, lead=lead, **report)
+    return report
+
+
+# ── The morning email (17 November 2026) ────────────────────────────────
+# For members without the app: the same brief by email, lead first, with a one-tap
+# unsubscribe. No row in daily_brief_email_prefs means the default: on for members
+# without a registered phone, off for members who get the push. The generic Email
+# channel switch (notification_preferences) stops it too.
+def unsubscribe_url(token: str) -> str:
+    return f"{brief_email.base_url()}{settings.API_V1_PREFIX}/brief/email/unsubscribe/{token}"
+
+
+async def email_preference(session: AsyncSession, user_id: uuid.UUID) -> DailyBriefEmailPreference | None:
+    return await session.scalar(select(DailyBriefEmailPreference).where(DailyBriefEmailPreference.user_id == user_id))
+
+
+async def _email_pref_row(session: AsyncSession, user_id: uuid.UUID) -> DailyBriefEmailPreference:
+    row = await email_preference(session, user_id)
+    if row is None:
+        row = DailyBriefEmailPreference(user_id=user_id, enabled=True, token=secrets.token_urlsafe(32))
+        session.add(row)
+        await session.flush()
+    return row
+
+
+async def set_email_preference(session: AsyncSession, user_id: uuid.UUID, enabled: bool) -> DailyBriefEmailPreference:
+    row = await _email_pref_row(session, user_id)
+    if enabled and not row.enabled:
+        row.token = secrets.token_urlsafe(32)  # an old unsubscribe link must not cancel a new yes
+    row.enabled = enabled
+    await session.flush()
+    return row
+
+
+async def unsubscribe_email(session: AsyncSession, token: str) -> bool:
+    row = await session.scalar(select(DailyBriefEmailPreference).where(DailyBriefEmailPreference.token == token))
+    if row is None:
+        return False
+    row.enabled = False
+    await session.flush()
+    return True
+
+
+async def has_app(session: AsyncSession, user_id: uuid.UUID) -> bool:
+    return bool(await session.scalar(select(PushDevice.id).where(PushDevice.user_id == user_id).limit(1)))
+
+
+async def email_recipients(session: AsyncSession) -> list[User]:
+    """Active members with a verified email who have not switched email off, and who either chose
+    the email or have no app (no registered phone). Needs RLS bypass."""
+    email_off = set(await session.scalars(select(NotificationPreference.user_id).where(
+        NotificationPreference.channel == NotificationChannel.EMAIL, NotificationPreference.enabled.is_(False))))
+    with_app = set(await session.scalars(select(PushDevice.user_id).distinct()))
+    prefs = {p.user_id: p.enabled for p in await session.scalars(select(DailyBriefEmailPreference))}
+    users = await session.scalars(select(User).where(
+        User.deleted_at.is_(None), User.is_active.is_(True), User.is_email_verified.is_(True), User.email.is_not(None)))
+    out = []
+    for user in users:
+        if user.id in email_off:
+            continue
+        wanted = prefs.get(user.id)
+        if wanted is True or (wanted is None and user.id not in with_app):
+            out.append(user)
+    return out
+
+
+async def send_email_briefs(session: AsyncSession, sender: ChannelProvider, day: date) -> dict[str, int]:
+    """Emails the day's brief to every member who gets it by email, once (claimed before sending)."""
+    report = {"sent": 0, "already": 0, "failed": 0, "skipped": 0}
+    if not pushes_on(day):
+        return report
+    if not sender.configured or sender.name != "email":
+        report["skipped"] = -1
+        return report
+    await post_daily(session)  # idempotent: the section and judgment exist before anyone is told
+    await _commit(session)
+    lead = lead_for(day)
+    brief = await compose(session, day, None)
+    for user in await email_recipients(session):
+        if await session.scalar(select(DailyBriefEmail.id).where(DailyBriefEmail.user_id == user.id, DailyBriefEmail.for_date == day)):
+            report["already"] += 1
+            continue
+        pref = await _email_pref_row(session, user.id)
+        profile = await session.scalar(select(ProfessionalProfile).where(ProfessionalProfile.user_id == user.id))
+        court = courts.court_for_profile(profile)
+        court_card = await courts.card_for(session, court, day) if court else None
+        row = DailyBriefEmail(user_id=user.id, for_date=day, lead=lead, status="sending")
+        session.add(row)
+        await _commit(session)
+        message = brief_email.render(user, brief, court_card, day, unsubscribe_url(pref.token))
+        try:
+            await sender.send(message)
+        except Exception as exc:  # noqa: BLE001 — the next member still gets theirs
+            row.status, row.detail = "failed", f"{type(exc).__name__}: {exc}"[:200]
+            report["failed"] += 1
+            log.warning("daily_brief_email_failed", error=type(exc).__name__)
+        else:
+            row.status, row.detail = "sent", f"email: {message.subject[:150]}"
+            report["sent"] += 1
+        await _commit(session)
+    log.info("daily_brief_email", day=day.isoformat(), lead=lead, **report)
     return report

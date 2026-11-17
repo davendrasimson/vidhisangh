@@ -10,6 +10,15 @@ import {
   WhatsAppUpdates,
 } from '@core/models/notification.models';
 
+/** backend notifications/router.py DailyEmailPreference */
+export interface DailyEmailPreference {
+  enabled: boolean;
+  email_verified: boolean;
+  /** The default without a choice: on without the app, off with it. */
+  has_app: boolean;
+  chosen: boolean;
+}
+
 /** API client for the in-app notification centre (distinct from the toast
  *  `NotificationService`, which wraps MatSnackBar). */
 @Injectable({ providedIn: 'root' })
@@ -60,6 +69,15 @@ export class NotificationFeedService {
 
   setWhatsappDaily(granted: boolean, source: 'settings' | 'daily'): Observable<WhatsAppUpdates> {
     return this.http.put<WhatsAppUpdates>(`${this.api}/whatsapp-daily`, { granted, source });
+  }
+
+  /** VidhiSangh Daily by email (default on for members without the app). */
+  dailyEmail(): Observable<DailyEmailPreference> {
+    return this.http.get<DailyEmailPreference>(`${this.api}/daily-email`);
+  }
+
+  setDailyEmail(enabled: boolean): Observable<DailyEmailPreference> {
+    return this.http.put<DailyEmailPreference>(`${this.api}/daily-email`, { enabled });
   }
 
   dailyOrders(): Observable<{ enabled: boolean; email_verified: boolean }> {

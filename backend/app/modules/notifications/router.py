@@ -40,6 +40,35 @@ class DailyOrdersUpdate(BaseModel):
     enabled: bool
 
 
+class DailyEmailPreference(BaseModel):
+    enabled: bool
+    email_verified: bool = False
+    has_app: bool = False  # the default without a choice: on without the app, off with it
+    chosen: bool = False   # whether the member has made a choice
+
+
+@router.get("/daily-email", response_model=DailyEmailPreference)
+async def get_daily_email(current: CurrentUserDep, session: TenantSessionDep) -> DailyEmailPreference:
+    """VidhiSangh Daily by email: the member's choice, or the default."""
+    from app.modules.brief import service as brief
+    from app.modules.identity.models import User
+
+    row = await brief.email_preference(session, current.id)
+    has_app = await brief.has_app(session, current.id)
+    user = await session.get(User, current.id)
+    return DailyEmailPreference(
+        enabled=row.enabled if row else not has_app, has_app=has_app, chosen=row is not None,
+        email_verified=bool(user and user.email and user.is_email_verified))
+
+
+@router.put("/daily-email", response_model=DailyEmailPreference)
+async def set_daily_email(data: DailyOrdersUpdate, current: CurrentUserDep, session: TenantSessionDep) -> DailyEmailPreference:
+    from app.modules.brief import service as brief
+
+    await brief.set_email_preference(session, current.id, data.enabled)
+    return await get_daily_email(current, session)
+
+
 @router.get("/daily-orders", response_model=DailyOrdersPreference)
 async def get_daily_orders(
     current: CurrentUserDep, session: TenantSessionDep,

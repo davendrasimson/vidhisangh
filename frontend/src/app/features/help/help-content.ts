@@ -345,7 +345,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       "If your profile names your court (the courts you practise in, or your headline), a Your court card shows the cause lists the court has published for today and the next listing day, with links to the court's website, eCourts and the court's group. Supreme Court and Allahabad High Court lists are read from the courts' own index pages; other High Courts link to their site. VidhiSangh opens no list and looks up no case.",
       "To get the morning message on WhatsApp as well, say yes on the Daily page or switch on \"VidhiSangh Daily on WhatsApp\" under Settings → Notifications (a verified mobile number is needed)."
     ],
-    "tip": "Turn the morning notification off under Settings → Notifications → Push, or the WhatsApp message off under Settings → Notifications, if you would rather open the page yourself.",
+    "tip": "Members without the app get the brief by email every morning (Settings → Notifications → VidhiSangh Daily by email, with a one-tap stop link in every email). Turn the morning notification off under Settings → Notifications → Push, or the WhatsApp message off under Settings → Notifications, if you would rather open the page yourself.",
     "permission": null,
     "featured": true
   },

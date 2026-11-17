@@ -863,7 +863,10 @@ copy too; do not rotate or migrate the shared account as part of a VidhiSangh de
 
 Unit `vidhisangh-daily-brief.service` + `.timer` (07:30 IST Mon–Sat), from
 `infra/jobs/`; carries the Firebase credential like the board digest. Needs
-migration `0089`. Dry run and tables in [DAILY_BRIEF.md](DAILY_BRIEF.md).
+migration `0089` (`0092` for the email version, 17 Nov 2026, which sends through
+the notifications SMTP: the unit also loads the `smtp_password` credential like
+`vidhisangh-sc-daily-send.service`; reinstall the unit when upgrading). Dry run and
+tables in [DAILY_BRIEF.md](DAILY_BRIEF.md).
 
 ## Crawlers and the app shell (17 November 2026)
 
