@@ -162,3 +162,21 @@ async def test_lists_are_recorded_once_posted_once_and_shown_to_the_courts_membe
 
     generic = await member("family@example.com", "Adv. Roy", courts=["Family Court", "High Court"])
     assert (await client.get(f"{API}/brief", headers=generic)).json()["court"] is None
+
+    # The public pages: today's and tomorrow's lists for anyone, linked to the court's own PDFs.
+    r = await client.get("/courts/supreme-court-of-india/cause-list/")
+    assert r.status_code == 200 and r.headers["cache-control"] == "public, max-age=900"
+    assert f"Supreme Court of India cause list, {today.strftime('%A %d/%m/%Y')}" in r.text
+    assert f'href="{SCI}{today.isoformat()}/M_R_2.pdf"' in r.text and "Registrar, supplementary" in r.text
+    assert "Cause lists for tomorrow" in r.text and "Weekly list" in r.text
+    assert '<meta name="robots" content="index, follow" />' in r.text and "What the Supreme Court" in r.text
+    assert "hcservices.ecourts.gov.in" not in r.text  # the eCourts link is for High Courts
+    r = await client.get("/courts/kerala-high-court/cause-list/")
+    assert r.status_code == 200 and "does not read this court's index yet" in r.text and "hcservices.ecourts.gov.in" in r.text
+    r = await client.get("/courts/")
+    assert r.status_code == 200 and "Allahabad High Court cause list" in r.text and r.text.count("today's lists") == 2
+    assert (await client.get("/courts/supreme-court-of-india/", follow_redirects=False)).status_code == 301
+    assert (await client.get("/courts/no-such-court/cause-list/")).status_code == 404
+    r = await client.get("/sitemap-courts.xml")
+    assert r.status_code == 200 and r.text.count("<url>") == len(COURTS) + 1
+    assert f"<loc>https://vidhisangh.com/courts/supreme-court-of-india/cause-list/</loc><lastmod>{today.isoformat()}</lastmod>" in r.text

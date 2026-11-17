@@ -54,6 +54,10 @@ EXTRA_CSS = """
 .list a { font-weight: 600; text-decoration: none; } .list p { margin: .3rem 0 0; color: var(--muted); font-size: .93rem; }
 .years { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
 .years a { padding: .4rem .9rem; border-radius: 999px; border: 1px solid var(--line); background: var(--card); text-decoration: none; }
+.small { color: var(--muted); font-size: .9rem; }
+.tag { display: inline-block; margin-left: .5rem; padding: .1rem .6rem; border-radius: 999px; font-size: .78rem; font-weight: 600;
+  background: color-mix(in srgb, var(--gold) 22%, var(--card)); border: 1px solid color-mix(in srgb, var(--gold) 60%, var(--line)); }
+.types dt { font-weight: 600; margin-top: .6rem; } .types dd { margin: .1rem 0 0; color: var(--muted); }
 """
 
 
@@ -117,7 +121,7 @@ def _page(*, title: str, description: str, path: str, body: str, json_ld: dict, 
 {body}
 </main>
 <footer>
-  <p><a href="/judgments/">Supreme Court headnotes</a> · <a href="/acts/">Bare Acts</a> · <a href="/">VidhiSangh</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></p>
+  <p><a href="/judgments/">Supreme Court headnotes</a> · <a href="/acts/">Bare Acts</a> · <a href="/courts/">Cause lists</a> · <a href="/">VidhiSangh</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></p>
   <p>Headnotes on these pages are AI-generated from the judgment text and are not legal advice. Read the judgment itself before relying on any point.</p>
 </footer>
 </body>

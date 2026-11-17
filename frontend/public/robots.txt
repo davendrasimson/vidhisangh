@@ -19,3 +19,4 @@ Disallow: /auth/change-password
 Sitemap: https://vidhisangh.com/sitemap.xml
 Sitemap: https://vidhisangh.com/sitemap-judgments.xml
 Sitemap: https://vidhisangh.com/sitemap-profiles.xml
+Sitemap: https://vidhisangh.com/sitemap-courts.xml

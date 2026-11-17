@@ -32,6 +32,18 @@ migration `0091` (`court_cause_lists`), card on the Daily page
   the list links, the court's page), so the group has something useful every
   working day.
 
+## Public pages (17 November 2026)
+
+`vidhisangh.com/courts/<slug>/cause-list/` (index at `/courts/`, `/sitemap-courts.xml`,
+listed in robots.txt; nginx proxies `/courts/` to the API like `/judgments/`) shows
+anyone the lists the court published for today and the next listing day, linked to
+the court's own PDFs, the court's public details, a short explainer of the Supreme
+Court's list types, a WhatsApp share and a join prompt (`utm_source=cause_lists`).
+Rendered on request from `court_cause_lists`, cached 15 minutes, `dateModified` from
+the last fetch. The point: "supreme court cause list today" is searched every working
+day by exactly the advocates VidhiSangh is for, and the page is fresh twice a day.
+Code `courts/public_pages.py`; test in `test_court_desk.py`.
+
 ## Courts read today
 
 | Court | How | Lists |
