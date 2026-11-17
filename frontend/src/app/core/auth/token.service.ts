@@ -79,6 +79,13 @@ export class TokenService {
     } catch {
       /* storage unavailable (private mode) — the cookie alone still works */
     }
+    // Non-secret marker nginx can see: /app/* pages go to the app shell for browsers that have signed in
+    // here, and to a one-kilobyte welcome page for everyone else (crawlers loading deep links, 17 Nov 2026).
+    try {
+      document.cookie = 'vs_member=1; Path=/; Max-Age=31536000; SameSite=Lax; Secure';
+    } catch {
+      /* no document (tests) */
+    }
   }
 
   /** Drop the in-memory token and every app key in localStorage. */

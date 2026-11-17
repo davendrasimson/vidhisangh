@@ -865,6 +865,29 @@ Unit `vidhisangh-daily-brief.service` + `.timer` (07:30 IST Mon–Sat), from
 `infra/jobs/`; carries the Firebase credential like the board digest. Needs
 migration `0089`. Dry run and tables in [DAILY_BRIEF.md](DAILY_BRIEF.md).
 
+## Crawlers and the app shell (17 November 2026)
+
+On 14–15 Nov a crawler loaded 13,000 `/app/research/<id>` and `/app/knowledge/reader`
+deep links with headless Chrome from 12,000 addresses (one or two loads each), following
+the "Open in the app" links on the public judgment and bare-act pages: 88,000 requests in
+a day, each load pulling the whole bundle. Per-address limits and fail2ban cannot catch
+one-load-per-address traffic (checked against the log), so `infra/nginx/vidhisangh.conf` now:
+
+- returns **404** for `/app/*` to self-declared crawlers and headless browsers (`$vs_crawler`
+  map on the user agent);
+- serves **`/app-welcome.html`** (1 KB, `noindex`, from `frontend/public/`) for `/app/*` to any
+  browser without the `vs_member` cookie, instead of the shell. The cookie is a non-secret
+  marker set by `TokenService.setSession` at sign-in; the welcome page also sets it when the
+  browser holds the app's `vs.session` marker and reloads, so existing members never see it;
+- rate-limits shell loads per address (`vs_shell`, 60/min, burst 30).
+
+The public pages' links into the app carry `rel="nofollow"`. The native app never requests
+`/app/*` from nginx (bundled shell; live updates use `/app-updates/`). Install the config as
+usual (`sudo install -m 644 infra/nginx/vidhisangh.conf /etc/nginx/sites-available/vidhisangh
+&& sudo nginx -t && sudo systemctl reload nginx`) after the frontend `dist/` carrying
+`app-welcome.html` is in place. Check: `curl -A Googlebot https://vidhisangh.com/app/daily`
+→ 404; without cookie → the welcome page; with `-b vs_member=1` → the shell.
+
 ## Court desk (16 November 2026)
 
 Unit `vidhisangh-court-desk.service` + `.timer` (06:45 and 18:00 IST Mon–Sat),

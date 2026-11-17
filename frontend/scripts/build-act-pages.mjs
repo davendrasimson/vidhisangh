@@ -145,7 +145,8 @@ function sectionActions(act, number) {
     ['See the judgments that apply it', `Supreme Court and High Court decisions citing Section ${esc(number)} ${esc(act.short)}.`, join(`/app/research?act=${encodeURIComponent(actName)}&section=${n}`)],
     ['Ask advocates about it', 'Discuss it in VidhiSangh groups, from Ask a Senior to your own High Court.', join('/app/groups')],
   ];
-  return `<aside class="section-actions"><h2>Use Section ${esc(number)} ${esc(act.short)} on VidhiSangh — free</h2><ul>${items.map(([t, d, href]) => `<li><a href="${href}"><b>${esc(t)}</b><span>${d}</span></a></li>`).join('')}</ul><p class="small">Already a member? <a href="/app/knowledge/reader?act=${act.id}&amp;section=${n}">Open it in the app</a>.</p></aside>`;
+  // rel="nofollow" on every link into the app: crawlers have nothing to read there (17 Nov 2026).
+  return `<aside class="section-actions"><h2>Use Section ${esc(number)} ${esc(act.short)} on VidhiSangh — free</h2><ul>${items.map(([t, d, href]) => `<li><a href="${href}" rel="nofollow"><b>${esc(t)}</b><span>${d}</span></a></li>`).join('')}</ul><p class="small">Already a member? <a href="/app/knowledge/reader?act=${act.id}&amp;section=${n}" rel="nofollow">Open it in the app</a>.</p></aside>`;
 }
 
 function cta(act, number) {
@@ -153,7 +154,7 @@ function cta(act, number) {
   return `<aside class="cta">
   <div><strong>Read, search and save the full ${esc(act.short)} free</strong>
   <span>Plus 5.9 million Supreme Court and High Court judgments, and a professional network for India's legal fraternity.</span></div>
-  <div class="cta-buttons"><a class="primary" href="${JOIN}">Join VidhiSangh free</a><a class="ghost" href="${reader}">Open in the app</a></div>
+  <div class="cta-buttons"><a class="primary" href="${JOIN}" rel="nofollow">Join VidhiSangh free</a><a class="ghost" href="${reader}" rel="nofollow">Open in the app</a></div>
 </aside>`;
 }
 

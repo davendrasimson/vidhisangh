@@ -148,11 +148,12 @@ def not_found_page(what: str = "page") -> HTMLResponse:
 
 
 def _cta(j: Judgment | None = None) -> str:
-    app_link = f'<a class="ghost" href="/app/research/{j.id}">Open in the app</a>' if j else ""
+    # rel="nofollow" on links into the app: a crawler loaded 10,000 of these deep links on 14-15 Nov 2026.
+    app_link = f'<a class="ghost" href="/app/research/{j.id}" rel="nofollow">Open in the app</a>' if j else ""
     return f"""<aside class="cta">
   <div><strong>Read the full judgment free on VidhiSangh</strong>
   <span>5.9 million Supreme Court and High Court judgments, BNS, BNSS and BSA, and a professional network for India's legal fraternity.</span></div>
-  <div class="cta-buttons"><a class="primary" href="{JOIN}">Join VidhiSangh free</a>{app_link}</div>
+  <div class="cta-buttons"><a class="primary" href="{JOIN}" rel="nofollow">Join VidhiSangh free</a>{app_link}</div>
 </aside>"""
 
 
