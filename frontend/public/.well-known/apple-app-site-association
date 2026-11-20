@@ -1,0 +1,14 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "UGGU8KL6CU.com.vidhisangh.app",
+        "paths": ["/app/*", "/app", "/join/*", "/auth/verify-email/*", "/auth/reset/*"]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["UGGU8KL6CU.com.vidhisangh.app"]
+  }
+}

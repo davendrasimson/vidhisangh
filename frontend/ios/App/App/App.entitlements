@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Push notifications (APNs). Xcode's automatic signing adds the capability to the
+	     App ID from this file; the App Store build gets "production" automatically. -->
+	<key>aps-environment</key>
+	<string>development</string>
+	<!-- Universal Links: https://vidhisangh.com/app/..., /join/..., /auth/verify-email/...,
+	     /auth/reset/... open in the app (the paths are in
+	     public/.well-known/apple-app-site-association, kept in step with app-links.ts). -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:vidhisangh.com</string>
+	</array>
+</dict>
+</plist>

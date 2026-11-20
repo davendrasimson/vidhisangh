@@ -1,0 +1,3 @@
+
+# Firebase iOS config: download from the Firebase console on the Mac, never commit
+ios/App/App/GoogleService-Info.plist

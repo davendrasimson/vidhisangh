@@ -81,23 +81,70 @@ be reset through Play support. Without it, a lost key means no further updates.
 
 ## Build: iOS (macOS with Xcode only)
 
-iOS apps can only be compiled and signed on a Mac. The Xcode project is ready.
+iOS apps can only be compiled and signed on a Mac. Everything that can be prepared
+without one was prepared on 18 November 2026; what is left is listed in order below.
 
-```
-cd frontend && npm ci && npm run build:mobile
-npx cap open ios                              # opens ios/App/App.xcodeproj
-```
+**Already in the project** (`frontend/ios/App/`):
 
-In Xcode: select the **App** target, set **Signing & Capabilities → Team** to the
-VidhiSangh Apple Developer account, then **Product → Archive → Distribute App →
-App Store Connect**. Swift packages resolve on first open. Before the first
-upload, check **Product → Archive → Generate Privacy Report** and declare the
-data the app handles in App Store Connect's privacy section.
+- `App/Info.plist`: display name, `ITSAppUsesNonExemptEncryption = false` (standard
+  HTTPS only), camera and photo-library usage texts (iOS offers "Take Photo" in every
+  file picker and the app crashes without them), `arm64` device capability.
+- `App/App.entitlements` (referenced by `CODE_SIGN_ENTITLEMENTS`): push notifications
+  (`aps-environment`) and Universal Links (`applinks:vidhisangh.com`). Xcode's automatic
+  signing adds both capabilities to the App ID from this file.
+- `App/PrivacyInfo.xcprivacy` (in the Resources build phase): no tracking, the data types
+  the app handles, and the required-reason APIs (UserDefaults, file timestamps). The
+  plugins carry their own manifests.
+- `App/AppDelegate.swift`: APNs → Firebase Cloud Messaging token hand-off, guarded with
+  `#if canImport(FirebaseMessaging)` so the project builds before the Firebase package
+  exists; without Firebase the APNs token is still delivered to the plugin (the server
+  cannot push to it, nothing breaks). Universal Links are handled by `SceneDelegate`.
+- `public/.well-known/apple-app-site-association`: the same four path prefixes as
+  Android (`app-links.ts`; `npm test` keeps the three in step), served by nginx as JSON.
+  Team ID `UGGU8KL6CU` (registered 20 Nov 2026).
+- Version `MARKETING_VERSION 1.0.6` (matches Android 1.0.6), build `1`; icon (1024 px
+  single-size) and splash in `Assets.xcassets`; Swift Package Manager, no CocoaPods;
+  the server's FCM message carries an `apns` block (default sound).
 
-Already set in `ios/App/App/Info.plist`: display name, `ITSAppUsesNonExemptEncryption = false`
-(standard HTTPS only), and camera and photo-library usage texts. Those texts are
-required because iOS offers "Take Photo" in every file picker, and the app
-crashes without them.
+**On the Mac, in this order:**
+
+1. Apple Developer Program (USD 99 a year) → App Store Connect → register the bundle
+   ID `com.vidhisangh.app` and create the app. Note the **Team ID** (Membership page).
+2. The Universal Links file `https://vidhisangh.com/.well-known/apple-app-site-association`
+   already names `UGGU8KL6CU.com.vidhisangh.app` (deployed 20 Nov 2026); Apple's CDN reads
+   it at install time. On the App ID, Push Notifications and Associated Domains are ticked.
+3. Firebase console → project `vidhisangh-2c038` → Add app → iOS, bundle ID
+   `com.vidhisangh.app` → download `GoogleService-Info.plist` into
+   `frontend/ios/App/App/` and add it to the App target in Xcode (do not commit it).
+   Then Project settings → Cloud Messaging → upload an **APNs authentication key**
+   (.p8, created under Certificates, Identifiers & Profiles → Keys, "Apple Push
+   Notifications service") with its Key ID and Team ID. Without this step the server's
+   FCM pushes to iPhones fail.
+4. `cd frontend && npm ci && npm run build:mobile && npx cap open ios`. Swift packages
+   resolve on first open, including **FirebaseMessaging** (the `firebase-ios-sdk` package is
+   already in the project; a "Copy Firebase config" build phase bundles
+   `GoogleService-Info.plist` when the file is present and only warns when it is not).
+5. App target → Signing & Capabilities → Team. Xcode registers the App ID with Push
+   Notifications and Associated Domains from `App.entitlements`.
+6. Run on a real iPhone (push and Universal Links do not work in the simulator): sign in,
+   allow notifications, check the device appears in `push_devices` with platform `ios`,
+   send yourself a test from the app (a connection request from another account), tap a
+   `https://vidhisangh.com/app/daily` link in Notes and see it open the app.
+7. Product → Archive → Distribute App → App Store Connect. Fill the privacy labels
+   (Product → Archive → Generate Privacy Report lists them), screenshots (6.9" and 6.5"
+   iPhone, 13" iPad), the demo reviewer account and the account-deletion path.
+8. After the store build is live: `npm run publish:app-update -- --platform ios` publishes
+   screens to iOS build `1`; bump `CURRENT_PROJECT_VERSION` on every store upload.
+
+**Without a Mac: Codemagic.** `codemagic.yaml` at the repo root builds, signs and uploads
+to TestFlight on Codemagic's hosted Macs (free tier: 500 minutes a month; a build is about
+15). Steps 4 to 7 above become: in Codemagic, connect the repo, add the App Store Connect
+API key as the integration "VidhiSangh", add the base64 of `GoogleService-Info.plist` as
+the secret variable `GOOGLE_SERVICE_INFO_PLIST` in the group `firebase`, and start the
+`ios-testflight` workflow. Signing certificates and the provisioning profile are created
+through the API key. TestFlight then installs on an iPhone for the device test in step 6;
+App Store Connect still needs the listing, screenshots, privacy labels and the demo
+account before submission for review.
 
 ## Icons and splash screens
 

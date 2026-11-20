@@ -74,6 +74,8 @@ class FcmSender:
                     "notification": {"title": message.title[:100], "body": message.body[:500]},
                     "data": {"link": message.link or "/app/notifications"},
                     "android": {"priority": "high", "notification": {"channel_id": "default", "icon": "ic_stat_notify", "color": "#215DCC"}},
+                    # iOS: an alert with the default sound; the tap handler reads data.link (push.ts).
+                    "apns": {"payload": {"aps": {"sound": "default"}}},
                 }}
                 response = await client.post(
                     f"https://fcm.googleapis.com/v1/projects/{project}/messages:send",

@@ -2,7 +2,7 @@
 // build, so a few web habits silently break it; these tests catch them.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const root = new URL('..', import.meta.url).pathname;
@@ -144,6 +144,34 @@ test('assetlinks.json names the app and at least the upload key', () => {
   assert.equal(target.package_name, 'com.vidhisangh.app');
   assert.ok(target.sha256_cert_fingerprints.every((f) => /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/.test(f)));
   assert.match(read('android/app/build.gradle'), /applicationId "com\.vidhisangh\.app"/);
+});
+
+test('iOS: universal links, entitlements, privacy manifest and push are wired', async () => {
+  const { APP_LINK_PREFIXES } = await import('../src/app/core/platform/app-links.ts');
+  // apple-app-site-association claims the same paths as Android (plus the bare /app).
+  const aasa = JSON.parse(read('public/.well-known/apple-app-site-association'));
+  const detail = aasa.applinks.details[0];
+  assert.match(detail.appID, /^[A-Z0-9]{10}\.com\.vidhisangh\.app$|^TEAMID\.com\.vidhisangh\.app$/);
+  const claimed = detail.paths.filter((p) => p.endsWith('/*')).map((p) => p.slice(0, -1));
+  assert.deepEqual(claimed.sort(), [...APP_LINK_PREFIXES].sort());
+  const entitlements = read('ios/App/App/App.entitlements');
+  assert.match(entitlements, /applinks:vidhisangh\.com/);
+  assert.match(entitlements, /aps-environment/);
+  const pbx = read('ios/App/App.xcodeproj/project.pbxproj');
+  assert.match(pbx, /CODE_SIGN_ENTITLEMENTS = App\/App\.entitlements;/);
+  assert.match(pbx, /PrivacyInfo\.xcprivacy in Resources/);
+  assert.match(pbx, /PRODUCT_BUNDLE_IDENTIFIER = com\.vidhisangh\.app;/);
+  assert.match(read('ios/App/App/PrivacyInfo.xcprivacy'), /<key>NSPrivacyTracking<\/key>\s*<false\/>/);
+  const info = read('ios/App/App/Info.plist');
+  assert.match(info, /NSCameraUsageDescription/);
+  assert.doesNotMatch(info, /armv7/);
+  const delegate = read('ios/App/App/AppDelegate.swift');
+  assert.match(delegate, /Messaging\.messaging\(\)\.apnsToken = deviceToken/);
+  assert.match(delegate, /capacitorDidRegisterForRemoteNotifications/);
+  assert.match(delegate, /#if canImport\(FirebaseMessaging\)/, 'builds before the Firebase package is added');
+  // Nothing in the iOS project may carry a Firebase config or a signing team: those come from the Mac.
+  assert.equal(existsSync(join(root, 'ios/App/App/GoogleService-Info.plist')), false);
+  assert.doesNotMatch(pbx, /DEVELOPMENT_TEAM = [A-Z0-9]/);
 });
 
 test('rating request: only after regular use, and not again for months', async () => {
