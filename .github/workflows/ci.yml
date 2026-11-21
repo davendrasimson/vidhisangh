@@ -71,7 +71,7 @@ jobs:
         run: |
           PYTHONPATH=$PWD pytest -q -p no:logging \
             --cov=app --cov-branch --cov-report=xml --cov-report=term-missing:skip-covered
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: backend-coverage
@@ -119,7 +119,7 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Help and tour browser regressions
         run: npx playwright test
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: frontend-browser-failures
@@ -127,7 +127,7 @@ jobs:
           retention-days: 7
       - name: npm audit (production deps, high+)
         run: npm audit --omit=dev --audit-level=high
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: frontend-dist
           path: frontend/dist/vidhisangh/browser
