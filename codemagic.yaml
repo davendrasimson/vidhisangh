@@ -3,7 +3,8 @@
 # One-time setup in Codemagic (https://codemagic.io, free personal account, signed in with
 # the GitHub account that can read this repo). Everything is an environment variable on the
 # app (App → Environment variables), so no paid team or Integrations page is needed:
-#   group "signing" (all three marked secret):
+#   either passed per build through the REST API (the owner's start_ios_build.sh does this)
+#   or set as app-level variables, all marked secret:
 #     APP_STORE_CONNECT_ISSUER_ID      Issuer ID shown at App Store Connect → Users and Access
 #                                      → Integrations → App Store Connect API
 #     APP_STORE_CONNECT_KEY_IDENTIFIER Key ID of a Team Key made there with Admin access
@@ -12,7 +13,7 @@
 #                                      the Apple Distribution certificate
 #                                      (`ssh-keygen -t rsa -b 2048 -m PEM -f ios_distribution_private_key -q -N ""`);
 #                                      keep a copy: a lost key means a new certificate
-#   group "firebase" (optional until Firebase has the iOS app; without it push does not work):
+#   optional until Firebase has the iOS app (without it push does not work):
 #     GOOGLE_SERVICE_INFO_PLIST        base64 of GoogleService-Info.plist from the Firebase
 #                                      console (iOS app com.vidhisangh.app)
 # Then start the "ios-testflight" workflow on branch play-store-launch. On the first run
@@ -29,9 +30,8 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 60
     environment:
-      groups:
-        - signing
-        - firebase
+      # The secrets below are passed per build by the API caller (start_ios_build.sh) or set as
+      # app-level variables; no variable group is referenced, so none has to exist.
       node: 22
       xcode: latest
       vars:
