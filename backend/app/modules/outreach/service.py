@@ -22,6 +22,7 @@ from app.modules.identity.models import User
 from app.modules.outreach import email as invitation
 from app.modules.outreach.models import (
     OutreachContact,
+    OutreachFollowUp,
     OutreachSettings,
     OutreachStatus,
     OutreachSuppression,
@@ -151,10 +152,16 @@ def _today_ist_start(now: datetime) -> datetime:
 
 
 async def sent_today(session: AsyncSession, now: datetime | None = None) -> int:
+    """Invitations plus follow-up emails sent today (IST): the daily number covers both."""
     start = _today_ist_start(now or datetime.now(UTC))
-    return int(await session.scalar(
+    invitations = int(await session.scalar(
         select(func.count()).select_from(OutreachContact).where(OutreachContact.sent_at >= start)
     ) or 0)
+    followups = int(await session.scalar(
+        select(func.count()).select_from(OutreachFollowUp).where(
+            OutreachFollowUp.sent_at >= start, OutreachFollowUp.channel == "email")
+    ) or 0)
+    return invitations + followups
 
 
 async def court_context(session: AsyncSession, court: str | None) -> dict:
@@ -206,9 +213,26 @@ def focus_clause(focus: str | None):
     return OutreachContact.city.ilike(needle) | OutreachContact.court.ilike(needle)
 
 
+def focus_terms(focus: str | None) -> list[str]:
+    """A focus may be a list, "Allahabad, Madhya Pradesh": courts are worked in that order."""
+    return [t.strip() for t in (focus or "").split(",") if t.strip()]
+
+
 def focus_where(focus: str | None) -> list:
     """The WHERE clauses a focus adds: none when it is empty or `Random`."""
     return [focus_clause(focus)] if focus and focus.strip() and not is_random(focus) else []
+
+
+async def active_focus(session: AsyncSession, focus: str | None) -> str | None:
+    """Of a focus list, the first term with contacts still waiting (the last term when all are
+    exhausted, so the screen shows 0 waiting there). A single focus or `Random` is returned as is."""
+    terms = focus_terms(focus)
+    if len(terms) <= 1 or is_random(focus):
+        return focus
+    for term in terms:
+        if await queued_count(session, focus=term):
+            return term
+    return terms[-1]
 
 
 def pick_order(focus: str | None) -> tuple:
@@ -236,12 +260,13 @@ async def send_batch(
     cfg = await get_settings(session)
     if cfg.paused and not force:
         return report
-    # Court by court: only the bar in focus; `Random`: anyone, in random order.
-    where = [OutreachContact.status == OutreachStatus.QUEUED, OutreachContact.deleted_at.is_(None), *focus_where(cfg.focus)]
+    # Court by court: only the bar in focus (the first of a list with anyone waiting); `Random`: anyone, in random order.
+    focus = await active_focus(session, cfg.focus)
+    where = [OutreachContact.status == OutreachStatus.QUEUED, OutreachContact.deleted_at.is_(None), *focus_where(focus)]
     while (budget := await budget_today(session, now)) > 0:
         contact = await session.scalar(
             select(OutreachContact).where(*where)
-            .order_by(*pick_order(cfg.focus)).limit(1).with_for_update(skip_locked=True)
+            .order_by(*pick_order(focus)).limit(1).with_for_update(skip_locked=True)
         )
         if contact is None:
             break
@@ -526,7 +551,8 @@ async def overview(session: AsyncSession) -> dict:
         "paused": cfg.paused,
         "daily_limit": cfg.daily_limit,
         "focus": cfg.focus,
-        "queued_in_focus": await queued_count(session, focus=cfg.focus) if cfg.focus else None,
+        "queued_in_focus": await queued_count(session, focus=await active_focus(session, cfg.focus)) if cfg.focus else None,
+        "active_focus": await active_focus(session, cfg.focus) if cfg.focus else None,
         "max_daily_limit": settings.OUTREACH_DAILY_LIMIT,
         "sender_configured": bool(settings.OUTREACH_SMTP_HOST),
         "webhook_configured": bool(settings.OUTREACH_WEBHOOK_SECRET),
@@ -543,3 +569,145 @@ async def overview(session: AsyncSession) -> dict:
             for c in recent
         ],
     }
+
+
+# ── Follow-ups (22 November 2026) ───────────────────────────────────────
+REMINDER_AFTER = timedelta(days=7)
+
+
+async def reminder_candidates(session: AsyncSession, now: datetime, limit: int) -> list[OutreachContact]:
+    """Invited a week or more ago, opened the email, never clicked, still not a member, no reminder yet."""
+    reminded = select(OutreachFollowUp.contact_id).where(OutreachFollowUp.kind == "reminder")
+    return list(await session.scalars(
+        select(OutreachContact).where(
+            OutreachContact.status == OutreachStatus.SENT, OutreachContact.deleted_at.is_(None),
+            OutreachContact.sent_at <= now - REMINDER_AFTER,
+            OutreachContact.opened_at.is_not(None), OutreachContact.clicked_at.is_(None),
+            OutreachContact.id.not_in(reminded),
+        ).order_by(OutreachContact.opened_at).limit(limit)
+    ))
+
+
+async def send_reminders(
+    session: AsyncSession, sender: OutreachSender, *, now: datetime | None = None, pause=None,
+) -> dict[str, int]:
+    """The one reminder per invitee, within today's number (sent before the day's new invitations:
+    an opened invitation is warmer than a cold one). Suppressed addresses and members are skipped."""
+    report = {"sent": 0, "skipped": 0, "bounced": 0, "failed": 0}
+    now = now or datetime.now(UTC)
+    budget = await budget_today(session, now)
+    if budget <= 0:
+        return report
+    for contact in await reminder_candidates(session, now, budget):
+        if await _suppressed(session, contact.email):
+            report["skipped"] += 1
+            continue
+        if member := await _member_id(session, contact.email):
+            contact.status, contact.joined_user_id = OutreachStatus.JOINED, member
+            report["skipped"] += 1
+            await session.commit()
+            continue
+        subject, text, html = invitation.build_reminder(
+            name=contact.name, source=contact.source, token=contact.token, **await court_context(session, contact.court))
+        row = OutreachFollowUp(contact_id=contact.id, channel="email", kind="reminder", subject=subject, body=text, sent_at=now)
+        session.add(row)
+        await session.flush()  # claimed before sending, so a crash never reminds twice
+        try:
+            await sender.send(OutreachMessage(to=contact.email, subject=subject, text=text, html=html,
+                                              one_click_url=invitation.one_click_url(contact.token),
+                                              unsubscribe_page=invitation.unsubscribe_url(contact.token)))
+        except RecipientRefused as exc:
+            contact.status, contact.last_error = OutreachStatus.BOUNCED, str(exc)[:500]
+            await _suppress(session, contact.email, "bounced")
+            report["bounced"] += 1
+        except Exception as exc:
+            await session.rollback()
+            log.warning("outreach_reminder_failed", error=type(exc).__name__)
+            report["failed"] += 1
+            break
+        else:
+            report["sent"] += 1
+        await session.commit()
+        if pause and report["sent"]:
+            await pause()
+    log.info("outreach_reminders", **report)
+    return report
+
+
+async def warm_leads(session: AsyncSession, *, limit: int = 200) -> dict[str, list[dict]]:
+    """Two lists for the admin: invitees who clicked the join link but have not joined, and invitees who
+    joined. Each with the follow-ups already sent and a number for a wa.me link when one is known
+    (the contact's listed mobile, or the member's verified phone)."""
+    def row(c: OutreachContact, phone: str | None, followups: list[OutreachFollowUp]) -> dict:
+        return {"id": c.id, "name": c.name, "email": c.email, "court": c.court, "city": c.city, "status": c.status,
+                "clicked_at": c.clicked_at, "joined_at": c.updated_at if c.status == OutreachStatus.JOINED else None,
+                "phone": phone, "followups": [{"channel": f.channel, "kind": f.kind, "sent_at": f.sent_at} for f in followups]}
+    leads = list(await session.scalars(
+        select(OutreachContact).where(OutreachContact.status == OutreachStatus.SENT, OutreachContact.clicked_at.is_not(None),
+                                      OutreachContact.deleted_at.is_(None)).order_by(OutreachContact.clicked_at.desc()).limit(limit)))
+    joined = list(await session.scalars(
+        select(OutreachContact).where(OutreachContact.status == OutreachStatus.JOINED, OutreachContact.deleted_at.is_(None))
+        .order_by(OutreachContact.updated_at.desc()).limit(limit)))
+    ids = [c.id for c in leads + joined]
+    fus: dict[uuid.UUID, list[OutreachFollowUp]] = {}
+    if ids:
+        for f in await session.scalars(select(OutreachFollowUp).where(OutreachFollowUp.contact_id.in_(ids)).order_by(OutreachFollowUp.sent_at)):
+            fus.setdefault(f.contact_id, []).append(f)
+    phones: dict[uuid.UUID, str] = {}
+    user_ids = [c.joined_user_id for c in joined if c.joined_user_id]
+    if user_ids:
+        for uid, phone, verified in await session.execute(select(User.id, User.phone, User.is_phone_verified).where(User.id.in_(user_ids))):
+            if phone and verified:
+                phones[uid] = phone
+    return {"leads": [row(c, c.mobile, fus.get(c.id, [])) for c in leads],
+            "joined": [row(c, phones.get(c.joined_user_id) or c.mobile, fus.get(c.id, [])) for c in joined]}
+
+
+def whatsapp_link(phone: str, text: str) -> str:
+    from urllib.parse import quote
+    digits = re.sub(r"\D", "", phone)
+    if len(digits) == 10:
+        digits = "91" + digits
+    return f"https://wa.me/{digits}?text={quote(text, safe='')}"
+
+
+async def personal_followup(
+    session: AsyncSession, sender: OutreachSender | None, contact_id: uuid.UUID, *, channel: str, note: str, by: uuid.UUID,
+) -> dict:
+    """The admin's personal note. Email: sent through the invitation mail service and recorded.
+    WhatsApp: recorded, and a wa.me link is returned for the admin to send from their own phone
+    (non-members are never messaged by the platform's WhatsApp number)."""
+    contact = await session.get(OutreachContact, contact_id)
+    if contact is None or contact.deleted_at is not None:
+        raise LookupError("No such contact.")
+    if contact.status not in (OutreachStatus.SENT, OutreachStatus.JOINED):
+        raise ValueError("Only invitees who were approached or who joined can be written to.")
+    note = note.strip()
+    if not note:
+        raise ValueError("The note is empty.")
+    joined = contact.status == OutreachStatus.JOINED
+    now = datetime.now(UTC)
+    if channel == "email":
+        if sender is None:
+            raise ValueError("The invitation mail service is not set up (VS_OUTREACH_SMTP_HOST).")
+        if await _suppressed(session, contact.email):
+            raise ValueError("This address unsubscribed or bounced; it cannot be emailed.")
+        subject, text, html = invitation.build_personal(name=contact.name, source=contact.source, token=contact.token, note=note, joined=joined)
+        await sender.send(OutreachMessage(to=contact.email, subject=subject, text=text, html=html,
+                                          one_click_url=invitation.one_click_url(contact.token),
+                                          unsubscribe_page=invitation.unsubscribe_url(contact.token)))
+        session.add(OutreachFollowUp(contact_id=contact.id, channel="email", kind="personal", subject=subject, body=note, sent_by=by, sent_at=now))
+        await session.flush()
+        return {"sent": True, "channel": "email"}
+    if channel == "whatsapp":
+        phone = contact.mobile
+        if joined and contact.joined_user_id:
+            user = await session.get(User, contact.joined_user_id)
+            if user and user.phone and user.is_phone_verified:
+                phone = user.phone
+        if not phone:
+            raise ValueError("No mobile number is known for this person.")
+        session.add(OutreachFollowUp(contact_id=contact.id, channel="whatsapp", kind="personal", body=note, sent_by=by, sent_at=now))
+        await session.flush()
+        return {"sent": False, "channel": "whatsapp", "whatsapp_url": whatsapp_link(phone, note)}
+    raise ValueError("channel must be email or whatsapp")

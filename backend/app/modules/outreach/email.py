@@ -161,3 +161,80 @@ Unsubscribe: {unsub}
 <img src="{e(open_pixel_url(token))}" width="1" height="1" alt="." style="display:block;border:0;">
 </body></html>"""
     return subject, text, body
+
+
+# ── Follow-ups (22 November 2026) ───────────────────────────────────────
+def _shell(*, greeting: str, paragraphs: list[str], join: str, button: str, unsub: str, source: str) -> tuple[str, str]:
+    """Plain text and HTML around a short personal message: the paragraphs, one button, the footer."""
+    sender = settings.OUTREACH_SENDER_LINE
+    text = greeting + "\n\n" + "\n\n".join(paragraphs) + f"\n\n{button}: {join}\n\nWith regards,\nDavendra Singh\nVidhiSangh\n\n—\n" \
+        f"You were invited because your professional email address is publicly listed in {source}.\nUnsubscribe: {unsub}\n{sender}. Grievance officer: grievance@vidhisangh.com\n"
+    e = html.escape
+    paras = "".join(f'<p style="margin:0 0 16px;font-size:15px;line-height:24px;color:#1f2937;">{e(p)}</p>' for p in paragraphs)
+    body = f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>VidhiSangh</title></head>
+<body style="margin:0;padding:0;background:#f3f5f9;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f5f9;padding:24px 12px;"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:14px;overflow:hidden;font-family:Arial,Helvetica,sans-serif;">
+  <tr><td style="padding:28px 28px 8px;">
+    <p style="margin:0 0 14px;font-size:16px;line-height:24px;color:#111827;">{e(greeting)}</p>
+    {paras}
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 18px;"><tr><td style="border-radius:999px;background:#215dcc;">
+      <a href="{e(join)}" style="display:inline-block;padding:13px 28px;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:999px;">{e(button)}</a>
+    </td></tr></table>
+    <p style="margin:0 0 24px;font-size:15px;line-height:24px;color:#1f2937;">With regards,<br><strong>Davendra Singh</strong><br>VidhiSangh</p>
+  </td></tr>
+  <tr><td style="padding:18px 28px;background:#f9fafb;border-top:1px solid #e5e7eb;font-size:12px;line-height:19px;color:#6b7280;">
+    You were invited because your professional email address is publicly listed in {e(source)}.
+    <a href="{e(unsub)}" style="color:#215dcc;">Unsubscribe</a>.<br>{e(sender)}. Grievance officer: <a href="mailto:grievance@vidhisangh.com" style="color:#215dcc;">grievance@vidhisangh.com</a>
+  </td></tr>
+</table></td></tr></table>
+</body></html>"""
+    return text, body
+
+
+def _greeting(name: str | None) -> str:
+    return f"Dear {name.strip()}," if name and name.strip() else "Dear Colleague,"
+
+
+def build_reminder(*, name: str | None, source: str, token: str, court: str | None = None, colleagues: int = 0,
+                   **_: object) -> tuple[str, str, str]:
+    """The one reminder, a week after an invitation that was opened but not followed."""
+    c = _short_court(court) if court and court.strip() else None
+    subject = (f"A reminder: your colleagues at the {c} are on VidhiSangh" if c and colleagues >= 3
+               else f"A reminder about VidhiSangh, free for advocates{(' of the ' + c) if c else ''}")[:78]
+    here = court_line(court, colleagues)
+    paragraphs = [
+        "A week ago I invited you to VidhiSangh, the free professional network for India's legal fraternity. In case it went unseen, here it is again.",
+        *( [here] if here else [] ),
+        "Your name and email are already filled in; joining takes a minute and costs nothing. If it is not for you, ignore this and you will not hear from me again.",
+    ]
+    text, body = _shell(greeting=_greeting(name), paragraphs=paragraphs, join=join_url(token), button="Join VidhiSangh, free",
+                        unsub=unsubscribe_url(token), source=source)
+    return subject, text, body
+
+
+def build_personal(*, name: str | None, source: str, token: str, note: str, joined: bool) -> tuple[str, str, str]:
+    """A note the admin typed, in the same shell. Joined members get a sign-in button, invitees the join link."""
+    subject = "A note from Davendra Singh, VidhiSangh"
+    paragraphs = [p.strip() for p in note.replace("\r", "").split("\n\n") if p.strip()]
+    join = f"{_app_url()}/auth/login" if joined else join_url(token)
+    text, body = _shell(greeting=_greeting(name), paragraphs=paragraphs, join=join,
+                        button="Open VidhiSangh" if joined else "Join VidhiSangh, free",
+                        unsub=unsubscribe_url(token), source=source)
+    return subject, text, body
+
+
+def draft_note(*, name: str | None, court: str | None, joined: bool, colleagues: int = 0) -> str:
+    """A starting point for the admin's personal note; edited before sending."""
+    first = (name or "").replace("Adv.", "").strip().split(" ")[0] or "Colleague"
+    c = _short_court(court) if court and court.strip() else "your court"
+    if joined:
+        return (f"{first}, thank you for joining VidhiSangh. I am building it for advocates like you, and I would value "
+                f"two minutes of your view: what should it do for the {c} bar that nothing else does?\n\n"
+                f"Reply to this email or message me on WhatsApp. And do add the courts you practise in on your profile, "
+                f"so colleagues from the {c} can find you.")
+    many = f"{colleagues} advocates from the {c} have already joined. " if colleagues >= 3 else ""
+    return (f"{first}, you opened the VidhiSangh invitation and reached the sign-up page, so I wanted to write personally. "
+            f"{many}It is free, it is built for the Indian bar, and it takes a minute to join; your details are already filled in.\n\n"
+            f"If something stopped you, reply and tell me, I read every answer.")

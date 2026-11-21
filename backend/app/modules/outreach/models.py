@@ -74,3 +74,21 @@ class OutreachSettings(AuditedBase):
     daily_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=100)
     # Court by court (owner, 2 Nov 2026): while set, only contacts whose city or court matches are sent.
     focus: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
+
+class OutreachFollowUp(AuditedBase):
+    """A message sent to a contact after the invitation (22 Nov 2026): the single automatic
+    **reminder** a week later to people who opened but did not click, or a **personal** note the
+    platform admin sends from the Warm leads list. ``channel`` email | whatsapp (WhatsApp notes are
+    sent by the admin from their own phone through a wa.me link; the row records that it was opened).
+    One reminder per contact, ever."""
+
+    __tablename__ = "outreach_followups"
+
+    contact_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, index=True)
+    channel: Mapped[str] = mapped_column(String(10), nullable=False)
+    kind: Mapped[str] = mapped_column(String(10), nullable=False)  # reminder | personal
+    subject: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    sent_by: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)

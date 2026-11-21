@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from httpx import AsyncClient
@@ -11,7 +11,7 @@ from sqlalchemy import select
 from app.core.outreach_mail import OutreachMessage, RecipientRefused, set_outreach_sender
 from app.modules.identity.models import User
 from app.modules.outreach import runner, service
-from app.modules.outreach.models import OutreachContact, OutreachStatus
+from app.modules.outreach.models import OutreachContact, OutreachFollowUp, OutreachStatus
 
 pytestmark = pytest.mark.asyncio
 
@@ -462,3 +462,115 @@ async def test_the_join_link_prefills_sign_up_for_the_invitee_only_while_the_inv
         "professional_role": "advocate", "practice_type": "individual", "invite_token": token})
     assert r.status_code == 201, r.text
     assert (await client.get(f"/api/v1/outreach/invite/{token}")).status_code == 404
+
+
+async def test_focus_list_works_the_courts_in_order(client: AsyncClient, session_factory, strong_password) -> None:
+    """22 Nov 2026: "Allahabad, Madhya Pradesh" sends to Allahabad until it runs out, then Madhya Pradesh."""
+    admin = await _admin(client, session_factory, strong_password)
+    csv_text = ("email,name,city,court,source\n"
+                "a@pryj.law,Adv. A,Prayagraj,Allahabad High Court,the roll\n"
+                "m@jbp.law,Adv. M,Jabalpur,Madhya Pradesh High Court,the roll\n"
+                "p@pune.law,Adv. P,Pune,\"District Court, Pune\",the roll\n")
+    await client.post("/api/v1/platform-admin/outreach/contacts", headers=admin, files={"file": ("f.csv", csv_text.encode(), "text/csv")})
+    r = await client.patch("/api/v1/platform-admin/outreach/settings", headers=admin,
+                           json={"focus": "Allahabad, Madhya Pradesh", "paused": False, "daily_limit": 1})
+    assert r.json()["focus"] == "Allahabad, Madhya Pradesh" and r.json()["active_focus"] == "Allahabad" and r.json()["queued_in_focus"] == 1
+    recorder = Recorder()
+    set_outreach_sender(recorder)
+    async with session_factory() as s:
+        assert (await service.send_batch(s, recorder, now=datetime(2026, 11, 23, 5, tzinfo=UTC)))["sent"] == 1
+    assert recorder.sent[-1].to == "a@pryj.law"
+    r = await client.get("/api/v1/platform-admin/outreach", headers=admin)
+    assert r.json()["active_focus"] == "Madhya Pradesh" and r.json()["queued_in_focus"] == 1
+    async with session_factory() as s:
+        assert (await service.send_batch(s, recorder, now=datetime(2026, 11, 24, 5, tzinfo=UTC)))["sent"] == 1
+    assert recorder.sent[-1].to == "m@jbp.law"
+    r = await client.get("/api/v1/platform-admin/outreach", headers=admin)
+    assert r.json()["active_focus"] == "Madhya Pradesh" and r.json()["queued_in_focus"] == 0  # exhausted: nothing else goes out
+    async with session_factory() as s:
+        assert (await service.send_batch(s, recorder, now=datetime(2026, 11, 25, 5, tzinfo=UTC)))["sent"] == 0
+
+
+async def test_one_reminder_a_week_later_to_those_who_opened_but_did_not_click(
+    client: AsyncClient, session_factory, strong_password,
+) -> None:
+    admin = await _admin(client, session_factory, strong_password)
+    csv_text = ("email,name,city,court,source\n"
+                "opened@x.law,Adv. Opened,Prayagraj,Allahabad High Court,the roll\n"
+                "clicked@x.law,Adv. Clicked,Prayagraj,Allahabad High Court,the roll\n"
+                "unread@x.law,Adv. Unread,Prayagraj,Allahabad High Court,the roll\n")
+    await client.post("/api/v1/platform-admin/outreach/contacts", headers=admin, files={"file": ("f.csv", csv_text.encode(), "text/csv")})
+    await client.patch("/api/v1/platform-admin/outreach/settings", headers=admin, json={"paused": False, "daily_limit": 10})
+    recorder = Recorder()
+    set_outreach_sender(recorder)
+    sent_day = datetime(2026, 11, 10, 5, tzinfo=UTC)
+    async with session_factory() as s:
+        assert (await service.send_batch(s, recorder, now=sent_day))["sent"] == 3
+        tokens = {c.email: c.token for c in await s.scalars(select(OutreachContact))}
+    # Two opened; one of them clicked.
+    await client.get(f"/api/v1/outreach/o/{tokens['opened@x.law']}.gif")
+    await client.get(f"/api/v1/outreach/j/{tokens['clicked@x.law']}", follow_redirects=False)
+    recorder.sent.clear()
+    async with session_factory() as s:
+        assert await service.send_reminders(s, recorder, now=sent_day + timedelta(days=3)) == {"sent": 0, "skipped": 0, "bounced": 0, "failed": 0}
+        assert await service.send_reminders(s, recorder, now=sent_day + timedelta(days=8)) == {"sent": 1, "skipped": 0, "bounced": 0, "failed": 0}
+    assert [m.to for m in recorder.sent] == ["opened@x.law"]
+    m = recorder.sent[0]
+    assert m.subject.startswith("A reminder about VidhiSangh") and "A week ago I invited you" in m.text and tokens["opened@x.law"] in m.text
+    assert "Unsubscribe:" in m.text and m.one_click_url.endswith(tokens["opened@x.law"])
+    async with session_factory() as s:
+        # Never twice, and it counts against the day's number.
+        assert (await service.send_reminders(s, recorder, now=sent_day + timedelta(days=9)))["sent"] == 0
+        assert await service.sent_today(s, sent_day + timedelta(days=8)) == 1
+        rows = (await s.scalars(select(OutreachFollowUp))).all()
+        assert len(rows) == 1 and rows[0].kind == "reminder" and rows[0].channel == "email"
+    # The contacts list and CSV still work, and the warm list shows the clicker as a lead.
+    r = await client.get("/api/v1/platform-admin/outreach/warm", headers=admin)
+    assert r.status_code == 200
+    leads = r.json()["leads"]
+    assert [l["email"] for l in leads] == ["clicked@x.law"] and leads[0]["followups"] == [] and "Clicked" in leads[0]["draft"]
+
+
+async def test_personal_notes_by_email_or_a_whatsapp_link_from_the_warm_list(
+    client: AsyncClient, session_factory, strong_password,
+) -> None:
+    admin = await _admin(client, session_factory, strong_password)
+    csv_text = ("email,name,mobile,city,court,source\n"
+                "lead@x.law,Adv. Lead,9876543210,Prayagraj,Allahabad High Court,the roll\n"
+                "member@x.law,Adv. Member,,Prayagraj,Allahabad High Court,the roll\n")
+    await client.post("/api/v1/platform-admin/outreach/contacts", headers=admin, files={"file": ("f.csv", csv_text.encode(), "text/csv")})
+    await client.patch("/api/v1/platform-admin/outreach/settings", headers=admin, json={"paused": False, "daily_limit": 10})
+    recorder = Recorder()
+    set_outreach_sender(recorder)
+    async with session_factory() as s:
+        assert (await service.send_batch(s, recorder))["sent"] == 2
+        tokens = {c.email: (c.token, str(c.id)) for c in await s.scalars(select(OutreachContact))}
+    await client.get(f"/api/v1/outreach/j/{tokens['lead@x.law'][0]}", follow_redirects=False)
+    r = await client.post("/api/v1/auth/register", json={
+        "full_name": "Adv. Member", "email": "member@x.law", "password": strong_password, "accept_terms": True,
+        "professional_role": "advocate", "practice_type": "individual", "invite_token": tokens["member@x.law"][0]})
+    assert r.status_code == 201, r.text
+    warm = (await client.get("/api/v1/platform-admin/outreach/warm", headers=admin)).json()
+    assert [l["email"] for l in warm["leads"]] == ["lead@x.law"] and warm["leads"][0]["phone"] == "9876543210"
+    assert [l["email"] for l in warm["joined"]] == ["member@x.law"] and "thank you for joining" in warm["joined"][0]["draft"]
+    recorder.sent.clear()
+    lead_id, member_id = tokens["lead@x.law"][1], tokens["member@x.law"][1]
+    r = await client.post(f"/api/v1/platform-admin/outreach/contacts/{lead_id}/message", headers=admin,
+                          json={"channel": "email", "note": "Lead, I noticed you reached the sign-up page.\n\nReply if something stopped you."})
+    assert r.status_code == 200 and r.json()["sent"] is True
+    m = recorder.sent[-1]
+    assert m.to == "lead@x.law" and m.subject == "A note from Davendra Singh, VidhiSangh" and "Dear Adv. Lead," in m.text
+    assert "I noticed you reached the sign-up page" in m.html and "/api/v1/outreach/j/" in m.text and "Unsubscribe:" in m.text
+    r = await client.post(f"/api/v1/platform-admin/outreach/contacts/{lead_id}/message", headers=admin,
+                          json={"channel": "whatsapp", "note": "Lead, this is Davendra from VidhiSangh: can I help you join?"})
+    assert r.status_code == 200 and r.json()["whatsapp_url"].startswith("https://wa.me/919876543210?text=Lead%2C%20this%20is")
+    r = await client.post(f"/api/v1/platform-admin/outreach/contacts/{member_id}/message", headers=admin, json={"channel": "whatsapp", "note": "hi"})
+    assert r.status_code == 400 and "No mobile number" in r.json()["detail"]
+    r = await client.post(f"/api/v1/platform-admin/outreach/contacts/{member_id}/message", headers=admin, json={"channel": "email", "note": "Welcome aboard."})
+    assert r.status_code == 200 and "/auth/login" in recorder.sent[-1].text  # a member gets a sign-in button, not a join link
+    warm = (await client.get("/api/v1/platform-admin/outreach/warm", headers=admin)).json()
+    assert [f["channel"] for f in warm["leads"][0]["followups"]] == ["email", "whatsapp"]
+    assert [f["kind"] for f in warm["joined"][0]["followups"]] == ["personal"]
+    # Personal emails count against the day's number like invitations.
+    async with session_factory() as s:
+        assert await service.sent_today(s) == 4

@@ -7,7 +7,7 @@ import io
 import secrets
 import uuid
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import (
     APIRouter,
@@ -211,6 +211,63 @@ async def outreach_import(
         return await service.import_contacts(session, data, source)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+class FollowUpRow(BaseModel):
+    channel: str
+    kind: str
+    sent_at: datetime
+
+
+class WarmLead(BaseModel):
+    id: uuid.UUID
+    name: str | None
+    email: str
+    court: str | None
+    city: str | None
+    status: OutreachStatus
+    clicked_at: datetime | None
+    joined_at: datetime | None
+    phone: str | None
+    followups: list[FollowUpRow]
+    draft: str
+
+
+class WarmLists(BaseModel):
+    leads: list[WarmLead]
+    joined: list[WarmLead]
+
+
+class PersonalNote(BaseModel):
+    channel: Literal["email", "whatsapp"]
+    note: str = Field(min_length=1, max_length=2000)
+
+
+@router.get("/platform-admin/outreach/warm", response_model=WarmLists,
+            summary="Warm leads: invitees who clicked but did not join, and invitees who joined, with a draft note each")
+async def outreach_warm(current: CurrentUserDep, session: AuthSessionDep) -> WarmLists:
+    require_platform_admin(current.is_superuser)
+    lists = await service.warm_leads(session)
+    async def with_draft(rows: list[dict], joined: bool) -> list[WarmLead]:
+        out = []
+        for r in rows:
+            context = await service.court_context(session, r["court"])
+            out.append(WarmLead(**r, draft=invitation.draft_note(name=r["name"], court=r["court"], joined=joined,
+                                                                  colleagues=int(context.get("colleagues", 0)))))
+        return out
+    return WarmLists(leads=await with_draft(lists["leads"], False), joined=await with_draft(lists["joined"], True))
+
+
+@router.post("/platform-admin/outreach/contacts/{contact_id}/message",
+             summary="Send a personal note by email, or get a wa.me link to send it from your own WhatsApp")
+async def outreach_personal_note(contact_id: uuid.UUID, data: PersonalNote, current: CurrentUserDep, session: AuthSessionDep) -> dict:
+    require_platform_admin(current.is_superuser)
+    try:
+        return await service.personal_followup(session, get_outreach_sender(), contact_id, channel=data.channel, note=data.note, by=current.id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get("/platform-admin/outreach/contacts", response_model=Page[ContactRow],

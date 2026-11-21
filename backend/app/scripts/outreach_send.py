@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import random
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 
@@ -26,16 +27,24 @@ async def run(dry_run: bool) -> dict:
         cfg = await service.get_settings(session)
         await session.commit()
         if dry_run:
-            where = [OutreachContact.status == OutreachStatus.QUEUED, *service.focus_where(cfg.focus)]
+            focus = await service.active_focus(session, cfg.focus)
+            where = [OutreachContact.status == OutreachStatus.QUEUED, *service.focus_where(focus)]
             queued = (await session.scalars(select(OutreachContact.email).where(*where)
-                                            .order_by(*service.pick_order(cfg.focus)).limit(cfg.daily_limit))).all()
+                                            .order_by(*service.pick_order(focus)).limit(cfg.daily_limit))).all()
+            due = await service.reminder_candidates(session, datetime.now(UTC), cfg.daily_limit)
             return {"paused": cfg.paused, "daily_limit": cfg.daily_limit, "focus": cfg.focus,
-                    "queued_in_focus": await service.queued_count(session, focus=cfg.focus),
+                    "active_focus": await service.active_focus(session, cfg.focus), "reminders_due": len(due),
+                    "queued_in_focus": await service.queued_count(session, focus=focus),
                     "sent_today": await service.sent_today(session), "next": list(queued)}
         sender = get_outreach_sender()
         if sender is None:
             return {"skipped": "VS_OUTREACH_SMTP_HOST is not set"}
-        return await service.send_batch(session, sender, pause=lambda: asyncio.sleep(random.uniform(10, 30)))
+        pause = lambda: asyncio.sleep(random.uniform(10, 30))  # noqa: E731
+        # Reminders first (an opened invitation is warmer than a cold one), then today's new invitations,
+        # both within the same daily number.
+        reminders = await service.send_reminders(session, sender, pause=pause)
+        invitations = await service.send_batch(session, sender, pause=pause)
+        return {"reminders": reminders, "invitations": invitations}
 
 
 if __name__ == "__main__":

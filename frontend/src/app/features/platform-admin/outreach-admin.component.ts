@@ -18,7 +18,7 @@ interface Funnel {
 }
 interface OutreachOverview {
   paused: boolean; daily_limit: number; max_daily_limit: number; sender_configured: boolean; webhook_configured: boolean; from_address: string;
-  focus: string | null; queued_in_focus: number | null;
+  focus: string | null; queued_in_focus: number | null; active_focus: string | null;
   sent_today: number; sent_last_7_days: number; suppressed_total: number; sending: boolean;
   counts: Record<'queued' | 'sent' | 'joined' | 'unsubscribed' | 'bounced' | 'skipped' | 'removal_requested', number>;
   funnel: Funnel;
@@ -33,6 +33,12 @@ interface Contact {
   delivered_at: string | null; opened_at: string | null; clicked_at: string | null; complained_at: string | null;
 }
 interface ContactPage { items: Contact[]; total: number; page: number; size: number }
+interface FollowUp { channel: 'email' | 'whatsapp'; kind: 'reminder' | 'personal'; sent_at: string }
+interface WarmLead {
+  id: string; name: string | null; email: string; court: string | null; city: string | null; status: ContactStatus;
+  clicked_at: string | null; joined_at: string | null; phone: string | null; followups: FollowUp[]; draft: string;
+}
+interface WarmLists { leads: WarmLead[]; joined: WarmLead[] }
 const STATUS_LABEL: Record<ContactStatus, string> = {
   queued: 'Waiting', sent: 'Approached', joined: 'Joined', unsubscribed: 'Unsubscribed', bounced: 'Bounced',
   skipped: 'Skipped', removal_requested: 'Asked to be removed',
@@ -118,7 +124,7 @@ const STATUS_LABEL: Record<ContactStatus, string> = {
           <p class="text-sm text-content-muted">From {{ d.from_address }}. Sent at about 10:30 am, Monday to Saturday.</p>
           @if (d.focus) {
             <p class="text-sm mt-1" [class.text-warning]="d.queued_in_focus === 0" [class.text-content-muted]="d.queued_in_focus !== 0">
-              Focus: <strong class="text-content">{{ d.focus }}</strong> · {{ d.queued_in_focus | number }} waiting {{ d.focus.toLowerCase() === 'random' ? 'across every court, picked at random' : 'there' }}@if (d.queued_in_focus === 0 && d.focus.toLowerCase() !== 'random') {: change or clear the focus to continue}.
+              Focus: <strong class="text-content">{{ d.active_focus || d.focus }}</strong>@if (d.active_focus && d.active_focus !== d.focus) { <span class="text-content-muted">(list: {{ d.focus }})</span> } · {{ d.queued_in_focus | number }} waiting {{ d.focus.toLowerCase() === 'random' ? 'across every court, picked at random' : 'there' }}@if (d.queued_in_focus === 0 && d.focus.toLowerCase() !== 'random') {: change or clear the focus to continue}.
             </p>
           }
           @if (sendingNow() || d.sending) {
@@ -133,7 +139,7 @@ const STATUS_LABEL: Record<ContactStatus, string> = {
           <input class="vs-input w-20" type="number" min="0" [max]="d.max_daily_limit" [(ngModel)]="limit" />
         </label>
         <label class="text-sm flex items-center gap-2" title="Court by court: while set, only contacts whose city or court matches go out. Type Random to invite from every court in random order; leave empty for the oldest rows first.">Focus
-          <input class="vs-input w-44" [(ngModel)]="focus" maxlength="200" placeholder="city or court, or Random" />
+          <input class="vs-input w-56" [(ngModel)]="focus" maxlength="200" placeholder="court, a list (Allahabad, Madhya Pradesh), or Random" />
         </label>
         <button mat-stroked-button (click)="save({ daily_limit: limit, focus: focus })">Save</button>
         <button mat-stroked-button [color]="d.paused ? 'primary' : 'warn'" (click)="save({ paused: !d.paused })">
@@ -173,6 +179,48 @@ const STATUS_LABEL: Record<ContactStatus, string> = {
         </section>
       </div>
 
+      <section class="rounded-card border border-line bg-surface-raised p-5 mt-4">
+        <div class="flex flex-wrap items-center gap-3">
+          <h2 class="font-semibold flex-1">Warm leads</h2>
+          <button mat-button (click)="warmTab.set('leads')" [class.text-brand]="warmTab() === 'leads'">Clicked, not joined ({{ warm()?.leads?.length ?? 0 }})</button>
+          <button mat-button (click)="warmTab.set('joined')" [class.text-brand]="warmTab() === 'joined'">Joined ({{ warm()?.joined?.length ?? 0 }})</button>
+        </div>
+        <p class="text-sm text-content-muted mt-1">A personal note from you, by email through the invitation mail service, or on WhatsApp from your own phone (the link opens WhatsApp with the note ready; the platform never messages non-members itself). Each send is recorded here.</p>
+        <div class="overflow-x-auto mt-3">
+          <table class="w-full text-sm">
+            <thead class="text-left text-content-muted"><tr>
+              <th class="py-2 pr-3">Name</th><th class="pr-3">Court</th><th class="pr-3">{{ warmTab() === 'leads' ? 'Clicked' : 'Joined' }}</th><th class="pr-3">Follow-ups</th><th></th>
+            </tr></thead>
+            <tbody>
+              @for (w of (warmTab() === 'leads' ? warm()?.leads : warm()?.joined) ?? []; track w.id) {
+                <tr class="border-t border-line align-top">
+                  <td class="py-2 pr-3 whitespace-nowrap">{{ w.name || '—' }}<div class="text-xs text-content-muted">{{ w.email }}</div></td>
+                  <td class="pr-3">{{ w.court || '—' }}@if (w.city) { <span class="text-content-muted">· {{ w.city }}</span> }</td>
+                  <td class="pr-3 whitespace-nowrap">{{ (warmTab() === 'leads' ? w.clicked_at : w.joined_at) | date:'dd/MM/yyyy' }}</td>
+                  <td class="pr-3 text-xs">
+                    @for (f of w.followups; track f.sent_at) { <div>{{ f.kind === 'reminder' ? 'Reminder' : 'Note' }} · {{ f.channel }} · {{ f.sent_at | date:'dd/MM' }}</div> } @empty { <span class="text-content-muted">none</span> }
+                  </td>
+                  <td class="whitespace-nowrap text-right">
+                    <button mat-button class="!min-w-0" (click)="compose(w, 'email')"><mat-icon class="material-icons-outlined">mail</mat-icon> Email</button>
+                    <button mat-button class="!min-w-0" (click)="compose(w, 'whatsapp')" [disabled]="!w.phone" [title]="w.phone ? 'Opens WhatsApp on your phone or desktop with the note' : 'No mobile number known'"><mat-icon class="material-icons-outlined">chat</mat-icon> WhatsApp</button>
+                  </td>
+                </tr>
+              } @empty { <tr><td colspan="5" class="py-3 text-content-muted">Nobody here yet.</td></tr> }
+            </tbody>
+          </table>
+        </div>
+        @if (composing(); as c) {
+          <div class="mt-4 rounded-lg border border-line p-4" role="dialog" aria-label="Personal note">
+            <p class="text-sm mb-2"><strong>{{ c.channel === 'email' ? 'Email' : 'WhatsApp' }}</strong> to {{ c.lead.name || c.lead.email }}@if (c.channel === 'whatsapp') { ({{ c.lead.phone }}) }. Edit the note, then send.</p>
+            <textarea class="vs-input w-full" rows="7" [(ngModel)]="noteText" maxlength="2000"></textarea>
+            <div class="flex items-center gap-2 mt-2">
+              <button mat-flat-button color="primary" [disabled]="sendingNote() || !noteText.trim()" (click)="sendNote()">{{ c.channel === 'email' ? 'Send email' : 'Open WhatsApp with this note' }}</button>
+              <button mat-button (click)="composing.set(null)">Cancel</button>
+              <span class="text-xs text-content-muted">{{ c.channel === 'email' ? 'Sent with a join or sign-in button and an unsubscribe link; counts against today\'s number.' : 'You send it from your own WhatsApp; the opening is recorded here.' }}</span>
+            </div>
+          </div>
+        }
+      </section>
       <section class="rounded-card border border-line bg-surface-raised p-5 mt-4">
         <div class="flex flex-wrap items-center gap-3">
           <h2 class="font-semibold flex-1">Contacts <span class="text-content-muted font-normal text-sm">{{ contacts()?.total ?? 0 }} shown</span></h2>
@@ -283,6 +331,11 @@ export class OutreachAdminComponent implements OnInit {
 
   // Contacts list
   protected readonly contacts = signal<ContactPage | null>(null);
+  protected readonly warm = signal<WarmLists | null>(null);
+  protected readonly warmTab = signal<'leads' | 'joined'>('leads');
+  protected readonly composing = signal<{ lead: WarmLead; channel: 'email' | 'whatsapp' } | null>(null);
+  protected readonly sendingNote = signal(false);
+  protected noteText = '';
   protected readonly query = signal('');
   protected readonly statusFilter = signal<ContactStatus | ''>('');
   protected readonly page = signal(1);
@@ -300,7 +353,7 @@ export class OutreachAdminComponent implements OnInit {
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
   async ngOnInit(): Promise<void> {
-    await Promise.all([this.load(), this.loadContacts()]);
+    await Promise.all([this.load(), this.loadContacts(), this.loadWarm()]);
     try {
       const html = await firstValueFrom(this.http.get(`${this.api}/preview`, { responseType: 'text' }));
       // Our own server-built email, shown in a sandboxed frame (no scripts).
@@ -342,6 +395,33 @@ export class OutreachAdminComponent implements OnInit {
   protected goTo(page: number): void {
     this.page.set(page);
     void this.loadContacts();
+  }
+
+  private async loadWarm(): Promise<void> {
+    try { this.warm.set(await firstValueFrom(this.http.get<WarmLists>(`${this.api}/warm`))); } catch { this.warm.set({ leads: [], joined: [] }); }
+  }
+
+  protected compose(lead: WarmLead, channel: 'email' | 'whatsapp'): void {
+    this.noteText = lead.draft;
+    this.composing.set({ lead, channel });
+  }
+
+  protected async sendNote(): Promise<void> {
+    const c = this.composing();
+    if (!c) return;
+    this.sendingNote.set(true);
+    try {
+      const r = await firstValueFrom(this.http.post<{ sent: boolean; whatsapp_url?: string }>(
+        `${this.api}/contacts/${c.lead.id}/message`, { channel: c.channel, note: this.noteText.trim() }));
+      if (c.channel === 'whatsapp' && r.whatsapp_url) window.open(r.whatsapp_url, '_blank', 'noopener');
+      this.notify.success(c.channel === 'email' ? `Email sent to ${c.lead.email}.` : 'WhatsApp opened with your note.');
+      this.composing.set(null);
+      await this.loadWarm();
+    } catch (err) {
+      this.notify.error(problemMessage(err, 'The note could not be sent.'));
+    } finally {
+      this.sendingNote.set(false);
+    }
   }
 
   protected async flagRemoval(c: Contact): Promise<void> {

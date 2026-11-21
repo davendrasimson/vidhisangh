@@ -34,7 +34,17 @@ went out; the mail-tester check is repeatable from the server (send one `message
 test address through the job's SMTP credential).
 
 ## Rules the system enforces
-- **One invitation per address, ever.** No follow-ups or reminders.
+- **One invitation per address, plus one reminder** (owner, 22 Nov 2026): a week after an invitation that was
+  opened but not followed, one reminder goes out (`service.send_reminders`, first thing in the daily job, within the
+  same daily number; recorded in `outreach_followups`, kind `reminder`, never twice). Nothing more is automatic.
+- **Warm leads** (Platform admin → Outreach → Warm leads): invitees who clicked but did not join, and invitees who
+  joined, each with a draft personal note. *Email* sends it through the invitation mail service in the same shell
+  (join or sign-in button, unsubscribe link; counts against the day's number). *WhatsApp* records the note and opens
+  a `wa.me` link so the admin sends it from their own phone: the platform's WhatsApp number never messages
+  non-members. `GET /platform-admin/outreach/warm`, `POST /platform-admin/outreach/contacts/<id>/message`.
+- **Focus list**: the Focus may be a comma-separated list ("Allahabad, Madhya Pradesh"); the batch works the first
+  court with contacts still waiting and moves to the next on its own (`service.active_focus`; the screen shows
+  the active one). Set to "Allahabad, Madhya Pradesh" on 22 Nov 2026.
 - **At most 100 a day** (`VS_OUTREACH_DAILY_LIMIT`, a ceiling the admin can only lower; 50 until the owner raised it on 31 Oct 2026), counted by India date; sent Monday–Saturday from about 10:30 IST, spaced 20–60 s apart (about 100 minutes for a full day) (`vidhisangh-outreach.timer`).
 - **Starts paused.** Nothing goes out on the timer until the admin presses *Start scheduled sending* and the mail service is configured.
 - **Court by court (owner, 2 Nov 2026; migration `0086`, `outreach_settings.focus`)**: the admin sets a **Focus** (a city or
