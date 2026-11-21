@@ -9,7 +9,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
-import { AuthService } from '@core/auth/auth.service';
+import { AuthService, InviteDetails } from '@core/auth/auth.service';
 import { isNativeApp } from '@core/platform/platform';
 import { problemMessage } from '@core/interceptors/error.interceptor';
 import { STRICT_EMAIL } from '../send-code-cooldown';
@@ -56,6 +56,8 @@ export class RegisterComponent implements OnInit {
   /** WhatsApp is shown until the server says it is not configured. */
   protected readonly whatsappAvailable = signal(true);
   protected readonly useEmail = signal(false);
+  /** Set when the page was opened from an invitation email: the form is prefilled and the court named. */
+  protected readonly invite = signal<InviteDetails | null>(null);
   /** "Continue with Google": web only (the app cannot receive the redirect yet). */
   protected readonly googleAvailable = signal(false);
 
@@ -84,6 +86,7 @@ export class RegisterComponent implements OnInit {
     rememberNext(this.route.snapshot.queryParamMap.get('returnUrl'));
     // From an invitation email's join link: the join is counted against that invitation.
     this.inviteToken = (this.route.snapshot.queryParamMap.get('invite') || '').slice(0, 64) || null;
+    if (this.inviteToken) void this.prefillFromInvite(this.inviteToken);
     if (!isNativeApp()) {
       firstValueFrom(this.auth.ssoProviders())
         .then(list => this.googleAvailable.set(list.some(p => p.name === 'google')))
@@ -101,6 +104,23 @@ export class RegisterComponent implements OnInit {
       await this.auth.startSso('google');
     } catch (err) {
       this.errorMsg.set(problemMessage(err, this.i18n.t('Could not open Google sign-in. Please try again.')));
+    }
+  }
+
+  /** An invitee arrives with their name, email and court already known: ask only for a password.
+   *  (22 Nov 2026: half of those who clicked the email never finished the form.) */
+  private async prefillFromInvite(token: string): Promise<void> {
+    try {
+      const d = await firstValueFrom(this.auth.inviteDetails(token));
+      this.invite.set(d);
+      this.form.patchValue({
+        full_name: d.name ?? '', email: d.email, professional_role: 'advocate',
+        city: d.city ?? '', court: d.court ?? '',
+      });
+      this.useEmail.set(true);
+      countStep('invite_prefilled');
+    } catch {
+      /* unknown or spent link: the ordinary sign-up page */
     }
   }
 

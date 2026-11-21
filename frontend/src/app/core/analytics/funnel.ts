@@ -1,7 +1,7 @@
 import { environment } from '@env/environment';
 
 /** Steps of the sign-up funnel (backend app/modules/funnel/router.py STEPS). */
-export type FunnelStep = 'landing_view' | 'register_view' | 'email_form_opened' | 'whatsapp_code_requested';
+export type FunnelStep = 'landing_view' | 'register_view' | 'email_form_opened' | 'whatsapp_code_requested' | 'invite_prefilled';
 
 /**
  * Count a sign-up step: an anonymous daily counter on our own server (no

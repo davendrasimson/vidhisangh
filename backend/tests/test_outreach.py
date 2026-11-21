@@ -86,7 +86,7 @@ async def test_import_send_unsubscribe_and_join(client: AsyncClient, session_fac
     assert "Dear Adv. Priya Sharma," in msg.text and "publicly listed in the Delhi High Court Bar Association directory" in msg.text
     assert "Punjab & Haryana Bar directory" in recorder.sent[1].text  # the row's own source wins
     assert "/unsubscribe/" in msg.text and "/api/v1/outreach/unsubscribe/" in msg.one_click_url
-    assert "Join VidhiSangh free" in msg.html and "<script" not in msg.html
+    assert "Join VidhiSangh, free" in msg.html and "<script" not in msg.html
     assert "Simson" not in msg.text + msg.html and "Sent by VidhiSangh, India. Grievance officer" in msg.text
 
     # The daily limit holds for the rest of the (IST) day.
@@ -264,7 +264,7 @@ async def test_invitation_names_the_court_group_and_colleagues_and_prefills_the_
         report = await service.send_batch(s, recorder)
     assert report["sent"] == 3
     lko = next(m for m in recorder.sent if m.to == "adv5@lko.law")
-    assert "Advocates from the Allahabad High Court, Lucknow Bench are already on VidhiSangh." in lko.text
+    assert "Advocates from the Allahabad High Court have already joined from this list." in lko.text
     assert "Allahabad High Court group" in lko.text and "/app/groups/" in lko.text and "/app/groups/" in lko.html
     solo = next(m for m in recorder.sent if m.to == "solo@kochi.law")
     assert "already on VidhiSangh" not in solo.text            # nobody from Kerala has joined yet
@@ -431,3 +431,34 @@ async def test_engagement_click_open_webhook_and_join_through_the_link(client: A
     assert rows[0]["clicked_at"] and rows[0]["opened_at"] and rows[0]["delivered_at"] and rows[0]["complained_at"] is None
     csv_text = (await client.get("/api/v1/platform-admin/outreach/contacts.csv", headers=admin)).text
     assert csv_text.splitlines()[0].startswith("email,name,mobile,city,court,source,status,sent_at,delivered_at,opened_at,clicked_at")
+
+
+async def test_the_join_link_prefills_sign_up_for_the_invitee_only_while_the_invitation_is_open(
+    client: AsyncClient, session_factory, strong_password,
+) -> None:
+    """22 Nov 2026: half of the people who clicked never finished the form, so the sign-up page now
+    prefills name, email and court from the invitation token (which only the invitee holds)."""
+    admin = await _admin(client, session_factory, strong_password)
+    csv_text = ("email,name,city,court,source\n"
+                "rao@pryj.law,Adv. Rao,Prayagraj,Allahabad High Court,the roll\n")
+    await client.post("/api/v1/platform-admin/outreach/contacts", headers=admin, files={"file": ("f.csv", csv_text.encode(), "text/csv")})
+    async with session_factory() as s:
+        contact = await s.scalar(select(OutreachContact).where(OutreachContact.email == "rao@pryj.law"))
+        token = contact.token
+    # Not sent yet: nothing to prefill (the link has not been emailed to anyone).
+    assert (await client.get(f"/api/v1/outreach/invite/{token}")).status_code == 404
+    await client.patch("/api/v1/platform-admin/outreach/settings", headers=admin, json={"paused": False, "daily_limit": 5})
+    recorder = Recorder()
+    set_outreach_sender(recorder)
+    async with session_factory() as s:
+        assert (await service.send_batch(s, recorder))["sent"] == 1
+    r = await client.get(f"/api/v1/outreach/invite/{token}")
+    assert r.status_code == 200 and r.headers["cache-control"].startswith("no-store")
+    assert r.json() == {"name": "Adv. Rao", "email": "rao@pryj.law", "court": "Allahabad High Court", "city": "Prayagraj", "colleagues": 0}
+    assert (await client.get("/api/v1/outreach/invite/not-a-token")).status_code == 404
+    # Once they have joined (or unsubscribed) the link stops answering with their details.
+    r = await client.post("/api/v1/auth/register", json={
+        "full_name": "Adv. Rao", "email": "rao@pryj.law", "password": strong_password, "accept_terms": True,
+        "professional_role": "advocate", "practice_type": "individual", "invite_token": token})
+    assert r.status_code == 201, r.text
+    assert (await client.get(f"/api/v1/outreach/invite/{token}")).status_code == 404

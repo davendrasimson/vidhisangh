@@ -20,7 +20,7 @@ from app.modules.funnel.models import FunnelDaily
 router = APIRouter(prefix="/funnel", tags=["Sign-up funnel"])
 IST = ZoneInfo("Asia/Kolkata")
 # In funnel order: home page seen → sign-up page → email form opened → WhatsApp code asked.
-STEPS = ("landing_view", "register_view", "email_form_opened", "whatsapp_code_requested")
+STEPS = ("landing_view", "register_view", "email_form_opened", "whatsapp_code_requested", "invite_prefilled")
 _limit = RateLimiter(times=20, window_seconds=60, scope="funnel", fail_closed=False)
 
 

@@ -3,6 +3,36 @@
 Daily invitation emails to legal professionals who are not members yet.
 Platform admin → **Outreach**. Built 16 Oct 2026 (migration `0067`).
 
+## Conversion diagnosis and fixes (22 November 2026)
+
+After 4,608 invitations: 588 opened (13%), 37 clicked (0.8%), 19 joined (0.4%); zero opens from
+Yahoo and Rediff addresses (500+). Three leaks, each with a fix:
+
+1. **Deliverability.** A real invitation sent to mail-tester scored **3.8/10**: `dmarc=fail`
+   because the DKIM key lookup (`brevo1._domainkey.news.vidhisangh.com`, signed `d=news.vidhisangh.com
+   s=brevo1`) failed at the receiver ("no servers could be reached"). The domain's only
+   nameserver is BIND on the app server (ns1 and ns2 are the same host) with response rate
+   limiting at 15/s per client, which drops the burst of SPF+DKIM+DMARC+CNAME lookups a receiver
+   makes for one message. With `p=quarantine` on the subdomain that sends mail to spam. Done:
+   rate limit raised to 60/s; `_dmarc.news` set to `p=none` until DNS is on a provider (back to
+   quarantine then). The relay's shared IP was also on bl.spamcop.net that day (Brevo's problem;
+   a dedicated IP is paid). **Recommended**: move the zone to Cloudflare or any provider with two
+   real nameservers.
+2. **The email.** Brand-first 90-character subject, four bullets before the button, signed
+   "Team VidhiSangh". Now: subject under 60 characters naming the court ("Your colleagues at the
+   Allahabad High Court are on VidhiSangh" once three invitees from that court joined, else "For
+   advocates of the …: VidhiSangh, free"), the ask and the button in the first three lines, "already
+   joined" line from 3 colleagues (was 5), signed Davendra Singh, alt text on images.
+3. **The landing.** Half of those who clicked never finished the form (a WhatsApp-first screen,
+   then name, email, role, password). The join link now opens the email form directly with name,
+   email, court and city prefilled from the invitation (`GET /outreach/invite/<token>`, answers
+   only while the invitation is open, `no-store`), a banner naming the court and how many
+   colleagues joined, and funnel step `invite_prefilled`. Only the password is left to type.
+
+Measure in the Outreach screen's funnel (sent → opened → clicked → joined) by the day the email
+went out; the mail-tester check is repeatable from the server (send one `message_for` to a
+test address through the job's SMTP credential).
+
 ## Rules the system enforces
 - **One invitation per address, ever.** No follow-ups or reminders.
 - **At most 100 a day** (`VS_OUTREACH_DAILY_LIMIT`, a ceiling the admin can only lower; 50 until the owner raised it on 31 Oct 2026), counted by India date; sent Monday–Saturday from about 10:30 IST, spaced 20–60 s apart (about 100 minutes for a full day) (`vidhisangh-outreach.timer`).

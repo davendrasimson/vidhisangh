@@ -2,6 +2,17 @@
   <h2 class="vs-display text-2xl md:text-3xl font-semibold text-content">{{ 'Join VidhiSangh' | t }}</h2>
   <p class="text-sm text-content-muted mt-1 mb-4 md:mb-6">{{ "The free professional network for India's legal fraternity: advocates, judges, law students, munshi and firms." | t }}</p>
 
+  @if (invite(); as inv) {
+    <div class="mb-4 rounded-lg border border-brand/30 bg-brand/5 px-3 py-2 text-sm text-content" role="status">
+      @if (inv.court && inv.colleagues >= 3) {
+        <strong>{{ inv.colleagues }}</strong> {{ 'advocates from the' | t }} {{ inv.court }} {{ 'have already joined from this invitation.' | t }}
+      } @else if (inv.court) {
+        {{ 'Your details from the' | t }} {{ inv.court }} {{ 'list are filled in; choose a password to join.' | t }}
+      } @else {
+        {{ 'Your details are filled in; choose a password to join.' | t }}
+      }
+    </div>
+  }
   @if (whatsappAvailable() && !useEmail()) {
     <app-whatsapp-login mode="join" />
     <div class="flex items-center gap-3 my-5 text-xs text-content-muted" aria-hidden="true">

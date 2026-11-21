@@ -28,6 +28,15 @@ const AUTH_CHANNEL = 'vs-auth';
  * The refresh token is an HttpOnly cookie the browser sends on `/auth/refresh`
  * and `/auth/logout` (`withCredentials`), never readable here (audit A-11).
  */
+/** backend outreach/router.py InviteRead */
+export interface InviteDetails {
+  name: string | null;
+  email: string;
+  court: string | null;
+  city: string | null;
+  colleagues: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
@@ -73,6 +82,11 @@ export class AuthService {
   /** True when the session may only change its (temporary) password. */
   mustChangePassword(): boolean {
     return this.tokens.mustChangePassword();
+  }
+
+  /** The invitee behind an invitation link, for prefilling sign-up (404 once joined or unsubscribed). */
+  inviteDetails(token: string): Observable<InviteDetails> {
+    return this.http.get<InviteDetails>(`${environment.apiBaseUrl}/outreach/invite/${encodeURIComponent(token)}`);
   }
 
   register(payload: RegisterRequest): Observable<TokenPair | RegistrationPending> {

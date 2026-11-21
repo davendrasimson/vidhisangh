@@ -372,6 +372,14 @@ async def _by_token(session: AsyncSession, token: str) -> OutreachContact | None
     return await session.scalar(select(OutreachContact).where(OutreachContact.token == token))
 
 
+async def contact_for_invite(session: AsyncSession, token: str) -> OutreachContact | None:
+    """The invitee a join link belongs to, while the invitation is still open (sent, not unsubscribed or joined)."""
+    contact = await _by_token(session, token)
+    if contact is None or contact.status not in (OutreachStatus.SENT,) or contact.deleted_at is not None:
+        return None
+    return contact
+
+
 async def record_click(session: AsyncSession, token: str, now: datetime | None = None) -> OutreachContact | None:
     """The join link in the email was followed. First time only; a click is also an open."""
     contact = await _by_token(session, token)

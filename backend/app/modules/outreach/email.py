@@ -46,15 +46,27 @@ def open_pixel_url(token: str) -> str:
 
 def court_line(court: str | None, colleagues: int) -> str:
     """'Advocates from the Allahabad High Court are already on VidhiSangh' once a few colleagues have joined."""
-    if not court or colleagues < 5:
+    if not court or colleagues < 3:
         return ""
-    many = f"{colleagues:,} advocates" if colleagues >= 20 else "Advocates"
-    return f"{many} from the {court.strip()} are already on VidhiSangh."
+    many = f"{colleagues:,} advocates" if colleagues >= 10 else "Advocates"
+    return f"{many} from the {_short_court(court)} have already joined from this list."
 
 
-def subject_for(court: str | None) -> str:
-    """Court-aware subject: 'Advocates of the Allahabad High Court: an invitation to VidhiSangh'."""
-    return f"Advocates of the {court.strip()}: an invitation to VidhiSangh, the fraternity's free network" if court and court.strip() else SUBJECT
+def _short_court(court: str) -> str:
+    """'Allahabad High Court, Lucknow Bench' → 'Allahabad High Court'; 'District Court, Pune' stays."""
+    return court.strip().split(", Lucknow")[0].strip()
+
+
+def subject_for(court: str | None, colleagues: int = 0) -> str:
+    """Short and specific (22 Nov 2026; the old 90-character brand-first subject opened at 13%):
+    'Your colleagues at the Allahabad High Court are on VidhiSangh' once a few have joined, else
+    'For advocates of the Allahabad High Court: VidhiSangh, free'."""
+    if not court or not court.strip():
+        return "An invitation to VidhiSangh, India's free legal network"
+    c = _short_court(court)
+    if colleagues >= 3:
+        return f"Your colleagues at the {c} are on VidhiSangh"[:78]
+    return f"For advocates of the {c}: VidhiSangh, free"[:78]
 
 
 # What members do on VidhiSangh, network first; practice tools and research are the free extras.
@@ -74,29 +86,33 @@ def build(*, name: str | None, source: str, token: str, court: str | None = None
     greeting = f"Dear {name.strip()}," if name and name.strip() else "Dear Colleague,"
     join, unsub = join_url(token), unsubscribe_url(token)
     sender = settings.OUTREACH_SENDER_LINE
-    subject = subject_for(court)
+    subject = subject_for(court, colleagues)
     here = court_line(court, colleagues)
     here_text = f"{here}\n\n" if here else ""
     group_text = f"Your colleagues gather in the {group_name} group: {group_url}\n\n" if group_name and group_url else ""
     points_text = "\n".join(f"• {lead} {rest}" for lead, rest in POINTS)
 
+    first = (name or "").strip().split(" ")
+    court_short = _short_court(court) if court and court.strip() else None
+    where = f" at the {court_short}" if court_short else ""
     text = f"""{greeting}
 
-I am writing to invite you to VidhiSangh (vidhisangh.com), the free professional network for India's legal fraternity: a place to find and stay in touch with the advocates you work alongside, and the ones you should know.
+VidhiSangh is a free network for India's legal fraternity, and advocates{where} are joining it. I would like you to be among them.
 
-{here_text}It is free to join, and members use it to:
+{here_text}Join in one minute (your name and email are already filled in):
+{join}
+
+What members use it for:
 
 {points_text}
 
 {ALSO_FREE}
 
-Signing up takes about a minute, with your WhatsApp number or email:
-{join}
-
-{group_text}VidhiSangh is a network and knowledge platform. It does not advertise or solicit work for advocates.
+{group_text}VidhiSangh does not advertise or solicit work for advocates; it is a network and knowledge platform.
 
 With regards,
-Team VidhiSangh
+Davendra Singh
+VidhiSangh
 
 —
 You are receiving this one-time invitation because your professional email address is publicly listed in {source}. We will not email you again unless you join.
@@ -117,23 +133,23 @@ Unsubscribe: {unsub}
 <tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:14px;overflow:hidden;font-family:Arial,Helvetica,sans-serif;">
   <tr><td style="padding:22px 28px;border-bottom:1px solid #e5e7eb;">
-    <img src="{e(_app_url())}/icons/icon-192.png?v=4" width="36" height="36" alt="" style="vertical-align:middle;border:0;border-radius:8px;">
+    <img src="{e(_app_url())}/icons/icon-192.png?v=4" width="36" height="36" alt="VidhiSangh" style="vertical-align:middle;border:0;border-radius:8px;">
     <span style="vertical-align:middle;margin-left:8px;font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:bold;color:#111827;">Vidhi<span style="color:#d71920;">Sangh</span></span>
   </td></tr>
   <tr><td style="padding:28px 28px 8px;">
     <p style="margin:0 0 14px;font-size:16px;line-height:24px;color:#111827;">{e(greeting)}</p>
-    <p style="margin:0 0 16px;font-size:15px;line-height:24px;color:#1f2937;">I am writing to invite you to <strong>VidhiSangh</strong>, the free professional network for India's legal fraternity: a place to find and stay in touch with the advocates you work alongside, and the ones you should know.</p>
+    <p style="margin:0 0 16px;font-size:15px;line-height:24px;color:#1f2937;"><strong>VidhiSangh</strong> is a free network for India's legal fraternity, and advocates{e(where)} are joining it. I would like you to be among them.</p>
     {f'<p style="margin:0 0 16px;font-size:15px;line-height:24px;color:#1f2937;"><strong>{e(here)}</strong></p>' if here else ''}
-    <p style="margin:0 0 6px;font-size:15px;line-height:24px;color:#1f2937;">It is <strong>free to join</strong>, and members use it to:</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 10px;"><tr><td style="border-radius:999px;background:#215dcc;">
+      <a href="{e(join)}" style="display:inline-block;padding:13px 28px;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:999px;">Join VidhiSangh, free</a>
+    </td></tr></table>
+    <p style="margin:0 0 18px;font-size:14px;line-height:22px;color:#4b5563;">One minute: your name and email are already filled in; choose a password.</p>
+    <p style="margin:0 0 6px;font-size:15px;line-height:24px;color:#1f2937;">What members use it for:</p>
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 14px;">{bullets}</table>
     <p style="margin:0 0 18px;font-size:14px;line-height:22px;color:#4b5563;">{e(ALSO_FREE)}</p>
-    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 18px;"><tr><td style="border-radius:999px;background:#215dcc;">
-      <a href="{e(join)}" style="display:inline-block;padding:13px 28px;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:999px;">Join VidhiSangh free</a>
-    </td></tr></table>
-    <p style="margin:0 0 16px;font-size:14px;line-height:22px;color:#4b5563;">Signing up takes about a minute, with your WhatsApp number or email.</p>
     {f'<p style="margin:0 0 16px;font-size:14px;line-height:22px;color:#4b5563;">Your colleagues gather in the <a href="{e(group_url)}" style="color:#215dcc;">{e(group_name)} group</a>.</p>' if group_name and group_url else ''}
-    <p style="margin:0 0 20px;font-size:13px;line-height:20px;color:#6b7280;">VidhiSangh is a network and knowledge platform. It does not advertise or solicit work for advocates.</p>
-    <p style="margin:0 0 24px;font-size:15px;line-height:24px;color:#1f2937;">With regards,<br><strong>Team VidhiSangh</strong></p>
+    <p style="margin:0 0 20px;font-size:13px;line-height:20px;color:#6b7280;">VidhiSangh does not advertise or solicit work for advocates; it is a network and knowledge platform.</p>
+    <p style="margin:0 0 24px;font-size:15px;line-height:24px;color:#1f2937;">With regards,<br><strong>Davendra Singh</strong><br>VidhiSangh</p>
   </td></tr>
   <tr><td style="padding:18px 28px;background:#f9fafb;border-top:1px solid #e5e7eb;font-size:12px;line-height:19px;color:#6b7280;">
     You are receiving this one-time invitation because your professional email address is publicly listed in {e(source)}. We will not email you again unless you join.
@@ -142,6 +158,6 @@ Unsubscribe: {unsub}
   </td></tr>
 </table>
 </td></tr></table>
-<img src="{e(open_pixel_url(token))}" width="1" height="1" alt="" style="display:block;border:0;">
+<img src="{e(open_pixel_url(token))}" width="1" height="1" alt="." style="display:block;border:0;">
 </body></html>"""
     return subject, text, body

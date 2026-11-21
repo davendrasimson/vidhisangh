@@ -33,5 +33,5 @@ async def test_steps_are_counted_per_day_and_reach_the_growth_dashboard(client: 
                                                     "email": "mehta@example.com", "password": strong_password, "accept_terms": True})
     growth = (await client.get(f"{API}/platform-admin/growth", headers=h)).json()
     week = {x["step"]: x["count"] for x in growth["funnel"]["last_7_days"]}
-    assert week == {"landing_view": 2, "register_view": 1, "email_form_opened": 1, "whatsapp_code_requested": 1, "account_created": 1}
+    assert week == {"landing_view": 2, "register_view": 1, "email_form_opened": 1, "whatsapp_code_requested": 1, "invite_prefilled": 0, "account_created": 1}
     assert [x["step"] for x in growth["funnel"]["last_30_days"]][-1] == "account_created"

@@ -32,6 +32,12 @@ export const HI: Record<string, string> = {
   'or': 'या',
   'Continue with Google': 'Google से जारी रखें',
   'Sign up with email instead': 'इसके बजाय ईमेल से साइन अप करें',
+  // Invitation sign-up (22 Nov 2026): the form is prefilled from the invitation link.
+  'advocates from the': 'अधिवक्ता',
+  'have already joined from this invitation.': 'से इस निमंत्रण के माध्यम से पहले ही जुड़ चुके हैं।',
+  'Your details from the': 'आपका विवरण',
+  'list are filled in; choose a password to join.': 'की सूची से भर दिया गया है; जुड़ने के लिए एक पासवर्ड चुनें।',
+  'Your details are filled in; choose a password to join.': 'आपका विवरण भर दिया गया है; जुड़ने के लिए एक पासवर्ड चुनें।',
   'Terms of Service': 'सेवा की शर्तें',
   'Privacy Notice': 'गोपनीयता सूचना',
   'Check your email': 'अपना ईमेल देखें',

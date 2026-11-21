@@ -61,6 +61,28 @@ async def join_link(token: str, session: AuthSessionDep) -> Response:
     return Response(status_code=status.HTTP_302_FOUND, headers={"Location": url, **NO_STORE})
 
 
+class InviteRead(BaseModel):
+    """What the sign-up page prefills for an invitee (22 Nov 2026): the token came in their own email."""
+    name: str | None
+    email: str
+    court: str | None
+    city: str | None
+    colleagues: int  # invitees from the same court who already joined
+
+
+@router.get("/outreach/invite/{token}", response_model=InviteRead, summary="The invitee behind a join link, for prefilling sign-up")
+async def invite_details(token: str, session: AuthSessionDep, response: Response) -> InviteRead:
+    """Only the holder of the link can ask (the token is unguessable and was emailed to this address).
+    Unsubscribed or already-joined invitations answer 404 like unknown tokens."""
+    contact = await service.contact_for_invite(session, token)
+    if contact is None:
+        raise HTTPException(status_code=404, detail="This invitation link is not valid.", headers=NO_STORE)
+    response.headers.update(NO_STORE)  # personal details: never cached by a browser or proxy
+    context = await service.court_context(session, contact.court)
+    return InviteRead(name=contact.name, email=contact.email, court=contact.court, city=contact.city,
+                      colleagues=int(context.get("colleagues", 0)))
+
+
 @router.get("/outreach/o/{token}.gif", summary="The email's tracking image: records that it was opened")
 async def open_pixel(token: str, session: AuthSessionDep) -> Response:
     await service.record_open(session, token)
