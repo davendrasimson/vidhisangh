@@ -29,6 +29,19 @@ Yahoo and Rediff addresses (500+). Three leaks, each with a fix:
    only while the invitation is open, `no-store`), a banner naming the court and how many
    colleagues joined, and funnel step `invite_prefilled`. Only the password is left to type.
 
+**Brevo's own figures (API, 22 Nov 2026, last 35 days, tag `invitation`)**: 4,359 requests, 3,547 delivered
+(81%), 474 hard bounces (11%, dead addresses from old court rolls), 333 soft bounces (8%; mostly "unresolvable
+From header domain news.vidhisangh.com" while our DNS was dropping lookups, and Gmail's "unauthenticated
+email from vidhisangh.com"), 0 spam reports, 435 unique opens (12% of delivered), 45 clicks. Done the same
+day: the Brevo webhook is registered (id 2692244, delivered/bounces/opens/clicks/spam/unsubscribe now land
+in `outreach_contacts`), the hard bounces and deliveries were backfilled through `apply_provider_event`,
+the soft-bounced-for-our-fault invitations were re-queued (never delivered, so not a second invitation),
+the root domain `vidhisangh.com` was authenticated in Brevo through the API and `include:spf.brevo.com`
+added to its SPF. The Brevo v3 key lives in the owner's key folder and `~/.config/vidhisangh/brevo_api_key`
+on the owner's machine; Brevo only accepts API calls from the server's IP (authorised IP list), so
+scripts run there with `BREVO_API_KEY` passed in the environment. An Outlook DMARC aggregate report for
+19 Nov confirmed DKIM pass and DMARC pass when the key lookup succeeds.
+
 Measure in the Outreach screen's funnel (sent → opened → clicked → joined) by the day the email
 went out; the mail-tester check is repeatable from the server (send one `message_for` to a
 test address through the job's SMTP credential).

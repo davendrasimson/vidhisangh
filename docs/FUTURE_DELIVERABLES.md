@@ -19,7 +19,7 @@ The push version is live ([DAILY_BRIEF.md](DAILY_BRIEF.md)). Still to build, in 
 ## 🍎 iOS app — on TestFlight, submitted for review 21 Nov 2026; push needs the Firebase iOS config
 Everything that does not need Xcode is in the repo (entitlements, privacy manifest, APNs→FCM app delegate, apple-app-site-association, nginx, version 1.0.6, `apns` block in the server's push). The eight Mac-side steps are in [MOBILE.md → Build: iOS](MOBILE.md): Apple Developer account and Team ID, Firebase iOS app + APNs key, FirebaseMessaging package, signing, device test, archive, App Store Connect listing, first live-update publish for iOS build 1.
 
-## 🌐 DNS for vidhisangh.com is a single self-hosted BIND (22 Nov 2026)
+## 🌐 DNS for vidhisangh.com is a single self-hosted BIND (22 Nov 2026; Brevo key received, webhook live)
 `ns1` and `ns2.vidhisangh.com` are the same host (the app server). Receivers that could not look up the DKIM key marked invitations as DMARC failures. Move the zone (`/etc/bind/db.vidhisangh.com`) to Cloudflare or another provider with real redundancy, then set `_dmarc.news` back to `p=quarantine`. Also: ask Brevo for a dedicated IP once volume justifies it (the shared relay IP was on SpamCop on 22 Nov), and set a custom bounce domain so the envelope sender aligns with news.vidhisangh.com.
 
 ## 🟢 Built already — just add credentials/config to go live
