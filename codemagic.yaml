@@ -8,9 +8,16 @@
 #   2. App → Environment variables → group "firebase": GOOGLE_SERVICE_INFO_PLIST = the
 #      base64 of GoogleService-Info.plist from the Firebase console (iOS app
 #      com.vidhisangh.app), marked secret.
-#   3. Start the "ios-testflight" workflow. Codemagic creates the distribution certificate
-#      and provisioning profile through the API key (the App ID com.vidhisangh.app must
-#      exist with Push Notifications and Associated Domains ticked).
+#   3. App → Environment variables → group "signing": CERTIFICATE_PRIVATE_KEY = an RSA
+#      private key (PEM) that becomes the private key of the Apple Distribution certificate
+#      (`ssh-keygen -t rsa -b 2048 -m PEM -f ios_distribution_private_key -q -N ""`), marked
+#      secret. Keep a copy in the password manager: a lost key means a new certificate.
+#   4. Start the "ios-testflight" workflow. `app-store-connect fetch-signing-files --create`
+#      creates the distribution certificate and the App Store provisioning profile through
+#      the API key (the App ID com.vidhisangh.app must exist with Push Notifications and
+#      Associated Domains ticked). The `ios_signing` block is NOT used: it only fetches
+#      files already uploaded to Codemagic, which is why the first build failed with
+#      "No matching profiles found" (20 Nov 2026).
 # Bump CURRENT_PROJECT_VERSION in frontend/ios/App/App.xcodeproj/project.pbxproj before
 # every upload: the live-update publisher reads the build number from the repo.
 workflows:
@@ -22,15 +29,14 @@ workflows:
       app_store_connect: VidhiSangh Legal Network
     environment:
       groups:
+        - signing
         - firebase
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.vidhisangh.app
       node: 22
       xcode: latest
       vars:
         XCODE_PROJECT: frontend/ios/App/App.xcodeproj
         XCODE_SCHEME: App
+        BUNDLE_ID: com.vidhisangh.app
     scripts:
       - name: Firebase config (push notifications)
         script: |
@@ -41,8 +47,12 @@ workflows:
           fi
       - name: Build the app screens
         script: cd frontend && npm ci && npm run build:mobile
-      - name: Signing
-        script: xcode-project use-profiles --project "$XCODE_PROJECT"
+      - name: Signing files (created on first run through the App Store Connect key)
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+          keychain add-certificates
+          xcode-project use-profiles --project "$XCODE_PROJECT"
       - name: Archive
         script: xcode-project build-ipa --project "$XCODE_PROJECT" --scheme "$XCODE_SCHEME"
     artifacts:
