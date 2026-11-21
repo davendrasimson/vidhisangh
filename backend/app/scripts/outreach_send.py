@@ -31,9 +31,9 @@ async def run(dry_run: bool) -> dict:
             where = [OutreachContact.status == OutreachStatus.QUEUED, *service.focus_where(focus)]
             queued = (await session.scalars(select(OutreachContact.email).where(*where)
                                             .order_by(*service.pick_order(focus)).limit(cfg.daily_limit))).all()
-            due = await service.reminder_candidates(session, datetime.now(UTC), cfg.daily_limit)
+            due = await service.reminder_candidates(session, datetime.now(UTC), 5000)
             return {"paused": cfg.paused, "daily_limit": cfg.daily_limit, "focus": cfg.focus,
-                    "active_focus": await service.active_focus(session, cfg.focus), "reminders_due": len(due),
+                    "active_focus": await service.active_focus(session, cfg.focus), "reminders_due": len(due), "reminders_per_day": max(1, cfg.daily_limit // service.REMINDER_SHARE),
                     "queued_in_focus": await service.queued_count(session, focus=focus),
                     "sent_today": await service.sent_today(session), "next": list(queued)}
         sender = get_outreach_sender()

@@ -573,6 +573,7 @@ async def overview(session: AsyncSession) -> dict:
 
 # ── Follow-ups (22 November 2026) ───────────────────────────────────────
 REMINDER_AFTER = timedelta(days=7)
+REMINDER_SHARE = 3  # at most a third of the daily number goes to reminders, so new invitations never stall
 
 
 async def reminder_candidates(session: AsyncSession, now: datetime, limit: int) -> list[OutreachContact]:
@@ -591,11 +592,13 @@ async def reminder_candidates(session: AsyncSession, now: datetime, limit: int) 
 async def send_reminders(
     session: AsyncSession, sender: OutreachSender, *, now: datetime | None = None, pause=None,
 ) -> dict[str, int]:
-    """The one reminder per invitee, within today's number (sent before the day's new invitations:
-    an opened invitation is warmer than a cold one). Suppressed addresses and members are skipped."""
+    """The one reminder per invitee, within today's number and at most a third of it (sent before the
+    day's new invitations: an opened invitation is warmer than a cold one). Suppressed addresses and
+    members are skipped."""
     report = {"sent": 0, "skipped": 0, "bounced": 0, "failed": 0}
     now = now or datetime.now(UTC)
-    budget = await budget_today(session, now)
+    cfg = await get_settings(session)
+    budget = min(await budget_today(session, now), max(1, min(cfg.daily_limit, settings.OUTREACH_DAILY_LIMIT) // REMINDER_SHARE))
     if budget <= 0:
         return report
     for contact in await reminder_candidates(session, now, budget):

@@ -36,7 +36,7 @@ test address through the job's SMTP credential).
 ## Rules the system enforces
 - **One invitation per address, plus one reminder** (owner, 22 Nov 2026): a week after an invitation that was
   opened but not followed, one reminder goes out (`service.send_reminders`, first thing in the daily job, within the
-  same daily number; recorded in `outreach_followups`, kind `reminder`, never twice). Nothing more is automatic.
+  same daily number and at most a third of it; recorded in `outreach_followups`, kind `reminder`, never twice). Nothing more is automatic.
 - **Warm leads** (Platform admin → Outreach → Warm leads): invitees who clicked but did not join, and invitees who
   joined, each with a draft personal note. *Email* sends it through the invitation mail service in the same shell
   (join or sign-in button, unsubscribe link; counts against the day's number). *WhatsApp* records the note and opens
