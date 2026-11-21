@@ -16,7 +16,7 @@ The push version is live ([DAILY_BRIEF.md](DAILY_BRIEF.md)). Still to build, in 
 - Quiz bank refresh every 90 days (the bank wraps); a Sunday "week in review" if members ask for one.
 - **Court desk, more courts** ([COURT_DESK.md](COURT_DESK.md), built 16 Nov 2026 for the Supreme Court and Allahabad): a fetcher per High Court reading its public cause-list index. On 16 Nov the Madhya Pradesh, Calcutta, Jharkhand, Karnataka, Bombay, Chhattisgarh, Patna, Kerala, Gauhati, Himachal and Sikkim sites timed out or refused connections from both the server (Delhi) and the owner's machine; retry on other days, then add fetchers for the courts members actually list (Madhya Pradesh, Calcutta, Jharkhand, Karnataka first). Also: court notices and holiday lists on the card; ask a member with no court on their profile once on the Daily page.
 
-## 🍎 iOS app — prepared 18 Nov 2026, needs a Mac to finish
+## 🍎 iOS app — on TestFlight, submitted for review 21 Nov 2026; push needs the Firebase iOS config
 Everything that does not need Xcode is in the repo (entitlements, privacy manifest, APNs→FCM app delegate, apple-app-site-association, nginx, version 1.0.6, `apns` block in the server's push). The eight Mac-side steps are in [MOBILE.md → Build: iOS](MOBILE.md): Apple Developer account and Team ID, Firebase iOS app + APNs key, FirebaseMessaging package, signing, device test, archive, App Store Connect listing, first live-update publish for iOS build 1.
 
 ## 🟢 Built already — just add credentials/config to go live
