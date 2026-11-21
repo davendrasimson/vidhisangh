@@ -153,12 +153,12 @@ archive failed; the capability was enabled through the API (`bundleIdCapabilitie
 stale profile deleted so the next build regenerated it.
 
 **Status (21 Nov 2026).** Build 1 of 1.0.6 is on TestFlight (internal group "VidhiSangh team")
-and version 1.0.6 was **submitted for App Store review** the same day, with the listing filled
+and version 1.0.6 was **submitted for App Store review** the same day (resubmitted on build 2, which carries the Firebase config for push), with the listing filled
 through the API (text, screenshots from `docs/store/app-store/`, categories, age rating, free
 pricing worldwide, review contact and the demo account). Two Apple compliance questionnaires
 (security, AI-generated content) and the App Privacy labels can only be answered in the web
-interface and were done by the owner. Push on iPhone still needs the Firebase iOS app
-(`GoogleService-Info.plist`) and the APNs key uploaded to Firebase; a rebuild then carries it.
+interface and were done by the owner. The Firebase iOS app exists and its plist is in the owner's private folder; the APNs key
+(`S387Z4YSD5`) must be uploaded under Firebase → Cloud Messaging for delivery to work.
 
 **Without a Mac: Codemagic.** `codemagic.yaml` at the repo root builds, signs and uploads
 to TestFlight on Codemagic's hosted Macs (free tier: 500 minutes a month; a build is about
