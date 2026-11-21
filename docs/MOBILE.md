@@ -138,6 +138,20 @@ without one was prepared on 18 November 2026; what is left is listed in order be
 8. After the store build is live: `npm run publish:app-update -- --platform ios` publishes
    screens to iOS build `1`; bump `CURRENT_PROJECT_VERSION` on every store upload.
 
+**How it was actually done (21 Nov 2026, no Mac at all).** The owner's machine holds a
+private folder `~/.config/vidhisangh-ios/` (mode 700, never in the repo) with the Codemagic
+API token, the App Store Connect API key (`AuthKey_<KeyID>.p8`, `key_id`, `issuer_id`), the
+distribution certificate's private key and, once Firebase has the iOS app,
+`GoogleService-Info.plist`. `start_ios_build.sh` there starts the `ios-testflight` workflow
+through Codemagic's REST API and passes those secrets as per-build variables, so nothing is
+stored in Codemagic and no team plan is needed. `asc.py builds|caps|profiles` queries App
+Store Connect with the same key. Two things bit on the way: the `ios_signing` block only
+fetches signing files already uploaded to Codemagic (replaced by
+`app-store-connect fetch-signing-files --create`), and the App ID had been registered
+without Associated Domains, so the generated profile lacked the entitlement and the
+archive failed; the capability was enabled through the API (`bundleIdCapabilities`) and the
+stale profile deleted so the next build regenerated it.
+
 **Without a Mac: Codemagic.** `codemagic.yaml` at the repo root builds, signs and uploads
 to TestFlight on Codemagic's hosted Macs (free tier: 500 minutes a month; a build is about
 15). Steps 4 to 7 above become: in Codemagic, connect the repo, add the App Store Connect
