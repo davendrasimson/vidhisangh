@@ -109,7 +109,9 @@ without one was prepared on 18 November 2026; what is left is listed in order be
 **On the Mac, in this order:**
 
 1. Apple Developer Program (USD 99 a year) → App Store Connect → register the bundle
-   ID `com.vidhisangh.app` and create the app. Note the **Team ID** (Membership page).
+   ID `com.vidhisangh.app` and create the app. Done 20–21 Nov 2026: Team ID `UGGU8KL6CU`,
+   App ID `com.vidhisangh.app` (Push Notifications, Associated Domains), App Store Connect
+   app "VidhiSangh Legal Network", SKU `vidhisangh-ios`, Apple ID `6837590731`.
 2. The Universal Links file `https://vidhisangh.com/.well-known/apple-app-site-association`
    already names `UGGU8KL6CU.com.vidhisangh.app` (deployed 20 Nov 2026); Apple's CDN reads
    it at install time. On the App ID, Push Notifications and Associated Domains are ticked.
