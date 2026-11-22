@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '@core/auth/auth.service';
+import { isNativeApp } from '@core/platform/platform';
 
 interface SettingsTile {
   label: string;
@@ -9,6 +10,8 @@ interface SettingsTile {
   description: string;
   route: string;
   permission?: string;
+  /** Not shown in the iOS/Android app (plan purchase stays on the website; App Store guideline 3.1.1). */
+  webOnly?: boolean;
 }
 
 interface SettingsSection {
@@ -110,7 +113,7 @@ export class SettingsHomeComponent {
         { label: 'Counsel Rates', icon: 'request_quote', description: 'Standard charges per person: hourly, per hearing, per day, per matter, retainer.', route: '/app/settings/counsel-rates', permission: 'matter:read' },
         { label: 'Billing documents', icon: 'receipt_long', description: 'Brand proformas, tax invoices, credit notes and receipts.', route: '/app/settings/billing-branding', permission: 'tenant:manage' },
         { label: 'Feature Flags', icon: 'toggle_on', description: 'Turn platform capabilities on or off per tenant.', route: '/app/admin/feature-flags', permission: 'tenant:manage' },
-        { label: 'Subscription', icon: 'workspace_premium', description: 'Your plan, live usage and limits.', route: '/app/admin/subscription', permission: 'tenant:manage' },
+        { label: 'Subscription', icon: 'workspace_premium', description: 'Your plan, live usage and limits.', route: '/app/admin/subscription', permission: 'tenant:manage', webOnly: true },
         { label: 'Audit Log', icon: 'history', description: 'Immutable log of security and config changes.', route: '/app/admin/audit', permission: 'audit:read' },
         { label: 'System', icon: 'monitor_heart', description: 'Health checks and configuration status.', route: '/app/admin/system', permission: 'tenant:manage' },
       ],
@@ -138,7 +141,7 @@ export class SettingsHomeComponent {
     this.sections
       .map((s) => ({
         ...s,
-        tiles: s.tiles.filter((t) => !t.permission || this.auth.hasPermission(t.permission)),
+        tiles: s.tiles.filter((t) => (!t.permission || this.auth.hasPermission(t.permission)) && !(t.webOnly && isNativeApp())),
       }))
       .filter((s) => s.tiles.length > 0),
   );

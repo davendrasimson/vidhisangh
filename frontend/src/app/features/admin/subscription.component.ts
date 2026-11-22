@@ -5,6 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { PlanService } from '@core/services/plan.service';
 import { NotificationService } from '@core/services/notification.service';
 import { Plan, PlanTier, Subscription } from '@core/models/plan.models';
+import { isNativeApp } from '@core/platform/platform';
 
 @Component({
   selector: 'app-subscription',
@@ -17,6 +18,10 @@ export class SubscriptionComponent implements OnInit {
   private readonly plans = inject(PlanService);
   private readonly notify = inject(NotificationService);
 
+  /** In the iOS/Android app the screen shows the current plan and usage only: no prices, no plan
+   *  purchase (App Store guideline 3.1.1: digital subscriptions bought in the app must go through
+   *  in-app purchase). Plans are changed on the website by the organisation's administrator. */
+  protected readonly native = isNativeApp();
   protected readonly catalog = signal<Plan[]>([]);
   protected readonly sub = signal<Subscription | null>(null);
   protected readonly loading = signal(true);
