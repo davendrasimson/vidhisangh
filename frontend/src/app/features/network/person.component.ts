@@ -69,6 +69,30 @@ export class PersonComponent {
     this.person.update((p) => (p ? { ...p, ...changes } : p));
   }
 
+  protected async block(): Promise<void> {
+    const p = this.person();
+    if (!p || !confirm(`Block ${p.display_name}? Their posts, comments and messages disappear for you, and they cannot connect with or message you. You can unblock later under Settings → Privacy.`)) return;
+    try {
+      await firstValueFrom(this.net.block(p.user_id));
+      this.person.set({ ...p, is_blocked: true, connection_status: null, is_following: false });
+      this.notify.success(`${p.display_name} is blocked.`);
+    } catch {
+      this.notify.error('Could not block this member. Please try again.');
+    }
+  }
+
+  protected async unblock(): Promise<void> {
+    const p = this.person();
+    if (!p) return;
+    try {
+      await firstValueFrom(this.net.unblock(p.user_id));
+      this.person.set({ ...p, is_blocked: false });
+      this.notify.success(`${p.display_name} is unblocked.`);
+    } catch {
+      this.notify.error('Could not unblock this member. Please try again.');
+    }
+  }
+
   protected async connect(): Promise<void> {
     const p = this.person();
     if (!p) return;

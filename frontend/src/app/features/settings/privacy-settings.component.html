@@ -49,6 +49,17 @@
 
   <vs-public-page-card />
 
+  <section class="rounded-card bg-surface-raised border border-line shadow-card p-5 mb-5">
+    <h2 class="font-semibold mb-1">Blocked members</h2>
+    <p class="text-sm text-content-muted mb-3">Members you blocked from their profile page or from a reported post. Their posts, comments and messages are hidden from you and they cannot connect with or message you.</p>
+    @for (b of blocked(); track b.user_id) {
+      <div class="flex items-center gap-3 py-2 border-t border-line">
+        <span class="flex-1 min-w-0 truncate"><a [routerLink]="['/app/people', b.user_id]" class="font-medium text-content">{{ b.display_name }}</a>@if (b.headline) { <span class="text-sm text-content-muted"> · {{ b.headline }}</span> }</span>
+        <button mat-stroked-button (click)="unblock(b)">Unblock</button>
+      </div>
+    } @empty { <p class="text-sm text-content-muted">You have not blocked anyone.</p> }
+  </section>
+
   <section class="rounded-card bg-surface-raised border border-danger/40 shadow-card p-5 mb-5">
     <h2 class="font-semibold text-danger mb-1">Delete my account</h2>
     <p class="text-sm text-content-muted mb-3">

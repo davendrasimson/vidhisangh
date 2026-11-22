@@ -117,7 +117,30 @@
                       <button class="inline-flex items-center gap-1 text-sm text-content-muted ml-auto" (click)="deletePost(post)">
                         <mat-icon class="material-icons-outlined text-base">delete</mat-icon>
                       </button>
+                    } @else {
+                      <button class="inline-flex items-center gap-1 text-sm text-content-muted ml-auto" (click)="reportingPost.set(reportingPost() === post.id ? null : post.id)" aria-label="Report this post" title="Report this post">
+                        <mat-icon class="material-icons-outlined text-base">flag</mat-icon>
+                      </button>
                     }
+                  </div>
+                  @if (reportedPosts().has(post.id)) {
+                    <p class="mt-2 text-sm text-success flex items-center gap-1"><mat-icon class="material-icons-outlined text-base">check_circle</mat-icon> Reported to the Grievance Cell.</p>
+                  } @else if (reportingPost() === post.id) {
+                    <section class="rounded-lg border border-danger/40 bg-danger/5 p-3 mt-2" aria-label="Report post">
+                      <div class="flex items-center gap-2"><mat-icon class="material-icons-outlined text-danger">flag</mat-icon><strong>Report this post</strong></div>
+                      <p class="text-xs text-content-muted mt-1">A confidential case for the VidhiSangh Grievance Cell. You can also <button type="button" class="text-danger underline" (click)="blockAuthor(post)">block {{ post.author_name }}</button>.</p>
+                      <div class="grid md:grid-cols-[12rem_1fr] gap-2 mt-3">
+                        <select class="vs-input" [(ngModel)]="reportCategory" aria-label="Report category">
+                          <option value="spam">Spam</option><option value="harassment">Harassment</option>
+                          <option value="hate_or_abuse">Hate or abuse</option><option value="misinformation">Misinformation</option>
+                          <option value="privacy">Privacy concern</option><option value="impersonation">Impersonation</option><option value="other">Other</option>
+                        </select>
+                        <textarea class="vs-input min-h-20" [(ngModel)]="reportReason" maxlength="2000" placeholder="Explain what is wrong (at least 10 characters)"></textarea>
+                      </div>
+                      <div class="flex justify-end gap-2 mt-2"><button mat-button (click)="reportingPost.set(null)">Cancel</button><button mat-flat-button color="primary" [disabled]="reportReason.trim().length < 10" (click)="submitReport(post)">Report</button></div>
+                    </section>
+                  }
+                  <div class="hidden">
                   </div>
 
                   @if (openComments()[post.id]; as comments) {

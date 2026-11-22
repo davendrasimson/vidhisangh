@@ -348,6 +348,19 @@ export class FeedComponent implements OnInit {
     this.reportReason = '';
   }
 
+  /** Block the author of a post (App Store guideline 1.2); their posts leave the feed at once. */
+  protected async blockAuthor(post: FeedItem): Promise<void> {
+    if (!confirm(`Block ${post.author_name}? Their posts, comments and messages disappear for you, and they cannot contact you. Unblock later under Settings → Privacy.`)) return;
+    try {
+      await firstValueFrom(this.net.block(post.author_id));
+      this.posts.update((list) => list.filter((p) => p.author_id !== post.author_id));
+      this.reportingPost.set(null);
+      this.notify.success(`${post.author_name} is blocked.`);
+    } catch {
+      this.notify.error('Could not block this member. Please try again.');
+    }
+  }
+
   protected cancelReport(): void {
     this.reportingPost.set(null);
     this.reportReason = '';

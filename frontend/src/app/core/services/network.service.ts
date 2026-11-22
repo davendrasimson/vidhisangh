@@ -151,6 +151,19 @@ export class NetworkService {
     return this.http.get<Connection[]>(`${this.api}/connections/requests`);
   }
 
+  /** Blocking (App Store guideline 1.2): their posts, comments and profile disappear for me; neither can contact the other. */
+  block(userId: string): Observable<void> {
+    return this.http.put<void>(`${this.api}/block/${userId}`, {});
+  }
+
+  unblock(userId: string): Observable<void> {
+    return this.http.delete<void>(`${this.api}/block/${userId}`);
+  }
+
+  blockedMembers(): Observable<DirectoryPerson[]> {
+    return this.http.get<DirectoryPerson[]>(`${this.api}/blocks`);
+  }
+
   follow(userId: string): Observable<void> {
     return this.http.put<void>(`${this.api}/follow/${userId}`, {});
   }

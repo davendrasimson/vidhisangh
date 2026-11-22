@@ -34,9 +34,17 @@
                 }
               }
               <button mat-stroked-button (click)="toggleFollow()">{{ p.is_following ? 'Following' : 'Follow' }}</button>
-              <button mat-stroked-button (click)="message()">
-                <mat-icon class="material-icons-outlined">chat</mat-icon> Message
-              </button>
+              @if (!p.is_blocked) {
+                <button mat-stroked-button (click)="message()">
+                  <mat-icon class="material-icons-outlined">chat</mat-icon> Message
+                </button>
+                <button mat-button class="!text-danger" (click)="block()" title="Their posts and messages disappear for you; they cannot contact you">
+                  <mat-icon class="material-icons-outlined">block</mat-icon> Block
+                </button>
+              } @else {
+                <span class="vs-chip vs-chip--danger self-center">Blocked</span>
+                <button mat-stroked-button (click)="unblock()">Unblock</button>
+              }
             </div>
           }
         </div>

@@ -33,6 +33,35 @@ export class GroupDetailComponent implements OnInit {
   private readonly net = inject(NetworkService);
   private readonly notify = inject(NotificationService);
   private readonly auth = inject(AuthService);
+  /** Reporting a group post (App Store guideline 1.2) and blocking its author. */
+  protected readonly reportingPost = signal<string | null>(null);
+  protected readonly reportedPosts = signal<Set<string>>(new Set());
+  protected reportCategory = 'spam';
+  protected reportReason = '';
+
+  protected async submitReport(post: GroupPost): Promise<void> {
+    try {
+      const r = await firstValueFrom(this.groups.reportPost(post.id, this.reportCategory, this.reportReason.trim()));
+      this.reportedPosts.update((set) => new Set(set).add(post.id));
+      this.reportingPost.set(null);
+      this.reportReason = '';
+      this.notify.success(`Reported. Grievance ${r.ticket_number} is open with the Grievance Cell.`);
+    } catch {
+      this.notify.error('The report could not be sent. Please try again.');
+    }
+  }
+
+  protected async blockAuthor(post: GroupPost): Promise<void> {
+    if (!confirm(`Block ${post.author_name}? Their posts, comments and messages disappear for you, and they cannot contact you. Unblock later under Settings → Privacy.`)) return;
+    try {
+      await firstValueFrom(this.net.block(post.author_id));
+      this.posts.update((list) => list.filter((p) => p.author_id !== post.author_id));
+      this.reportingPost.set(null);
+      this.notify.success(`${post.author_name} is blocked.`);
+    } catch {
+      this.notify.error('Could not block this member. Please try again.');
+    }
+  }
   private readonly http = inject(HttpClient);
 
   private groupId = '';

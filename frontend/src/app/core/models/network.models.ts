@@ -110,6 +110,8 @@ export interface HomeNetwork {
 
 export interface PublicProfile extends DirectoryPerson {
   is_self: boolean;
+  /** I blocked this member; unblock from their page or Settings → Privacy. */
+  is_blocked: boolean;
 }
 
 export interface Connection {

@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.modules.network.blocks import is_blocked_either_way
 from app.core.exceptions import (
     NotFoundError,
     PermissionDeniedError,
@@ -72,6 +73,8 @@ class MessagingService:
     async def start_direct(self, target_user_id: uuid.UUID) -> Conversation:
         if target_user_id == self.user_id:
             raise ValidationError("You cannot message yourself.")
+        if await is_blocked_either_way(self.session, self.user_id, target_user_id):
+            raise NotFoundError("That user is not discoverable on the network.")
         key = _direct_key(self.user_id, target_user_id)
         existing = await self.conversations.get_by_direct_key(key)
         if existing is not None:
@@ -153,6 +156,9 @@ class MessagingService:
         self, conversation_id: uuid.UUID, data: MessageCreate
     ) -> Message:
         conversation, participant = await self._require_participant(conversation_id)
+        for other in conversation.participants:
+            if other.user_id != self.user_id and await is_blocked_either_way(self.session, self.user_id, other.user_id):
+                raise ValidationError("You cannot message this member.")
         me = await self.identities.get(self.user_id)
         name = me.display_name if me else "Unknown"
         avatar = me.avatar_url if me else None

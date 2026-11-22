@@ -4,10 +4,10 @@ moderation and community posts."""
 from __future__ import annotations
 
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query, Response, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.core.deps import AuthSessionDep, CurrentUserDep, TenantSessionDep, require_permission
 from app.core.exceptions import TenantError
@@ -179,6 +179,27 @@ async def delete_group(
 
 
 # ─── Membership ─────────────────────────────────────────────────────
+class GroupPostReport(BaseModel):
+    category: Literal["spam", "harassment", "hate_or_abuse", "misinformation", "privacy", "impersonation", "other"]
+    reason: str = Field(min_length=10, max_length=2000)
+
+
+@router.post("/posts/{post_id}/report", dependencies=[require_permission("post:read")], status_code=201,
+             summary="Report a group post to the Grievance Cell")
+async def report_group_post(post_id: uuid.UUID, data: GroupPostReport, current: CurrentUserDep, session: TenantSessionDep) -> dict:
+    svc = _svc(current, session)
+    post = await svc.post_for_report(post_id)
+    group = await svc.groups.get(post.group_id)
+    from sqlalchemy import select
+    from app.modules.identity.models import User
+    from app.modules.support.service import SupportService
+    user = await session.scalar(select(User).where(User.id == current.id))
+    ticket = await SupportService(session, current.id, current.tenant_id).report_group_post(
+        post, group_name=group.name if group else "a group", name=user.full_name if user else "Member",
+        email=user.email if user else None, category=data.category, reason=data.reason)
+    return {"ticket_number": ticket.ticket_number}
+
+
 @router.post("/{group_id}/join", dependencies=[require_permission("post:create")], response_model=MemberRead, summary="Join / request to join")
 async def join_group(
     group_id: uuid.UUID, current: CurrentUserDep, session: TenantSessionDep

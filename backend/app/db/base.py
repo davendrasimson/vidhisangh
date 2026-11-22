@@ -79,6 +79,7 @@ from app.modules.network.models import (
     PostImage,
     PostMention,
     PostReaction,
+    UserBlock,
 )
 from app.modules.funnel.models import FunnelDaily
 from app.modules.news.models import NewsItem
@@ -145,6 +146,7 @@ __all__ = [
     "Connection",
     "Follow",
     "OutreachContact",
+    "UserBlock",
     "OutreachFollowUp",
     "OutreachSettings",
     "OutreachSuppression",

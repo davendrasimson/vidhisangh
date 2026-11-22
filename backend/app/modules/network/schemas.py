@@ -65,6 +65,7 @@ class DirectoryPerson(IdentityRead):
 
 class PublicProfile(DirectoryPerson):
     """A person's public profile (cross-tenant), with the viewer's relationship."""
+    is_blocked: bool = False  # I blocked this member (unblock from their page or Settings → Privacy)
 
     is_self: bool = False
 

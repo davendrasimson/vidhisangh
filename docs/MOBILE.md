@@ -168,6 +168,14 @@ Build 3 carries this, is attached to 1.0.6 and awaits resubmission once the reje
 known. TestFlight: internal group (team) and external group "VidhiSangh testers"
 (ds@…, sushma@…); external builds need Apple's Beta App Review, one build per train at a time.
 
+**Rejection reason (received 22 Nov): Guideline 2.1 Information Needed.** Apple asked for a
+screen recording from a physical device (launch, sign-up, sign-in, account deletion, user content
+with reporting and blocking, any paid content) plus written answers on purpose, setup, external
+services, regional differences and regulation. The answers are in the App Review notes (set through
+the API); member blocking and group-post reporting were built the same day (build 4). The recording
+is made by the owner on the iPhone from TestFlight build 4 and attached with
+`appStoreReviewAttachments` through the API before resubmission.
+
 **Without a Mac: Codemagic.** `codemagic.yaml` at the repo root builds, signs and uploads
 to TestFlight on Codemagic's hosted Macs (free tier: 500 minutes a month; a build is about
 15). Steps 4 to 7 above become: in Codemagic, connect the repo, add the App Store Connect

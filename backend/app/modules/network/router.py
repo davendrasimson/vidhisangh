@@ -538,12 +538,34 @@ async def home(current: CurrentUserDep, session: TenantSessionDep) -> HomeNetwor
 async def person(
     user_id: uuid.UUID, current: CurrentUserDep, session: TenantSessionDep
 ) -> PublicProfile:
-    identity, conn_status, following = await _svc(current, session).public_profile(user_id)
+    svc = _svc(current, session)
+    identity, conn_status, following = await svc.public_profile(user_id)
     profile = PublicProfile.model_validate(identity)
     profile.connection_status = conn_status
     profile.is_following = following
     profile.is_self = user_id == current.id
+    profile.is_blocked = await svc.is_blocked(user_id)
     return profile
+
+
+# ── Blocking (22 Nov 2026; App Store guideline 1.2) ──────────────────
+@router.put("/block/{user_id}", dependencies=[require_permission("profile:read")], status_code=204,
+            summary="Block a member: their posts, comments and profile disappear for you, and they cannot contact you")
+async def block_member(user_id: uuid.UUID, current: CurrentUserDep, session: TenantSessionDep) -> Response:
+    await _svc(current, session).block(user_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete("/block/{user_id}", dependencies=[require_permission("profile:read")], status_code=204, summary="Unblock a member")
+async def unblock_member(user_id: uuid.UUID, current: CurrentUserDep, session: TenantSessionDep) -> Response:
+    await _svc(current, session).unblock(user_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/blocks", dependencies=[require_permission("profile:read")], response_model=list[DirectoryPerson],
+            summary="Members I have blocked")
+async def blocked_members(current: CurrentUserDep, session: TenantSessionDep) -> list[DirectoryPerson]:
+    return [DirectoryPerson.model_validate(i) for i in await _svc(current, session).blocked_people()]
 
 
 @router.get(

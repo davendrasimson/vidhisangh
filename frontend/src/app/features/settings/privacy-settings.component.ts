@@ -12,6 +12,8 @@ import { problemMessage } from '@core/http/problem-message';
 
 type Audience = 'everyone' | 'connections' | 'groups' | 'bar' | 'none';
 import { NotificationService } from '@core/services/notification.service';
+import { NetworkService } from '@core/services/network.service';
+import { DirectoryPerson } from '@core/models/network.models';
 import { saveBlob } from '@features/clients/client-privacy.service';
 import { PrivacyNoticeFacts } from '@features/legal/legal-page.component';
 import { PublicPageCardComponent } from '@shared/public-page/public-page-card.component';
@@ -41,6 +43,21 @@ interface TenantPrivacySettings {
 })
 export class PrivacySettingsComponent implements OnInit {
   private readonly http = inject(HttpClient);
+  private readonly net = inject(NetworkService);
+  protected readonly blocked = signal<DirectoryPerson[]>([]);
+
+  protected async loadBlocked(): Promise<void> {
+    try { this.blocked.set(await firstValueFrom(this.net.blockedMembers())); } catch { this.blocked.set([]); }
+  }
+
+  protected async unblock(b: DirectoryPerson): Promise<void> {
+    try {
+      await firstValueFrom(this.net.unblock(b.user_id));
+      this.blocked.update((list) => list.filter((x) => x.user_id !== b.user_id));
+    } catch {
+      /* the list reloads on the next visit */
+    }
+  }
   private readonly auth = inject(AuthService);
   private readonly notify = inject(NotificationService);
   private readonly router = inject(Router);
@@ -71,6 +88,7 @@ export class PrivacySettingsComponent implements OnInit {
   protected orgForm = { data_protection_contact_name: '', data_protection_contact_email: '', data_protection_contact_phone: '', matter_retention_years: 8 };
 
   async ngOnInit(): Promise<void> {
+    void this.loadBlocked();
     try { this.facts.set(await firstValueFrom(this.http.get<PrivacyNoticeFacts>(`${this.api}/privacy/notice`))); } catch { /* shown without facts */ }
     try {
       const v = await firstValueFrom(this.http.get<{ discoverable: boolean; audience: Audience }>(`${this.api}/network/me/visibility`));

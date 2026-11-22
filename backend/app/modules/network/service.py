@@ -38,6 +38,7 @@ from app.modules.network.models import (
     PostReaction,
     PostVisibility,
     ReactionType,
+    UserBlock,
 )
 from app.modules.network.repository import (
     BookmarkRepository,
@@ -56,6 +57,7 @@ from app.modules.network.schemas import (
     ReactionCreate,
     ShareCreate,
 )
+from app.modules.network import blocks
 from app.modules.notifications.models import NotificationType
 from app.modules.notifications.service import create_notification
 from app.modules.profile.models import ProfileVisibility
@@ -418,7 +420,8 @@ class NetworkService:
         post.deleted_at = datetime.now(UTC)
 
     async def feed(self, limit: int, offset: int) -> "AnnotatedPosts":
-        posts = await self.posts.feed(await self.network_ids(), limit, offset)
+        hidden = await blocks.hidden_user_ids(self.session, self.user_id)
+        posts = await self.posts.feed(await self.network_ids(), limit, offset, exclude_authors=hidden)
         return await self._annotate(posts)
 
     async def author_posts(self, author_id: uuid.UUID, limit: int, offset: int) -> list[Post]:
@@ -539,6 +542,7 @@ class NetworkService:
     ) -> Connection:
         if target_id == self.user_id:
             raise ValidationError("You cannot connect with yourself.")
+        await blocks.require_not_blocked(self.session, self.user_id, target_id)
         me = await self.ensure_my_identity()
         existing = await self.connections.between(self.user_id, target_id)
         if existing is not None:
@@ -613,6 +617,10 @@ class NetworkService:
         identity = await self.identities.get(user_id)
         if identity is None:
             raise NotFoundError("This person is not on the network.")
+        # Someone who blocked me is not reachable; someone I blocked still is (so I can unblock).
+        if user_id != self.user_id and await self.session.scalar(select(UserBlock.id).where(
+                UserBlock.blocker_id == user_id, UserBlock.blocked_id == self.user_id, UserBlock.deleted_at.is_(None))):
+            raise NotFoundError("This person is not on the network.")
         following = user_id in await self.follows.following_ids(self.user_id)
         conn = await self.connections.between(self.user_id, user_id)
         # Someone who opted out of the directory is only reachable by people
@@ -639,9 +647,13 @@ class NetworkService:
         return await self._with_relationship(await self._visible(me, people))
 
     async def _visible(self, me: NetworkIdentity, people: list[NetworkIdentity]) -> list[NetworkIdentity]:
-        """Drop the members whose audience does not include me (a judicial officer's choice)."""
+        """Drop the members whose audience does not include me (a judicial officer's choice), and
+        members blocked either way."""
+        hidden = await blocks.hidden_user_ids(self.session, self.user_id)
         out = []
         for person in people:
+            if person.user_id in hidden:
+                continue
             if await self.visible_to(me, person):
                 out.append(person)
         return out
@@ -704,3 +716,30 @@ class NetworkService:
             **counts, "city": me.city, "discoverable": me.discoverable,
             "nearby": fresh(await self._with_relationship(nearby)), "recent": fresh(await self._with_relationship(recent)),
         }
+
+    # ── Blocking (22 Nov 2026) ──────────────────────────────────────
+    async def block(self, target_id: uuid.UUID) -> None:
+        if await self.identities.get(target_id) is None:
+            raise NotFoundError("This person is not on the network.")
+        await blocks.block(self.session, self.user_id, target_id)
+        # A block ends any connection or follow between the two.
+        existing = await self.connections.between(self.user_id, target_id)
+        if existing is not None:
+            await self.session.delete(existing)
+        for a, b in ((self.user_id, target_id), (target_id, self.user_id)):
+            follow = await self.session.scalar(select(Follow).where(Follow.follower_id == a, Follow.followee_id == b))
+            if follow is not None:
+                await self.session.delete(follow)
+        await self.session.flush()
+
+    async def unblock(self, target_id: uuid.UUID) -> bool:
+        return await blocks.unblock(self.session, self.user_id, target_id)
+
+    async def blocked_people(self) -> list[NetworkIdentity]:
+        ids = await blocks.blocked_ids(self.session, self.user_id)
+        if not ids:
+            return []
+        return list(await self.session.scalars(select(NetworkIdentity).where(NetworkIdentity.user_id.in_(ids)).order_by(NetworkIdentity.display_name)))
+
+    async def is_blocked(self, target_id: uuid.UUID) -> bool:
+        return target_id in await blocks.blocked_ids(self.session, self.user_id)

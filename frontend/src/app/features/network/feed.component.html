@@ -273,7 +273,7 @@
       } @else if (reportingPost() === post.id) {
         <section class="vs-report-panel" aria-label="Report post">
           <div class="flex items-center gap-2"><mat-icon class="material-icons-outlined text-danger">flag</mat-icon><strong>Report this post</strong></div>
-          <p class="text-xs text-content-muted mt-1">This creates a confidential case for the VidhiSangh Grievance Cell.</p>
+          <p class="text-xs text-content-muted mt-1">This creates a confidential case for the VidhiSangh Grievance Cell. You can also <button type="button" class="text-danger underline" (click)="blockAuthor(post)">block {{ post.author_name }}</button>: their posts and messages disappear for you.</p>
           <div class="grid md:grid-cols-[12rem_1fr] gap-2 mt-3">
             <select class="vs-input" [(ngModel)]="reportCategory" aria-label="Report category">
               <option value="spam">Spam</option><option value="harassment">Harassment</option>

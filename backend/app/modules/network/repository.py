@@ -192,9 +192,9 @@ class PostRepository:
         return res.scalar_one_or_none()
 
     async def feed(
-        self, network_ids: set[uuid.UUID], limit: int, offset: int
+        self, network_ids: set[uuid.UUID], limit: int, offset: int, exclude_authors: set[uuid.UUID] | None = None,
     ) -> list[Post]:
-        # Posts from the viewer's network, plus any public post.
+        # Posts from the viewer's network, plus any public post; never from members blocked either way.
         author_filter = Post.author_id.in_(network_ids) if network_ids else None
         visibility_filter = Post.visibility == PostVisibility.PUBLIC
         where = (
@@ -202,9 +202,10 @@ class PostRepository:
             if author_filter is not None
             else visibility_filter
         )
+        hidden = [Post.author_id.not_in(exclude_authors)] if exclude_authors else []
         res = await self.session.execute(
             select(Post)
-            .where(where, Post.deleted_at.is_(None))
+            .where(where, Post.deleted_at.is_(None), *hidden)
             .order_by(Post.created_at.desc())
             .limit(limit)
             .offset(offset)

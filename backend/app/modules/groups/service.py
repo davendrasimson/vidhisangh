@@ -15,6 +15,7 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.modules.network.blocks import hidden_user_ids
 from app.core.exceptions import (
     ConflictError,
     NotFoundError,
@@ -429,7 +430,8 @@ class GroupService:
         self, group_id: uuid.UUID, limit: int, offset: int
     ) -> tuple[list[GroupPost], set[uuid.UUID]]:
         await self._require_active_member(group_id)
-        posts = await self.posts.list_for_group(group_id, limit, offset)
+        hidden = await hidden_user_ids(self.session, self.user_id)
+        posts = [p for p in await self.posts.list_for_group(group_id, limit, offset) if p.author_id not in hidden]
         liked = await self.likes.liked_post_ids(self.user_id, [p.id for p in posts])
         return posts, liked
 
@@ -499,7 +501,8 @@ class GroupService:
         if post is None:
             raise NotFoundError("Post not found.")
         await self._require_active_member(post.group_id)
-        return await self.comments.list_for_post(post_id)
+        hidden = await hidden_user_ids(self.session, self.user_id)
+        return [c for c in await self.comments.list_for_post(post_id) if c.author_id not in hidden]
 
     async def delete_comment(self, comment_id: uuid.UUID) -> None:
         comment = await self.comments.get(comment_id)
@@ -514,3 +517,12 @@ class GroupService:
         comment.deleted_at = datetime.now(UTC)
         if post is not None:
             post.comment_count = max(0, post.comment_count - 1)
+
+    async def post_for_report(self, post_id: uuid.UUID) -> GroupPost:
+        post = await self.posts.get(post_id)
+        if post is None:
+            raise NotFoundError("Post not found.")
+        await self._require_active_member(post.group_id)
+        if post.author_id == self.user_id:
+            raise ValidationError("You cannot report your own post.")
+        return post

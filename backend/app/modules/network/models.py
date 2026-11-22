@@ -294,3 +294,16 @@ class OfficialPost(AuditedBase):
     kind: Mapped[str] = mapped_column(String(20), nullable=False)
     ref: Mapped[str] = mapped_column(String(100), nullable=False)
     post_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+
+
+class UserBlock(AuditedBase):
+    """One member blocking another (22 Nov 2026, App Store guideline 1.2: user content needs a way to
+    block abusive members). While it stands, neither sees the other's posts, comments or directory
+    entry, neither can connect with, follow or message the other, and the blocker's profile is not
+    reachable by the blocked member. Global table: blocks cross tenants like the network itself."""
+
+    __tablename__ = "user_blocks"
+    __table_args__ = (UniqueConstraint("blocker_id", "blocked_id", name="uq_user_block_pair"),)
+
+    blocker_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, index=True)
+    blocked_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, index=True)

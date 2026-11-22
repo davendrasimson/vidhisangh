@@ -91,6 +91,40 @@ class SupportService:
                 logger.warning("support ticket alert failed: %s", type(exc).__name__)
         return await self._get(ticket.id)
 
+    async def report_group_post(
+        self, post, *, group_name: str, name: str, email: str | None, category: str, reason: str
+    ) -> SupportTicket:
+        """A group post reported to the Grievance Cell (22 Nov 2026): same ticket as a feed post,
+        keyed by the page URL since group posts are a separate table."""
+        page_url = f"https://vidhisangh.com/app/groups/{post.group_id}?post={post.id}"
+        duplicate = await self.session.scalar(
+            select(SupportTicket).where(
+                SupportTicket.requester_id == self.user_id,
+                SupportTicket.page_url == page_url,
+                SupportTicket.status != TicketStatus.CLOSED,
+                SupportTicket.deleted_at.is_(None),
+            )
+        )
+        if duplicate is not None:
+            raise ValidationError(f"This post is already under review in grievance {duplicate.ticket_number}.")
+        ticket = SupportTicket(
+            tenant_id=self.tenant_id,
+            ticket_number=f"VS-{datetime.now(UTC):%Y%m}-{secrets.token_hex(3).upper()}",
+            requester_id=self.user_id,
+            requester_name=name,
+            requester_email=email or "",
+            subject=f"Reported group post by {post.author_name} in {group_name}",
+            description=f"Reason: {category.replace('_', ' ').title()}\n\n{reason}",
+            category="post_report",
+            priority="high",
+            page_url=page_url,
+            reported_user_id=post.author_id,
+            report_context={"author_name": post.author_name, "group": group_name, "content": post.content[:4000]},
+        )
+        self.session.add(ticket)
+        await self.session.flush()
+        return ticket
+
     async def report_post(
         self, post: Post, *, name: str, email: str | None, category: str, reason: str
     ) -> SupportTicket:
