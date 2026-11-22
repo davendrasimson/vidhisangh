@@ -160,6 +160,14 @@ pricing worldwide, review contact and the demo account). Two Apple compliance qu
 interface and were done by the owner. The Firebase iOS app exists and its plist is in the owner's private folder; the APNs key
 (`S387Z4YSD5`) must be uploaded under Firebase → Cloud Messaging for delivery to work.
 
+**App Review, 22 Nov 2026.** Version 1.0.6 (build 2) was rejected; the reason is only in the
+Resolution Center. Pre-emptively, the app no longer shows plan prices or a plan purchase
+(App Store guideline 3.1.1): in the native app the Subscription screen shows the current plan
+and usage only and the Settings tile is hidden (`isNativeApp()`); the website is unchanged.
+Build 3 carries this, is attached to 1.0.6 and awaits resubmission once the rejection text is
+known. TestFlight: internal group (team) and external group "VidhiSangh testers"
+(ds@…, sushma@…); external builds need Apple's Beta App Review, one build per train at a time.
+
 **Without a Mac: Codemagic.** `codemagic.yaml` at the repo root builds, signs and uploads
 to TestFlight on Codemagic's hosted Macs (free tier: 500 minutes a month; a build is about
 15). Steps 4 to 7 above become: in Codemagic, connect the repo, add the App Store Connect
