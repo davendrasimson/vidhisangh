@@ -262,6 +262,8 @@ import { LanguageToggleComponent } from '@core/i18n/language-toggle.component';
         place-items: center;
         padding: 2rem;
         background: rgb(var(--vs-surface-sunken));
+        /* iPhone: stay below the status bar (viewport-fit=cover; 24 Nov 2026). */
+        padding-top: env(safe-area-inset-top, 0px);
       }
 
       /* Sized for the widest child (registration); login fills the same

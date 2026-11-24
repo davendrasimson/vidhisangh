@@ -637,7 +637,7 @@ button[color='primary'].mat-mdc-unelevated-button {
    room for the tab bar so the composer is never hidden behind it (3 Nov 2026). */
 .vs-messages { height: calc(100dvh - 7rem); }
 @media (max-width: 767px) {
-  .vs-messages { height: calc(100dvh - 56px - 0.75rem - 72px - env(safe-area-inset-bottom, 0px)); }
+  .vs-messages { height: calc(100dvh - 56px - env(safe-area-inset-top, 0px) - 0.75rem - 72px - env(safe-area-inset-bottom, 0px)); }
 }
 .vs-send-btn {
   flex-shrink: 0; width: 42px; height: 42px; border: 0; border-radius: 50%;

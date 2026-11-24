@@ -176,6 +176,12 @@ the API); member blocking and group-post reporting were built the same day (buil
 is made by the owner on the iPhone from TestFlight build 4 and attached with
 `appStoreReviewAttachments` through the API before resubmission.
 
+**iPhone status bar (24 Nov 2026).** The first TestFlight recordings showed the top bar under the
+clock and battery: `index.html` lacked `viewport-fit=cover` and nothing applied
+`env(safe-area-inset-top)`. Fixed in the shell top bar (`.vs-topbar` height and padding), the
+sign-in layout (`.auth__panel`) and the messages height. Screens reach installed builds through
+the live update (`publish-app-update --platform ios`); build 5 bundles them for App Review.
+
 **Without a Mac: Codemagic.** `codemagic.yaml` at the repo root builds, signs and uploads
 to TestFlight on Codemagic's hosted Macs (free tier: 500 minutes a month; a build is about
 15). Steps 4 to 7 above become: in Codemagic, connect the repo, add the App Store Connect

@@ -60,6 +60,13 @@ test('the page never asks for viewport-fit=cover (app would draw under the syste
   // Capacitor's SystemBars checks the viewport once at load. With `cover` on
   // WebView 140+ it hands the insets to page CSS, and this app has none.
   assert.doesNotMatch(read('src/index.html'), /viewport-fit\s*=\s*cover/);
+  // iOS is the opposite case (the web view runs under the status bar): the shell switches the
+  // viewport to `cover` at runtime on iOS only, and the top bar pads with the safe-area inset.
+  const shell = read('src/app/core/platform/native-shell.ts');
+  assert.match(shell, /getPlatform\(\) === 'ios'/);
+  assert.match(shell, /viewport-fit=cover/);
+  assert.match(read('src/app/layout/shell/shell.component.scss'), /env\(safe-area-inset-top/);
+  assert.match(read('src/app/features/auth/auth-layout.component.ts'), /env\(safe-area-inset-top/);
 });
 
 test('live screen updates come only from vidhisangh.com, never the Capgo cloud', () => {

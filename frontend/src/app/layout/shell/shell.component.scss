@@ -195,8 +195,10 @@
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  height: 56px;
-  padding: 0 0.75rem;
+  /* iPhone: the web view runs under the status bar (viewport-fit=cover); the bar keeps its
+     56px of controls below the inset instead of under the clock and battery (24 Nov 2026). */
+  height: calc(56px + env(safe-area-inset-top, 0px));
+  padding: env(safe-area-inset-top, 0px) 0.75rem 0;
   background: rgb(var(--vs-surface-raised));
   border-bottom: 1px solid rgb(var(--vs-border));
   color: rgb(var(--vs-text));
