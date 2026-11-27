@@ -195,10 +195,16 @@ the one Apple signs in with.
 sign-in, post, people, research, matter, settings, account deletion) is attached to version 1.0.6
 as an App Review attachment (`~/.config/vidhisangh-ios/asc_attach.py <version-id> <file>`:
 reserve → chunked upload → commit with MD5; state COMPLETE). It does not show Block or Report,
-which Apple named, so a second short clip (member page → Block; post flag → Report) is being
-recorded before submitting. Submit = resolve the rejected `reviewSubmission` c7f19226 (PATCH
-`submitted: true`, or a new submission + item for the version if Apple refuses the old one).
-Build 5 is attached, review notes and demo account are set. The sign-out call after deletion
+which Apple named, so the owner recorded a second clip (Report a post with reason and
+confirmation; member page → Block → confirm → Unblock). **Only one attachment is allowed per
+version**, so the two clips were joined with ffmpeg (concat demuxer, re-encoded 30 fps) into one
+7:33 video, the first attachment deleted and the joined file uploaded; the review notes end with
+the timings of each step. **Resubmitted 27 Nov 2026 (WAITING_FOR_REVIEW)** with build 5. The
+API sequence that worked: PATCH the rejected `reviewSubmissionItem` with `resolved: true`
+(state → READY_FOR_REVIEW), then PATCH the `reviewSubmission` with `submitted: true`. Trying
+`submitted` first gives "Version is not ready to be submitted yet"; creating a second
+`reviewSubmission` is refused (the version already belongs to the first) and the empty one
+cannot be deleted or cancelled. The sign-out call after deletion
 used to toast "No active session matched the request" (400 from `/auth/logout`); it is now
 silent (`SILENT_ERRORS` context) and shipped by live update.
 
