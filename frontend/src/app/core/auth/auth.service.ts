@@ -1,4 +1,4 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, firstValueFrom } from 'rxjs';
@@ -7,6 +7,7 @@ import { environment } from '@env/environment';
 import { clearReferral, pendingReferral } from '@core/services/referral-capture';
 import { AuthSession, LoginRequest, OAuthAuthorize, RegisterRequest, RegistrationPending, PhoneOtpResponse, SsoProvider, TokenPair, User, WhatsAppSignupRequest, WhatsAppSignupRequired } from '@core/models/auth.models';
 import { TokenService } from './token.service';
+import { SILENT_ERRORS } from '@core/interceptors/error.interceptor';
 
 /** sessionStorage key: which SSO provider the callback page is finishing. */
 export const SSO_PROVIDER_KEY = 'vs_sso_provider';
@@ -259,7 +260,9 @@ export class AuthService {
         this.http.post(
           `${this.api}/auth/logout`,
           { all_devices: allDevices },
-          { withCredentials: true, headers: CSRF_HEADER },
+          // Silent: "nothing to revoke" (sessions already gone, e.g. right
+          // after the account was deleted) is not news for the person.
+          { withCredentials: true, headers: CSRF_HEADER, context: new HttpContext().set(SILENT_ERRORS, true) },
         ),
       );
     } catch {
