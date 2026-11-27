@@ -182,6 +182,15 @@ clock and battery: `index.html` lacked `viewport-fit=cover` and nothing applied
 sign-in layout (`.auth__panel`) and the messages height. Screens reach installed builds through
 the live update (`publish-app-update --platform ios`); build 5 bundles them for App Review.
 
+**Account deletion for solo members (27 Nov 2026).** The recording's deletion step hit "You are
+the only active administrator of this organisation" — every sign-up is a one-person organisation,
+so the last-admin guard blocked every solo advocate (and the reviewer's throwaway account).
+`UserPrivacyService.erase` now cancels the organisation along with the account when the deleting
+person is its only active member (tenant `cancelled`, `erase_after` = grace period, audit
+`tenant.cancelled`); the guard stays for an only-admin who has colleagues. Backend change, so it
+reaches every installed build at once. The demo account `play-review@…` is never deleted: it is
+the one Apple signs in with.
+
 **Without a Mac: Codemagic.** `codemagic.yaml` at the repo root builds, signs and uploads
 to TestFlight on Codemagic's hosted Macs (free tier: 500 minutes a month; a build is about
 15). Steps 4 to 7 above become: in Codemagic, connect the repo, add the App Store Connect

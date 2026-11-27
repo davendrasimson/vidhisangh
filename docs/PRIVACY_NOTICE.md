@@ -74,7 +74,7 @@ The retention job runs nightly (`infra/jobs/vidhisangh-retention.timer`). Period
 |---|---|
 | **Access** (s.11) — a copy of everything we hold about you | Settings → Privacy & data → *Download my data* (JSON), or `GET /api/v1/privacy/me/export` |
 | **Correction and completion** (s.12) | Edit your profile and account directly; ask the Grievance Officer for anything you cannot edit |
-| **Erasure** (s.12) | Settings → Privacy & data → *Delete my account* (password required). Your account is anonymised at once and your sessions revoked. If you are the only administrator of your firm, transfer that role first or delete the organisation instead. Audit entries naming you are retained under s.17(1)(a) |
+| **Erasure** (s.12) | Settings → Privacy & data → *Delete my account* (password required). Your account is anonymised at once and your sessions revoked. If you are the only member of your organisation, the organisation is cancelled with your account and erased after the grace period. If you are its only administrator but have colleagues, transfer that role first or delete the organisation instead. Audit entries naming you are retained under s.17(1)(a) |
 | **Withdraw consent** (s.6(4)) | Untick a notification channel, opt out of the directory, switch off your public profile page, or delete the account. Withdrawal is as easy as giving consent and does not affect processing done before it |
 | **Grievance redressal** (s.13) | Write to the Grievance Officer (section 10). We acknowledge within 7 days and respond within 30 days |
 | **Nominate** (s.14) | E-mail the Grievance Officer with the nominee's details; we will record them against your account |

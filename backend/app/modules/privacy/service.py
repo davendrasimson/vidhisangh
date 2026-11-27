@@ -179,22 +179,56 @@ class UserPrivacyService:
         )
         return rows.first() is not None
 
+    async def _other_active_member_exists(self, user: User) -> bool:
+        rows = await self.session.execute(
+            select(User.id).where(User.tenant_id == user.tenant_id, User.id != user.id,
+                                  User.is_active.is_(True), User.deleted_at.is_(None)).limit(1)
+        )
+        return rows.first() is not None
+
+    async def _cancel_organisation(self, user: User, *, actor_label: str | None, now: datetime) -> None:
+        """A solo member's organisation goes with the account: cancelled now,
+        erased by the retention job after the grace period (same as the
+        organisation-level delete, minus the slug confirmation — there is
+        nobody else's data in it)."""
+        from app.modules.tenancy.models import TenantStatus
+
+        tenant = await self.session.get(Tenant, user.tenant_id)
+        if tenant is None or tenant.status == TenantStatus.CANCELLED:
+            return
+        tenant.status = TenantStatus.CANCELLED
+        tenant.cancelled_at = now
+        tenant.erase_after = now + timedelta(days=int(privacy_setting("TENANT_ERASE_GRACE_DAYS")))
+        record_audit(
+            self.session, tenant_id=self.tenant_id, actor_id=user.id, actor_label=actor_label,
+            action="tenant.cancelled", entity_type="tenant", entity_id=str(tenant.id),
+            summary=f"Organisation cancelled with its only member's account; erasure scheduled after {tenant.erase_after.date().isoformat()}",
+            meta={"users_disabled": 1, "erase_after": tenant.erase_after.isoformat(), "via": "user.erased"},
+        )
+
     async def erase(self, *, password: str, actor_label: str | None) -> dict:
         """Anonymise the account and remove what identifies the person.
 
         Kept: audit-log rows (legal obligation — DPDP s.17(1)(a)), the firm's
         practice records the user authored (matters, documents, drafts: they
         are the firm's, not the user's), with author snapshots anonymised.
+
+        The only active member of an organisation (every solo advocate: a
+        sign-up creates a one-person organisation) takes the organisation
+        with them; an administrator with colleagues must hand over first.
         """
         user = await self._user()
         if user.hashed_password and not security.verify_password(password, user.hashed_password):
             raise AuthenticationError("Password is incorrect.")
         is_owner = any(r.code == OWNER_ROLE for r in user.roles)
+        cancel_organisation = False
         if is_owner and not await self._other_active_owner_exists(user):
-            raise ConflictError(
-                "You are the only active administrator of this organisation. Make another user an "
-                "org_admin first, or delete the organisation from Settings → Privacy & data."
-            )
+            if await self._other_active_member_exists(user):
+                raise ConflictError(
+                    "You are the only active administrator of this organisation. Make another user an "
+                    "org_admin first, or delete the organisation from Settings → Privacy & data."
+                )
+            cancel_organisation = True
         uid = user.id
         now = datetime.now(UTC)
         anon_email = f"deleted+{uuid.uuid4()}@anonymised.invalid"
@@ -262,6 +296,8 @@ class UserPrivacyService:
         user.is_email_verified = False
         user.deleted_at = now
         user.roles = []
+        if cancel_organisation:
+            await self._cancel_organisation(user, actor_label=actor_label, now=now)
 
         record_audit(
             self.session, tenant_id=self.tenant_id, actor_id=uid, actor_label=actor_label,
@@ -274,6 +310,7 @@ class UserPrivacyService:
         return {
             "user_id": uid, "erased": True, "anonymised_email": anon_email,
             "sessions_revoked": len(tokens), "api_keys_revoked": len(keys),
+            "organisation_cancelled": cancel_organisation,
         }
 
 

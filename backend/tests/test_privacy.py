@@ -325,8 +325,12 @@ async def test_registration_records_terms_and_user_can_export_and_erase(
     assert bundle["sessions"] and "token_hash" not in bundle["sessions"][0]
     assert bundle["network_identity"] and bundle["network_identity"]["discoverable"] is True  # listed by default (1 Nov 2026)
 
-    # Wrong password → 401; sole org_admin → 409.
+    # Wrong password → 401; the only admin WITH colleagues → 409 (hand over first).
     assert (await client.post(f"{API}/privacy/me/delete", headers=h, json={"password": "Wrong!Pass#1"})).status_code == 401
+    added = await client.post(f"{API}/tenants/users", headers=h, json={
+        "email": "junior@firm.co", "full_name": "Junior", "role_codes": ["junior_advocate"],
+    })
+    assert added.status_code == 201, added.text
     assert (await client.post(f"{API}/privacy/me/delete", headers=h, json={"password": PW})).status_code == 409
     added = await client.post(f"{API}/tenants/users", headers=h, json={
         "email": "second@firm.co", "full_name": "Second Admin", "role_codes": ["org_admin"],
@@ -336,6 +340,7 @@ async def test_registration_records_terms_and_user_can_export_and_erase(
     done = await client.post(f"{API}/privacy/me/delete", headers=h, json={"password": PW})
     assert done.status_code == 200, done.text
     assert done.json()["erased"] is True and done.json()["anonymised_email"].endswith("@anonymised.invalid")
+    assert done.json()["organisation_cancelled"] is False  # colleagues keep the organisation
     assert (await client.post(f"{API}/auth/login", json={"email": "self@firm.co", "password": PW})).status_code in (401, 403)
     async with session_factory() as s:
         row = await s.scalar(select(User).where(User.id == uuid.UUID(me["id"])))
@@ -347,6 +352,28 @@ async def test_registration_records_terms_and_user_can_export_and_erase(
         assert await s.scalar(select(NetworkIdentity).where(NetworkIdentity.user_id == row.id)) is None
         from app.modules.audit.models import AuditEvent
         assert await s.scalar(select(AuditEvent).where(AuditEvent.action == "user.erased")) is not None
+
+
+async def test_solo_member_delete_cancels_organisation(client: AsyncClient, session_factory: async_sessionmaker) -> None:
+    """A sign-up is a one-person organisation; its only member deletes the
+    account in one step and the organisation is cancelled with it (erased by
+    the retention job after the grace period). No 'make another admin first'."""
+    from app.modules.tenancy.models import Tenant, TenantStatus
+
+    h, me = await _register(client, "Solo Advocate", "solo@firm.co")
+    done = await client.post(f"{API}/privacy/me/delete", headers=h, json={"password": PW})
+    assert done.status_code == 200, done.text
+    assert done.json()["erased"] is True and done.json()["organisation_cancelled"] is True
+    assert (await client.post(f"{API}/auth/login", json={"email": "solo@firm.co", "password": PW})).status_code in (401, 403)
+    async with session_factory() as s:
+        row = await s.scalar(select(User).where(User.id == uuid.UUID(me["id"])))
+        assert row.is_active is False and row.deleted_at is not None
+        tenant = await s.get(Tenant, row.tenant_id)
+        assert tenant.status == TenantStatus.CANCELLED and tenant.cancelled_at is not None
+        assert tenant.erase_after is not None and tenant.erase_after > tenant.cancelled_at
+        from app.modules.audit.models import AuditEvent
+        assert await s.scalar(select(AuditEvent).where(
+            AuditEvent.action == "tenant.cancelled", AuditEvent.tenant_id == tenant.id)) is not None
 
 
 # ═══ P-1 (g) — rights requests ═══════════════════════════════════════

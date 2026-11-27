@@ -46,6 +46,7 @@ class UserDeleteResult(BaseModel):
     anonymised_email: str
     sessions_revoked: int
     api_keys_revoked: int
+    organisation_cancelled: bool = False
     note: str = (
         "Audit-log rows naming this account are retained (DPDP s.8(7)/s.17(1)(a): "
         "legal obligation and the firm's own record-keeping)."
