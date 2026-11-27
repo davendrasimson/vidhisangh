@@ -191,6 +191,17 @@ person is its only active member (tenant `cancelled`, `erase_after` = grace peri
 reaches every installed build at once. The demo account `play-review@…` is never deleted: it is
 the one Apple signs in with.
 
+**Resubmission state (27 Nov 2026).** The owner's 5-minute iPhone recording (sign-up attempt,
+sign-in, post, people, research, matter, settings, account deletion) is attached to version 1.0.6
+as an App Review attachment (`~/.config/vidhisangh-ios/asc_attach.py <version-id> <file>`:
+reserve → chunked upload → commit with MD5; state COMPLETE). It does not show Block or Report,
+which Apple named, so a second short clip (member page → Block; post flag → Report) is being
+recorded before submitting. Submit = resolve the rejected `reviewSubmission` c7f19226 (PATCH
+`submitted: true`, or a new submission + item for the version if Apple refuses the old one).
+Build 5 is attached, review notes and demo account are set. The sign-out call after deletion
+used to toast "No active session matched the request" (400 from `/auth/logout`); it is now
+silent (`SILENT_ERRORS` context) and shipped by live update.
+
 **Without a Mac: Codemagic.** `codemagic.yaml` at the repo root builds, signs and uploads
 to TestFlight on Codemagic's hosted Macs (free tier: 500 minutes a month; a build is about
 15). Steps 4 to 7 above become: in Codemagic, connect the repo, add the App Store Connect
